@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example to demonstrate how to open an digital I/O device from Interface and</c>
+<c>* how to read values of the digital input</c>
+<c>* </c>
+<c>* </c>
+<c>* Query the revision</c>
+<l>query_io_interface ('Interface', 'revision', IoRevision)</l>
+<c>* </c>
+<c>* Query currently installed I/O devices</c>
+<l>query_io_interface ('Interface', 'io_device_names', DeviceName)</l>
+<c>* </c>
+<c>* Open the first device.</c>
+<l>open_io_device ('Interface', DeviceName[0], [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* Get the device name</c>
+<l>get_io_device_param (IoDeviceHandle, 'io_device_name', IoDeviceName)</l>
+<c>* </c>
+<c>* Query all input channels of the device or only the digital input channels</c>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names', ChannelsAll)</l>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names.digital_input', ChannelsInput)</l>
+<c>* </c>
+<c>* Get the range of a channel. Just for demonstration, we pick the first one.</c>
+<l>query_io_device (IoDeviceHandle, ChannelsAll[0], 'value.range', ChannelRange0)</l>
+<c>* </c>
+<l>if (|ChannelsInput| == 0)</l>
+<c>    * No input channels supported by this device</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Show how to access a single channel</c>
+<l>get_channels_indices (ChannelsInput, Indices)</l>
+<c>* </c>
+<c>* Open first channel provided by ChannelsInput</c>
+<l>Channel0 := Indices[0]</l>
+<l>open_io_channel (IoDeviceHandle, ChannelsInput[Channel0], [], [], IoHandle0)</l>
+<c>* </c>
+<c>* Open second channel provided by ChannelsInput</c>
+<l>Channel1 := Indices[1]</l>
+<l>open_io_channel (IoDeviceHandle, ChannelsInput[Channel1], [], [], IoHandle1)</l>
+<c>* </c>
+<c>* Get the range of the channel. In case of an channel (bit) the value could only be one or zero.</c>
+<l>get_io_channel_param (IoHandle0, 'value.range', ChannelsRange1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read single values from one input channel</c>
+<l>for Index := 1 to 5 by 1</l>
+<c>    * Read channel selected via open_io_channel</c>
+<c>    * If channel is used, only values between 0 and 1 are possible.</c>
+<c>    * In case of a port, the range depends on the port width.</c>
+<l>    read_io_channel (IoHandle0, Value0, Status0)</l>
+<l>    read_io_channel (IoHandle1, Value1, Status1)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Read from multiple input channels.</c>
+<l>read_io_channel ([IoHandle0,IoHandle1], Value, Status)</l>
+<c>* </c>
+<c>* Cleanup previous initialized handles</c>
+<l>close_io_channel ([IoHandle0,IoHandle1])</l>
+<c>* </c>
+<c>* Open all channels provided by one port, not only a single channel (bit).</c>
+<c>* Find the ports.</c>
+<l>get_port_indices (ChannelsInput, Indices)</l>
+<c>* </c>
+<c>* Open a port</c>
+<l>Port := Indices[0]</l>
+<l>open_io_channel (IoDeviceHandle, ChannelsInput[Port], [], [], IoHandle)</l>
+<c>* </c>
+<c>* Get the range. The possible range depends on the port size.</c>
+<l>get_io_channel_param (IoHandle, 'value.range', ChannelsRange1)</l>
+<c>* </c>
+<c>* Read single values from one input channel</c>
+<l>read_io_channel (IoHandle, Value, Status)</l>
+<l>HexOutputValue := Value$'#x'</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>close_io_channel (IoHandle)</l>
+<l>close_io_device (IoDeviceHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_channels_indices">
+<interface>
+<ic>
+<par name="Channels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Indices" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_regexp_match (Channels, 'd[io]_...$', Matches)</l>
+<l>tuple_strstr (Matches, '_', Position)</l>
+<l>tuple_find (Position, 2, Indices)</l>
+<l>return ()</l>
+</body>
+<docu id="get_channels_indices">
+<parameters>
+<parameter id="Channels"/>
+<parameter id="Indices"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_port_indices">
+<interface>
+<ic>
+<par name="Channels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Indices" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_regexp_match (Channels, '-*', Matches)</l>
+<l>tuple_strstr (Matches, '-', Position)</l>
+<l>tuple_find (Position, 0, Indices)</l>
+<l>return ()</l>
+</body>
+<docu id="get_port_indices">
+<parameters>
+<parameter id="Channels"/>
+<parameter id="Indices"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

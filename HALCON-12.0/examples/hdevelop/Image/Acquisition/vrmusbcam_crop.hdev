@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a VRmagic USB camera</c>
+<c>* (image cropping)</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('VRmUsbCam', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('VRmUsbCam', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open VRmagic USB camera with full image part</c>
+<l>open_framegrabber ('VRmUsbCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, ['horizontal_resolution','vertical_resolution'], SensorSize)</l>
+<l>get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageSize[0], ImageSize[1], 'black', WindowHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'cam_exposure_time_f', Exposure)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<l>halfWidth := (SensorSize[0] / 2) - ((SensorSize[0] / 2) % 2)</l>
+<l>halfHeight := (SensorSize[1] / 2) - ((SensorSize[1] / 2) % 2)</l>
+<c>* </c>
+<c>* open VRmagic USB Camera with varying image part</c>
+<c>* (via open_framegrabbber)</c>
+<l>for UpperLeftRow := 0 to SensorSize[1] / 2 by 64</l>
+<l>    for UpperLeftColumn := 0 to SensorSize[0] / 2 by 64</l>
+<l>        open_framegrabber ('VRmUsbCam', 1, 1, halfWidth, halfHeight, UpperLeftRow, UpperLeftColumn, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>        get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>        get_framegrabber_param (AcqHandle, ['start_row','start_column'], UpperLeftCorner)</l>
+<l>        dev_open_window (UpperLeftRow, UpperLeftColumn, ImageSize[0], ImageSize[1], 'black', WindowHandle)</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        wait_seconds (0.5)</l>
+<l>        dev_close_window ()</l>
+<l>        close_framegrabber (AcqHandle)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<c>* open VRmagic USB Camera with varying image part</c>
+<c>* (via set_framegrabber_param)</c>
+<l>open_framegrabber ('VRmUsbCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, ['image_width','image_height'], [halfWidth,halfHeight])</l>
+<l>for UpperLeftRow := 0 to SensorSize[1] / 2 by 64</l>
+<l>    for UpperLeftColumn := 0 to SensorSize[0] / 2 by 64</l>
+<l>        set_framegrabber_param (AcqHandle, ['start_row','start_column'], [UpperLeftRow,UpperLeftColumn])</l>
+<l>        get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>        get_framegrabber_param (AcqHandle, ['start_row','start_column'], UpperLeftCorner)</l>
+<l>        dev_open_window (UpperLeftRow, UpperLeftColumn, ImageSize[0], ImageSize[1], 'black', WindowHandle)</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        wait_seconds (0.5)</l>
+<l>        dev_close_window ()</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

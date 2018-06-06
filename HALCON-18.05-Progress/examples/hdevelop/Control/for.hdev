@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Inspection of Ball Bonding</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 728, 512, 'black', WindowID)</l>
+<l>read_image (Bond, 'die/die_03')</l>
+<l>dev_display (Bond)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>threshold (Bond, Bright, 100, 255)</l>
+<l>shape_trans (Bright, Die, 'rectangle2')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Die)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>reduce_domain (Bond, Die, DieGrey)</l>
+<l>threshold (DieGrey, Wires, 0, 50)</l>
+<l>fill_up_shape (Wires, WiresFilled, 'area', 1, 100)</l>
+<l>dev_display (Bond)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (WiresFilled)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>opening_circle (WiresFilled, Balls, 15.5)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Balls)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>connection (Balls, SingleBalls)</l>
+<l>select_shape (SingleBalls, IntermediateBalls, 'circularity', 'and', 0.85, 1.0)</l>
+<l>sort_region (IntermediateBalls, FinalBalls, 'first_point', 'true', 'column')</l>
+<l>dev_display (Bond)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (FinalBalls)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>smallest_circle (FinalBalls, Row, Column, Radius)</l>
+<l>NumBalls := |Radius|</l>
+<l>Diameter := 2 * Radius</l>
+<l>meanDiameter := sum(Diameter) / NumBalls</l>
+<l>mimDiameter := min(Diameter)</l>
+<l>dev_display (Bond)</l>
+<l>disp_circle (WindowID, Row, Column, Radius)</l>
+<l>dev_set_color ('white')</l>
+<l>for I := 0 to NumBalls - 1 by 1</l>
+<l>    if (fmod(I,2) == 0)</l>
+<l>        disp_message (WindowID, 'D: ' + Diameter[I]$'.1f', 'image', Row[I] - 2.7 * Radius[I], max([Column[I] - 20,0]), 'white', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowID, 'D: ' + Diameter[I]$'.1f', 'image', Row[I] + 1.2 * Radius[I], max([Column[I] - 20,0]), 'white', 'false')</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

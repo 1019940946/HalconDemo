@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Approximation of XLD contours by ellipses or elliptic arcs</c>
+<c>* </c>
+<l>gen_image_const (Image, 'byte', 400, 400)</l>
+<l>dev_set_color ('green')</l>
+<l>gen_ellipse (Ellipse, 200, 200, rad(30), 150, 120)</l>
+<l>paint_region (Ellipse, Image, ImageEllipse, 255, 'fill')</l>
+<l>edges_sub_pix (ImageEllipse, EdgesComplete, 'mderiche2', 0.5, 20, 40)</l>
+<c>* First, the easy case:</c>
+<l>fit_ellipse_contour_xld (EdgesComplete, 'fitzgibbon', -1, 2, 0, 200, 3, 2, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<c>* Now simulate a fragmented ellipse:</c>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder, 1.5)</l>
+<l>gen_rectangle2 (Rectangle1, 200, 200, rad(30), 150, 2)</l>
+<l>gen_rectangle2 (Rectangle2, 200, 200, rad(120), 150, 2)</l>
+<l>union2 (Rectangle1, Rectangle2, Cross)</l>
+<l>complement (Cross, CrossComplement)</l>
+<l>reduce_domain (ImageEllipse, CrossComplement, ImageEllipseReduced)</l>
+<l>edges_sub_pix (ImageEllipseReduced, EdgesIncomplete, 'mderiche2', 0.5, 20, 40)</l>
+<c>* Now the difficult case:</c>
+<c>* First, make a fit to the individual arcs.</c>
+<l>fit_ellipse_contour_xld (EdgesIncomplete, 'fitzgibbon', -1, 2, 0, 200, 3, 2, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<c>* Now we would have to determine which elliptic arcs should be merged.</c>
+<c>* We assume that the customer is able to do this.</c>
+<c>* If not, this could be done by clustering the elliptic arcs based on the centers</c>
+<c>* and radii that result from the above fit.</c>
+<c>* </c>
+<c>* Now we have to determine in which order the arcs should be merged.</c>
+<c>* This can be done by sorting them according to their StartPhi.</c>
+<l>Order := sort_index(StartPhi)</l>
+<c>* Now construct a new contour from the coordinates of the segments to be merged:</c>
+<l>RowsMerged := []</l>
+<l>ColsMerged := []</l>
+<l>for I := 0 to |Order| - 1 by 1</l>
+<l>    select_obj (EdgesIncomplete, SelectedEdge, Order[I] + 1)</l>
+<l>    get_contour_xld (SelectedEdge, Rows, Cols)</l>
+<l>    if (PointOrder[Order[I]] == 'negative')</l>
+<l>        Rows := inverse(Rows)</l>
+<l>        Cols := inverse(Cols)</l>
+<l>    endif</l>
+<l>    RowsMerged := [RowsMerged,Rows]</l>
+<l>    ColsMerged := [ColsMerged,Cols]</l>
+<l>endfor</l>
+<l>dev_set_color ('blue')</l>
+<l>gen_contour_polygon_xld (Contour, RowsMerged, ColsMerged)</l>
+<l>fit_ellipse_contour_xld (Contour, 'fitzgibbon', -1, 2, 0, 200, 3, 2, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_ellipse_contour_xld (ContEllipseIncomplete, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder, 1.5)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

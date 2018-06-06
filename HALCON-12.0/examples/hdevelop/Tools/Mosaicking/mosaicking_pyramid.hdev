@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how images can be combined</c>
+<c>* into a mosaic image using proj_match_points_ransac_guided</c>
+<c>* and gen_projective_mosaic.</c>
+<c>* It is shown how the calculation of the projection between two</c>
+<c>* images can be accelerated using an image pyramid.</c>
+<c>* </c>
+<c>* Initializations</c>
+<l>ImgPath := '3d_machine_vision/mosaic/'</l>
+<l>ImgName := 'bga_r_'</l>
+<l>Times := []</l>
+<l>Colors := ['red','coral','yellow','lime green']</l>
+<l>read_image (Images, ImgPath + ImgName + ['01','06'])</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 640, 980, 320, 490, WindowHandle)</l>
+<l>dev_open_window_fit_size (0, 330, 490, 490, 1000, 490, WindowHandle1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<c>* The internal camera parameters of the used camera</c>
+<c>* (necessary to eliminate radial distortions)</c>
+<l>CamParam := [0.0121693,-2675.63,7.40046e-006,7.4e-006,290.491,258.887,640,480]</l>
+<l>change_radial_distortion_cam_par ('adaptive', CamParam, 0, CamParOut)</l>
+<l>change_radial_distortion_image (Images, Images, Images, CamParam, CamParOut)</l>
+<c>* To show the point matches that are used to compute the</c>
+<c>* transformation between the images, we will show both images in a</c>
+<c>* tiled image with some space between the images so that the extents</c>
+<c>* of the images are easily visible.</c>
+<l>tile_images_offset (Images, TiledImage, [0,500], [0,0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], 640, 980)</l>
+<c>* </c>
+<c>* Now we can determine the transformations between the image pairs.</c>
+<l>From := 1</l>
+<l>To := 2</l>
+<l>select_obj (Images, ImageF, From)</l>
+<l>select_obj (Images, ImageT, To)</l>
+<c>* </c>
+<c>* Repeat the calculation 4 times with a different number of pyramid levels</c>
+<l>for NumLevels := 1 to 4 by 1</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (TiledImage)</l>
+<l>    disp_message (WindowHandle, ['Calculate point matches','with ' + NumLevels + ' pyramid levels','Please wait ...'], 'window', 20, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Calculate the projection between the two images</c>
+<c>    * Check the procedure's comments for details</c>
+<l>    count_seconds (S1)</l>
+<l>    proj_match_points_ransac_pyramid (ImageF, ImageT, NumLevels, RowFAll, ColFAll, RowTAll, ColTAll, ProjMatrix, Points1, Points2)</l>
+<l>    count_seconds (S2)</l>
+<l>    Times := [Times,S2 - S1]</l>
+<c>    * </c>
+<c>    * Display point correspondences</c>
+<l>    gen_cross_contour_xld (PointsF, RowFAll, ColFAll, 6, rad(45))</l>
+<l>    gen_cross_contour_xld (PointsT, RowTAll + 500, ColTAll, 6, rad(45))</l>
+<l>    RowF := subset(RowFAll,Points1)</l>
+<l>    ColF := subset(ColFAll,Points1)</l>
+<l>    RowT := subset(RowTAll,Points2) + 500</l>
+<l>    ColT := subset(ColTAll,Points2)</l>
+<l>    gen_empty_obj (Matches)</l>
+<l>    for K := 0 to |RowF| - 1 by 1</l>
+<l>        gen_contour_polygon_xld (Match, [RowF[K],RowT[K]], [ColF[K],ColT[K]])</l>
+<l>        concat_obj (Matches, Match, Matches)</l>
+<l>    endfor</l>
+<l>    dev_display (TiledImage)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Matches)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (PointsF)</l>
+<l>    dev_display (PointsT)</l>
+<l>    disp_message (WindowHandle, [|RowF| + ' point matches','Time used: ' + (S2 - S1)$'.3' + ' s'], 'window', 20, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Generate the mosaic image</c>
+<l>    gen_projective_mosaic (Images, MosaicImage, 1, From, To, ProjMatrix, [2,1], 'false', MosaicMatrices2D)</l>
+<c>    * </c>
+<c>    * Display mosaic image</c>
+<l>    get_image_size (MosaicImage, Width, Height)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_resize_window_fit_image (MosaicImage, 0, 330, [400,700], 700)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (MosaicImage)</l>
+<l>    disp_message (WindowHandle1, 'Projective mosaic (used ' + NumLevels + ' pyramid levels)', 'window', 20, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display execution times</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_close_window ()</l>
+<l>MaxTime := max(Times)</l>
+<l>BaseRow := 380</l>
+<l>RectHeight := 300</l>
+<l>disp_message (WindowHandle1, ['Time in s:','(#levels used)'], 'image', BaseRow + 20, 10, 'black', 'true')</l>
+<l>for Index := 0 to |Times| - 1 by 1</l>
+<l>    gen_rectangle1 (Rectangle, BaseRow - RectHeight * Times[Index] / MaxTime, 200 + Index * 100, BaseRow, 280 + Index * 100)</l>
+<l>    disp_message (WindowHandle1, [Times[Index]$'.3','(' + (Index + 1) + ')'], 'image', BaseRow + 20, 200 + 100 * Index, 'black', 'true')</l>
+<l>    dev_set_color (Colors[Index])</l>
+<l>    dev_set_draw ('fill')</l>
+<l>    dev_display (Rectangle)</l>
+<l>endfor</l>
+<l>disp_finished_message (WindowHandle1, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="proj_match_points_ransac_pyramid">
+<interface>
+<io>
+<par name="ImageF" base_type="iconic" dimension="0"/>
+<par name="ImageT" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="NumLevels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="RowsF" base_type="ctrl" dimension="0"/>
+<par name="ColsF" base_type="ctrl" dimension="0"/>
+<par name="RowsT" base_type="ctrl" dimension="0"/>
+<par name="ColsT" base_type="ctrl" dimension="0"/>
+<par name="ProjMatrix" base_type="ctrl" dimension="0"/>
+<par name="Points1" base_type="ctrl" dimension="0"/>
+<par name="Points2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure uses an image pyramid to calculate</c>
+<c>* the projective transformation between two images.</c>
+<c>* </c>
+<c>* If UseRigidTransformation is set to true,</c>
+<c>* the results are restricted to rigid transformations</c>
+<c>* (instead of projective transformations)</c>
+<l>UseRigidTransformation := true</l>
+<c>* Parameters for the Harris point detector</c>
+<l>SigmaGrad := 0.7</l>
+<l>SigmaSmooth := 2</l>
+<l>Alpha := 0.04</l>
+<l>Threshold := 50</l>
+<c>* </c>
+<c>* Generate image pyramids for both input images</c>
+<l>gen_gauss_pyramid (ImageF, ImageFPyramid, 'constant', 0.5)</l>
+<l>gen_gauss_pyramid (ImageT, ImageTPyramid, 'constant', 0.5)</l>
+<c>* At the beginning, no approximated projection is known</c>
+<l>HomMat2DGuide := []</l>
+<c>* </c>
+<c>* Calculate projective transformation on each pyramid level</c>
+<l>for Level := NumLevels to 1 by -1</l>
+<c>    * Select images from image pyramid</c>
+<l>    select_obj (ImageFPyramid, ImageFLevel, Level)</l>
+<l>    select_obj (ImageTPyramid, ImageTLevel, Level)</l>
+<c>    * Extract interest points in both images</c>
+<l>    points_harris (ImageFLevel, SigmaGrad, SigmaSmooth, Alpha, Threshold, RowsF, ColsF)</l>
+<l>    points_harris (ImageTLevel, SigmaGrad, SigmaSmooth, Alpha, Threshold, RowsT, ColsT)</l>
+<c>    * Calculate projection from point correspondences</c>
+<l>    if (|HomMat2DGuide| == 0)</l>
+<c>        * On the highest pyramid level, use proj_mathc_points_ransac</c>
+<l>        get_image_size (ImageFLevel, Width, Height)</l>
+<l>        proj_match_points_ransac (ImageFLevel, ImageTLevel, RowsF, ColsF, RowsT, ColsT, 'ncc', 10, 0, 0, Height, Width, [rad(-40),rad(40)], 0.5, 'gold_standard', 2.5 * pow(2,4 - Level), 42, ProjMatrix, Points1, Points2)</l>
+<l>    else</l>
+<c>        * On lower levels, use approximation from upper level as</c>
+<c>        * input for proj_match_points_ransac_guided</c>
+<l>        proj_match_points_ransac_guided (ImageFLevel, ImageTLevel, RowsF, ColsF, RowsT, ColsT, 'ncc', 10, HomMat2DGuide, 10 * pow(2.0,4.0 - Level), 0.5, 'gold_standard', 2.5 * pow(2.0,4.0 - Level), 42, ProjMatrix, Points1, Points2)</l>
+<l>    endif</l>
+<l>    if (UseRigidTransformation)</l>
+<c>        * Use found point correspondences to calculate rigid transformation</c>
+<c>        * with vector_to_rigid</c>
+<c>        * Note, that the resulting transformation of proj_match_points_ransac_guided</c>
+<c>        * is ignored in this case.</c>
+<l>        RowF := subset(RowsF,Points1)</l>
+<l>        ColF := subset(ColsF,Points1)</l>
+<l>        RowT := subset(RowsT,Points2)</l>
+<l>        ColT := subset(ColsT,Points2)</l>
+<l>        vector_to_rigid (RowF + 0.5, ColF + 0.5, RowT + 0.5, ColT + 0.5, ProjMatrix)</l>
+<l>        ProjMatrix := [ProjMatrix,0,0,1]</l>
+<l>    endif</l>
+<c>    * To be used on the next lower pyramid level, the projection has</c>
+<c>    * to be adjusted to the new scale.</c>
+<l>    hom_mat2d_scale_local (ProjMatrix, 0.5, 0.5, HomMat2DGuide)</l>
+<l>    hom_mat2d_scale (HomMat2DGuide, 2, 2, 0, 0, HomMat2DGuide)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="proj_match_points_ransac_pyramid">
+<parameters>
+<parameter id="ColsF"/>
+<parameter id="ColsT"/>
+<parameter id="ImageF"/>
+<parameter id="ImageT"/>
+<parameter id="NumLevels"/>
+<parameter id="Points1"/>
+<parameter id="Points2"/>
+<parameter id="ProjMatrix"/>
+<parameter id="RowsF"/>
+<parameter id="RowsT"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_finished_message">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Color" base_type="ctrl" dimension="0"/>
+<par name="Box" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays 'Program finished.' in the</c>
+<c>* lower right corner of the screen.</c>
+<c>* It uses the procedure disp_message.</c>
+<c>* </c>
+<c>* input parameters:</c>
+<c>* WindowHandle: The window, where the text shall be displayed</c>
+<c>* Color: defines the text color.</c>
+<c>*    If set to '' or 'auto', the currently set color is used.</c>
+<c>* Box: If set to 'true', the text is displayed in a box.</c>
+<c>* </c>
+<l>Message := '   Program finished.    '</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_string_extents (WindowHandle, ' ' + Message + ' ', Ascent, Descent, TextWidth, TextHeight)</l>
+<l>disp_message (WindowHandle, Message, 'window', Height - TextHeight - 10, Width - TextWidth - 10, Color, Box)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_finished_message">
+<parameters>
+<parameter id="Box"/>
+<parameter id="Color"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

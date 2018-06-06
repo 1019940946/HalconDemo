@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>sobel_amp (Image, EdgeAmplitude, 'thin_sum_abs', 3)</l>
+<l>threshold (EdgeAmplitude, Edges, 30, 255)</l>
+<l>close_edges_length (Edges, EdgeAmplitude, ClosedEdges, 8, 100)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ClosedEdges)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Edges)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

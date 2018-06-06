@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use anisotropic_diffusion to smooth an</c>
+<c>* image while preserving or enhancing the edge information to different degrees.</c>
+<c>* </c>
+<c>* Prepare visualization</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>Methods := ['\'guided_filter\'','\'bilateral_filter\'','\'anisotropic_diffusion\'']</l>
+<l>Message := 'Compare different methods for'</l>
+<l>Message[1] := 'edge-preserving smoothing:'</l>
+<l>Message := [Message,' - ' + Methods]</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<l>Loops := 5</l>
+<l>Radius := 2</l>
+<l>Amplitude := 15</l>
+<l>SigmaSpatial := Radius</l>
+<l>SigmaRange := Amplitude</l>
+<l>Contrast := 3</l>
+<l>Theta := 10</l>
+<l>Iterations := 1</l>
+<c>* </c>
+<l>ImageFiles := ['mreut','claudia']</l>
+<l>read_image (Images, ImageFiles)</l>
+<l>for Index := 1 to |ImageFiles| by 1</l>
+<l>    select_obj (Images, Image, Index)</l>
+<l>    get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>    dev_resize_window_fit_size (0, 0, ImageWidth, ImageHeight, -1, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Original image'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Perform guided filtering.</c>
+<c>    * </c>
+<c>    * Execute once for caching to allow a more robust time measurement.</c>
+<l>    guided_filter (Image, Image, ImageGuided, Radius, Amplitude)</l>
+<c>    * Measure execution time</c>
+<l>    count_seconds (S1)</l>
+<l>    for L := 1 to Loops by 1</l>
+<l>        guided_filter (Image, Image, ImageGuided, Radius, Amplitude)</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    TimeGuided := S2 - S1</l>
+<l>    dev_display (ImageGuided)</l>
+<l>    Message := 'Guided filter'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Perform bilateral filtering.</c>
+<c>    * </c>
+<c>    * Execute once for caching to allow a more robust time measurement.</c>
+<l>    bilateral_filter (Image, Image, ImageBilateral, SigmaSpatial, SigmaRange, [], [])</l>
+<c>    * Measure execution time</c>
+<l>    count_seconds (S3)</l>
+<l>    for L := 1 to Loops by 1</l>
+<l>        bilateral_filter (Image, Image, ImageBilateral, SigmaSpatial, SigmaRange, [], [])</l>
+<l>    endfor</l>
+<l>    count_seconds (S4)</l>
+<l>    TimeBilateral := S4 - S3</l>
+<l>    dev_display (ImageBilateral)</l>
+<l>    Message := 'Bilateral filter'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Perform the anisotropic diffusion using the parabolic edge detection function.</c>
+<c>    * Note that this function still allows a slight diffusion (smoothing) across edges.</c>
+<c>    * </c>
+<c>    * Execute once for caching to allow a more robust time measurement.</c>
+<l>    anisotropic_diffusion (Image, ImagePeronaMalik, 'perona-malik', Contrast, Theta, Iterations)</l>
+<c>    * Measure execution time</c>
+<l>    count_seconds (S5)</l>
+<l>    for L := 1 to Loops by 1</l>
+<l>        anisotropic_diffusion (Image, ImagePeronaMalik, 'perona-malik', Contrast, Theta, Iterations)</l>
+<l>    endfor</l>
+<l>    count_seconds (S6)</l>
+<l>    TimeAnisoDiff := S6 - S5</l>
+<l>    dev_display (ImagePeronaMalik)</l>
+<l>    Message := 'Perona-Malik anisotropic diffusion'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Display detail</c>
+<l>    if (ImageFiles[Index - 1] == 'mreut')</l>
+<l>        dev_set_part (111, 205, 181, 275)</l>
+<l>    else</l>
+<l>        dev_set_part (30, 80, 30 + 2 * 48, 80 + 2 * 37)</l>
+<l>    endif</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Original image: ' + ImageFiles[Index - 1]</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    stop ()</l>
+<l>    dev_display (ImageGuided)</l>
+<l>    Message := 'Guided filter'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>    dev_display (ImageBilateral)</l>
+<l>    Message := 'Bilateral filter'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>    dev_display (ImagePeronaMalik)</l>
+<l>    Message := 'Perona-Malik anisotropic diffusion'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Compare execution times</c>
+<l>    Time := [TimeGuided,TimeBilateral,TimeAnisoDiff] * 1000 / Loops</l>
+<c>    * </c>
+<l>    tuple_sort_index (Time, Indices)</l>
+<l>    Colors := ['green','yellow','red']</l>
+<l>    TimeMax := Time[Indices[2]]</l>
+<c>    * </c>
+<l>    Width := 0.9 * ImageWidth * Time / TimeMax</l>
+<l>    Row := [50,150,250]</l>
+<l>    Column := gen_tuple_const(3,12)</l>
+<l>    gen_rectangle1 (Rectangle, Row, Column, Row + 50, Column + Width)</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<c></c>
+<l>    dev_set_part (0, 0, ImageHeight - 1, ImageWidth - 1)</l>
+<l>    dev_disp_text ('Execution times (' + ImageFiles[Index - 1] + ')', 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text (Methods + ': ' + Time$'.1f' + ' ms', 'image', Row + 55, Column, 'white', 'box', 'false')</l>
+<l>    dev_set_color (Colors[Indices])</l>
+<l>    dev_display (Rectangle)</l>
+<l>    if (Index &lt; |ImageFiles|)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

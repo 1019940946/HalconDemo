@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* The focus of this program is set on the different visualization and analysis</c>
+<c>* tools of the component-based matching. Furthermore, in order to impart</c>
+<c>* knowledge about the effect of different parameter settings several</c>
+<c>* parameters are varied and the consequences of the parameter variation</c>
+<c>* are visualized. For this, the example program "cbm_labels.hdev" is extented</c>
+<c>* accordingly.</c>
+<c>* The example program shows the use of the component-based matching</c>
+<c>* to locate a compound object.  In this case, a label should be found in an</c>
+<c>* image, of which neither the components nor the relations are known by</c>
+<c>* the user. Thus, three operators are necessary in order to create the</c>
+<c>* component model:</c>
+<c>*     1.)  gen_initial_components</c>
+<c>*     2.)  train_model_components</c>
+<c>*     3.)  create_trained_component_model</c>
+<c>* Finally, the component model is searched using</c>
+<c>*     4.)  find_component_model</c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>read_image (Image, 'label/label_model')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Define the model region</c>
+<l>gen_rectangle1 (ModelRegion, 119, 106, 330, 537)</l>
+<l>reduce_domain (Image, ModelRegion, ModelImage)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ModelRegion)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Model image and')</l>
+<l>set_tposition (WindowHandle, 40, 20)</l>
+<l>write_string (WindowHandle, 'region enclosing the entire compound object')</l>
+<l>stop ()</l>
+<c>* Get the training images</c>
+<l>gen_empty_obj (TrainingImages)</l>
+<l>for I := 1 to 5 by 1</l>
+<l>    read_image (TrainingImage, 'label/label_training_' + I)</l>
+<l>    concat_obj (TrainingImages, TrainingImage, TrainingImages)</l>
+<l>    dev_display (TrainingImage)</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Training image ' + I + ' of 5')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* Automatically generate the initial components</c>
+<l>ContrastLow := [20,40,40,40,40]</l>
+<l>ContrastHigh := [20,40,40,40,40]</l>
+<l>MinSize := [10,10,20,20,20]</l>
+<l>GenericValDist := [5,5,2,20,5]</l>
+<l>GenericValFrac := [0.5,0.5,0.5,0.05,0.5]</l>
+<l>Comment1 := ['Too much clutter =&gt;','Colon points too small =&gt;','Characters are broken up =&gt;','Characters are wrongly combined =&gt;','Parameters o.k.']</l>
+<l>Comment2 := ['Increase contrast','Increase minimum size','Increase MergeDistance','Decrease MergeDistance, increase MergeFraction','']</l>
+<l>for I := 0 to |ContrastLow| - 1 by 1</l>
+<l>    gen_initial_components (ModelImage, InitialComponents, ContrastLow[I], ContrastHigh[I], MinSize[I], 'connection', ['merge_distance','merge_fraction'], [GenericValDist[I],GenericValFrac[I]])</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (InitialComponents)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, '1.) gen_initial_components')</l>
+<l>    dev_set_color ('cyan')</l>
+<l>    set_tposition (WindowHandle, 360, 20)</l>
+<l>    write_string (WindowHandle, 'ContrastLow: ' + ContrastLow[I] + ', ContrastHigh: ' + ContrastHigh[I] + ', MinSize: ' + MinSize[I])</l>
+<l>    if (GenericValDist[I] == 5)</l>
+<l>        DefaultDist := ' (default)'</l>
+<l>    else</l>
+<l>        DefaultDist := ''</l>
+<l>    endif</l>
+<l>    if (GenericValFrac[I] == 0.5)</l>
+<l>        DefaultFrac := ' (default)'</l>
+<l>    else</l>
+<l>        DefaultFrac := ''</l>
+<l>    endif</l>
+<l>    set_tposition (WindowHandle, 380, 20)</l>
+<l>    write_string (WindowHandle, 'MergeDistance: ' + GenericValDist[I] + DefaultDist)</l>
+<l>    set_tposition (WindowHandle, 400, 20)</l>
+<l>    write_string (WindowHandle, 'MergeFraction: ' + GenericValFrac[I] + DefaultFrac)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    set_tposition (WindowHandle, 425, 20)</l>
+<l>    write_string (WindowHandle, Comment1[I])</l>
+<l>    set_tposition (WindowHandle, 445, 20)</l>
+<l>    write_string (WindowHandle, Comment2[I])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (InitialComponents)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, '2.) train_model_components')</l>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (Error, 1)</l>
+<l>read_training_components ('train_label.ct', ComponentTrainingID)</l>
+<l>dev_error_var (Error, 0)</l>
+<l>dev_set_check ('give_error')</l>
+<l>if (Error != H_MSG_TRUE)</l>
+<c>    * Extract the model components and train the relations</c>
+<c>    * (This may take a few minutes!)</c>
+<l>    get_system ('pregenerate_shape_models', SavePregenerateShapeModel)</l>
+<l>    set_system ('pregenerate_shape_models', 'true')</l>
+<l>    train_model_components (ModelImage, InitialComponents, TrainingImages, ModelComponents, 40, 40, 20, 0.85, -1, -1, rad(15), 'reliability', 'rigidity', 0.2, 0.5, ComponentTrainingID)</l>
+<l>    set_system ('pregenerate_shape_models', SavePregenerateShapeModel)</l>
+<l>    write_training_components (ComponentTrainingID, 'train_label.ct')</l>
+<l>else</l>
+<l>    get_training_components (ModelComponents, ComponentTrainingID, 'model_components', 'model_image', 'false', Row, Column, Angle, Score)</l>
+<l>endif</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (ModelComponents)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Result of the training')</l>
+<l>set_tposition (WindowHandle, 40, 20)</l>
+<l>write_string (WindowHandle, '  - Final model components')</l>
+<l>stop ()</l>
+<l>count_obj (ModelComponents, NumComp)</l>
+<l>for I := 0 to NumComp - 1 by 1</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Image)</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Result of the training:')</l>
+<l>    set_tposition (WindowHandle, 40, 20)</l>
+<l>    write_string (WindowHandle, '  - Final model components')</l>
+<l>    set_tposition (WindowHandle, 60, 20)</l>
+<l>    write_string (WindowHandle, '  - Relations with respect to component ' + I)</l>
+<l>    dev_set_colored (12)</l>
+<l>    get_component_relations (Relations, ComponentTrainingID, I, 'model_image', Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>    dev_display (Relations)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Evaluate the training result:')</l>
+<l>set_tposition (WindowHandle, 40, 40)</l>
+<l>write_string (WindowHandle, 'Get the (ambiguous) poses of the initial')</l>
+<l>set_tposition (WindowHandle, 60, 40)</l>
+<l>write_string (WindowHandle, 'components in a certain training image')</l>
+<c>* Add small tolerance values to the computed relations in order to cover</c>
+<c>* component variations that have not been present in the training</c>
+<c>* images.</c>
+<l>stop ()</l>
+<l>ExNr := 1</l>
+<l>count_obj (TrainingImages, NumExampleImages)</l>
+<l>count_obj (InitialComponents, NumInitComp)</l>
+<l>select_obj (TrainingImages, TrainingImage, ExNr)</l>
+<l>for j := 0 to NumInitComp - 1 by 1</l>
+<l>    dev_display (Image)</l>
+<l>    get_training_components (TrainingComponents, ComponentTrainingID, j, 'model_image', 'false', Row, Column, Angle, Score)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (TrainingComponents)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Initial component ' + j + ' (model image)')</l>
+<l>    stop ()</l>
+<l>    dev_display (TrainingImage)</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, '(Ambiguous) poses of initial component ' + j)</l>
+<l>    set_tposition (WindowHandle, 40, 20)</l>
+<l>    write_string (WindowHandle, 'in the training image ' + ExNr)</l>
+<l>    get_training_components (TrainingComponents, ComponentTrainingID, j, ExNr, 'false', Row, Column, Angle, Score)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (TrainingComponents)</l>
+<l>    stop ()</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (TrainingComponents)</l>
+<l>    get_training_components (TrainingComponents, ComponentTrainingID, 'initial_components', ExNr, 'false', Row, Column, Angle, Score)</l>
+<l>    select_obj (TrainingComponents, InitialComponentSolved, j + 1)</l>
+<l>    set_tposition (WindowHandle, 430, 20)</l>
+<l>    write_string (WindowHandle, 'Discarded poses')</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (InitialComponentSolved)</l>
+<l>    set_tposition (WindowHandle, 450, 20)</l>
+<l>    write_string (WindowHandle, 'Found correct (unambiguous) pose')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>for I := 1 to NumExampleImages by 1</l>
+<l>    select_obj (TrainingImages, TrainingImage, I)</l>
+<l>    dev_display (TrainingImage)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Evaluate the training result:')</l>
+<l>    dev_set_color ('green')</l>
+<l>    set_tposition (WindowHandle, 430, 20)</l>
+<l>    write_string (WindowHandle, 'The final pose of each initial component')</l>
+<l>    set_tposition (WindowHandle, 450, 20)</l>
+<l>    write_string (WindowHandle, 'in training image ' + I)</l>
+<l>    get_training_components (TrainingComponents, ComponentTrainingID, 'initial_components', I, 'false', Row, Column, Angle, Score)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (TrainingComponents)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>for I := 1 to NumExampleImages by 1</l>
+<l>    select_obj (TrainingImages, TrainingImage, I)</l>
+<l>    dev_display (TrainingImage)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Evaluate the training result:')</l>
+<l>    dev_set_color ('green')</l>
+<l>    set_tposition (WindowHandle, 430, 20)</l>
+<l>    write_string (WindowHandle, 'The final pose of each model component')</l>
+<l>    set_tposition (WindowHandle, 450, 20)</l>
+<l>    write_string (WindowHandle, 'in training image ' + I)</l>
+<l>    get_training_components (TrainingComponents, ComponentTrainingID, 'model_components', I, 'false', Row, Column, Angle, Score)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (TrainingComponents)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>ClusterThreshold := [0,1e-6,0.1,0.9,0.99,1]</l>
+<l>for I := 0 to |ClusterThreshold| - 1 by 1</l>
+<l>    dev_display (Image)</l>
+<l>    inspect_clustered_components (ModelComponents, ComponentTrainingID, 'rigidity', 0.2, ClusterThreshold[I])</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (ModelComponents)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Inspect the clustering of the model components:')</l>
+<l>    dev_set_color ('green')</l>
+<l>    set_tposition (WindowHandle, 410, 20)</l>
+<l>    write_string (WindowHandle, 'Cluster threshold set to ' + ClusterThreshold[I])</l>
+<l>    if (ClusterThreshold[I] == 0)</l>
+<l>        set_tposition (WindowHandle, 430, 20)</l>
+<l>        write_string (WindowHandle, '(all initial components are clustered)')</l>
+<l>    endif</l>
+<l>    if (ClusterThreshold[I] == 1)</l>
+<l>        set_tposition (WindowHandle, 430, 20)</l>
+<l>        write_string (WindowHandle, '(no initial components are clustered)')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* If new values for AmbiguityCriterion, MaxEdgeOverlap, or ClusterThreshold</c>
+<c>* have ben found using inspect_clustered_components, these values can be</c>
+<c>* efficiently included in the training result by using cluster_model_components:</c>
+<l>* cluster_model_components (TrainingImages, ModelComponents, ComponentTrainingID, 'rigidity', 0.2, 0.5)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Modify the trained relations')</l>
+<l>set_tposition (WindowHandle, 40, 20)</l>
+<l>write_string (WindowHandle, 'using modify_component_relations')</l>
+<l>get_component_relations (Relations, ComponentTrainingID, 1, 'model_image', Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Relations)</l>
+<l>set_tposition (WindowHandle, 400, 20)</l>
+<l>write_string (WindowHandle, 'Original relations with respect to component ' + 1)</l>
+<l>stop ()</l>
+<l>modify_component_relations (ComponentTrainingID, 'all', 'all', 15, rad(10))</l>
+<l>get_component_relations (Relations, ComponentTrainingID, 1, 'model_image', Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>dev_set_color ('cyan')</l>
+<l>dev_display (Relations)</l>
+<l>set_tposition (WindowHandle, 420, 20)</l>
+<l>write_string (WindowHandle, 'Modified relations (+-10 pixel, +-5 deg)')</l>
+<l>stop ()</l>
+<c>* Create the component model based on the training result</c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, '3) create_trained_component_model')</l>
+<l>create_trained_component_model (ComponentTrainingID, -rad(30), rad(60), 10, 0.8, 'auto', 'auto', 'none', 'use_polarity', 'false', ComponentModelID, RootRanking)</l>
+<l>for I := 0 to |RootRanking| - 1 by 1</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_colored (12)</l>
+<l>    get_component_model_tree (Tree, Relations, ComponentModelID, RootRanking[I], 'model_image', StartNode, EndNode, Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>    dev_display (Tree)</l>
+<l>    dev_display (Relations)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Result of the model creation')</l>
+<l>    dev_set_color ('green')</l>
+<l>    set_tposition (WindowHandle, 400, 20)</l>
+<l>    write_string (WindowHandle, 'Search tree using component ' + RootRanking[I] + ' as root component')</l>
+<l>    set_tposition (WindowHandle, 430, 20)</l>
+<l>    write_string (WindowHandle, '(position ' + I + ' in the root ranking)')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, '4) find_component_model')</l>
+<l>stop ()</l>
+<c>* Find the component model in a run-time image</c>
+<l>open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'label/label', 'default', -1, 1, FGHandle)</l>
+<l>for I := 1 to 15 by 1</l>
+<l>    grab_image (SearchImage, FGHandle)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_component_model (SearchImage, ComponentModelID, RootRanking, -rad(30), rad(60), 0.5, 0, 0.5, 'stop_search', 'prune_branch', 'none', 0.7, 'least_squares', 4, 0.1, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := Seconds2 - Seconds1</l>
+<l>    dev_display (SearchImage)</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        dev_display (SearchImage)</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>    endfor</l>
+<l>    NumMatches := |ModelStart|</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'First case: no occlusions')</l>
+<l>    set_tposition (WindowHandle, 40, 20)</l>
+<l>    write_string (WindowHandle, NumMatches + ' match(es) found in ' + Time$'3.2f' + ' seconds')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>close_framegrabber (FGHandle)</l>
+<l>open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'label/label_occlusions', 'default', -1, 1, FGHandle)</l>
+<l>PosePrediction := ['none','none','from_all']</l>
+<l>IfComponentNotFound := ['prune_branch','search_from_best','search_from_best']</l>
+<l>for I := 1 to 4 by 1</l>
+<l>    grab_image (SearchImage, FGHandle)</l>
+<l>    for j := 0 to 2 by 1</l>
+<l>        count_seconds (Seconds1)</l>
+<l>        find_component_model (SearchImage, ComponentModelID, RootRanking, -rad(30), rad(60), 0.4, 0, 0.5, 'stop_search', IfComponentNotFound[j], PosePrediction[j], 0.7, 'least_squares', 4, 0.1, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := Seconds2 - Seconds1</l>
+<l>        dev_display (SearchImage)</l>
+<l>        for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>            dev_display (SearchImage)</l>
+<l>            get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>            dev_set_colored (12)</l>
+<l>            dev_display (FoundComponents)</l>
+<l>            dev_set_color ('green')</l>
+<l>            set_tposition (WindowHandle, 400 + 20 * Match, 20)</l>
+<l>            write_string (WindowHandle, 'Match ' + Match + ': Score = ' + Score[Match]$'3.2f')</l>
+<l>        endfor</l>
+<l>        NumMatches := |ModelStart|</l>
+<l>        dev_set_color ('yellow')</l>
+<l>        set_tposition (WindowHandle, 20, 20)</l>
+<l>        write_string (WindowHandle, 'Second case: partial occlusions')</l>
+<l>        set_tposition (WindowHandle, 40, 20)</l>
+<l>        write_string (WindowHandle, NumMatches + ' match(es) found in ' + Time$'3.2f' + ' seconds')</l>
+<l>        set_tposition (WindowHandle, 430, 20)</l>
+<l>        write_string (WindowHandle, 'IfComponentNotFound = ' + IfComponentNotFound[j])</l>
+<l>        set_tposition (WindowHandle, 450, 20)</l>
+<l>        write_string (WindowHandle, 'PosePrediction = ' + PosePrediction[j])</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>close_framegrabber (FGHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

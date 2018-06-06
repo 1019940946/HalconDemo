@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images with the pylon interface</c>
+<c>* (image cropping)</c>
+<c>* </c>
+<c>* </c>
+<c>* Adapt the following settings according to your configuration!</c>
+<c>* Open with default resolution the first connected device</c>
+<l>open_framegrabber ('pylon', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<c>* </c>
+<c>* make sure the image size uses the correct step width</c>
+<l>if (MaxHeight % 4)</l>
+<l>    AdaptedMaxHeight := MaxHeight - 2</l>
+<l>else</l>
+<l>    AdaptedMaxHeight := MaxHeight</l>
+<l>endif</l>
+<l>if (MaxWidth % 4)</l>
+<l>    AdaptedMaxWidth := MaxWidth - 2</l>
+<l>else</l>
+<l>    AdaptedMaxWidth := MaxWidth</l>
+<l>endif</l>
+<c>* </c>
+<c>* "zoom" into the image:</c>
+<l>for i := 1 to 15 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_unlock_parameters', 1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'Width', AdaptedMaxWidth - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'Height', AdaptedMaxHeight - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'OffsetX', 16 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'OffsetY', 16 * i)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>*     stop ()</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* reset full image size:</c>
+<l>set_framegrabber_param (AcqHandle, 'do_unlock_parameters', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'OffsetX', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'OffsetY', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'Height', MaxHeight)</l>
+<l>set_framegrabber_param (AcqHandle, 'Width', MaxWidth)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

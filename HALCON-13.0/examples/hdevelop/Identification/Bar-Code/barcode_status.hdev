@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example presents the bar code parameters 'status'</c>
+<c>* and 'status_id' that can be used within get_bar_code_result</c>
+<c>* to get additional information about possibly occurring</c>
+<c>* errors when reading a bar code.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window_fit_size (0, 0, 1024, 768, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>Color := ['red','green','yellow']</l>
+<c>* </c>
+<c>* If get_bar_code_result is called with the parameter 'status',</c>
+<c>* 'persistence' must be set for the bar code model.</c>
+<l>create_bar_code_model ('persistence', 1, BarCodeHandle)</l>
+<c>* </c>
+<c>* For the visualization, the number of scanlines is reduced</c>
+<c>* (default is 10).</c>
+<l>set_bar_code_param (BarCodeHandle, 'num_scanlines', 8)</l>
+<l>set_bar_code_param (BarCodeHandle, 'check_char', 'present')</l>
+<c>* </c>
+<c>* </c>
+<l>CodeType := 'auto'</l>
+<l>ImageFiles := ['barcode/25interleaved/25interleaved_exposure_' + [1:5]$'02','barcode/ean13/ean13_defect_' + [1:3:10]$'02']</l>
+<l>for I := 0 to |ImageFiles| - 1 by 1</l>
+<l>    read_image (Image, ImageFiles[I])</l>
+<c>    * </c>
+<c>    * Try decoding the bar code in the input image.</c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>    if (|DecodedDataStrings| &gt; 0)</l>
+<c>        * If a bar code was found, display only scanlines of</c>
+<c>        * successfully decoded regions.</c>
+<l>        count_obj (SymbolRegions, NumInterestingCand)</l>
+<l>    else</l>
+<c>        * If no bar code could be found, display the error</c>
+<c>        * information for the first candidate region.</c>
+<l>        NumInterestingCand := 1</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Display results.</c>
+<l>    for IndexCandidate := 0 to NumInterestingCand - 1 by 1</l>
+<c>        * </c>
+<c>        * Display valid scanlines in green,</c>
+<c>        * invalid scanlines in red, and</c>
+<c>        * scanlines used for merging in yellow.</c>
+<l>        get_bar_code_object (ScanlinesAll, BarCodeHandle, IndexCandidate, 'scanlines_all')</l>
+<l>        get_bar_code_object (ScanlinesValid, BarCodeHandle, IndexCandidate, 'scanlines_valid')</l>
+<l>        get_bar_code_object (ScanlinesMerged, BarCodeHandle, IndexCandidate, 'scanlines_merged_edges')</l>
+<l>        dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_line_width (4)</l>
+<l>        dev_set_color (Color[0])</l>
+<l>        dev_display (ScanlinesAll)</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color (Color[2])</l>
+<l>        dev_display (ScanlinesMerged)</l>
+<l>        dev_set_color (Color[1])</l>
+<l>        dev_display (ScanlinesValid)</l>
+<c>        * </c>
+<c>        * Get status information.</c>
+<l>        get_bar_code_result (BarCodeHandle, IndexCandidate, 'status_id', StatusID)</l>
+<l>        get_bar_code_result (BarCodeHandle, IndexCandidate, 'status', Status)</l>
+<c>        * </c>
+<c>        * Show decoded bar code data.</c>
+<l>        if (|DecodedDataStrings| &gt; 0)</l>
+<l>            String := 'Decoded data string (' + (IndexCandidate + 1) + '/' + NumInterestingCand + '): ' + DecodedDataStrings[IndexCandidate]</l>
+<l>            disp_message (WindowHandle, String, 'window', 12, 12, 'black', 'true')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle, 'Could not decode bar code', 'window', 12, 12, 'white', 'red')</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Display the index number of each scanline at its center.</c>
+<l>        scanline_centers (ScanlinesAll, CenterRows, CenterColumns)</l>
+<l>        disp_message (WindowHandle, [0:|Status| - 1], 'image', CenterRows, CenterColumns, 'black', 'true')</l>
+<l>        disp_message (WindowHandle, ['Extracted scanlines','Valid scanlines','Edges used for merging'], 'window', 42, 12, Color, ['black','false'])</l>
+<l>        dev_inspect_ctrl ([StatusID,Status])</l>
+<l>        if (IndexCandidate &lt; NumInterestingCand - 1 or I &lt; |ImageFiles| - 1)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Free all memory of the bar code model.</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="scanline_centers">
+<interface>
+<io>
+<par name="Scanlines" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="CenterRows" base_type="ctrl" dimension="0"/>
+<par name="CenterColumns" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>count_obj (Scanlines, NumberScanlines)</l>
+<l>CenterRows := []</l>
+<l>CenterColumns := []</l>
+<l>for Index := 1 to NumberScanlines by 1</l>
+<l>    select_obj (Scanlines, Scanline, Index)</l>
+<l>    get_contour_xld (Scanline, Rows, Columns)</l>
+<l>    CenterRows := [CenterRows,0.5 * (Rows[0] + Rows[|Rows| - 1])]</l>
+<l>    CenterColumns := [CenterColumns,0.5 * (Columns[0] + Columns[|Columns| - 1])]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="scanline_centers">
+<parameters>
+<parameter id="CenterColumns"/>
+<parameter id="CenterRows"/>
+<parameter id="Scanlines"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

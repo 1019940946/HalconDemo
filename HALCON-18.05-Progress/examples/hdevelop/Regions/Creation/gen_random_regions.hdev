@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>Width := 512</l>
+<l>Height := 512</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_set_colored (6)</l>
+<l>gen_random_regions (Regions, 'circle', 10, 40, 10, 30, -0.7854, 0.7854, 100, Width, Height)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>gen_random_regions (Regions, 'ring', 10, 40, 5, 30, -0.7854, 0.7854, 100, Width, Height)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

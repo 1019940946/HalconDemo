@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate transformation parameters between two functions</c>
+<c>* </c>
+<l>NPT := 100</l>
+<l>MPT := 100</l>
+<l>GM := [30.0,65.0]</l>
+<l>GS := [15.0,25.0]</l>
+<l>GA := [20.0,15.0]</l>
+<l>E := [0.8,20.0,1.4,-10.0]</l>
+<l>X1 := []</l>
+<l>Y1 := []</l>
+<l>for I := 0 to NPT - 1 by 1</l>
+<l>    X := E[2] * I + E[3]</l>
+<l>    Y := GA[0] * exp(-pow((X - GM[0]) / GS[0],2)) + GA[1] * exp(-pow((X - GM[1]) / GS[1],2))</l>
+<l>    F := E[0] * Y + E[1]</l>
+<l>    X1 := [X1,I]</l>
+<l>    Y1 := [Y1,F]</l>
+<l>endfor</l>
+<l>X2 := []</l>
+<l>Y2 := []</l>
+<l>for I := 0 to MPT - 1 by 1</l>
+<l>    X := I</l>
+<l>    Y := GA[0] * exp(-pow((X - GM[0]) / GS[0],2)) + GA[1] * exp(-pow((X - GM[1]) / GS[1],2))</l>
+<l>    X2 := [X2,I]</l>
+<l>    Y2 := [Y2,Y]</l>
+<l>endfor</l>
+<l>C1 := E</l>
+<l>C2 := [1 / E[0],-E[1] / E[0],1 / E[2],-E[3] / E[2]]</l>
+<c>* Create a function from a sequence of y-values</c>
+<l>create_funct_1d_array (Y1, F1)</l>
+<l>create_funct_1d_array (Y2, F2)</l>
+<l>match_funct_1d_trans (F1, F2, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsF1, ChiSquareF1, CovarF1)</l>
+<l>match_funct_1d_trans (F2, F1, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsB1, ChiSquareB1, CovarB1)</l>
+<c>* Transform a function using given transformation parameters</c>
+<l>transform_funct_1d (F2, ParamsF1, F2Trans)</l>
+<l>transform_funct_1d (F1, ParamsB1, F1Trans)</l>
+<c>* Sample the functions equidistantly in an interval</c>
+<l>sample_funct_1d (F2Trans, 0, NPT - 1, 1, 'constant', F2Sampled)</l>
+<l>sample_funct_1d (F1Trans, 0, MPT - 1, 1, 'constant', F1Sampled)</l>
+<c>* Continue to create a function from a set of (x,y) pairs</c>
+<l>create_funct_1d_pairs (X1, Y1, F3)</l>
+<l>create_funct_1d_pairs (X2, Y2, F4)</l>
+<l>match_funct_1d_trans (F3, F4, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsF2, ChiSquareF2, CovarF2)</l>
+<l>match_funct_1d_trans (F4, F3, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsB2, ChiSquareB2, CovarB2)</l>
+<l>transform_funct_1d (F4, ParamsF2, F4Trans)</l>
+<l>transform_funct_1d (F3, ParamsB2, F3Trans)</l>
+<l>sample_funct_1d (F4Trans, 0, NPT - 1, 1, 'constant', F4Sampled)</l>
+<l>sample_funct_1d (F3Trans, 0, MPT - 1, 1, 'constant', F3Sampled)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

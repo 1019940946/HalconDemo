@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'ed_g')</l>
+<l>pi := acos(0) * 2</l>
+<l>Eps := pi / 4</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowID)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_part (153, 165, 215, 231)</l>
+<l>dev_display (Image)</l>
+<c>* Draw region of interest for edge detection</c>
+<l>disp_message (WindowID, 'Select ROI with the mouse', 'image', 155, 167, 'black', 'true')</l>
+<l>draw_rectangle2 (WindowID, Row, Column, Phi, Length1, Length2)</l>
+<l>gen_rectangle2 (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>dev_display (Rectangle)</l>
+<l>* dev_set_part (Row1, Column1, Row2, Column2)</l>
+<l>dev_display (ImageReduced)</l>
+<l>dev_set_colored (6)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'sobel', 0.5, 40, 50)</l>
+<l>gen_polygons_xld (Edges, Polygons, 'ramer', 1)</l>
+<l>split_contours_xld (Polygons, SplitContours, 'polygon', 1, 5)</l>
+<l>regress_contours_xld (SplitContours, RegressContours, 'drop', 1)</l>
+<l>select_contours_xld (RegressContours, SelectedContours, 'direction', Phi + pi / 2 - Eps, Phi + pi / 2 + Eps, -0.5, 0.5)</l>
+<l>select_contours_xld (SelectedContours, SelectedContoursFinal, 'length', 2, 200000, -0.5, 0.5)</l>
+<l>union_straight_contours_xld (SelectedContoursFinal, UnionContours, 6, 0.2, 100, 'noparallel', 'maximum')</l>
+<l>fit_line_contour_xld (UnionContours, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Rectangle)</l>
+<l>disp_arrow (WindowID, Row, Column, Row + cos(Phi + pi / 2) * 20, Column + sin(Phi + pi / 2) * 20, 1)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Edges)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SelectedContoursFinal)</l>
+<l>dev_set_color ('yellow')</l>
+<l>if (|RowBegin| == 0)</l>
+<l>    disp_message (WindowID, 'No edges found', 'image', 7, 5, 'black', 'true')</l>
+<l>else</l>
+<l>    disp_line (WindowID, RowBegin, ColBegin, RowEnd, ColEnd)</l>
+<l>endif</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

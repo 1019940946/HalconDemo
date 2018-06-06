@@ -1,0 +1,1145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* ------------------------</c>
+<c>* EXAMPLE DESCRIPTION</c>
+<c>* ------------------------</c>
+<c>* This program is a template and an example at once for execution</c>
+<c>* of the reflectance calibration. The reflectance calibration is</c>
+<c>* one of the required steps for the print quality inspection of 2D</c>
+<c>* Data Codes using AIM DPM-1-2006 Standard. This step should be</c>
+<c>* performed -before- the actual print quality inspection.</c>
+<c>* </c>
+<c>* The example can be executed in two modes: online and offline.</c>
+<c>* The default mode is -offline mode-.</c>
+<c>* </c>
+<c>* The -online mode- is implemented for IDS uEye USB 2.0 Camera.</c>
+<c>* Please adapt amongst others the parameters in operators</c>
+<c>* open_framegrabber() and set-/get_framegrabber_param to use this</c>
+<c>* example as template for calibration with other cameras.</c>
+<c>* </c>
+<c>* In some cases you will also need to adapt the start values</c>
+<c>* for gain and exposure and also the values of the variables</c>
+<c>* 'EXPSTEP'  and 'MAXSTEPS'. The variable 'EXPSTEP'</c>
+<c>* sets the interval for adjusting the exposure time</c>
+<c>* and the variable 'MAXSTEPS' determines how</c>
+<c>* often the implification factor (gain) of the camera is</c>
+<c>* increased or decreased.</c>
+<c>* </c>
+<c>* The -offline mode- demonstrates a possible setup for</c>
+<c>* reflectance calibration.</c>
+<c>* </c>
+<c>* Please read carefully the information to the setup and comments</c>
+<c>* in the program. Adapt all reserved variables and follow the</c>
+<c>* instructions displayed in the graphic window during the execution.</c>
+<c>* </c>
+<c>* ------------------------------------------------------------</c>
+<c>* GENERAL INFORMATION TO SETUP FOR REFLECTANCE CALIBRATION</c>
+<c>* ------------------------------------------------------------</c>
+<c>* Following items are required to perform</c>
+<c>* reflectance calibration:</c>
+<c>* - calibrated conformance standard test card (e.g. a</c>
+<c>* NIST-traceable EAN/UPC calibrated conformance test card).</c>
+<c>* Currently there are available cards only for printed 1D bar</c>
+<c>* code symbols, but they are also used for reflectance</c>
+<c>* calibration of 2D data code symbols required for print</c>
+<c>* quality inspection that is implemented according to</c>
+<c>* AIM DPM-1-2006 standard.</c>
+<c>* - suitable lighting (see section 'Lighting')</c>
+<c>* - image acquisition device</c>
+<c>* </c>
+<c>* -----Camera and Calibration Card Setup-----</c>
+<c>* - Camera and Calibration Card</c>
+<c>* The camera and calibration card should be positioned so that</c>
+<c>* the calibration card and camera sensor are parallel to each</c>
+<c>* other. Select one of the lighting conditions described</c>
+<c>* in the section and add it to the setup with the appropriate</c>
+<c>* orientation to the plane.</c>
+<c>* - Code Symbol</c>
+<c>* Choose the code symbol on the calibration card with the highest</c>
+<c>* quality grade and place the symbol under the camera so that</c>
+<c>* the center of the symbol lies as much as possible in the center</c>
+<c>* of the camera domain and the code symbol is parallel to the axis of</c>
+<c>* the image sensor to within +/- 5 degrees. The symbol should be</c>
+<c>* also uniformly illuminated with a lighting device.</c>
+<c>* - Distance between Camera and Calibration Card</c>
+<c>* Adapt the distance between the camera and calibration card. When</c>
+<c>* adjusting the distance, take care that the narrowest bar of</c>
+<c>* the bar code symbol has a width of at least 4 pixel. The whole</c>
+<c>* area of the code symbol should occupy at least 1/10 of the area</c>
+<c>* of the image sensor. Adjust the focus and the iris of the lens so</c>
+<c>* that the symbol lies in the best focus and has wide</c>
+<c>* contrast. Take care that the symbol is uniformly illuminated and</c>
+<c>* the orientation of the lighting should correspond the</c>
+<c>* specification.</c>
+<c>* </c>
+<c>* ----Lighting----</c>
+<c>* </c>
+<c>* The in this section described lighting is recommended but not</c>
+<c>* required. The lighting used in the application should be consistent</c>
+<c>* with the lighting described below to achieve the reliable</c>
+<c>* quality grades of inspected code symbols.</c>
+<c>* </c>
+<c>* The standard recommends following lighting environments:</c>
+<c>* - diffuse on-axis illumination (90)</c>
+<c>* The lighting device is flat and the angle of light incidence</c>
+<c>* is perpendicular to the plane with code symbol. The code symbol</c>
+<c>* should be illuminated uniformly.</c>
+<c>* - diffuse off-axis illumination (D)</c>
+<c>* This kind of illumination is also called the dome illumination,</c>
+<c>* where the LED ringlight is coated with a diffuse reflecting dome.</c>
+<c>* The reflected light falls non-directionally on the surface and</c>
+<c>* causes no shadows. The code symbol should be illuminated</c>
+<c>* uniformly.</c>
+<c>* - directional illumination (30Q, 30T, 30S)</c>
+<c>* The angle of incidence of directional illumination to the</c>
+<c>* surface of the symbol plane should be 30 (+/-3) degrees.</c>
+<c>* The entire symbol should be illuminated uniformly!</c>
+<c>* </c>
+<c>* More information on the illumination and general information</c>
+<c>* on the print quality inspection of 2D data codes can be read</c>
+<c>* in the document AIM DPM-1-2006 with the title 'Directed Part</c>
+<c>* Mark (DPM) Quality Guideline'.</c>
+<c>* </c>
+<c>* ------------------------------------------------------------</c>
+<c>* RESULTS OF REFLECTANCE CALIBRATION</c>
+<c>* ------------------------------------------------------------</c>
+<c>* The reflectance calibration calculates the following values:</c>
+<c>* A, MLCal, Rcal, SRexp, SRgain</c>
+<c>* -A- was traditionally used for the diameter (aperture) (in</c>
+<c>* [mm] or [inch]) of a laser beam used by a laser based-system</c>
+<c>* to read a bar or data code symbol. Some calibration cards are</c>
+<c>* designed to be applied with lasers with a certain diameter,</c>
+<c>* hence the measured performance of the system is only relevant</c>
+<c>* when the system uses a beam of the same diameter. In image</c>
+<c>* processing context the behavior of reading a symbol with a</c>
+<c>* laser has to be simulated. Because of this reason -A- was</c>
+<c>* introduced. It has to be defined like:</c>
+<c>* 1).(automatic, if reference aperture for the card is not known)</c>
+<c>* A is 0.8 of the minimum X-Dimension (X - width of the</c>
+<c>* narrowest dark element of the symbol)</c>
+<c>* 2).(manually) A = X * (Reference Aperture/X-Dimension), where</c>
+<c>* the size of the reference aperture and x-Dimension can be</c>
+<c>* read from the calibration card.</c>
+<c>* -MLCal- is the mean value of the gray values. The gray values</c>
+<c>* will be read in the centers of the bright elements of the code</c>
+<c>* symbol.</c>
+<c>* -Rcal- is the maximal gray value of the centers of bright</c>
+<c>* elements of the symbol.</c>
+<c>* -SRexp- is the exposure value of the camera.</c>
+<c>* -SRgain- is the value of the gain.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* Reserved Variables</c>
+<c>* PLEASE ADAPT THESE VARIABLES TO YOUR APPLICATION</c>
+<c>* ---------------------------------------------------------------</c>
+<c>* Set the flag for image acquisition.</c>
+<l>Offline := true</l>
+<c>* Set the value of code type to the code type printed on the</c>
+<c>* calibration plate.</c>
+<l>CodeType := 'EAN-13'</l>
+<c>* Set the value of the reference aperture of the laser (see</c>
+<c>* calibration plate). If no reference aperture is denoted, set</c>
+<c>* the X Dimension value to 1.</c>
+<l>RefAperture := 1</l>
+<c>* Set the value of X Dimension printed on the calibration plate.</c>
+<c>* If no X Dimension is denoted, set the X Dimension value to 1</c>
+<l>XDimension := 1</l>
+<c>* Set initial value of bar code handle to invalid value -1.</c>
+<l>BarCodeHandle := -1</l>
+<c>* Input the file name for output parameters of reflectance</c>
+<c>* calibration.</c>
+<l>ResultFileName := 'reflectance_cam_par.dat'</l>
+<c>* Image acquisition interface used in the program</c>
+<l>InterfaceName := 'uEye'</l>
+<c>* </c>
+<c>* Set the interval for adjusting the exposure</c>
+<l>EXPSTEP := 0.05</l>
+<c>* </c>
+<c>* Initialization of the number of iteration steps for</c>
+<c>* adjusting exposure time,i.e., if MAXSTEPS is 3,</c>
+<c>* then after each three adjustments of the exposure,</c>
+<c>* the implification factor (gain) will be decreased or increased.</c>
+<l>MAXSTEPS := 5</l>
+<c>* </c>
+<c>* Adjust system response values for print quality inspection.</c>
+<c>* The value of this variable signalizes how the</c>
+<c>* system should be adjusted in the next step. If the value</c>
+<c>* is -1, it means that the code is to bright and</c>
+<c>* the exposure or gain will be decreased. If the value is 1,</c>
+<c>* then the inspected code symbol is to dark, and the exposure or</c>
+<c>* gain will be increased. The value zero determines the</c>
+<c>* start of the system adjustment.</c>
+<l>IncreaseLight := 0</l>
+<c>* -----------------------------------------------------------------</c>
+<c>* </c>
+<c>* Connect to the camera and initialize the camera settings</c>
+<l>if (Offline)</l>
+<l>    read_image (Image, '/barcode/gs1databar_expanded/gs1databar_expanded_calibration_init_position')</l>
+<l>else</l>
+<l>    open_framegrabber (InterfaceName, 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>    * Set gain (amplification factor) to zero</c>
+<c>    * PLEASE ADAPT THESE START VALUES OF GAIN AND EXPOSURE</c>
+<c>    * TO YOUR APPLICATION</c>
+<l>    set_framegrabber_param (AcqHandle, 'gain_master', 0)</l>
+<l>    set_framegrabber_param (AcqHandle, 'exposure', 40.0)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endif</l>
+<c>* </c>
+<l>get_image_size (Image, ImWidth, ImHeight)</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Set Black level</c>
+<c>* The camera needs to be calibrated so that the black corresponds to</c>
+<c>* the black in the image. To set the black level, close the lens with</c>
+<c>* the appropriate cap. Adapt the parameters in the operator</c>
+<c>* set_framegrabber_param() that are necessary to set the black level</c>
+<c>* compensation in the camera to the appropriate parameter name for</c>
+<c>* the used camera.</c>
+<l>if (Offline)</l>
+<l>    read_image (Image, '/barcode/gs1databar_expanded/gs1databar_expanded_calibration_black_level')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Use black image to set the camera black level', 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>else</l>
+<l>    Button := 0</l>
+<l>    while (Button != 1)</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        Message := 'Cover the lens to set the camera black level'</l>
+<l>        Message := [Message,'Finally press the left mouse button']</l>
+<l>        disp_message (WindowHandle, Message, 'window', 10, 10, 'black', 'true')</l>
+<l>        try</l>
+<l>            get_mposition (WindowHandle, Row, Column, Button)</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>    endwhile</l>
+<l>    gen_image_const (Image, 'byte', ImWidth, ImHeight)</l>
+<l>    min_max_gray (Image, Image, 0, Min, Max, Range)</l>
+<l>    set_framegrabber_param (AcqHandle, 'black_level_compensation', int(Max))</l>
+<l>endif</l>
+<c>* </c>
+<c>* The camera should be positioned so that the plane of the image</c>
+<c>* sensor is parallel to the plane of the symbol area. Place the</c>
+<c>* calibration card under the camera. The card is placed so that</c>
+<c>* the symbol used for the calibration is in the center of the field</c>
+<c>* of view. The orientation of the horizontal and vertical lines</c>
+<c>* of the symbol are parallel to the image sensor within +/- 5</c>
+<c>* degrees. Adjust the F-number and focus of the lens so that the</c>
+<c>* symbol is in best focus and the image has a wide contrast.</c>
+<l>if (Offline)</l>
+<l>    read_image (Image, '/barcode/gs1databar_expanded/gs1databar_expanded_calibration_aperture_focus')</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Now the camera and calibration plate are placed'</l>
+<l>    Message := [Message,'and aperture and focus are adjusted']</l>
+<l>    disp_message (WindowHandle, Message, 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>else</l>
+<l>    Button := 0</l>
+<l>    while (Button != 1)</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        Message := 'Position the camera and calibration plate'</l>
+<l>        Message := [Message,'and adjust aperture and focus']</l>
+<l>        Message := [Message,'Finally press the left mouse button']</l>
+<l>        disp_message (WindowHandle, Message, 'window', 10, 10, 'black', 'true')</l>
+<l>        try</l>
+<l>            get_mposition (WindowHandle, Row, Column, Button)</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>    endwhile</l>
+<l>endif</l>
+<c>* </c>
+<c>* Tuples with the names of the result values.</c>
+<l>ResultValueNames := ['A','MLCal','Rcal','SRexp','SRgain']</l>
+<c>* The gray value of the bright elements has to be in the range</c>
+<c>* between 0.7 and 0.86 of the maximal gray value, that is</c>
+<c>* required by the standard.</c>
+<l>if (Offline)</l>
+<l>    MaxGrayValue := 255</l>
+<l>else</l>
+<l>    get_framegrabber_param (AcqHandle, 'bits_per_channel', BitsPerChannel)</l>
+<l>    MaxGrayValue := pow(2,BitsPerChannel) - 1</l>
+<l>endif</l>
+<l>MinBrightGrayValue := 0.7 * MaxGrayValue</l>
+<l>MaxBrightGrayValue := 0.86 * MaxGrayValue</l>
+<c>* Calculate minimum size (in pixel) of the code symbol.</c>
+<l>MinSizeCodeSymbol := (ImWidth * ImHeight) / 10</l>
+<l>MaxSizeCodeSymbol := (ImWidth * ImHeight) / 2</l>
+<c>* </c>
+<l>AdjustParams := []</l>
+<c>* </c>
+<l>IndIm := 1</l>
+<c>* initialize bar code reader</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_max', 32)</l>
+<l>while (1)</l>
+<c>    * </c>
+<c>    * The values for exposure or gain will be adapted depending on</c>
+<c>    * the calculated gray values of bright elements of the code.</c>
+<l>    if (Offline)</l>
+<l>        read_image (Image, '/barcode/gs1databar_expanded/gs1databar_expanded_calibration_' + IndIm$'02')</l>
+<l>        IndIm := IndIm + 1</l>
+<l>    else</l>
+<l>        adjust_system_response (AcqHandle, IncreaseLight, AdjustParams, MAXSTEPS, EXPSTEP, AdjustmentImpossible, AdjustParams)</l>
+<c>        * Check the settings of the current exposure value and</c>
+<c>        * change it if it doesn't already exceeds the range.</c>
+<l>        if (AdjustmentImpossible)</l>
+<l>            dev_display (Image)</l>
+<l>            Message := 'The calibration failed!'</l>
+<l>            Message := [Message,'Please restart the application and']</l>
+<l>            Message := [Message,'adapt the illumination and the initial lens settings']</l>
+<l>            disp_message (WindowHandle, Message, 'window', 10, 10, 'red', 'true')</l>
+<l>            break</l>
+<l>        endif</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>    IncreaseLight := 0</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Get region of all bar codes in the image and select</c>
+<c>    * the one closest to the image center</c>
+<l>    get_calib_bar_code_region (Image, BarCodeRectangle, BarCodeHandle, CodeType, MinSizeCodeSymbol, MaxSizeCodeSymbol, ImHeight, ImWidth, WindowHandle, ProcStatus)</l>
+<l>    if (ProcStatus == 'error')</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    get_symbol_dark_elements (BarCodeRectangle, Image, ImageReduced, DarkElements, BarCodeSymbolRegion, WindowHandle, ImWidth, ImHeight, MinElmWidth, SymbolCenterValues, ProcStatus)</l>
+<l>    if (ProcStatus == 'error')</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    * Width of the narrowest element of the bar code symbol</c>
+<l>    X := MinElmWidth</l>
+<c>    * Calculate diameter of filter mask (A) for the procedure</c>
+<c>    * reference_gray_image().</c>
+<l>    if ((RefAperture == 1) and (XDimension == 1))</l>
+<l>        A := X * 0.8</l>
+<l>    else</l>
+<l>        A := X * (RefAperture / XDimension)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Get regions of bright elements</c>
+<l>    get_symbol_bright_elements (Image, DarkElements, BrightConnectedRegions, SymbolCenterValues[1], SymbolCenterValues[3], X, WindowHandle, ProcStatus)</l>
+<c>    * Check results</c>
+<l>    if (ProcStatus == 'error')</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    * Get gray values of the centers of bright elemets</c>
+<l>    get_bright_elm_gray_values (BrightConnectedRegions, Image, A, BrightElmGrayvals, ProcStatus)</l>
+<c>    * Check results</c>
+<l>    if (ProcStatus == 'error')</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Calculate the values of MLcal and Rcal</c>
+<l>    tuple_mean (BrightElmGrayvals, MLCal)</l>
+<l>    tuple_max (BrightElmGrayvals, Rcal)</l>
+<c>    * </c>
+<c>    * If MLCal is in the correct gray value range break calibration</c>
+<l>    if ((MLCal &gt;= MinBrightGrayValue) and (MLCal &lt;= MaxBrightGrayValue))</l>
+<c>        * </c>
+<c>        * Read system response values</c>
+<l>        if (Offline == false)</l>
+<l>            get_framegrabber_param (AcqHandle, 'exposure', SRexp)</l>
+<l>            get_framegrabber_param (AcqHandle, 'gain_master', SRgain)</l>
+<l>        else</l>
+<l>            SRexp := 75.0</l>
+<l>            SRgain := 1</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Display reflectance calibration results in graphic window</c>
+<l>        disp_message (WindowHandle, 'MLCal is in the correct range. Calibration completed', 'window', 10, 10, 'black', 'true')</l>
+<l>        ReflectanceCalibValues := [A,MLCal,Rcal,SRexp,SRgain]</l>
+<l>        display_calib_results (WindowHandle, 50, ReflectanceCalibValues)</l>
+<c>        * </c>
+<c>        * Write calibration results to result file</c>
+<l>        disp_message (WindowHandle, 'The values have been saved in \'' + ResultFileName + '\'', 'window', 400, 1, 'black', 'true')</l>
+<l>        if (Offline == false)</l>
+<l>            write_calib_results (A, MLCal, Rcal, SRexp, SRgain, ResultFileName, ResultValueNames)</l>
+<l>        endif</l>
+<l>        break</l>
+<l>    elseif (MLCal &lt; MinBrightGrayValue)</l>
+<c>        * Continue calibration. Increase exposure or gain</c>
+<l>        disp_message (WindowHandle, 'The value of MLCal is too low. The exposure will be increased', 'window', 10, 10, 'black', 'true')</l>
+<l>        IncreaseLight := 1</l>
+<l>    elseif (MLCal &gt; MaxBrightGrayValue)</l>
+<c>        * Continue calibration. Decrease exposure</c>
+<l>        disp_message (WindowHandle, 'The value of MLCal is too high. The exposure will be decreased', 'window', 10, 10, 'black', 'true')</l>
+<l>        IncreaseLight := -1</l>
+<l>    endif</l>
+<l>    wait_seconds (1)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* </c>
+<l>if (BarCodeHandle != -1)</l>
+<l>    clear_bar_code_model (BarCodeHandle)</l>
+<l>endif</l>
+<c>* </c>
+<l>if (not Offline)</l>
+<l>    close_framegrabber (AcqHandle)</l>
+<l>endif</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="adjust_system_response">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+<par name="IncreaseLight" base_type="ctrl" dimension="0"/>
+<par name="LastAdjustParams" base_type="ctrl" dimension="0"/>
+<par name="MAXSTEPS" base_type="ctrl" dimension="0"/>
+<par name="EXPSTEP" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="AdjustmentImpossible" base_type="ctrl" dimension="0"/>
+<par name="NewAdjustParams" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* adjust_system_response adjusts the camera interface parameters</c>
+<c>* (so-called camera system response) in order to increase or</c>
+<c>* decrease the amount of light reaching the imaging sensor</c>
+<c>* </c>
+<c>* ==================================================================</c>
+<c>* Procedure parameters:</c>
+<c>* AcqHandle[in]:</c>
+<c>* Handle of the camera interface to be adjusted</c>
+<c>* IncreaseLight[in]:</c>
+<c>* A flag whether the light has to be increased (1) or</c>
+<c>* decreased (-1). The very first call of the procedure should be</c>
+<c>* made with value (0), which indicates that NewAdjustParams</c>
+<c>* should be initialized.</c>
+<c>* LastAdjustParams[in], NewAdjustParams[out]:</c>
+<c>* These parameters implement a mechanism for</c>
+<c>* adjust_system_response to store its 'working state' over the</c>
+<c>* procedure's calls. It stores its state in NewAdjustParams,</c>
+<c>* which the calling routine will give back as input parameter in</c>
+<c>* LastAdjustParams in the next call.</c>
+<c>* MAXSTEPS[in], EXPSTEP[in]:</c>
+<c>* External control parameters used to control the light</c>
+<c>* increasing/decreasing strategy from the main procedure</c>
+<c>* AdjustmentImpossible[out]:</c>
+<c>* returns true (1) if the camera settings cannot be adjusted any</c>
+<c>* further in the required direction. The calling procedure should</c>
+<c>* terminate the evaluation in such a case.</c>
+<c>* </c>
+<c>* PLEASE ADAPT THE BODY (and if necessary the interface) OF THIS</c>
+<c>* PROCEDURE TO WORK WITH YOUR IMAGE ACQUISITION INTERFACE.</c>
+<c>* If necessary, adapt the strategy for increasing and decreasing</c>
+<c>* the light to your interface.</c>
+<c>* </c>
+<c>* NOTE: The current implementation can be used as a basis for your</c>
+<c>* customized procedure. Please read the comments carefully to</c>
+<c>* understand how it works.</c>
+<c>* ==================================================================</c>
+<c>* </c>
+<c>* The procedure's state comprises of number of exposure incrementing</c>
+<c>* steps (NumExpSteps) and direction of the incrementation in the</c>
+<c>* last call (LastIncr)</c>
+<l>if (|LastAdjustParams| &gt; 0)</l>
+<l>    NumExpSteps := LastAdjustParams[0]</l>
+<l>    LastIncr := LastAdjustParams[1]</l>
+<l>else</l>
+<c>    * in the very first call of the routine, LastAdjustParams</c>
+<c>    * is not initialized yet, so assign default values</c>
+<l>    NumExpSteps := 0</l>
+<l>    LastIncr := 0</l>
+<l>endif</l>
+<c>* </c>
+<c>* read camera interface limits</c>
+<l>get_framegrabber_param (AcqHandle, 'exposure_range', ExposureRange)</l>
+<l>MinExp := ExposureRange[0]</l>
+<l>MaxExp := ExposureRange[1]</l>
+<l>get_framegrabber_param (AcqHandle, 'gain_master_range', GainRange)</l>
+<l>MinGain := GainRange[0]</l>
+<l>MaxGain := GainRange[1]</l>
+<c>* </c>
+<c>* get current camera settings</c>
+<l>get_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<l>get_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<c>* </c>
+<l>if (IncreaseLight == 0)</l>
+<c>    * initialize AdjustParameters</c>
+<l>    NewAdjustParams := [0,0]</l>
+<l>    AdjustmentImpossible := false</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>if (LastIncr != IncreaseLight)</l>
+<c>    * new direction was chosen, the exposure steps made so far do</c>
+<c>    * not matter so reset the counting</c>
+<l>    NumExpSteps := 0</l>
+<l>endif</l>
+<c>* </c>
+<c>* the adjustment is considered possible, as long as not the reverse</c>
+<c>* appears to be true</c>
+<l>AdjustmentImpossible := false</l>
+<l>if (IncreaseLight == -1)</l>
+<l>    if ((ExposureValue - EXPSTEP * MaxExp) &lt; MinExp)</l>
+<c>        * force Gain decrement, since Exposure cannot be decreased</c>
+<c>        * any further</c>
+<l>        NumExpSteps := MAXSTEPS</l>
+<l>    endif</l>
+<c>    * Increase the light sensibility of the camera</c>
+<l>    if ((NumExpSteps &gt;= MAXSTEPS) and (GainValue - 2 &gt;= MinGain))</l>
+<c>        * after MAXSTEPS incremental steps with 'exposure' try to</c>
+<c>        * adjust Gain</c>
+<l>        GainValue := GainValue - 2</l>
+<l>        set_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<c>        * reset exposure steps to let another MAXSTEPS exposure step</c>
+<c>        * happen</c>
+<l>        NumExpSteps := 0</l>
+<l>    elseif ((ExposureValue - EXPSTEP * MaxExp) &gt;= MinExp)</l>
+<c>        * decrement camera's exposure</c>
+<l>        ExposureValue := ExposureValue - EXPSTEP * MaxExp</l>
+<l>        set_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<c>        * note the incremented steps as well</c>
+<l>        NumExpSteps := NumExpSteps + 1</l>
+<l>    else</l>
+<c>        * neither Gain nor Exposure can be used to further decrease</c>
+<c>        * the light</c>
+<l>        AdjustmentImpossible := true</l>
+<l>    endif</l>
+<l>else</l>
+<c>    * (IncreaseLight = -1)</c>
+<l>    if ((ExposureValue + EXPSTEP * MaxExp) &gt; MaxExp)</l>
+<c>        * force Gain increment, since Exposure cannot be incremented</c>
+<c>        * any further</c>
+<l>        NumExpSteps := MAXSTEPS</l>
+<l>    endif</l>
+<c>    * Decrease light sensibility of the camera</c>
+<l>    if ((NumExpSteps &gt;= MAXSTEPS) and (GainValue + 2 &lt;= MaxGain))</l>
+<c>        * after MAXSTEPS incremental steps with 'exposure', try to</c>
+<c>        * adjust Gain</c>
+<l>        GainValue := GainValue + 2</l>
+<l>        set_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<c>        * reset exposure steps, to let another MAXSTEPS exposure</c>
+<c>        * step happen</c>
+<l>        NumExpSteps := 0</l>
+<l>    elseif ((ExposureValue + EXPSTEP * MaxExp) &lt;= MaxExp)</l>
+<c>        * increment camera's exposure</c>
+<l>        ExposureValue := ExposureValue + EXPSTEP * MaxExp</l>
+<l>        set_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<c>        * note the incremented steps as well</c>
+<l>        NumExpSteps := NumExpSteps + 1</l>
+<l>    else</l>
+<c>        * neither Gain nor Exposure can be used to further decrease</c>
+<c>        * the light</c>
+<l>        AdjustmentImpossible := true</l>
+<l>    endif</l>
+<l>endif</l>
+<c>* store current adjustment routine parameters that will appear as</c>
+<c>* LastAdjustParams in the next call of adjust_system_response</c>
+<l>NewAdjustParams := [NumExpSteps,IncreaseLight]</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="adjust_system_response">
+<short>The values for exposure or gain will be adapted depeding on calcualted gray values of bright elements of the code.</short>
+<short lang="de_DE">The values for exposure or gain will be adapted depending on calculated gray values of bright elements of the code.</short>
+<short lang="en_US">The values for exposure or gain will be adapted depending on calculated gray values of bright elements of the code.</short>
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="AdjustmentImpossible">
+<default_type>integer</default_type>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="EXPSTEP"/>
+<parameter id="IncreaseLight">
+<default_type>integer</default_type>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="LastAdjustParams">
+<default_type>integer</default_type>
+<sem_type>any</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="MAXSTEPS"/>
+<parameter id="NewAdjustParams"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_calib_bar_code_region">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="BarCodeRectangle" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="BarCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="CodeType" base_type="ctrl" dimension="0"/>
+<par name="MinSizeCodeSymbol" base_type="ctrl" dimension="0"/>
+<par name="MaxSizeCodeSymbol" base_type="ctrl" dimension="0"/>
+<par name="ImHeight" base_type="ctrl" dimension="0"/>
+<par name="ImWidth" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ProcStatus" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ProcStatus := 'error'</l>
+<l>NumberSelectedBarCodeRegions := 0</l>
+<l>NumberCandidates := 0</l>
+<l>PhiBarCodeRegion := 0</l>
+<l>gen_empty_obj (BarCodeRectangle)</l>
+<c>* </c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<c>* If the bar code reader found the bar code symbol,</c>
+<c>* then this region should be used for the calibration.</c>
+<c>* If not, the candidates' regions will be used</c>
+<c>* by the reflectance calibration.</c>
+<l>if (|DecodedDataStrings| == 0)</l>
+<l>    get_bar_code_object (BarCodeSymbolRegions, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>    count_obj (BarCodeSymbolRegions, NumberCandidates)</l>
+<l>elseif (|DecodedDataStrings| &gt;= 1)</l>
+<l>    count_obj (SymbolRegions, NumberCandidates)</l>
+<l>    copy_obj (SymbolRegions, BarCodeSymbolRegions, 1, NumberCandidates)</l>
+<l>endif</l>
+<c>* </c>
+<l>if (NumberCandidates &gt; 0)</l>
+<l>    if (NumberCandidates == 1)</l>
+<l>        copy_obj (BarCodeSymbolRegions, SelectedRegions, 1, 1)</l>
+<l>        NumberSelectedBarCodeRegions := 1</l>
+<l>    elseif (NumberCandidates &gt; 1)</l>
+<c>        * Select the candidate regions that are closest</c>
+<c>        * to the image center.</c>
+<l>        select_shape (BarCodeSymbolRegions, SelectedRegions, 'area', 'and', MinSizeCodeSymbol, MaxSizeCodeSymbol)</l>
+<l>        area_center (SelectedRegions, Areas, RowCandCtrs, ColumnCandCtrs)</l>
+<l>        NumberSelectedBarCodeRegions := |Areas|</l>
+<l>    endif</l>
+<l>else</l>
+<l>    display_error_case (Image, BarCodeSymbolRegions, WindowHandle, ['No appropriate bar code symbol found!','1. make sure that the calibration plate is positioned correctly','2. check the system setup'])</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>if (NumberSelectedBarCodeRegions &gt; 1)</l>
+<l>    tuple_gen_const (NumberSelectedBarCodeRegions, ImHeight / 2 - 1, RowImCenters)</l>
+<l>    tuple_gen_const (NumberSelectedBarCodeRegions, ImWidth / 2 - 1, ColImCenters)</l>
+<l>    distance_pp (RowCandCtrs, ColumnCandCtrs, RowImCenters, ColImCenters, DistanceCntr)</l>
+<l>    tuple_min (DistanceCntr, MinDistance)</l>
+<l>    tuple_find (DistanceCntr, MinDistance, MinDistInds)</l>
+<l>    select_obj (SelectedRegions, CandidateBarCodeRegion, MinDistInds[0] + 1)</l>
+<l>elseif (NumberSelectedBarCodeRegions == 1)</l>
+<l>    copy_obj (SelectedRegions, CandidateBarCodeRegion, 1, 1)</l>
+<l>else</l>
+<l>    smallest_rectangle2 (BarCodeSymbolRegions, Row, Column, Phi, Length11, Length21)</l>
+<l>    gen_rectangle2 (Rectangles, Row, Column, Phi, Length11, Length21)</l>
+<l>    display_error_case (Image, Rectangles, WindowHandle, ['No appropriate bar code symbol found!','1. make sure that the calibration plate is positioned correctly','2. check the system setup'])</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Get the orientation and generate the region of</c>
+<c>* the code symbol for further processing.</c>
+<l>count_obj (CandidateBarCodeRegion, NumCandObj)</l>
+<l>if (NumCandObj == 1)</l>
+<l>    smallest_rectangle2 (CandidateBarCodeRegion, Row1, Column1, PhiBarCodeRegion, Length1, Length2)</l>
+<l>    gen_rectangle2 (BarCodeRectangle, Row1, Column1, PhiBarCodeRegion, Length1, Length2)</l>
+<c>    * Check the position of the region in the image</c>
+<c>    * The symbol should not be positioned at the border of the image area</c>
+<l>    gen_rectangle1 (ImDomain, 0, 0, ImHeight - 1, ImWidth - 1)</l>
+<l>    erosion_rectangle1 (ImDomain, RegionErosion, 5, 5)</l>
+<l>    difference (ImDomain, RegionErosion, RegionDifference)</l>
+<l>    intersection (RegionDifference, BarCodeRectangle, RegionIntersection)</l>
+<l>    area_center (RegionIntersection, AreaBorderIntersection, Row2, Column2)</l>
+<l>    if (AreaBorderIntersection &gt; 0)</l>
+<l>        display_error_case (Image, BarCodeRectangle, WindowHandle, ['Found bar code symbol can be partly outside the camera domain!','It is inappropriate position of symbol','Please position the code in the center of camera domain'])</l>
+<l>        return ()</l>
+<l>    endif</l>
+<c>    * Check the bar code orientation</c>
+<l>    if ((abs(deg(PhiBarCodeRegion)) &gt; 5) and (abs(deg(PhiBarCodeRegion)) &lt; 85))</l>
+<l>        display_error_case (Image, BarCodeRectangle, WindowHandle, ['Please place the calibration plate so that ','the code is parallel to the image axis'])</l>
+<l>        return ()</l>
+<l>    endif</l>
+<l>else</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, ['No appropriate bar code symbol found!','1. make sure that the calibration plate is positioned correctly','2. check the system setup'], 'window', 10, 10, 'red', 'true')</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>ProcStatus := 'succes'</l>
+<l>return ()</l>
+</body>
+<docu id="get_calib_bar_code_region">
+<short lang="en_US">Get region of all bar codes in the image and select the one closest to the image center.</short>
+<parameters>
+<parameter id="BarCodeHandle"/>
+<parameter id="BarCodeRectangle"/>
+<parameter id="CodeType"/>
+<parameter id="ImHeight"/>
+<parameter id="ImWidth"/>
+<parameter id="Image"/>
+<parameter id="MaxSizeCodeSymbol"/>
+<parameter id="MinSizeCodeSymbol"/>
+<parameter id="ProcStatus"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_symbol_bright_elements">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="DarkElements" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="BrightConnectedRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="SymbolCenterColumn" base_type="ctrl" dimension="0"/>
+<par name="Length11" base_type="ctrl" dimension="0"/>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ProcStatus" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ProcStatus := 'error'</l>
+<c>* </c>
+<l>union1 (DarkElements, DarkElementsBlock)</l>
+<l>smallest_rectangle2 (DarkElementsBlock, RowDarkElm, ColumnDarkElm, PhiDarkElm, Length1DarkElm, Length2DarkElm)</l>
+<l>gen_rectangle2 (BarCodeSymbolRegion, RowDarkElm, ColumnDarkElm, PhiDarkElm, Length1DarkElm, Length2DarkElm)</l>
+<c>* </c>
+<l>difference (BarCodeSymbolRegion, DarkElements, BrightElementRegion)</l>
+<l>gen_rectangle2 (OpeningSE, Length2DarkElm, 1, PhiDarkElm, 0.5, Length2DarkElm)</l>
+<l>opening (BrightElementRegion, OpeningSE, RegionOpening)</l>
+<l>connection (RegionOpening, BrightConnectedRegions)</l>
+<c>* </c>
+<l>count_obj (BrightConnectedRegions, NumberBrightRegs)</l>
+<l>if (NumberBrightRegs &lt; 10)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (BrightConnectedRegions)</l>
+<l>    disp_message (WindowHandle, ['Not enough bar code elements found!','1. make sure that the calibration plate is positioned fine','2. check the system setup'], 'window', 10, 10, 'red', 'true')</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>ProcStatus := 'success'</l>
+<l>return ()</l>
+</body>
+<docu id="get_symbol_bright_elements">
+<parameters>
+<parameter id="BrightConnectedRegions"/>
+<parameter id="DarkElements"/>
+<parameter id="Image"/>
+<parameter id="Length11"/>
+<parameter id="ProcStatus"/>
+<parameter id="SymbolCenterColumn"/>
+<parameter id="WindowHandle"/>
+<parameter id="X"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_regions_dark_elements">
+<interface>
+<io>
+<par name="ImageReduced" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="DarkElements" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="PhiElm" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>PhiElm := 45</l>
+<l>gen_empty_region (DarkElements)</l>
+<c>* Segmentation of each dark element of the bar code symbol</c>
+<l>binary_threshold (ImageReduced, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<l>area_center (Region, AreaRegion, Row, Column)</l>
+<l>smallest_rectangle2 (Region, RowRegion, ColRegion, PhiRegion, Length1Region, Length2Region)</l>
+<l>if (Length1Region &gt; Length2Region)</l>
+<l>    RectSEHeight := Length2Region</l>
+<l>else</l>
+<l>    RectSEHeight := Length1Region</l>
+<l>endif</l>
+<l>gen_rectangle2 (RectSE, RectSEHeight, 2, PhiRegion, 0.5, RectSEHeight / 2)</l>
+<l>opening (Region, RectSE, RegionOpening)</l>
+<l>connection (RegionOpening, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedElmRegions, ['anisometry','rectangularity'], 'and', [2,0.75], [100,1])</l>
+<l>count_obj (SelectedElmRegions, NumberSelectedElm)</l>
+<l>if (NumberSelectedElm &gt; 0)</l>
+<l>    smallest_rectangle2 (SelectedElmRegions, RowElm, ColumnElm, PhiElm, LengthElm1, LengthElm2)</l>
+<l>    tuple_mean (LengthElm1, MeanLength1)</l>
+<l>    tuple_min (LengthElm2, MinLength2)</l>
+<l>    select_shape (SelectedElmRegions, DarkElements, 'ra', 'and', MeanLength1 * 0.5, MeanLength1 * 2)</l>
+<l>else</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_regions_dark_elements">
+<parameters>
+<parameter id="DarkElements"/>
+<parameter id="ImageReduced"/>
+<parameter id="PhiElm"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_contour_centers_bright">
+<interface>
+<oo>
+<par name="CrossCenters" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="RowBrightCenter" base_type="ctrl" dimension="0"/>
+<par name="ColumnBrightCenter" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_empty_obj (CrossCenters)</l>
+<l>gen_contour_polygon_xld (Contour, RowBrightCenter, ColumnBrightCenter)</l>
+<l>if (|RowBrightCenter| &gt; 2)</l>
+<l>    fit_line_contour_xld (Contour, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>    RowsProjected := []</l>
+<l>    ColsProjected := []</l>
+<l>    for N := 0 to |RowBrightCenter| - 1 by 1</l>
+<l>        projection_pl (RowBrightCenter[N], ColumnBrightCenter[N], RowBegin, ColBegin, RowEnd, ColEnd, RowProj, ColProj)</l>
+<l>        RowsProjected[|RowsProjected|] := RowProj</l>
+<l>        ColsProjected[|ColsProjected|] := ColProj</l>
+<l>    endfor</l>
+<l>    gen_cross_contour_xld (CrossCenters, RowsProjected, ColsProjected, 6, 0.785398 / 2)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="gen_contour_centers_bright">
+<parameters>
+<parameter id="ColumnBrightCenter"/>
+<parameter id="CrossCenters"/>
+<parameter id="RowBrightCenter"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="write_calib_results">
+<interface>
+<ic>
+<par name="A" base_type="ctrl" dimension="0"/>
+<par name="MLCal" base_type="ctrl" dimension="0"/>
+<par name="Rcal" base_type="ctrl" dimension="0"/>
+<par name="SRexp" base_type="ctrl" dimension="0"/>
+<par name="SRgain" base_type="ctrl" dimension="0"/>
+<par name="ResultFileName" base_type="ctrl" dimension="0"/>
+<par name="ResultValueNames" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>ResultValues := [A,MLCal,Rcal,SRexp,SRgain]</l>
+<l>open_file (ResultFileName, 'output', FileHandle)</l>
+<l>for NN := 0 to |ResultValues| - 1 by 1</l>
+<l>    fwrite_string (FileHandle, ResultValueNames[NN] + ': ' + ResultValues[NN]$'02.02' + '\n')</l>
+<l>endfor</l>
+<l>close_file (FileHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="write_calib_results">
+<parameters>
+<parameter id="A"/>
+<parameter id="MLCal"/>
+<parameter id="Rcal"/>
+<parameter id="ResultFileName"/>
+<parameter id="ResultValueNames"/>
+<parameter id="SRexp"/>
+<parameter id="SRgain"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_circular_mask">
+<interface>
+<ic>
+<par name="Aperture" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Filter" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Aperture := int(Aperture)</l>
+<l>gen_image_const (MaskImg, 'byte', Aperture, Aperture)</l>
+<l>overpaint_region (MaskImg, MaskImg, 0, 'fill')</l>
+<l>gen_circle (Circle, Aperture / 2, Aperture / 2, Aperture / 2)</l>
+<l>overpaint_region (MaskImg, Circle, 1, 'fill')</l>
+<l>area_center (Circle, Area, Row, Column)</l>
+<l>Filter := [Aperture,Aperture,Area]</l>
+<l>for I := 0 to Aperture - 1 by 1</l>
+<l>    for J := 0 to Aperture - 1 by 1</l>
+<l>        get_grayval (MaskImg, I, J, Grayval)</l>
+<l>        Filter := [Filter,Grayval]</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>tuple_int (Filter, Filter)</l>
+<l>return ()</l>
+</body>
+<docu id="create_circular_mask">
+<parameters>
+<parameter id="Aperture"/>
+<parameter id="Filter"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_calib_plate_instructions">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Message := 'Please place the calibration plate so that '</l>
+<l>Message := [Message,'the code is parallel to the image axis']</l>
+<l>disp_message (WindowHandle, Message, 'window', 10, 10, 'red', 'true')</l>
+<l>wait_seconds (0.5)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_calib_plate_instructions">
+<parameters>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_symbol_dark_elements">
+<interface>
+<io>
+<par name="BarCodeRectangle" base_type="iconic" dimension="0"/>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageReduced" base_type="iconic" dimension="0"/>
+<par name="DarkElements" base_type="iconic" dimension="0"/>
+<par name="BarCodeSymbolRegion" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ImWidth" base_type="ctrl" dimension="0"/>
+<par name="ImHeight" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MinElmWidth" base_type="ctrl" dimension="0"/>
+<par name="SymbolRectValues" base_type="ctrl" dimension="0"/>
+<par name="ProcStatus" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>MinElmWidth := -1</l>
+<l>SymbolRectValues := []</l>
+<l>ProcStatus := 'error'</l>
+<c>* Reduce image domain to the region of the bar code symbol.</c>
+<l>dilation_rectangle1 (BarCodeRectangle, BarCodeRectangleDilated, 7, 7)</l>
+<l>reduce_domain (Image, BarCodeRectangleDilated, ImageReduced)</l>
+<c>* </c>
+<c>* Segmentation of each dark element of the bar code symbol</c>
+<l>get_regions_dark_elements (ImageReduced, DarkElements, PhiElm)</l>
+<c>* </c>
+<c>* Check the orientation of the segmented dark regions.</c>
+<l>if ((|PhiElm| == 0) or ((max(abs(deg(PhiElm))) &gt; 5) and (max(abs(deg(PhiElm))) &lt; 85)))</l>
+<l>    dev_display (Image)</l>
+<l>    disp_calib_plate_instructions (WindowHandle)</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>count_obj (DarkElements, NumDarkElements)</l>
+<l>if (NumDarkElements &lt; 10)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (DarkElements)</l>
+<l>    Message := 'Not enough bar code elements found'</l>
+<l>    Message := [Message,'Please check the symbol representation in the image']</l>
+<l>    disp_message (WindowHandle, Message, 'window', 10, 10, 'red', 'true')</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>union1 (DarkElements, DarkElementRegion)</l>
+<l>smallest_rectangle2 (DarkElementRegion, SymbolRectRow, SymbolCenterCol, SymbolPhi, SymbolHWidth, SymbolHHeight)</l>
+<l>SymbolRectValues := [SymbolRectRow,SymbolCenterCol,SymbolPhi,SymbolHWidth,SymbolHHeight]</l>
+<l>gen_rectangle2 (BarCodeSymbolRegion, SymbolRectRow, SymbolCenterCol, SymbolPhi, SymbolHWidth + 5, SymbolHHeight + 5)</l>
+<l>reduce_domain (Image, BarCodeSymbolRegion, ImageReducedSymbol)</l>
+<c>* </c>
+<c>* Get the width of the elements of bar code symbols</c>
+<l>gen_measure_rectangle2 (SymbolRectRow, SymbolCenterCol, SymbolPhi, SymbolHWidth + 5, SymbolHHeight + 5, ImWidth, ImHeight, 'nearest_neighbor', MeasureHandle)</l>
+<l>measure_pairs (ImageReducedSymbol, MeasureHandle, 1, 30, 'all', 'all', RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<l>close_measure (MeasureHandle)</l>
+<c>* Check the actual measure results. If no results are available</c>
+<c>* the calibration is canceled.</c>
+<l>if (|RowEdgeFirst| &lt; 10)</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Not enough bar code symbol elements found'</l>
+<l>    Message := [Message,'Please check the symbol representation in the image']</l>
+<l>    disp_message (WindowHandle, Message, 'window', 10, 10, 'red', 'true')</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>tuple_min (IntraDistance, MinElmWidth)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('cyan')</l>
+<l>dev_display (BarCodeRectangleDilated)</l>
+<l>disp_message (WindowHandle, 'Region of calibration code symbol', 'window', 10, 10, 'black', 'true')</l>
+<l>wait_seconds (0.7)</l>
+<l>ProcStatus := 'success'</l>
+<l>return ()</l>
+</body>
+<docu id="get_symbol_dark_elements">
+<parameters>
+<parameter id="BarCodeRectangle"/>
+<parameter id="BarCodeSymbolRegion"/>
+<parameter id="DarkElements"/>
+<parameter id="ImHeight"/>
+<parameter id="ImWidth"/>
+<parameter id="Image"/>
+<parameter id="ImageReduced"/>
+<parameter id="MinElmWidth"/>
+<parameter id="ProcStatus"/>
+<parameter id="SymbolRectValues"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_bright_elm_gray_values">
+<interface>
+<io>
+<par name="BrightConnectedRegions" base_type="iconic" dimension="0"/>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="A" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="BrightElmGrayvals" base_type="ctrl" dimension="0"/>
+<par name="ProcStatus" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ProcStatus := 'error'</l>
+<c>* Get the region center of every bright element</c>
+<l>area_center (BrightConnectedRegions, Area, RowBrightCenter, ColumnBrightCenter)</l>
+<l>if (|RowBrightCenter| == 0)</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* Calculate the reference image using the achieved aperture</c>
+<c>* value. Get gray values of the area centers and calculate</c>
+<c>* the mean gray value. Check the gray value range.</c>
+<l>create_circular_mask (A, Filter)</l>
+<l>convol_image (Image, ImageReference, Filter, 'mirrored')</l>
+<l>get_grayval (ImageReference, int(RowBrightCenter), int(ColumnBrightCenter), BrightElmGrayvals)</l>
+<c>* </c>
+<c>* Generate cross contours of the centers of bright elements</c>
+<c>* and display results</c>
+<l>gen_contour_centers_bright (CrossCenters, RowBrightCenter, ColumnBrightCenter)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CrossCenters)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (BrightConnectedRegions)</l>
+<c>* </c>
+<l>ProcStatus := 'success'</l>
+<l>return ()</l>
+</body>
+<docu id="get_bright_elm_gray_values">
+<parameters>
+<parameter id="A"/>
+<parameter id="BrightConnectedRegions"/>
+<parameter id="BrightElmGrayvals"/>
+<parameter id="Image"/>
+<parameter id="ProcStatus"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_calib_results">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="StartStrPos" base_type="ctrl" dimension="0"/>
+<par name="ReflectanceCalibValues" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Message := 'Calculated values:'</l>
+<l>Message := [Message,'A = ' + ReflectanceCalibValues[0]$'.2']</l>
+<l>Message := [Message,'MLCal = ' + ReflectanceCalibValues[1] + ' (' + int(100.0 * ReflectanceCalibValues[1] / 255.0)$'d' + '%)']</l>
+<l>Message := [Message,'Rcal = ' + ReflectanceCalibValues[2]]</l>
+<l>Message := [Message,'SRexp = ' + ReflectanceCalibValues[3]]</l>
+<l>Message := [Message,'SRgain = ' + ReflectanceCalibValues[4]]</l>
+<l>disp_message (WindowHandle, Message, 'window', StartStrPos, 10, 'blue', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_calib_results">
+<parameters>
+<parameter id="ReflectanceCalibValues"/>
+<parameter id="StartStrPos"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_error_case">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="ErrorRegion" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ErrorMessage" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (ErrorRegion)</l>
+<l>disp_message (WindowHandle, ErrorMessage, 'window', 10, 10, 'red', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_error_case">
+<parameters>
+<parameter id="ErrorMessage"/>
+<parameter id="ErrorRegion"/>
+<parameter id="Image"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

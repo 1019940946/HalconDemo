@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Rank operator for regions</c>
+<c>* </c>
+<l>read_image (Image, 'combine')</l>
+<l>threshold (Image, Region, 170, 255)</l>
+<l>Width := 81</l>
+<l>Height := 81</l>
+<l>rank_region (Region, RegionCount, Width, Height, 1000)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionCount)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's 3D shaped-based matching</c>
+<c>* to find the 3D pose of tile spacers.</c>
+<c>* </c>
+<c>* Because the background is strongly textured, the metric 'ignore_part_polarity'</c>
+<c>* in create_shape_model_3d() is used in order to speed up the search time.</c>
+<c>* To show the speed up, two 3D shape models are created: one with the metric</c>
+<c>* 'ignore_local_polarity' and the other one with the metric 'ignore_part_polarity'.</c>
+<c>* </c>
+<c>* Then, for each found object the contours are displayed and the</c>
+<c>* search times are compared.</c>
+<c>* </c>
+<c>* This example also uses the option 'lowest_model_level' which is more</c>
+<c>* explicitly explained in the example program 3d_matching_lowest_model_level.hdev</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* Set the camera parameters (can be obtained by using camera_calibration)</c>
+<l>CamParam := [0.0269462,-354.842,1.27964e-005,1.28e-005,254.24,201.977,512,384]</l>
+<c>* </c>
+<l>IWidth := CamParam[6]</l>
+<l>IHeight := CamParam[7]</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512 * 1.5, 384 * 1.5, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>Colors := ['blue','forest green','black']</l>
+<c>* </c>
+<c>* Acquire the two shape models needed for the search</c>
+<l>acquire_shape_models (WindowHandle, CamParam, ShapeModel3DID1, ShapeModel3DID2)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>MatchingParameters := ['num_matches','pose_refinement']</l>
+<l>MatchingParameterValues := [2,'least_squares_high']</l>
+<l>MinScore := 0.65</l>
+<l>Greediness := 0.9</l>
+<l>NumLevels := 0</l>
+<c>* </c>
+<c>* Matching loop</c>
+<l>NumImages := 9</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'tile_spacers/tile_spacers_' + I$'02')</l>
+<l>    dev_set_color (Colors[0])</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Find up to two instances of the 3D shape model 1</c>
+<c>    * with the metric 'ignore_local_polarity'</c>
+<l>    Message := 'Search model with \'ignore_local_polarity\' ...'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, Colors, 'true')</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model_3d (Image, ShapeModel3DID1, MinScore, Greediness, NumLevels, MatchingParameters, MatchingParameterValues, Pose, CovPose, Score1)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time1 := Seconds2 - Seconds1</l>
+<c>    * Visualize the found matches in the image by</c>
+<c>    * projecting the 3D shape model with the pose of the match</c>
+<l>    for J := 0 to |Score1| - 1 by 1</l>
+<l>        PoseTmp := Pose[J * 7:J * 7 + 6]</l>
+<l>        project_shape_model_3d (ModelContours, ShapeModel3DID1, CamParam, PoseTmp, 'true', rad(30))</l>
+<l>        dev_display (ModelContours)</l>
+<l>    endfor</l>
+<l>    Message := 'Search model with \'ignore_local_polarity\': ' + |Score1| + ' Match(es) found in ' + Time1$'.1f' + ' s'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, Colors, 'true')</l>
+<c>    * </c>
+<c>    * Find up to two instances of the 3D shape model 2</c>
+<c>    * with the metric 'ignore_part_polarity'</c>
+<l>    dev_set_color (Colors[1])</l>
+<l>    Message[1] := 'Search model with \'ignore_part_polarity\' ...'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, Colors, 'true')</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model_3d (Image, ShapeModel3DID2, MinScore, Greediness, NumLevels, MatchingParameters, MatchingParameterValues, Pose, CovPose, Score2)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time2 := Seconds2 - Seconds1</l>
+<c>    * Visualize the found matches in the image by</c>
+<c>    * projecting the 3D shape model with the pose of the match</c>
+<l>    set_line_style (WindowHandle, [10,10])</l>
+<l>    for J := 0 to |Score2| - 1 by 1</l>
+<l>        PoseTmp := Pose[J * 7:J * 7 + 6]</l>
+<l>        project_shape_model_3d (ModelContours, ShapeModel3DID1, CamParam, PoseTmp, 'true', rad(30))</l>
+<l>        dev_display (ModelContours)</l>
+<l>    endfor</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<l>    Message[1] := 'Search model with \'ignore_part_polarity\':  ' + |Score2| + ' Match(es) found in ' + Time2$'.1f' + ' s'</l>
+<l>    Message[2] := 'Speed-up factor with \'ignore_part_polarity\': ' + (Time1 / Time2)$'.1f'</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, Colors, 'true')</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* clear the 3D shape models</c>
+<l>clear_shape_model_3d (ShapeModel3DID1)</l>
+<l>clear_shape_model_3d (ShapeModel3DID2)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="acquire_shape_models">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ShapeModel3DID1" base_type="ctrl" dimension="0"/>
+<par name="ShapeModel3DID2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Read the object model from a DXF file</c>
+<l>read_object_model_3d ('tile_spacer', 0.0001, [], [], ObjectModel3DID, DxfStatus)</l>
+<l>prepare_object_model_3d (ObjectModel3DID, 'shape_based_matching_3d', 'true', [], [])</l>
+<c>* </c>
+<l>MinContrast := 10</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Try to read the shape model files from disk</c>
+<c>* </c>
+<c>* Read model 1</c>
+<l>Row := 12</l>
+<l>disp_message (WindowHandle, 'Reading the 3D shape model file 1 of 2 from disk ...', 'window', Row, 12, 'white', 'false')</l>
+<l>try</l>
+<l>    read_shape_model_3d ('tile_spacer_local_polarity.sm3', ShapeModel3DID1)</l>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file 1 of 2 from disk ... done', 'window', 12, 12, 'green', 'false')</l>
+<l>    Row := Row + 30</l>
+<l>catch (Exception)</l>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file 1 of 2 from disk ... not found!', 'window', 12, 12, 'red', 'false')</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model 1 of 2 (may take a minute) ...', 'window', 42, 12, 'white', 'false')</l>
+<l>    Row := Row + 60</l>
+<l>    create_shape_model_3d (ObjectModel3DID, CamParam, 0, 0, 0, 'gba', -rad(55), rad(55), -rad(55), rad(55), 0, rad(360), 0.26, 0.27, MinContrast, ['lowest_model_level','metric'], [2,'ignore_local_polarity'], ShapeModel3DID1)</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model 1 of 2 (may take a minute) ... done', 'window', 42, 12, 'green', 'false')</l>
+<l>    try</l>
+<l>        disp_message (WindowHandle, 'Writing model 1 of 2 to disk ...', 'window', Row, 12, 'white', 'false')</l>
+<l>        write_shape_model_3d (ShapeModel3DID1, 'tile_spacer_local_polarity.sm3')</l>
+<l>        disp_message (WindowHandle, 'Writing model 1 of 2 to disk ... done', 'window', Row, 12, 'white', 'false')</l>
+<l>    catch (Exception)</l>
+<l>        disp_message (WindowHandle, 'Writing model 1 of 2 to disk ... failed!', 'window', Row, 12, 'red', 'false')</l>
+<l>    endtry</l>
+<l>    Row := Row + 60</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Read model 2</c>
+<l>disp_message (WindowHandle, 'Reading the 3D shape model file 2 of 2 from disk ...', 'window', Row, 12, 'white', 'false')</l>
+<l>try</l>
+<l>    read_shape_model_3d ('tile_spacer_part_polarity.sm3', ShapeModel3DID2)</l>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file 2 of 2 from disk ... done', 'window', Row, 12, 'green', 'false')</l>
+<l>catch (Exception2)</l>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file 2 of 2 from disk ... not found!', 'window', Row, 12, 'red', 'false')</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model 2 of 2 (may take a few minutes) ...', 'window', Row + 30, 12, 'white', 'false')</l>
+<l>    create_shape_model_3d (ObjectModel3DID, CamParam, 0, 0, 0, 'gba', -rad(55), rad(55), -rad(55), rad(55), 0, rad(360), 0.26, 0.27, 10, ['lowest_model_level','metric'], [2,'ignore_part_polarity'], ShapeModel3DID2)</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model 2 of 2 (may take a few minutes) ... done', 'window', Row + 30, 12, 'green', 'false')</l>
+<l>    Row := Row + 60</l>
+<l>    try</l>
+<l>        disp_message (WindowHandle, 'Writing model 2 of 2 to disk ...', 'window', Row, 12, 'white', 'false')</l>
+<l>        write_shape_model_3d (ShapeModel3DID2, 'tile_spacer_part_polarity.sm3')</l>
+<l>        disp_message (WindowHandle, 'Writing model 2 of 2 to disk ... done', 'window', Row, 12, 'white', 'false')</l>
+<l>    catch (Exception)</l>
+<l>        disp_message (WindowHandle, 'Writing model 2 of 2 to disk ... failed!', 'window', Row, 12, 'red', 'false')</l>
+<l>    endtry</l>
+<l>endtry</l>
+<c>* </c>
+<c>* After creating the 3D shape model, the 3D object model is not needed anymore.</c>
+<l>clear_object_model_3d (ObjectModel3DID)</l>
+<l>return ()</l>
+</body>
+<docu id="acquire_shape_models">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="ShapeModel3DID1"/>
+<parameter id="ShapeModel3DID2"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

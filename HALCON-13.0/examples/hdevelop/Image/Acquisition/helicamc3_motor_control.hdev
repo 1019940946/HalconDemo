@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *********************************************************************</c>
+<c>* HALCON Example: Helicam with external motor control</c>
+<c>* *********************************************************************</c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* *********************************************************************</c>
+<c>* ToDo: Set axis_cnt_per_mm (encoder ticks per mm) and measurement speed!</c>
+<c>*       Need this two parameter to calculate zTag information.</c>
+<c>*       If you don't use zTags (use_zTags = false) you don't need to set this value</c>
+<c>* *********************************************************************</c>
+<l>CntPerMM := 1000</l>
+<l>measurement_speed := 5.0</l>
+<c>* Pending on the system configuration, the result must be rotated for 0, 90, 180 or 270 degree</c>
+<l>rotate_image := 270</l>
+<c>* *********************************************************************</c>
+<l>genericParam := 'axis_cnt_per_mm=' + CntPerMM + ''</l>
+<c>* </c>
+<c>* Open helicam without motor.</c>
+<c>* Hint: in this time, dont move the axis and don't trigger the camera!!</c>
+<l>open_framegrabber ('heliCamC3', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', genericParam, 'true', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNavM2', 2)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNFrames', 440)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensTqp', 539)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutEnDrv', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'use_zTags', 'true')</l>
+<l>set_framegrabber_param (AcqHandle, 'InvEncCnt', 0)</l>
+<c>* </c>
+<c>* The following parameter is used for the zTag calculation.</c>
+<l>set_framegrabber_param (AcqHandle, 'measurement_speed', measurement_speed)</l>
+<c>* </c>
+<c>* Set Timeout in [ms] (default is 5000ms)</c>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 10000)</l>
+<c>* </c>
+<c>* Reset all camera buffers - Don't trigger the camera in this time.</c>
+<l>set_framegrabber_param (AcqHandle, 'do_clear_buffer', 1)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 281, 293, 'black', SurfaceHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<l>dev_open_window (0, 0, 281, 293, 'black', AmplitudeHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<c>* </c>
+<l>while (true)</l>
+<l>    dev_update_off ()</l>
+<c>    * Now you must move the axis and trigger the camera</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<l>    access_channel (Image, Surface, 1)</l>
+<l>    access_channel (Image, Amplitude, 2)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (SurfaceHandle)</l>
+<l>    dev_display (Surface)</l>
+<l>    dev_set_window (AmplitudeHandle)</l>
+<l>    dev_display (Amplitude)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Close heliCam</c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

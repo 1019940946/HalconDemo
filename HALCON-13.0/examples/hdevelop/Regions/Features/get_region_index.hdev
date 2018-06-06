@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Index of all regions containing a given pixel</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('fill')</l>
+<c>* Segment an image using regiongrowing</c>
+<l>regiongrowing (Image, Regions, 1, 1, 3, 400)</l>
+<l>Button := 1</l>
+<l>dev_set_color ('red')</l>
+<l>while (Button == 1)</l>
+<c>    * Click with the mouse on the region to be selected</c>
+<c>    * Quit the loop with the right mouse button</c>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    get_region_index (Regions, Row, Column, Index)</l>
+<l>    if (Index != [])</l>
+<l>        select_obj (Regions, ObjectSelected, Index)</l>
+<l>    endif</l>
+<l>endwhile</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

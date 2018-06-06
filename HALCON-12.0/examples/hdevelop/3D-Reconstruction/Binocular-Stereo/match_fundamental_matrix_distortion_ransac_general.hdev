@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use match_fundamental_matrix_distortion_ransac</c>
+<c>* in an application in which the camera perfoms an arbitrary motion.</c>
+<c>* </c>
+<c>* In this example the disparity map of a scene is calculated</c>
+<c>* without calibration.</c>
+<c>* An essential step for the reconstruction is the estimation of</c>
+<c>* the fundamental matrix using point correspondences.</c>
+<c>* The operator match_fundamental_matrix_distortion_ransac_general</c>
+<c>* not only returns the fundamental matrix, but also estimates</c>
+<c>* the radial distortion of the camera. This leads to a reconstruction</c>
+<c>* with higher accuracy.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<c>* Read and display the images</c>
+<l>read_image (Image1, 'stereo/uncalib/books_r')</l>
+<l>read_image (Image2, 'stereo/uncalib/books_l')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image2)</l>
+<l>disp_message (WindowHandle, 'Left image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image1)</l>
+<l>disp_message (WindowHandle, 'Right image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reconstruction of the disparity map</c>
+<c>* </c>
+<c>* Extract points to be matched from the images</c>
+<l>points_foerstner (Image1, 1, 2, 3, 100, 0.1, 'gauss', 'true', Rows1, Columns1, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>points_foerstner (Image2, 1, 2, 3, 100, 0.1, 'gauss', 'true', Rows2, Columns2, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* Perform a matching of the fundamental matrix that takes the radial</c>
+<c>* distortions into account.</c>
+<l>match_fundamental_matrix_distortion_ransac (Image1, Image2, Rows1, Columns1, Rows2, Columns2, 'ncc', 10, 0, 0, 100, 200, 0, 0.5, 'gold_standard', 1, 42, FMatrix, Kappa, Error, Points1, Points2)</l>
+<c>* Construct camera parameters for the purpose of rectifying the images,</c>
+<c>* i.e., to remove the radial distortions.</c>
+<l>CamParDist := [0.0,Kappa,1.0,1.0,0.5 * (Width - 1),0.5 * (Height - 1),Width,Height]</l>
+<c>* Remove the radial distortions from the images.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParDist, 0, CamPar)</l>
+<l>change_radial_distortion_image (Image1, Image1, Image1Rect, CamParDist, CamPar)</l>
+<l>change_radial_distortion_image (Image2, Image2, Image2Rect, CamParDist, CamPar)</l>
+<c>* Perform a projective rectification of the images to put them into the</c>
+<c>* epipolar standard configuration in which the epipolar lines are</c>
+<c>* horizontal.</c>
+<l>gen_binocular_proj_rectification (Map1, Map2, FMatrix, [], Width, Height, Width, Height, 1, 'no_map', CovFMatRect, H1, H2)</l>
+<l>projective_trans_point_2d (H1, [0,0,Height,Height], [0,Width,0,Width], [1,1,1,1], R1, C1, W1)</l>
+<l>R1 := int(floor(R1 / W1))</l>
+<l>C1 := int(floor(C1 / W1))</l>
+<l>projective_trans_point_2d (H2, [0,0,Height,Height], [0,Width,0,Width], [1,1,1,1], R2, C2, W2)</l>
+<l>R2 := int(floor(R2 / W2))</l>
+<l>C2 := int(floor(C2 / W2))</l>
+<l>WidthMapped := max([C1,C2])</l>
+<l>HeightMapped := max([R1,R2])</l>
+<l>projective_trans_image_size (Image1Rect, Image1Mapped, H1, 'bilinear', WidthMapped, HeightMapped, 'false')</l>
+<l>projective_trans_image_size (Image2Rect, Image2Mapped, H2, 'bilinear', WidthMapped, HeightMapped, 'false')</l>
+<c>* Compute the disparities in the projectively rectified and undistorted</c>
+<c>* images.</c>
+<l>binocular_disparity_mg (Image1Mapped, Image2Mapped, Disparity, Score, 1, 30, 8, 0, 'false', 'default_parameters', 'fast_accurate')</l>
+<c>* </c>
+<c>* Visualization of the result</c>
+<c>* </c>
+<c>* For visualization purposes, we crop out a rectangular part of the</c>
+<c>* reconstructed disparities that contains values that are not influenced</c>
+<c>* by border effects. Furthermore, we scale the disparities appropriately.</c>
+<l>get_domain (Image1Mapped, Domain)</l>
+<l>reduce_domain (Disparity, Domain, Disparity)</l>
+<l>scale_image (Disparity, DisparityScaled, 5, 250)</l>
+<l>compose2 (DisparityScaled, Image1Mapped, ImagePlot)</l>
+<l>inner_rectangle1 (Domain, Row1, Column1, Row2, Column2)</l>
+<l>crop_rectangle1 (DisparityScaled, DisparityScaled, Row1, Column1, Row2, Column2)</l>
+<l>crop_rectangle1 (ImagePlot, ImagePlot, Row1, Column1, Row2, Column2)</l>
+<c>* Display the disparites as a 3D plot. Note that the disparities do not</c>
+<c>* constitute a 3D reconstruction (which cannot be performed in the</c>
+<c>* uncalibrated case). The disparities are related to the 3D reconstruction</c>
+<c>* by an unknown projective transformation and a monotonic transformation.</c>
+<c>* Nevertheless, they give a good impression of the quality of the</c>
+<c>* reconstruction.  In particular, it can be seen that all the planes of</c>
+<c>* the covers of the four books are clearly visible as planes in the</c>
+<c>* disparities.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_paint (['3d_plot','texture',1,0.72,0.073,0.68,-0.1,0.19,0.0,0.03,-0.08])</l>
+<l>set_window_param (WindowHandle, 'scale_plot', 'false')</l>
+<l>set_window_param (WindowHandle, 'plot_quality', 'best')</l>
+<l>set_window_param (WindowHandle, 'display_grid', 'false')</l>
+<l>set_window_param (WindowHandle, 'display_axes', 'false')</l>
+<l>dev_display (DisparityScaled)</l>
+<l>disp_message (WindowHandle, 'Reconstructed disparities', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the disparities along with the gray values of the image.</c>
+<l>dev_display (ImagePlot)</l>
+<l>disp_message (WindowHandle, 'Reconstructed disparities with texture', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how 128 images of the interior of a church can be</c>
+<c>* combined into a mosaic that covers a 360x130 degree view.  The images were acquired</c>
+<c>* with a camera in which the exposure and white balance were set to automatic.</c>
+<c>* Therefore, there are very large brightness and color differences between the images.</c>
+<c>* Hence, adjust_mosaic_images is used to align the images radiometrically.</c>
+<c>* Furthermore, blending is used to hide the transitions between the individual</c>
+<c>* images that make up the mosaic.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 978, 324, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 647, 1955)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Reading images...')</l>
+<c>* Read the 128 images that make up the mosaic.</c>
+<l>gen_empty_obj (Images)</l>
+<l>for J := 1 to 128 by 1</l>
+<l>    read_image (Image, 'panorama/sankt_martin_automatic_' + J$'03d')</l>
+<l>    concat_obj (Images, Image, Images)</l>
+<l>endfor</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* Construct the tuples that determine which images should be matched.  The</c>
+<c>* mosaic images were acquired as 16 vertical strips of 8 images each.</c>
+<c>* For each image, we match the image below the current image in the same</c>
+<c>* strip and the image to the left of the current image in the adjacent strip.</c>
+<l>FF := [1,1,2,2,3,3,4,4,5,5,6,6,7,7,8]</l>
+<l>TT := [2,9,3,10,4,11,5,12,6,13,7,14,8,15,16]</l>
+<l>From := []</l>
+<l>To := []</l>
+<l>for J := 0 to 15 by 1</l>
+<l>    From := [From,(FF - 1 + 8 * J) % 128 + 1]</l>
+<l>    To := [To,(TT - 1 + 8 * J) % 128 + 1]</l>
+<l>endfor</l>
+<c>* Initialize the data that is required for the self-calibration.</c>
+<l>HomMatrices2D := []</l>
+<l>Rows1 := []</l>
+<l>Cols1 := []</l>
+<l>Rows2 := []</l>
+<l>Cols2 := []</l>
+<l>NumMatches := []</l>
+<l>for J := 0 to |From| - 1 by 1</l>
+<c>    * Select the images to match.</c>
+<l>    select_obj (Images, ImageF, From[J])</l>
+<l>    select_obj (Images, ImageT, To[J])</l>
+<c>    * Perform the point extraction of the images.</c>
+<l>    points_foerstner (ImageF, 1, 2, 3, 50, 0.1, 'gauss', 'true', RowsF, ColsF, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>    points_foerstner (ImageT, 1, 2, 3, 50, 0.1, 'gauss', 'true', RowsT, ColsT, CoRRJunctions1, CoRCJunctions1, CoCCJunctions1, RowArea1, ColumnArea1, CoRRArea1, CoRCArea1, CoCCArea1)</l>
+<l>    concat_obj (ImageT, ImageF, ImageTF)</l>
+<l>    tile_images_offset (ImageTF, TiledImage, [0,0], [0,Width + 20], [-1,-1], [-1,-1], [-1,-1], [-1,-1], 2 * Width + 20, Height)</l>
+<l>    gen_cross_contour_xld (PointsF, RowsF, ColsF + Width + 20, 6, rad(45))</l>
+<l>    gen_cross_contour_xld (PointsT, RowsT, ColsT, 6, rad(0))</l>
+<c>    * Convert the images to gray value images.</c>
+<l>    rgb1_to_gray (ImageF, ImageFG)</l>
+<l>    rgb1_to_gray (ImageT, ImageTG)</l>
+<c>    * Determine the projective transformation between the images.</c>
+<l>    proj_match_points_ransac (ImageFG, ImageTG, RowsF, ColsF, RowsT, ColsT, 'ncc', 10, 0, 0, 648, 968, [rad(-10),rad(40)], 0.5, 'gold_standard', 10, 42, HomMat2D, Points1, Points2)</l>
+<c>    * After this, we accumulate the required data.</c>
+<l>    HomMatrices2D := [HomMatrices2D,HomMat2D]</l>
+<l>    Rows1 := [Rows1,subset(RowsF,Points1)]</l>
+<l>    Cols1 := [Cols1,subset(ColsF,Points1)]</l>
+<l>    Rows2 := [Rows2,subset(RowsT,Points2)]</l>
+<l>    Cols2 := [Cols2,subset(ColsT,Points2)]</l>
+<l>    NumMatches := [NumMatches,|Points1|]</l>
+<c>    * The rest of the code within the loop visualizes the point matches.</c>
+<l>    RF := subset(RowsF,Points1)</l>
+<l>    CF := subset(ColsF,Points1) + Width + 20</l>
+<l>    RT := subset(RowsT,Points2)</l>
+<l>    CT := subset(ColsT,Points2)</l>
+<l>    gen_empty_obj (Matches)</l>
+<l>    for K := 0 to |RF| - 1 by 1</l>
+<l>        gen_contour_polygon_xld (Match, [RF[K],RT[K]], [CF[K],CT[K]])</l>
+<l>        concat_obj (Matches, Match, Matches)</l>
+<l>    endfor</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (TiledImage)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Matches)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (PointsF)</l>
+<l>    dev_display (PointsT)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Matches between images ' + From[J]$'d' + ' and ' + To[J]$'d')</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window_extents (-1, -1, 856, 428)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Performing self-calibration...')</l>
+<c>* Perform the self-calibration.</c>
+<l>stationary_camera_self_calibration (128, 968, 648, 6, From, To, HomMatrices2D, Rows1, Cols1, Rows2, Cols2, NumMatches, 'gold_standard', ['focus','principal_point','kappa'], 'true', CameraMatrix, Kappa, RotationMatrices, X, Y, Z, Error)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Removing radial distortions...')</l>
+<c>* Remove the radial distortions from the images.</c>
+<l>cam_mat_to_cam_par (CameraMatrix, Kappa, 968, 648, CamParam)</l>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, 0, CamParOut)</l>
+<l>gen_radial_distortion_map (Map, CamParam, CamParOut, 'bilinear')</l>
+<l>map_image (Images, Map, Images)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Adjusting the images radiometrically...')</l>
+<c>* Before we adjust the images radiometrically, we compute the perspective</c>
+<c>* transformations between the images from the camera matrix and the rotation</c>
+<c>* matrices that are returned by the self-calibration.  They are more accurate</c>
+<c>* than the perspective transformations that are returned by the matching</c>
+<c>* since they have been optimized over all images.  For details on how the</c>
+<c>* perspective transformation matrices are computed by the code below, see the</c>
+<c>* documentation of stationary_camera_self_calibration.</c>
+<l>hom_mat2d_invert (CameraMatrix, CameraMatrixInv)</l>
+<l>PermMat := [0.0,1.0,0.5,1.0,0.0,0.5,0.0,0.0,1.0]</l>
+<l>hom_mat2d_invert (PermMat, PermMatInv)</l>
+<l>hom_mat2d_compose (CameraMatrixInv, PermMatInv, CamMatPermInv)</l>
+<l>hom_mat2d_compose (PermMat, CameraMatrix, CamMatPerm)</l>
+<l>HomMats2D := []</l>
+<l>for J := 0 to |From| - 1 by 1</l>
+<l>    RotMatFrom := RotationMatrices[9 * (From[J] - 1):9 * (From[J] - 1) + 8]</l>
+<l>    RotMatTo := RotationMatrices[9 * (To[J] - 1):9 * (To[J] - 1) + 8]</l>
+<l>    hom_mat2d_transpose (RotMatFrom, RotMatFromInv)</l>
+<l>    hom_mat2d_compose (RotMatTo, RotMatFromInv, RotMat)</l>
+<l>    hom_mat2d_compose (RotMat, CamMatPermInv, RotCamMatInv)</l>
+<l>    hom_mat2d_compose (CamMatPerm, RotCamMatInv, HomMat2D)</l>
+<l>    HomMats2D := [HomMats2D,HomMat2D]</l>
+<l>endfor</l>
+<c>* Now adjust the images radiometrically.  Since the exposure and white balance</c>
+<c>* were set to automatic, we calculate 'mult_gray'.  Since the camera is a consumer</c>
+<c>* camera and therefore has a highly nonlinear response, we compute 'response'.</c>
+<c>* To compensate the vignetting in the images, we compute 'vignetting'. Finally,</c>
+<c>* to speed up the optimization, we use a subsampling by a factor of 4.</c>
+<l>adjust_mosaic_images (Images, CorrectedImages, From, To, 118, HomMats2D, 'gold_standard', ['mult_gray','response','vignetting','subsampling_4'], 'laguerre')</l>
+<c>* Since the reference image was not aligned perfectly horizontally, we modify the</c>
+<c>* calibrated rotation matrices by rotating them by -5.5 degrees around the x axis.</c>
+<l>hom_mat3d_identity (HomMat3D)</l>
+<l>hom_mat3d_rotate (HomMat3D, rad(-5.5), 'x', 0, 0, 0, HomMat3D)</l>
+<l>RotMat := [HomMat3D[0:2],HomMat3D[4:6],HomMat3D[8:10]]</l>
+<l>RotMats := []</l>
+<l>for J := 0 to 127 by 1</l>
+<l>    RotMatCalib := RotationMatrices[J * 9:J * 9 + 8]</l>
+<l>    hom_mat2d_compose (RotMatCalib, RotMat, RotMatRot)</l>
+<l>    RotMats := [RotMats,RotMatRot]</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Creating spherical mosaic of the original images...')</l>
+<c>* Create the spherical mosaic of the original images.</c>
+<l>gen_spherical_mosaic (Images, SphericalMosaicOrig, CameraMatrix, RotMats, -90, 90, -180, 180, 0, 'voronoi', 'bilinear')</l>
+<l>get_image_size (SphericalMosaicOrig, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (SphericalMosaicOrig)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 300, 20)</l>
+<l>write_string (WindowHandle, 'Spherical mosaic of the original images')</l>
+<l>set_tposition (WindowHandle, Height - 150, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Creating spherical mosaic of the radiometrically adjusted images...')</l>
+<c>* Create the spherical mosaic of the radiometrically adjusted images.</c>
+<l>gen_spherical_mosaic (CorrectedImages, SphericalMosaicAdjust, CameraMatrix, RotMats, -90, 90, -180, 180, 0, 'voronoi', 'bilinear')</l>
+<l>get_image_size (SphericalMosaicAdjust, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (SphericalMosaicAdjust)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 300, 20)</l>
+<l>write_string (WindowHandle, 'Spherical mosaic of the radiometrically adjusted images')</l>
+<l>set_tposition (WindowHandle, Height - 150, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Creating blended spherical mosaic of the radiometrically adjusted images...')</l>
+<c>* Create the blended spherical mosaic of the radiometrically adjusted images.</c>
+<l>gen_spherical_mosaic (CorrectedImages, SphericalMosaicAdjustBlend, CameraMatrix, RotMats, -90, 90, -180, 180, 0, 'blend', 'bilinear')</l>
+<l>get_image_size (SphericalMosaicAdjustBlend, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (SphericalMosaicAdjustBlend)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 300, 20)</l>
+<l>write_string (WindowHandle, 'Blended spherical mosaic of the radiometrically adjusted images')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

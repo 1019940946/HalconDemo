@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example illustrates the differences between the diverse</c>
+<c>* implementations of Gaussian filters provided by HALCON.</c>
+<c>* While their results are very similar, the way they approximate</c>
+<c>* the Gaussian differs and with this some properties like their</c>
+<c>* runtimes and the supported image types.</c>
+<c>* Therefore, the decision which implementation should be used for</c>
+<c>* a particular application depends on the conditions set by the</c>
+<c>* application.</c>
+<c>* </c>
+<c>* Briefly, the properties of the different implementations can be</c>
+<c>* summarized as follows:</c>
+<c>* 1. gauss_filter     offers the best compromise between runtime</c>
+<c>*                     and accuracy.</c>
+<c>* 2. binomial_filter  is a fast approximation to the true</c>
+<c>*                     Gaussian, but also the most inaccurate.</c>
+<c>* 3. derivative_gauss is the most exact implementation but it</c>
+<c>*                     returns only real images.</c>
+<c>* 4. smooth_image     is the slowest implementation.</c>
+<c>*                     It has advantages when used with Deriche or</c>
+<c>*                     Shen filters, which have runtimes independent</c>
+<c>*                     of the mask size.</c>
+<c>* </c>
+<c>* Note that the values for mask sizes and sigmas were chosen such that</c>
+<c>* the smoothing results are as similar as possible.</c>
+<c>* </c>
+<c>* Initialize display</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>Width := 1000</l>
+<l>Height := 400</l>
+<l>gen_lines_image (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', MainWindow)</l>
+<l>set_display_font (MainWindow, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Initialize filter names and sizes</c>
+<l>MaskSizeBinomial := [5,11,17,27]</l>
+<l>MaskSizeGauss := [5,7,9,11]</l>
+<l>Sigma := [1.075,1.55,2.025,2.55]</l>
+<l>FilterNames := ['Operator','smooth_image','gauss_filter','derivate_gauss','binomial_filter']</l>
+<l>Colors := ['blue','orange','lime green','magenta','cornflower blue']</l>
+<c>* </c>
+<c>* </c>
+<l>ComputeDevice := 'GPU'</l>
+<l>InputTypes := 'Allowed input image types'</l>
+<l>OutputTypes := 'Output image types'</l>
+<l>for I := 1 to |FilterNames| - 1 by 1</l>
+<l>    get_operator_info (FilterNames[I], 'compute_device', Info)</l>
+<l>    ComputeDevice[I] := Info</l>
+<l>    get_operator_info (FilterNames[I], 'parameter', Param)</l>
+<l>    get_param_info (FilterNames[I], Param[0], 'type_list', Types)</l>
+<l>    InputTypes[I] := sum(Types + ' ')</l>
+<l>    get_param_info (FilterNames[I], Param[1], 'type_list', Types)</l>
+<l>    OutputTypes[I] := sum(Types + ' ')</l>
+<l>endfor</l>
+<c>* </c>
+<l>Color := ['blue',gen_tuple_const(|FilterNames| - 1,'black')]</l>
+<l>ColorGPU := ['blue',gen_tuple_const(|FilterNames| - 1,'forest green')]</l>
+<l>None := find(ComputeDevice,'none')</l>
+<l>if (None != -1)</l>
+<l>    ColorGPU[None] := 'red'</l>
+<l>endif</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>Message := 'HALCON offers multiple implementations of Gaussian or Gaussian-like filters.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The table below shows which of the operators'</l>
+<l>Message[3] := ' - runs on compute devices (GPUs)'</l>
+<l>Message[4] := ' - supports which image types as input and output'</l>
+<c>* </c>
+<l>disp_message (MainWindow, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>Column := 12</l>
+<l>disp_message (MainWindow, FilterNames, 'window', 122, Column, Color, 'false')</l>
+<l>calculate_next_column (FilterNames, MainWindow, Column, Column)</l>
+<l>disp_message (MainWindow, ComputeDevice, 'window', 122, Column, ColorGPU, 'false')</l>
+<l>calculate_next_column (ComputeDevice, MainWindow, Column, Column)</l>
+<l>disp_message (MainWindow, InputTypes, 'window', 122, Column, Color, 'false')</l>
+<l>calculate_next_column (InputTypes, MainWindow, Column, Column)</l>
+<l>disp_message (MainWindow, OutputTypes, 'window', 122, Column, Color, 'false')</l>
+<l>calculate_next_column (OutputTypes, MainWindow, Column, Column)</l>
+<c>* </c>
+<l>Message := 'In the following, the results and execution times of the different operators are compared.'</l>
+<l>Message[1] := ''</l>
+<l>Message[2] := 'Note that the differences in the filter results are VERY small.'</l>
+<l>Message[3] := 'This means that in most cases, the execution times, GPU support, and supported image types'</l>
+<l>Message[4] := 'should be considered to choose the most suitable operator for your application.'</l>
+<l>disp_message (MainWindow, Message, 'window', 252, 12, 'black', 'false')</l>
+<l>disp_continue_message (MainWindow, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>Colors[0] := 'dim gray'</l>
+<l>dev_display (Image)</l>
+<l>Title := 'Compare Gaussian smoothing filter operators'</l>
+<l>FilterNames[0] := 'No filter'</l>
+<c>* </c>
+<c>* Initialize regions of interest</c>
+<l>ColumnStart := 30</l>
+<l>ColumnEnd := 470</l>
+<l>gen_rectangle1 (GaussRectangle, 115, ColumnStart, 164, ColumnEnd)</l>
+<l>gen_rectangle1 (BinomialRectangle, 165, ColumnStart, 214, ColumnEnd)</l>
+<l>gen_rectangle1 (DerivateRectangle, 215, ColumnStart, 264, ColumnEnd)</l>
+<l>gen_rectangle1 (SmoothRectangle, 265, ColumnStart, 314, ColumnEnd)</l>
+<l>gen_rectangle1 (OrigRectangle, 315, ColumnStart, 364, ColumnEnd)</l>
+<l>concat_obj (GaussRectangle, BinomialRectangle, Rectangles)</l>
+<l>concat_obj (Rectangles, DerivateRectangle, Rectangles)</l>
+<l>concat_obj (Rectangles, SmoothRectangle, Rectangles)</l>
+<l>concat_obj (Rectangles, OrigRectangle, Rectangles)</l>
+<l>VertProjections := []</l>
+<c>* </c>
+<c>* Main loop:</c>
+<c>* Compare results and execution times for different filter sizes</c>
+<l>for I := 0 to |Sigma| - 1 by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<c>    * Prepare visualization</c>
+<l>    Suffix := ''</l>
+<l>    Suffix[1] := '(deriche2) (Alpha = ' + (0.885 / Sigma[I])$'.3f' + ')'</l>
+<l>    Suffix[2] := ' (' + MaskSizeGauss[I] + 'x' + MaskSizeGauss[I] + ')'</l>
+<l>    Suffix[3] := ' (Sigma = ' + Sigma[I] + ')'</l>
+<l>    Suffix[4] := ' (' + MaskSizeBinomial[I] + 'x' + MaskSizeBinomial[I] + ')'</l>
+<l>    Subtitle := ' Sigma = ' + Sigma[I] + ' (or corresponding mask size)'</l>
+<l>    disp_message (MainWindow, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (MainWindow, Subtitle, 'window', 42, 12, 'black', 'false')</l>
+<c>    * </c>
+<c>    * Inner loop:</c>
+<c>    * Measure execution times for each filter</c>
+<l>    for R := 1 to |FilterNames| by 1</l>
+<l>        select_obj (Rectangles, Domain, R)</l>
+<l>        perform_filter_benchmark (Image, Domain, ImageGauss, FilterNames[R - 1], MaskSizeGauss[I], MaskSizeBinomial[I], Sigma[I], Time)</l>
+<l>        Runtime[(R - 1) * |Sigma| + I] := Time</l>
+<c>        * </c>
+<c>        * Display result</c>
+<l>        Color := Colors[R - 1]</l>
+<l>        dev_set_color (Color)</l>
+<l>        dev_display (ImageGauss)</l>
+<l>        dev_display (Domain)</l>
+<l>        area_center (Domain, Area, Row, Column)</l>
+<c>        * </c>
+<c>        * Plot gray value profile in second window</c>
+<l>        gray_projections (Domain, ImageGauss, 'simple', HorProjection, VertProjection)</l>
+<l>        VertProjections := [VertProjections,VertProjection]</l>
+<l>        gen_contour_polygon_xld (Line, 90 + [R,R] * 50, [470,500])</l>
+<l>        Message := 'Gray value profiles of filtered regions.'</l>
+<l>        Message[1] := 'Please zoom in to check the differences'</l>
+<l>        Message[2] := 'in detail.'</l>
+<l>        dev_set_color (Color)</l>
+<l>        dev_display (Line)</l>
+<l>        disp_message (MainWindow, FilterNames[R - 1] + Suffix[R - 1], 'window', Row, 35, Color, 'white')</l>
+<l>        disp_message (MainWindow, Message, 'window', 12, 512, 'black', 'true')</l>
+<l>        disp_message (MainWindow, [FilterNames[R - 1],Time$'.2' + ' ms'], 'window', 75 + R * 50, 512, Color, 'false')</l>
+<l>    endfor</l>
+<l>    GenericParamNames := ['axes_color','margin_top','margin_left','margin_bottom','margin_right']</l>
+<l>    GenericParamValues := ['black',115,680,80,20]</l>
+<l>    plot_tuple (MainWindow, [ColumnStart:ColumnEnd], VertProjections, 'column', '', Colors, GenericParamNames, GenericParamValues)</l>
+<l>    disp_continue_message (MainWindow, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Plot average execution times</c>
+<l>Max := max(Runtime)</l>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (MainWindow, Sigma$'.3f', Runtime[|Sigma|:|Runtime| - 1], 'Sigma', 'Average execution times on a ' + Width + ' x ' + Height + ' image in ms', Colors[1:|FilterNames| - 1], 'axes_color', 'black')</l>
+<l>disp_message (MainWindow, FilterNames[1:4], 'window', 70, 110, Colors[1:4], 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="perform_filter_benchmark">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Rectangle" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageResult" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Filter" base_type="ctrl" dimension="0"/>
+<par name="MaskSizeGauss" base_type="ctrl" dimension="0"/>
+<par name="MaskSizeBinomial" base_type="ctrl" dimension="0"/>
+<par name="Sigma" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Time" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>NIterations := 100</l>
+<l>if (Filter == 'gauss_filter')</l>
+<l>    gauss_filter (Image, ImageResult, MaskSizeGauss)</l>
+<l>    count_seconds (Start)</l>
+<l>    for N := 1 to NIterations by 1</l>
+<l>        gauss_filter (Image, ImageResult, MaskSizeGauss)</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>elseif (Filter == 'binomial_filter')</l>
+<l>    binomial_filter (Image, ImageResult, MaskSizeBinomial, MaskSizeBinomial)</l>
+<l>    count_seconds (Start)</l>
+<l>    for N := 1 to NIterations by 1</l>
+<l>        binomial_filter (Image, ImageResult, MaskSizeBinomial, MaskSizeBinomial)</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>elseif (Filter == 'derivate_gauss')</l>
+<l>    derivate_gauss (Image, ImageResult, Sigma, 'none')</l>
+<l>    count_seconds (Start)</l>
+<l>    for N := 1 to NIterations by 1</l>
+<l>        derivate_gauss (Image, ImageResult, Sigma, 'none')</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>elseif (Filter == 'smooth_image')</l>
+<l>    smooth_image (Image, ImageResult, 'deriche2', 0.885 / Sigma)</l>
+<l>    count_seconds (Start)</l>
+<l>    for N := 1 to NIterations by 1</l>
+<l>        smooth_image (Image, ImageResult, 'deriche2', 0.885 / Sigma)</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>else</l>
+<l>    copy_image (Image, ImageResult)</l>
+<l>    Start := 0</l>
+<l>    End := 0</l>
+<l>endif</l>
+<l>reduce_domain (ImageResult, Rectangle, ImageResult)</l>
+<l>Time := (1000.0 * (End - Start)) / NIterations</l>
+<l>return ()</l>
+</body>
+<docu id="perform_filter_benchmark">
+<parameters>
+<parameter id="Filter">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<values>
+<item>'gauss_filter'</item>
+<item>'binomial_filter'</item>
+<item>'derivative_gauss'</item>
+<item>'smooth_image'</item>
+</values>
+</parameter>
+<parameter id="Image">
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="ImageResult">
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="MaskSizeBinomial"/>
+<parameter id="MaskSizeGauss"/>
+<parameter id="Rectangle">
+<multivalue>false</multivalue>
+<sem_type>region</sem_type>
+</parameter>
+<parameter id="Sigma"/>
+<parameter id="Time">
+<default_type>real</default_type>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_lines_image">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_image_const (Image, 'byte', Width, Height)</l>
+<l>get_domain (Image, Background)</l>
+<l>paint_region (Background, Image, Image, 255, 'fill')</l>
+<l>Row1 := 100</l>
+<l>Row2 := 375</l>
+<l>ColumnOffset := 50</l>
+<l>MaxWidth := 20</l>
+<l>for W := 0 to MaxWidth - 1 by 1</l>
+<l>    StartColumn := W * MaxWidth + ColumnOffset</l>
+<l>    gen_rectangle1 (Rectangle, Row1, StartColumn, Row2, StartColumn + W)</l>
+<l>    paint_region (Rectangle, Image, Image, 0, 'fill')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="gen_lines_image">
+<parameters>
+<parameter id="Height"/>
+<parameter id="Image"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="calculate_next_column">
+<interface>
+<ic>
+<par name="Text" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ColumnOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>for I := 0 to |Text| - 1 by 1</l>
+<l>    get_string_extents (WindowHandle, Text[I], Ascent, Descent, Width, Height)</l>
+<l>    W[I] := Width</l>
+<l>endfor</l>
+<l>ColumnOut := Column + max(W) + 15</l>
+<l>return ()</l>
+</body>
+<docu id="calculate_next_column">
+<parameters>
+<parameter id="Column"/>
+<parameter id="ColumnOut"/>
+<parameter id="Text"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

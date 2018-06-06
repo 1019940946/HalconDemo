@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the basic concept of how to use the</c>
+<c>* Laws texture filters for the texture-based segmentation of an image.</c>
+<c>* For simplicity reasons, only two different filter masks are used</c>
+<c>* and the segmentation is performed with a two-dimensional classification.</c>
+<c>* For practical applications, typically, more filter masks should</c>
+<c>* be used. This will lead to more stable results. In this case, the</c>
+<c>* classification can, e.g., be performed with an MLP classifier.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Preparation</c>
+<l>read_image (Image, 'forest_road')</l>
+<l>dev_get_window (WindowHandle)</l>
+<l>if (WindowHandle &gt;= 0)</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>else</l>
+<l>    dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>endif</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Input image to be segmented'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Filter the image with two different Laws filters:</c>
+<c>* The first one responds to 'spots' ('ss') while the second one</c>
+<c>* responds to 'edges' ('ee') in the input image.</c>
+<l>texture_laws (Image, SS, 'ss', 0, 5)</l>
+<l>texture_laws (Image, EE, 'ee', 1, 5)</l>
+<c>* </c>
+<c>* Display the filter results</c>
+<l>dev_display (SS)</l>
+<l>Message := ['Result of the Laws filter \'ss\',','which responds to \'spots\'.']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (EE)</l>
+<l>Message := ['Result of the Laws filter \'ee\',','which responds to \'edges\'.']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* According to Laws, macro statistics should be calculated to</c>
+<c>* derive texture information from the filtered images.</c>
+<c>* This means that some statistics of the filter results should</c>
+<c>* be calculated in a somewhat larger window. He proposes to</c>
+<c>* calculate either the standard deviation or some kind of</c>
+<c>* mean value. Here, we calculate the median in a window of size</c>
+<c>* 25x25 pixel.</c>
+<l>MedianSize := 15</l>
+<l>median_separate (SS, SSMed, MedianSize, MedianSize, 'mirrored')</l>
+<l>median_separate (EE, EEMed, MedianSize, MedianSize, 'mirrored')</l>
+<c>* </c>
+<c>* Display the macro statistics (the median filtered images)</c>
+<l>dev_display (SSMed)</l>
+<l>Message := ['Median filtered result of the','Laws filter \'ss\'']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (EEMed)</l>
+<l>Message := ['Median filtered result of the','Laws filter \'ee\'']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create two-dimensional histogram of the two median filtered images,</c>
+<c>* which contain the texture information.</c>
+<l>histo_2dim (SSMed, SSMed, EEMed, Histo2DimFull)</l>
+<c>* </c>
+<c>* Display histogram, i.e., the feature space for the classification</c>
+<l>get_window_extents (WindowHandle, WRow, WColumn, WWidth, WHeight)</l>
+<l>dev_open_window (0, WWidth + 20, WWidth, WHeight, 'black', WindowHandleHisto)</l>
+<l>dev_set_part (0, 0, 255, 255)</l>
+<l>set_display_font (WindowHandleHisto, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_lut ('cubic_root')</l>
+<l>dev_display (Histo2DimFull)</l>
+<l>MessageH := ['2D histogram of the median','filtered texture images, i.e.,','feature space for full image']</l>
+<l>disp_message (WindowHandleHisto, MessageH, 'window', 12, WWidth - 400, 'black', 'true')</l>
+<c>* </c>
+<c>* Interactively select a training region</c>
+<c>* (draw using left mouse button, confirm with right mouse button)</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('blue')</l>
+<l>Message := ['Draw a training region, for a class to','be segmented with texture classification,','e.g., forest or grassland']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'blue', 'true')</l>
+<l>draw_region (TrainingRegion, WindowHandle)</l>
+<c>* </c>
+<c>* Calculate the two-dimensional histogram for the training region</c>
+<l>histo_2dim (TrainingRegion, SSMed, EEMed, Histo2Dim)</l>
+<l>threshold (Histo2Dim, RegionFeat, 1, 1000000)</l>
+<l>fill_up (RegionFeat, RegionFillUp)</l>
+<l>dilation_circle (RegionFillUp, FeatureSpace, 1.5)</l>
+<c>* </c>
+<c>* Display the two-dimensional histogram for the training region</c>
+<l>dev_set_window (WindowHandleHisto)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Histo2DimFull)</l>
+<l>dev_display (FeatureSpace)</l>
+<l>disp_message (WindowHandleHisto, MessageH, 'window', 12, WWidth - 400, 'black', 'true')</l>
+<l>Message := ['The feature space of the training','region is marked in blue']</l>
+<l>disp_message (WindowHandleHisto, Message, 'window', 90, WWidth - 400, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment the image using two-dimensional pixel classification</c>
+<l>class_2dim_sup (SSMed, EEMed, FeatureSpace, RegionClass)</l>
+<c>* Clean up the classification result a little bit</c>
+<l>opening_circle (RegionClass, RegionOpening, 1.5)</l>
+<l>fill_up_small_holes (RegionOpening, RegionClassFilled, 150)</l>
+<c>* </c>
+<c>* Display segmentation result</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<l>dev_display_region_overlay (Image, RegionClassFilled)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (TrainingRegion)</l>
+<l>Message := ['Segmentation result based on the','texture information of the training region']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_display_region_overlay">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Region" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>reduce_domain (Image, Region, ImageReduced)</l>
+<l>scale_image (ImageReduced, ImageRG, 1.25, 0)</l>
+<l>scale_image (ImageReduced, ImageB, 0.75, 0)</l>
+<l>compose3 (ImageRG, ImageRG, ImageB, MultiChannelImage)</l>
+<l>dev_display (MultiChannelImage)</l>
+<l>dev_get_window (WindowHandle)</l>
+<l>get_draw (WindowHandle, DrawMode)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_draw (DrawMode)</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_region_overlay">
+<parameters>
+<parameter id="Image"/>
+<parameter id="Region"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="fill_up_small_holes">
+<interface>
+<io>
+<par name="Region" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="RegionFilled" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MaxArea" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>fill_up (Region, RegionFillUp)</l>
+<l>difference (RegionFillUp, Region, RegionDifference)</l>
+<l>connection (RegionDifference, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 0, MaxArea)</l>
+<l>union2 (Region, SelectedRegions, RegionFilled)</l>
+<l>return ()</l>
+</body>
+<docu id="fill_up_small_holes">
+<parameters>
+<parameter id="MaxArea"/>
+<parameter id="Region"/>
+<parameter id="RegionFilled"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

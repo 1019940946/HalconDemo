@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images and 3D data via the Ensenso-NxLib interface</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('Ensenso-NxLib', 'info_boards', Information, ValueList)</l>
+<c>* </c>
+<c>* Open the first available stereo camera</c>
+<l>open_framegrabber ('Ensenso-NxLib', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'stereo', '', 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Set the tree items returned when calling 'grab_data'</c>
+<l>set_framegrabber_param (AcqHandle, 'grab_data_items', ['Images/Rectified/Left','Images/Rectified/Right','Images/PointMap'])</l>
+<c>* </c>
+<c>* Disable the update. The output will be controlled by user</c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Close still opened windows</c>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Configure the output windows</c>
+<l>grab_data (Images, Region, Contours, AcqHandle, Data)</l>
+<l>organize_windows (Images, NumImages, NumChannels, XPos, YPos, WindowHandle, Channels, SumChannels, Index, NewWindowHandle)</l>
+<c>* </c>
+<c>* Define a description for the different image types</c>
+<l>ImageTypeDescription := ['Cam1','Cam2','x_mm','y_mm','z_mm']</l>
+<c>* </c>
+<l>while (1)</l>
+<c>    * Use grab_data to get images and 3D data</c>
+<l>    grab_data (Images, Regions, Contours, AcqHandle, Data)</l>
+<c>    * </c>
+<l>    ChannelSumIdx := 0</l>
+<l>    count_channels (Images, Channels)</l>
+<l>    tuple_length (Channels, NumImages)</l>
+<l>    for I := 1 to NumImages by 1</l>
+<l>        NumChannels := Channels[I - 1]</l>
+<l>        for ChannelIdx := 1 to NumChannels by 1</l>
+<l>            tuple_select (WindowHandle, ChannelSumIdx, Selected)</l>
+<l>            dev_set_window (Selected)</l>
+<c>            * </c>
+<l>            select_obj (Images, ImageI, I)</l>
+<l>            access_channel (ImageI, ImageOut, ChannelIdx)</l>
+<l>            dev_display (ImageOut)</l>
+<c>            * </c>
+<l>            disp_message (Selected, 'grab_data: ' + ImageTypeDescription[ChannelSumIdx], 'window', 10, 10, 'black', 'true')</l>
+<l>            ChannelSumIdx := ChannelSumIdx + 1</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="organize_windows">
+<interface>
+<io>
+<par name="Images" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="NumImages" base_type="ctrl" dimension="0"/>
+<par name="NumChannels" base_type="ctrl" dimension="0"/>
+<par name="XPos" base_type="ctrl" dimension="0"/>
+<par name="YPos" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Channels" base_type="ctrl" dimension="0"/>
+<par name="SumChannels" base_type="ctrl" dimension="0"/>
+<par name="Index" base_type="ctrl" dimension="0"/>
+<par name="NewWindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>NumImages := 0</l>
+<l>NumChannels := 0</l>
+<l>XPos := 0</l>
+<l>YPos := 0</l>
+<l>WindowHandle := []</l>
+<l>count_channels (Images, Channels)</l>
+<l>tuple_sum (Channels, SumChannels)</l>
+<l>tuple_length (Channels, NumImages)</l>
+<c>* </c>
+<c>* Open Windows for Camera1, Camera2, Y,Y,Z</c>
+<l>for Index := 0 to SumChannels - 1 by 1</l>
+<l>    dev_open_window (YPos, XPos, 320, 240, 'black', NewWindowHandle)</l>
+<l>    tuple_concat (WindowHandle, NewWindowHandle, WindowHandle)</l>
+<l>    XPos := XPos + 330</l>
+<l>    if (Index == 1)</l>
+<l>        XPos := 0</l>
+<l>        YPos := YPos + 265</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="organize_windows">
+<parameters>
+<parameter id="Channels"/>
+<parameter id="Images"/>
+<parameter id="Index"/>
+<parameter id="NewWindowHandle"/>
+<parameter id="NumChannels"/>
+<parameter id="NumImages"/>
+<parameter id="SumChannels"/>
+<parameter id="WindowHandle"/>
+<parameter id="XPos"/>
+<parameter id="YPos"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

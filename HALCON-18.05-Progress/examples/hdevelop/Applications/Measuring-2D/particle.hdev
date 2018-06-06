@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* particle.hdev: Measurement of small particles</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>read_image (Image, 'particle')</l>
+<l>dev_display (Image)</l>
+<l>dev_disp_text ('Original image', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>threshold (Image, Large, 110, 255)</l>
+<c>* Dilate regions with a circular structuring element</c>
+<l>dilation_circle (Large, LargeDilation, 7.5)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (LargeDilation)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_disp_text ('Exclude large areas from processing', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* Continue to calculate small regions</c>
+<c>* Return the complement of a region</c>
+<l>complement (LargeDilation, NotLarge)</l>
+<l>reduce_domain (Image, NotLarge, ParticlesRed)</l>
+<l>mean_image (ParticlesRed, Mean, 31, 31)</l>
+<c>* Segment the image using a local threshold</c>
+<l>dyn_threshold (ParticlesRed, Mean, SmallRaw, 3, 'light')</l>
+<l>opening_circle (SmallRaw, Small, 2.5)</l>
+<l>connection (Small, SmallConnection)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (SmallConnection)</l>
+<l>dev_disp_text ('Extracted small particles', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* Continue to select several regions and to get information</c>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (SmallConnection)</l>
+<l>Button := 1</l>
+<c>* Define limits for the displayed message at the end of the while-loop.</c>
+<l>MaxRow := 450</l>
+<l>MaxColumn := 440</l>
+<l>MinRow := 40</l>
+<l>MinColumn := 100</l>
+<l>while (Button == 1)</l>
+<l>    dev_disp_text (['Select object with left mouse button','Right button to quit'], 'window', 12, 12, 'black', 'box_color', '#fce9d4dd')</l>
+<l>    dev_set_color ('green')</l>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SmallConnection)</l>
+<l>    dev_set_color ('red')</l>
+<l>    select_region_point (SmallConnection, SmallSingle, Row, Column)</l>
+<l>    dev_display (SmallSingle)</l>
+<l>    count_obj (SmallSingle, NumSingle)</l>
+<l>    if (NumSingle == 1)</l>
+<l>        intensity (SmallSingle, Image, MeanGray, DeviationGray)</l>
+<l>        area_center (SmallSingle, Area, Row, Column)</l>
+<c>        * Limit the message so that it is displayed entirely inside the graphics window.</c>
+<l>        if (Row &gt; MaxRow)</l>
+<l>            Row := MaxRow</l>
+<l>        endif</l>
+<l>        if (Column &gt; MaxColumn)</l>
+<l>            Column := MaxColumn</l>
+<l>        endif</l>
+<l>        if (Row &lt; MinRow)</l>
+<l>            Row := MinRow</l>
+<l>        endif</l>
+<l>        if (Column &lt; MinColumn)</l>
+<l>            Column := MinColumn</l>
+<l>        endif</l>
+<l>        dev_disp_text (['Area = ' + Area,'Intensity = ' + MeanGray$'.3'], 'image', Row + 10, Column - 90, 'black', 'box_color', '#fce9d4dd')</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

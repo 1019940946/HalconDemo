@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example explains how variable types are defined in HDevelop.</c>
+<c>* </c>
+<c>* In addition to the correct usage, it also shows some common</c>
+<c>* mistakes, that lead to invalid code lines.</c>
+<c>* These lines are invalid on purpose for didactical reasons.</c>
+<c>* </c>
+<c>* Please work through the program carefully to understand why</c>
+<c>* some lines are valid while others are not.</c>
+<c>* </c>
+<c>* </c>
+<c>* Display disclaimer</c>
+<l>Message := 'This program shows the usage of the different variable types in HDevelop:'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := ' - Control variables'</l>
+<l>Message[4] := ' - Iconic variables'</l>
+<l>Message[5] := ' - Control vector variables'</l>
+<l>Message[6] := ' - Iconic vector variables'</l>
+<c>* </c>
+<l>Warning := '  This program is NOT executable.'</l>
+<l>Warning[1] := '  Please check the source code for best understanding.   '</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, Warning, 'window', 170, 12, 'white', 'red')</l>
+<l>stop ()</l>
+<l>return ()</l>
+<c>* </c>
+<c>* In HDevelop all variables must have a defined type.</c>
+<c>* This type is determined before runtime, and must stay the same</c>
+<c>* throughout the variable's scope.</c>
+<c>* </c>
+<c>* All code lines that write a value to the variable define the</c>
+<c>* variable type implicitly.</c>
+<c>* E.g., the following lines define an iconic variable IconicObject</c>
+<c>* and a control variable ControlTuple.</c>
+<l>gen_image_const (IconicObject, 'byte', 512, 512)</l>
+<l>ControlTuple := 0</l>
+<c>* </c>
+<c>* The variable types of procedure parameters are defined by the</c>
+<c>* procedure interface.</c>
+<c>* The following procedure uses an iconic object as input and a</c>
+<c>* 2-dimensional control vector as output:</c>
+<l>procedure_with_parameters (IconicObject, ControlOutputVector2Dim)</l>
+<c>* </c>
+<c>* All global variable declarations define the variable type explicitly:</c>
+<l>global tuple GlobalControlTuple1</l>
+<l>global object GlobalIconicObject2</l>
+<c>* </c>
+<c>* If an input variable type is undefined,</c>
+<c>* the code line becomes invalid:</c>
+<l>read_image (IconicObject, VariableOfUndefinedType)</l>
+<c>* </c>
+<c>* Variables must be used consistently within their scope.</c>
+<c>* In this case, ConflictingVariable is first defined as</c>
+<c>* iconic variable, and then as control variable.</c>
+<c>* Therefore all lines using the variable become invalid:</c>
+<l>gen_image_const (ConflictingVariable, 'byte', 512, 512)</l>
+<l>ConflictingVariable := 1 * 1</l>
+<c>* </c>
+<c>* Other examples:</c>
+<c>* Vector vs. Control tuple</c>
+<c>* 1-dimensional vector vs. 2-dimensional vector</c>
+<l>VectorOrTuple := {1}</l>
+<l>VectorOrTuple := [1]</l>
+<c>* </c>
+<l>ControlVector1or2Dim := {1}</l>
+<l>ControlVector1or2Dim := {{1}}</l>
+<c>* </c>
+<c>* If a variable is used as input variable where a</c>
+<c>* different type is expected, the line becomes invalid.</c>
+<l>NotIconic := 1</l>
+<l>invert_image (NotIconic, ImageInvert)</l>
+<l>gen_image_const (NotATuple, 'byte', 512, 512)</l>
+<l>X := NotATuple + 1</l>
+<c>* </c>
+<c>* Global variable declarations overrule implicit type definitions.</c>
+<c>* Therefore, the variable declarations of</c>
+<c>* GlobalTuple2 and GlobalObject2 below are valid.</c>
+<c>* Only the two other lines throw an error.</c>
+<l>global tuple GlobalTuple</l>
+<l>gen_image_const (GlobalTuple, 'byte', 512, 512)</l>
+<l>global object GlobalObject</l>
+<l>GlobalObject := 2</l>
+<c>* </c>
+<c>* Procedure parameter declarations are the most potent variable</c>
+<c>* type definitions in HDevelop, and overrule even global variable</c>
+<c>* declarations.</c>
+<c>* Please check the source code of the following procedure</c>
+<c>* for details.</c>
+<l>conflicting_parameters_and_global_variables (IconicObject, ControlOutputVector2Dim)</l>
+<c>* </c>
+<c>* Type conflicts between two or more lines of the same procedure</c>
+<c>* are highlighted in a different color than syntax errors.</c>
+<l>read_image (IconicObject, VariableOfUndefinedType)</l>
+<l>read_imaXe (IconicObject, VariableOfUndefinedType)</l>
+<c>* </c>
+<c>* The empty vector can be used in the same way as any other</c>
+<c>* vector constant, e.g., to define an empty sub vector</c>
+<c>* or a completely empty vector:</c>
+<l>ControlVector2Dim := {{},{3},{4,5}}</l>
+<l>ControlVector2Dim := {}</l>
+<c>* </c>
+<c>* The empty vector adopts its type according to the usage.</c>
+<c>* In this case, a 1-dimensional control vector:</c>
+<l>ControlVector1Dim := {}</l>
+<l>for I := 0 to 4 by 1</l>
+<l>    ControlVector1Dim.at(I) := I</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Until the type is defined by another line in the program,</c>
+<c>* a single assignment of an empty vector stays invalid.</c>
+<l>VectorOfUndefinedType := {}</l>
+<c>* </c>
+<c>* Activate the following line (F3), and the line above will become valid.</c>
+<l>* VectorOfUndefinedType := {1}</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="procedure_with_parameters">
+<interface>
+<io>
+<par name="IconicInputObject" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="ControlOutputVector2Dim" base_type="ctrl" dimension="2"/>
+</oc>
+</interface>
+<body>
+<c>* Procedure interfaces define the types of their parameters.</c>
+<c>* In this case, the parameter IconicInputObject is an iconic object,</c>
+<c>* and ControlOutputVector2Dim is a 2-dimensional control vector.</c>
+<l>threshold (IconicInputObject, Region, 128, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>count_obj (IconicInputObject, ControlOutputVector2Dim.at(0).at(0))</l>
+<l>return ()</l>
+</body>
+<docu id="procedure_with_parameters">
+<parameters>
+<parameter id="ControlOutputVector2Dim"/>
+<parameter id="IconicInputObject"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="conflicting_parameters_and_global_variables">
+<interface>
+<io>
+<par name="IconicInputObject" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="ControlOutputVector2Dim" base_type="ctrl" dimension="2"/>
+</oc>
+</interface>
+<body>
+<c>* Procedure parameter declarations are the most potent variable</c>
+<c>* type definitions in HDevelop and overrule even global</c>
+<c>* variable declarations.</c>
+<c>* In this case, the parameter IconicInputObject is an iconic object,</c>
+<c>* and ControlOutputVector2Dim is a 2 dimensional control vector</c>
+<c>* as defined by the procedure interface.</c>
+<c>* The conflicting global variable declarations are invalid and ignored.</c>
+<l>global tuple vector(3) IconicInputObject</l>
+<l>global object ControlOutputVector2Dim</l>
+<l>threshold (IconicInputObject, Region, 128, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>count_obj (IconicInputObject, ControlOutputVector2Dim.at(0).at(0))</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="conflicting_parameters_and_global_variables">
+<parameters>
+<parameter id="ControlOutputVector2Dim"/>
+<parameter id="IconicInputObject"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

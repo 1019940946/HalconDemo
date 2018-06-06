@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program illustrates how to use rank_n to compute a</c>
+<c>* background image of a scene with moving objects and that mean_n</c>
+<c>* cannot be used to perform this task.  In particular, the background</c>
+<c>* image can be computed with rank_n by setting the rank to (|Images|+1)/2</c>
+<c>* to compute the median image.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>NumImages := 27</l>
+<c>* Read only the images from the bicycle scene that contain moving objects.</c>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'bicycle/bicycle_' + Index$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Image ' + Index, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index == 1)</l>
+<l>        copy_obj (Image, MotionImages, 1, 1)</l>
+<l>    else</l>
+<l>        append_channel (MotionImages, Image, MotionImages)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Compute the mean of the 27 images to show the ghost images of the</c>
+<c>* moving objects.</c>
+<l>mean_n (MotionImages, ImageMean)</l>
+<l>dev_display (ImageMean)</l>
+<l>disp_message (WindowHandle, 'Mean image of the ' + NumImages + ' images', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the rank filter with rank (NumImages+1)/2, i.e., 14, to compute</c>
+<c>* the median of the 27 images.  This creates a clean background image</c>
+<c>* without the moving objects.</c>
+<l>rank_n (MotionImages, ImageMedian, (NumImages + 1) / 2)</l>
+<l>dev_display (ImageMedian)</l>
+<l>disp_message (WindowHandle, 'Median image of the ' + NumImages + ' images', 'window', 10, 10, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

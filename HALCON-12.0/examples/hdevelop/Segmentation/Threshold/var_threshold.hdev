@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Threshold images based on an analysis of local mean and standard deviation</c>
+<c>* </c>
+<c>* open image sequence with the file framegrabber</c>
+<l>open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'label/label', 'default', -1, 1, FGHandle)</l>
+<c>* </c>
+<c>* open display window with the size of the images</c>
+<l>grab_image (Image, FGHandle)</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_set_colored (12)</l>
+<c>* </c>
+<c>* endless loop over all images in sequence</c>
+<l>while (1)</l>
+<l>    grab_image (Image, FGHandle)</l>
+<c>    * threshold the image</c>
+<l>    var_threshold (Image, Region, 15, 15, 1.0, 40, 'dark')</l>
+<c>    * select regions of particular height and size</c>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, ['height','area'], 'and', [20,100], [100,400])</l>
+<c>    * display the results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SelectedRegions)</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endwhile</l>
+<l>close_framegrabber (FGHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

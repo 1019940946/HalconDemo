@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example how to use software triggering.</c>
+<c>* This example depends on correct implementation of the</c>
+<c>* SFNC (Standard Features Naming Convention).</c>
+<c>* See the Download section on http://genicam.org.</c>
+<c>* </c>
+<l>Device := 'default'</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<l>try</l>
+<l>    get_framegrabber_param (AcqHandle, 'TriggerSource_values', TriggerSourceValues)</l>
+<l>catch (Exception)</l>
+<l>    if (Exception[0] == 5330)</l>
+<c>        * This device is missing the SFNC parameter TriggerSource.</c>
+<l>        stop ()</l>
+<l>    else</l>
+<c>        * Unexpected error.</c>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endtry</l>
+<l>tuple_regexp_test (TriggerSourceValues, 'Software', NumMatches)</l>
+<l>if (0 == NumMatches)</l>
+<c>    * This device does not support Software Trigger.</c>
+<l>    stop ()</l>
+<l>endif</l>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', AvailableParamNames)</l>
+<l>tuple_regexp_test (AvailableParamNames, 'TriggerSoftware', NumMatches)</l>
+<l>if (0 == NumMatches)</l>
+<c>    * This device does not support TriggerSoftware command.</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'TriggerMode', TriggerMode)</l>
+<l>get_framegrabber_param (AcqHandle, 'TriggerSource', TriggerSource)</l>
+<l>set_framegrabber_param (AcqHandle, 'TriggerMode', 'On')</l>
+<l>set_framegrabber_param (AcqHandle, 'TriggerSource', 'Software')</l>
+<c>* </c>
+<c>* Start acquisition in a separate thread. Alternatively you could use</c>
+<c>* grabbing operators just below the TriggerSoftware command.</c>
+<l>par_start&lt;ThreadID&gt; : grab (AcqHandle)</l>
+<c>* </c>
+<c>* Use this thread for triggering.</c>
+<l>for Index := 1 to 100 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerSoftware', 1)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Stop grabbing.</c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 1)</l>
+<l>par_join (ThreadID)</l>
+<l>set_framegrabber_param (AcqHandle, 'TriggerMode', TriggerMode)</l>
+<l>set_framegrabber_param (AcqHandle, 'TriggerSource', TriggerSource)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="grab">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>while (true)</l>
+<l>    try</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    catch (Exception)</l>
+<c>        * Suppose that the main thread aborts after triggering</c>
+<c>        * which makes grab_image_async throw an exception.</c>
+<l>        break</l>
+<l>    endtry</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="grab">
+<parameters>
+<parameter id="AcqHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

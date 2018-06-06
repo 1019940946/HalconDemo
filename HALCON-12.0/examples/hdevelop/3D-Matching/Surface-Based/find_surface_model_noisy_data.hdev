@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* Example for surface-based 3D matching with very noisy data</c>
+<c>* </c>
+<c>* This example shows the surface-based 3D matching on data taken with a</c>
+<c>* time-of-flight camera (TOF/PMD) with very noisy data.</c>
+<c>* The model for the matching is created from a reference view of the</c>
+<c>* object, i.e., no CAD model is used.</c>
+<c>* The created model is then searched for in a number of 3D scenes.</c>
+<c>* </c>
+<c>* This example demonstrates how surface-based matching can be made more</c>
+<c>* robust with highly noisy data using the 'scene_normal_computation'</c>
+<c>* parameter.</c>
+<c>* </c>
+<c>* ***********************************************************************</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>gen_empty_obj (EmptyObject)</l>
+<l>ImagePath := 'time_of_flight/'</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* ***********************************************************************</c>
+<c>* Offline-Phase: Model generation from a reference XYZ Image</c>
+<c>* ***********************************************************************</c>
+<c>* </c>
+<c>* Load the XYZ images with the reference object</c>
+<l>read_image (Image, ImagePath + 'engine_cover_noisy_xyz_01')</l>
+<l>decompose3 (Image, Xm, Ym, Zm)</l>
+<c>* Remove invalid parts. The sensor returns Z=0 if no measurement is available</c>
+<l>threshold (Zm, RegionGood, 1e-30, 1)</l>
+<l>reduce_domain (Zm, RegionGood, Zm)</l>
+<c>* Smooth Z image</c>
+<l>median_image (Zm, ZmMedian, 'circle', 2.5, 'mirrored')</l>
+<c>* Remove the background plane and select the ROI containing the model</c>
+<l>threshold (ZmMedian, RegionsModel, 0.422, 0.529)</l>
+<l>threshold (ZmMedian, RegionsModel, 0.422, 0.529)</l>
+<l>connection (RegionsModel, ConnectedModel)</l>
+<l>select_shape (ConnectedModel, ModelROI, ['area','holes_num'], 'and', [1500,1], [1e30,1])</l>
+<c>* Create the ROI</c>
+<l>reduce_domain (Xm, ModelROI, Xm)</l>
+<c>* </c>
+<c>* Display model image and ROI</c>
+<l>get_image_size (Zm, Width, Height)</l>
+<l>dev_open_window (0, 0, Width * 4, Height * 4, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Zm)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ModelROI)</l>
+<l>disp_message (WindowHandle, 'Create surface model from XYZ image region', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Create the surface model from the reference view</c>
+<l>xyz_to_object_model_3d (Xm, Ym, Zm, ObjectModel3DModel)</l>
+<c>* Remove isolated points</c>
+<l>connection_object_model_3d (ObjectModel3DModel, 'distance_3d', 0.005, ObjectModel3DConnected)</l>
+<l>select_object_model_3d (ObjectModel3DConnected, 'num_points', 'and', 1000, 1e30, ObjectModel3DSelected)</l>
+<c>* robust computation of surface normals</c>
+<l>surface_normals_object_model_3d (ObjectModel3DSelected, 'mls', [], [], ObjectModel3DModel)</l>
+<c>* Create surface model</c>
+<l>create_surface_model (ObjectModel3DModel, 0.03, [], [], SFM)</l>
+<c>* </c>
+<c>* Display the model</c>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<l>Message := 'Surface model'</l>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3DModel, [], [], ['point_size','disp_normals'], [2,'true'], Message, [], Instructions, PoseOut)</l>
+<c>* </c>
+<l>clear_object_model_3d (ObjectModel3DConnected)</l>
+<l>clear_object_model_3d (ObjectModel3DSelected)</l>
+<c>* </c>
+<c>* ***********************************************************************</c>
+<c>* Online-Phase: Match the reference object in 3D scenes</c>
+<c>* ***********************************************************************</c>
+<c>* </c>
+<l>ContainsNum := [2,2,1,3,3,2]</l>
+<l>for Index := 2 to 7 by 1</l>
+<c>    * ***************************************</c>
+<c>    * Acquire scene</c>
+<c>    * ***************************************</c>
+<c>    * Load the XYZ Images</c>
+<l>    read_image (Image, ImagePath + 'engine_cover_noisy_xyz_' + Index$'02')</l>
+<l>    decompose5 (Image, X, Y, Z, Confidence, Intensity)</l>
+<c>    * </c>
+<c>    * Remove points where the sensor returned invalid data</c>
+<l>    threshold (Confidence, Region1, 0, 16000)</l>
+<l>    reduce_domain (Confidence, Region1, Confidence)</l>
+<l>    reduce_domain (Intensity, Region1, Intensity)</l>
+<c>    * </c>
+<l>    threshold (Z, Region2, 0.001, 0.65)</l>
+<l>    intersection (Region1, Region2, Region)</l>
+<l>    reduce_domain (X, Region, X)</l>
+<l>    reduce_domain (Y, Region, Y)</l>
+<l>    reduce_domain (Z, Region, Z)</l>
+<l>    xyz_to_object_model_3d (X, Y, Z, ObjectModel3DScene)</l>
+<c>    * </c>
+<l>    if (2 == Index)</l>
+<c>        * Visualize the scene to give an impression of the noise</c>
+<l>        Message := 'Example scene with noise from time-of-flight sensor'</l>
+<l>        visualize_object_model_3d (WindowHandle, ObjectModel3DScene, [], [], 'point_size', 2, Message, [], [], PoseOut1)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Remove background plane</c>
+<l>    threshold (Z, Region, 0.001, 0.55)</l>
+<l>    reduce_domain (X, Region, XR)</l>
+<l>    reduce_domain (Y, Region, YR)</l>
+<l>    reduce_domain (Z, Region, ZR)</l>
+<l>    xyz_to_object_model_3d (XR, YR, ZR, ObjectModel3DSceneReduced)</l>
+<c>    * </c>
+<c>    * ***************************************</c>
+<c>    * Match: Find the reference model in the</c>
+<c>    *        3D scene</c>
+<c>    * ***************************************</c>
+<c>    * </c>
+<c>    * 'scene_normal_computation'    controls how the scene normals are computed</c>
+<c>    * 'pose_ref_scoring_dist_rel'   is modified according to the sensor noise</c>
+<c>    * </c>
+<l>    count_seconds (T0)</l>
+<l>    find_surface_model (SFM, ObjectModel3DSceneReduced, 0.05, 0.3, 0.65, 'true', ['num_matches','scene_normal_computation','pose_ref_scoring_dist_rel'], [3,'mls',0.03], PoseMLS, ScoreMLS, SurfaceMatchingResultIDMLS)</l>
+<l>    count_seconds (T1)</l>
+<l>    TimeForMatchingMLS := (T1 - T0) * 1000</l>
+<c>    * </c>
+<l>    count_seconds (T0)</l>
+<l>    find_surface_model (SFM, ObjectModel3DSceneReduced, 0.05, 0.3, 0.65, 'true', ['num_matches','scene_normal_computation','pose_ref_scoring_dist_rel'], [3,'fast',0.03], PoseFast, ScoreFast, SurfaceMatchingResultIDFast)</l>
+<l>    count_seconds (T1)</l>
+<l>    TimeForMatchingFast := (T1 - T0) * 1000</l>
+<c>    * </c>
+<c>    * ***************************************</c>
+<c>    * Display: Visualize the result(s)</c>
+<c>    * ***************************************</c>
+<c>    * </c>
+<l>    if (2 == Index)</l>
+<l>        Message := 'Normal vectors of default method (\'fast\') vs. accurate method'</l>
+<l>        Message[1] := '(\'mls\'). Notice how the normals are noisy and rather incorrect'</l>
+<l>        Message[2] := 'for \'fast\', while they are approximately perpendicular to the'</l>
+<l>        Message[3] := 'surface for \'mls\'.'</l>
+<l>        get_surface_matching_result (SurfaceMatchingResultIDFast, 'sampled_scene', 0, SampledSceneFast)</l>
+<l>        get_surface_matching_result (SurfaceMatchingResultIDMLS, 'sampled_scene', 0, SampledSceneMLS)</l>
+<c>        * Select scene parts close to the found model</c>
+<l>        distance_object_model_3d (SampledSceneFast, ObjectModel3DModel, PoseMLS[0:6], 0, 'invert_pose', 'true')</l>
+<l>        distance_object_model_3d (SampledSceneMLS, ObjectModel3DModel, PoseMLS[0:6], 0, 'invert_pose', 'true')</l>
+<l>        select_points_object_model_3d (SampledSceneFast, '&amp;distance', 0, 0.01, SceneOnModelFast)</l>
+<l>        select_points_object_model_3d (SampledSceneMLS, '&amp;distance', 0, 0.01, SceneOnModelMLS)</l>
+<l>        max_diameter_object_model_3d (ObjectModel3DModel, Diameter)</l>
+<c>        * visualize scenes next to each other</c>
+<l>        rigid_trans_object_model_3d (SceneOnModelMLS, [0,Diameter,0,0,0,0,0], ObjectModel3DRigidTrans)</l>
+<l>        Pose := [-0.19098088016676767,0.071518953454777989,3.0400680663524953,3.8229213346660758,2.0015839315177435,269.37217629191048,0]</l>
+<l>        visualize_object_model_3d (WindowHandle, [SceneOnModelFast,ObjectModel3DRigidTrans], [], Pose, ['point_size','disp_normals','color_0','color_1'], [2,'true','red','green'], Message, ['fast','mls'], [], PoseOut1)</l>
+<l>        clear_object_model_3d (SampledSceneFast)</l>
+<l>        clear_object_model_3d (SampledSceneMLS)</l>
+<l>        clear_object_model_3d (SceneOnModelFast)</l>
+<l>        clear_object_model_3d (SceneOnModelMLS)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Prepare the visualization of the result(s)</c>
+<l>    rigid_trans_object_model_3d (ObjectModel3DModel, PoseFast, ObjectModel3DResultFast)</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DModel, PoseMLS, ObjectModel3DResultMLS)</l>
+<c>    * </c>
+<c>    * Visualize result(s)</c>
+<l>    NumGT := ContainsNum[Index - 2]</l>
+<l>    Message := 'Scene: ' + Index + ' (contains ' + NumGT + ' object' + ['s',''][1 == NumGT] + ')'</l>
+<l>    if (|ScoreFast| &gt; 0)</l>
+<l>        Message[1] := 'Fast (yellow): Found ' + |ObjectModel3DResultFast| + ' object(s) in ' + TimeForMatchingFast$'.3' + ' ms'</l>
+<l>        ScoreString := sum(ScoreFast$'.2f' + ' / ')</l>
+<l>        Message[2] := '  Score(s): ' + ScoreString{0:strlen(ScoreString) - 4}</l>
+<l>    else</l>
+<l>        Message[1] := 'Fast (yellow): No objects found'</l>
+<l>        Message[2] := ''</l>
+<l>    endif</l>
+<l>    Message[3] := 'MLS (green): Found ' + |ObjectModel3DResultMLS| + ' object(s) in ' + TimeForMatchingMLS$'.3' + ' ms'</l>
+<l>    ScoreString := '' + sum(ScoreMLS$'.2f' + ' / ')</l>
+<l>    Message[4] := '  Score(s): ' + ScoreString{0:strlen(ScoreString) - 4}</l>
+<c>    * </c>
+<l>    CYellow := gen_tuple_const(|ObjectModel3DResultFast|,'yellow')</l>
+<l>    CGreen := gen_tuple_const(|ObjectModel3DResultMLS|,'green')</l>
+<l>    NYellow := [0:|ObjectModel3DResultFast| - 1] + 1</l>
+<l>    NGreen := [0:|ObjectModel3DResultMLS| - 1] + 1 + |ObjectModel3DResultFast|</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    visualize_object_model_3d (WindowHandle, [ObjectModel3DScene,ObjectModel3DResultFast,ObjectModel3DResultMLS], [], [], ['point_size_0','color_0','color_' + NYellow,'color_' + NGreen], [2,'gray',CYellow,CGreen], Message, [], Instructions, PoseOut)</l>
+<c>    * </c>
+<c>    * ***************************************</c>
+<c>    * Clear: Free result(s)</c>
+<c>    * ***************************************</c>
+<l>    clear_object_model_3d (ObjectModel3DScene)</l>
+<l>    clear_object_model_3d (ObjectModel3DResultFast)</l>
+<l>    clear_object_model_3d (ObjectModel3DResultMLS)</l>
+<l>    clear_surface_matching_result (SurfaceMatchingResultIDMLS)</l>
+<l>    clear_surface_matching_result (SurfaceMatchingResultIDFast)</l>
+<l>endfor</l>
+<l>clear_object_model_3d (ObjectModel3DModel)</l>
+<l>clear_surface_model (SFM)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

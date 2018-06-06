@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to compute and use the region feature</c>
+<c>* rectangularity.</c>
+<c>* The first two examples show how to use select_shape in order</c>
+<c>* to select rectangular regions from a region array. In the third</c>
+<c>* examples the rectangularity measure is used to sort randomly</c>
+<c>* created regions according to their rectangularity. The region</c>
+<c>* with highest rectangularity is displayed in the upper left corner</c>
+<c>* of the image. Regions displayed at the bottom of the image show</c>
+<c>* the lowest rectangularity.</c>
+<c>* </c>
+<l>dev_set_colored (12)</l>
+<c>* </c>
+<c>* Example 1</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 728, 512, 'black', WindowHandle)</l>
+<l>read_image (Image, 'die/die_07')</l>
+<l>auto_threshold (Image, Regions, 3)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegionsArea, 'area', 'and', 500, 1000)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedRegionsArea)</l>
+<l>stop ()</l>
+<l>select_shape (SelectedRegionsArea, SelectedRegionsRect, 'rectangularity', 'and', 0.75, 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedRegionsRect)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example 2</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 1109 / 2, 871 / 2, 'black', WindowHandle)</l>
+<l>read_image (Image, 'pcb')</l>
+<l>threshold (Image, Region, 0, 100)</l>
+<l>erosion_circle (Region, RegionErosion, 11.5)</l>
+<l>connection (RegionErosion, ConnectedRegions)</l>
+<l>dilation_circle (ConnectedRegions, RegionDilation, 11.5)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionDilation)</l>
+<l>stop ()</l>
+<l>select_shape (RegionDilation, SelectedRegionsRect, 'rectangularity', 'and', 0.83, 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedRegionsRect)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example 3</c>
+<c>* </c>
+<l>Dist := 60</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Dist * 27 / 3, Dist * 27 / 3, 'black', WindowHandle)</l>
+<l>create_rand_regions (RegionsRand)</l>
+<l>rectangularity (RegionsRand, Rectangularity)</l>
+<l>Indices := sort_index(Rectangularity)</l>
+<l>IndicesDesc := inverse(Indices)</l>
+<l>gen_image_const (ImageRegions, 'byte', Dist * 27, Dist * 27)</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>for I := 0 to |IndicesDesc| - 1 by 1</l>
+<l>    select_obj (RegionsRand, RegionSorted, IndicesDesc[I] + 1)</l>
+<l>    move_region (RegionSorted, RegionSortedMoved, (I / 26) * Dist + Dist, (I % 26) * Dist + Dist)</l>
+<l>    overpaint_region (ImageRegions, RegionSortedMoved, 255, 'fill')</l>
+<l>    Rect := Rectangularity[IndicesDesc[I]]</l>
+<l>endfor</l>
+<l>dev_display (ImageRegions)</l>
+<l>MaxRectangularity := max(Rectangularity)</l>
+<l>MinRectangularity := min(Rectangularity)</l>
+<l>set_system ('clip_region', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_rand_regions">
+<interface>
+<oo>
+<par name="RegionsRand" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_system ('clip_region', ClipRegion)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>read_image (Image, 'letters')</l>
+<l>gen_rectangle1 (Rectangle, 0, 0, 1000, 35)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 0, 100)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 40, 99999)</l>
+<l>count_obj (SelectedRegions, Number)</l>
+<l>gen_empty_obj (RegionsRand)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>for I1 := 1 to Number by 1</l>
+<l>    select_obj (SelectedRegions, Reg1, I1)</l>
+<l>    area_center (Reg1, Area, Row1, Column1)</l>
+<l>    move_region (Reg1, Reg1Moved, -Row1, -Column1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(360 * rand(1)), 0, 0, HomMat2DRotate)</l>
+<l>    hom_mat2d_scale (HomMat2DRotate, 1 + rand(1), 1 + rand(1), 0, 0, HomMat2DScale)</l>
+<l>    affine_trans_region (Reg1Moved, Reg1Trans, HomMat2DScale, 'nearest_neighbor')</l>
+<l>    closing_rectangle1 (Reg1Trans, RegionClosing1, round(rand(1) * 4) + 1, round(rand(1) * 4) + 1)</l>
+<l>    for I2 := 1 to Number by 1</l>
+<l>        select_obj (SelectedRegions, Reg2, I2)</l>
+<l>        area_center (Reg2, Area, Row2, Column2)</l>
+<l>        move_region (Reg2, Reg2Moved, -Row2, -Column2)</l>
+<l>        hom_mat2d_rotate (HomMat2DIdentity, rad(360 * rand(1)), 0, 0, HomMat2DRotate)</l>
+<l>        hom_mat2d_scale (HomMat2DRotate, 1 + rand(1), 1 + rand(1), 0, 0, HomMat2DScale)</l>
+<l>        affine_trans_region (Reg2Moved, Reg2Trans, HomMat2DScale, 'nearest_neighbor')</l>
+<l>        closing_rectangle1 (Reg2Trans, RegionClosing2, round(rand(1) * 4) + 1, round(rand(1) * 4) + 1)</l>
+<l>        union2 (RegionClosing1, RegionClosing2, RegComb)</l>
+<l>        fill_up (RegComb, RegFilled)</l>
+<l>        closing_rectangle1 (RegFilled, RecClosed, round(rand(1) * 4) + 1, round(rand(1) * 4) + 1)</l>
+<l>        concat_obj (RegionsRand, RecClosed, RegionsRand)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>set_system ('clip_region', ClipRegion)</l>
+<l>return ()</l>
+</body>
+<docu id="create_rand_regions">
+<parameters>
+<parameter id="RegionsRand"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

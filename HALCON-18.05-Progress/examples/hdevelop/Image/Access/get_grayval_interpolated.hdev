@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use the operator get_grayval_contour_xld.</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<c>* </c>
+<c>* Create several row and column positions along a line</c>
+<l>StartRow := 345</l>
+<l>StartColumn := 281</l>
+<l>EndRow := 404</l>
+<l>EndColumn := 350</l>
+<l>SamplingPoints := 200.0</l>
+<l>RowInc := (EndRow - StartRow) / (SamplingPoints - 1)</l>
+<l>ColumnInc := (EndColumn - StartColumn) / (SamplingPoints - 1)</l>
+<l>Rows := [StartRow:RowInc:EndRow]</l>
+<l>Columns := [StartColumn:ColumnInc:EndColumn]</l>
+<c>* </c>
+<c>* Return gray values of the image at the positions of the XLD contour</c>
+<l>get_grayval_interpolated (Image, Rows, Columns, 'bilinear', Grayval)</l>
+<c>* </c>
+<c>* Search for the number of holes at the line</c>
+<l>create_funct_1d_array (Grayval, Function)</l>
+<l>local_min_max_funct_1d (Function, 'strict_min_max', 'false', Min, Max)</l>
+<l>NumberOfHoles := |Min|</l>
+<c>* </c>
+<c>* display results</c>
+<l>GrayvalPointsY := EndRow + 10 - Grayval / 10.0</l>
+<l>gen_contour_polygon_xld (GrayValueGraph, GrayvalPointsY, Columns)</l>
+<l>gen_cross_contour_xld (Points, Rows, Columns, 0.5, 0.785398)</l>
+<l>gen_cross_contour_xld (Holes, subset(Rows,Min), subset(Columns,Min), 2, 0.785398)</l>
+<l>gen_cross_contour_xld (Minima, subset(GrayvalPointsY,Min), subset(Columns,Min), 1, 0.0)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, EndColumn - StartColumn + 10, EndRow - StartRow + 20, [600,800], [400,600], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (StartRow - 5, StartColumn - 5, EndRow + 15, EndColumn + 05)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (Points)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (GrayValueGraph)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Holes)</l>
+<l>dev_display (Minima)</l>
+<l>disp_message (WindowHandle, 'Number of holes: ' + NumberOfHoles, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Gray value graph with minima', 'image', EndRow, StartColumn, 'yellow', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

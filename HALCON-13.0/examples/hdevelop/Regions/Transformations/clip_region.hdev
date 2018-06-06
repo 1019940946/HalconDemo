@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Init</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>regiongrowing (Image, Regions, 1, 1, 3, 100)</l>
+<l>count_obj (Regions, NumberOfOriginalRegions)</l>
+<c>* </c>
+<c>* Clip region in two ways</c>
+<l>get_system ('store_empty_region', Information)</l>
+<l>set_system ('store_empty_region', 'true')</l>
+<c>* After clipping, the now empty regions are still stored</c>
+<l>clip_region (Regions, RegionClippedWithEmptyRegions, 100, 100, 455, 455)</l>
+<l>count_obj (RegionClippedWithEmptyRegions, NumberOfClippedRegionsWithEmptyRegions)</l>
+<l>set_system ('store_empty_region', 'false')</l>
+<c>* After clipping, the now empty regions are rejected</c>
+<l>clip_region (Regions, RegionClipped, 100, 100, 455, 455)</l>
+<l>count_obj (RegionClipped, NumberOfClippedRegionsWithoutEmptyRegions)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Regions)</l>
+<l>disp_message (WindowHandle, NumberOfOriginalRegions + ' original regions', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image)</l>
+<l>* dev_set_color ('white')</l>
+<l>* dev_display (Regions)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (RegionClipped)</l>
+<l>disp_message (WindowHandle, NumberOfClippedRegionsWithoutEmptyRegions + ' clipped regions', 'image', 110, 110, 'blue', 'true')</l>
+<l>set_system ('store_empty_region', Information)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

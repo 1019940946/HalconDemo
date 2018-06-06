@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read bar codes of type Code 128</c>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>for I := 1 to 3 by 1</l>
+<l>    read_image (Image, 'barcode/code128/code128' + (I$'.2'))</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 128', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'decoded_reference', Reference)</l>
+<l>    String := ''</l>
+<l>    for J := 0 to strlen(DecodedDataStrings) - 1 by 1</l>
+<l>        if (ord(DecodedDataStrings{J}) &lt; 32)</l>
+<l>            Char := '\\x' + ord(DecodedDataStrings{J})$'02x'</l>
+<l>        else</l>
+<l>            Char := DecodedDataStrings{J}</l>
+<l>        endif</l>
+<l>        String := String + Char</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, String, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I &lt; 3)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

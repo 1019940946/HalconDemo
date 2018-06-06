@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'ic')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>median_image (Image, ImageMedian, 'circle', 4, 'mirrored')</l>
+<l>* regiongrowing_n (ImageMedian, Regions, '1-norm', 0, 2, 30)</l>
+<l>regiongrowing_n (ImageMedian, Regions, 'dot-product', 0, 60, 30)</l>
+<l>* regiongrowing_n (ImageMedian, Regions, 'n-norm', 0, 3, 30)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Regions)</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Regions)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>read_image (Combine, 'combine')</l>
+<l>texture_laws (Combine, ImageTexture1, 'el', 2, 5)</l>
+<l>texture_laws (Combine, ImageTexture2, 'ls', 2, 5)</l>
+<l>compose3 (Combine, ImageTexture1, ImageTexture2, MultiChannelImage)</l>
+<l>dev_set_colored (12)</l>
+<l>regiongrowing_n (MultiChannelImage, Regions, 'max-diff', 0, 40, 30)</l>
+<l>* regiongrowing_n (MultiChannelImage, Regions, '2-norm', 0, 25, 30)</l>
+<l>* regiongrowing_n (MultiChannelImage, Regions, 'n-norm-ratio', 0.95, 100, 30)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Combine)</l>
+<l>dev_display (Regions)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

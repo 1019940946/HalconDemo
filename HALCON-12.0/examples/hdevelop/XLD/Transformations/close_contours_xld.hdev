@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows how to use close_contours_xld.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* close_contous_xld closes any input contour that isn't already closed.</c>
+<c>* The input contours are displayed in white on top of the red output contours.</c>
+<c>* Thus, it becomes obvious how the two end points are connected with an</c>
+<c>* additional line segment.</c>
+<c>* </c>
+<l>gen_contour_polygon_xld (Contours, [50,50,150,150], [50,150,150,250])</l>
+<l>gen_contour_polygon_xld (Contour2, [50,50,150,150,60], [300,450,450,300,300])</l>
+<l>concat_obj (Contours, Contour2, Contours)</l>
+<l>gen_contour_polygon_xld (Contour3, [200,300,300], [50,50,250])</l>
+<l>concat_obj (Contours, Contour3, Contours)</l>
+<l>gen_contour_polygon_xld (Contour4, [200,200,300,300,200], [320,450,450,300,300])</l>
+<l>concat_obj (Contours, Contour4, Contours)</l>
+<c>* </c>
+<l>close_contours_xld (Contours, ClosedContours)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (ClosedContours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contours)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Now a call to select_contours_xld selects nearly closed input contours</c>
+<c>* to obtain a more meaningful result. With this, only the two contours to the</c>
+<c>* right are closed.</c>
+<c>* </c>
+<l>select_contours_xld (Contours, SelectedContours, 'closed', 0, 20, 0, 0)</l>
+<l>close_contours_xld (SelectedContours, ClosedContours)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (ClosedContours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contours)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

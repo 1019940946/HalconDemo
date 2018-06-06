@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Split cable example for the usage of a Euresys MultiCam board</c>
+<c>*        DOMINO Alpha/Gamma</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* You can get the actual values with 'info_framegrabber(...,'info_boards',...)'.</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'info_boards', Information, ValueList)</l>
+<c>* </c>
+<l>MyDeviceId := '0'</l>
+<c>* </c>
+<c>* In the first open_framegrabber call you can set the board topology.</c>
+<l>MyConfigurationFile := 'Alpha_X:11_11:ProgressiveFR_PxxSA'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>MyConfigurationFile := 'Alpha_Y:ProgressiveFR_PxxSA'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle2)</l>
+<c>* </c>
+<l>MyConfigurationFile := 'Alpha_YBIS:ProgressiveFR_PxxSA'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle3)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'channel_state', State)</l>
+<l>get_framegrabber_param (AcqHandle2, 'channel_state', State2)</l>
+<l>get_framegrabber_param (AcqHandle3, 'channel_state', State3)</l>
+<l>* set_framegrabber_param (AcqHandle, 'channel_state', 'idle')</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>grab_image (Image2, AcqHandle2)</l>
+<l>grab_image (Image3, AcqHandle3)</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>for X := 1 to 100 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    grab_image (Image2, AcqHandle2)</l>
+<l>    grab_image (Image3, AcqHandle3)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+<l>close_framegrabber (AcqHandle3)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

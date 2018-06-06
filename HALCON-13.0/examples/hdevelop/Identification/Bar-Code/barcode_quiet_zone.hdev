@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program showing what is the impact of the bar code</c>
+<c>* parameter 'quiet_zone'. The program gives an example how</c>
+<c>* to select the proper value for the parameter</c>
+<c>* </c>
+<c>* Prepare visualization settings and objects</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/mixed/barcode_mixed_quiet_zone')</l>
+<c>* </c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>DescrHeight := 200</l>
+<l>WindowZoomFactor := 0.5</l>
+<l>WindowWidth := WindowZoomFactor * Width</l>
+<l>WindowHeight := WindowZoomFactor * Height + DescrHeight</l>
+<l>DescrStartRow := WindowZoomFactor * Height + 12</l>
+<l>get_system ('clip_region', ClipRegion)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>gen_rectangle1 (DescrRegion, Height, 0, Height + DescrHeight / WindowZoomFactor - 1, Width - 1)</l>
+<l>set_system ('clip_region', ClipRegion)</l>
+<l>dev_open_window (0, 0, WindowWidth, WindowHeight, 'white', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height + DescrHeight / WindowZoomFactor - 1, Width)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'persistence', 1)</l>
+<c>* </c>
+<c>* </c>
+<c>* PART I, read bar code without quiet zone verification</c>
+<c>* </c>
+<c>* Disable quiet zone</c>
+<l>QuietZone := 'false'</l>
+<l>set_bar_code_param (BarCodeHandle, 'quiet_zone', QuietZone)</l>
+<c>* </c>
+<c>* Set meas_thresh very low in order to force a false read</c>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.03)</l>
+<c>* Perform decoding and prepare results</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'auto', DecodedData)</l>
+<c>* Reset meas_thresh to the default setting</c>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.05)</l>
+<c>* </c>
+<c>* Extract demonstration symbol regions</c>
+<l>get_quiet_zone_example_symbols (Code39Region, CodabarRegion, SymbolRegions, BarCodeHandle, DecodedTypes, DecodedData)</l>
+<c>* </c>
+<c>* Display results and labels</c>
+<l>disp_message (WindowHandle, ['Looking for bar codes','\'quiet_zone\' = \'' + QuietZone + '\''], 'window', 12, 12, 'black', 'true')</l>
+<l>Colors := ['green','red']</l>
+<l>ColorsText := ['forest green','red']</l>
+<l>dev_set_line_width (2)</l>
+<l>for I := 0 to |DecodedData| - 1 by 1</l>
+<l>    select_obj (SymbolRegions, SymbolRegion, I + 1)</l>
+<l>    smallest_rectangle1 (SymbolRegion, Row1, Column1, Row2, Column2)</l>
+<l>    dev_set_color (Colors[I])</l>
+<l>    dev_display (SymbolRegion)</l>
+<l>    Message := ['Codetype: ','Data:     '] + [DecodedTypes[I],DecodedData[I]]</l>
+<l>    disp_message (WindowHandle, Message, 'image', Row1 - 40 / WindowZoomFactor, Column2 - 100, ColorsText[I], 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'By default \'quiet_zone\' is set to \'false\'.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'In this case it is not verified whether the quiet zones'</l>
+<l>Message[3] := 'around the bar code candidate are clear. As a result, a '</l>
+<l>Message[4] := 'wrong bar code could be detected inside another symbol.'</l>
+<l>Message[5] := ' '</l>
+<c>* </c>
+<l>Message[6] := 'Here, a wrong \'Codabar\' code could be detected inside a '</l>
+<l>Message[7] := '\'2/5 Interleaved\' symbol.'</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Prepare and display quiet zones</c>
+<l>gen_quiet_zone_region (CodabarRegion, CodabarRegion, CodabarQZones, DecodedTypes[1], 10)</l>
+<l>smallest_rectangle1 (CodabarQZones, QZonesRow1, QZonesCol1, QZonesRow2, QZonesCol2)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (CodabarQZones)</l>
+<l>disp_message (WindowHandle, ['Left','quiet','zone'], 'image', 801 - 30 / WindowZoomFactor, max2(0,QZonesCol1 - 80 / WindowZoomFactor), 'magenta', 'true')</l>
+<l>disp_message (WindowHandle, ['Right','quiet','zone'], 'image', 805 - 30 / WindowZoomFactor, QZonesCol2, 'magenta', 'true')</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'The bar code symbology standards prescribe quiet zones on'</l>
+<l>Message[1] := 'both sides of each printed symbol. Here, the quiet zones'</l>
+<l>Message[2] := 'of the detected \'Codabar\' sequence are not free. This '</l>
+<l>Message[3] := 'indicates that the sequence might be invalid.'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'Wrong bar code detections can be suppressed by enforcing'</l>
+<l>Message[6] := 'a verification of the quiet zones.'</l>
+<l>dev_clear_description_field (DescrRegion)</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Prepare and display module X drawings</c>
+<l>BarShowAt := 474</l>
+<l>gen_contour_polygon_xld (Line1, [580,740], [BarShowAt,BarShowAt])</l>
+<l>gen_contour_polygon_xld (Line2, [580,740], [BarShowAt + 7,BarShowAt + 7])</l>
+<l>gen_contour_polygon_xld (Line3, [580,740], [QZonesCol1 + 60,QZonesCol1 + 60])</l>
+<l>gen_contour_polygon_xld (Line4, [580,740], [QZonesCol1,QZonesCol1])</l>
+<c>* </c>
+<l>dev_set_color ('magenta')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (Line1)</l>
+<l>dev_display (Line2)</l>
+<l>dev_display (Line3)</l>
+<l>dev_display (Line4)</l>
+<l>ArrowLen := 40</l>
+<l>gen_arrow_contour_xld (Arrows1, [590,590], [BarShowAt - ArrowLen,BarShowAt + 7 + ArrowLen], [590,590], [BarShowAt,BarShowAt + 7], 10, 10)</l>
+<l>gen_arrow_contour_xld (Arrows2, [590,590], [QZonesCol1 - ArrowLen,QZonesCol1 + 60 + ArrowLen], [590,590], [QZonesCol1,QZonesCol1 + 60], 10, 10)</l>
+<l>concat_obj (Arrows1, Arrows2, Arrow)</l>
+<l>dev_display (Arrow)</l>
+<l>disp_message (WindowHandle, 'X', 'image', 580 - 15 / WindowZoomFactor, BarShowAt - 7, 'magenta', 'false')</l>
+<l>disp_message (WindowHandle, '10X', 'image', 580 - 15 / WindowZoomFactor, QZonesCol1 + 5, 'magenta', 'false')</l>
+<l>disp_message (WindowHandle, ['Left','quiet','zone'], 'image', 801 - 30 / WindowZoomFactor, QZonesCol1 - 80 / WindowZoomFactor, 'magenta', 'true')</l>
+<l>disp_message (WindowHandle, ['Right','quiet','zone'], 'image', 805 - 30 / WindowZoomFactor, QZonesCol2, 'magenta', 'true')</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'The size of the quiet zones are specified in the standards'</l>
+<l>Message[1] := 'describing the different bar code symbologies.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'For most bar code types, quiet zones of size 10*X are'</l>
+<l>Message[4] := 'required and that is the case with \'Codabar\' too. X'</l>
+<l>Message[5] := 'denotes the width of the most narrow bar in the bar'</l>
+<l>Message[6] := 'sequence.'</l>
+<l>dev_clear_description_field (DescrRegion)</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* PART II, enable quiet zone verification</c>
+<c>* </c>
+<c>* Enable standard conform quiet zone</c>
+<l>QuietZone := 'true'</l>
+<l>set_bar_code_param (BarCodeHandle, 'quiet_zone', QuietZone)</l>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.25)</l>
+<c>* Perform decoding and prepare results</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'auto', DecodedData)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<c>* Display results and labels</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Looking for bar codes','\'quiet_zone\' = \'' + QuietZone + '\''], 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>for I := 0 to |DecodedData| - 1 by 1</l>
+<l>    select_obj (SymbolRegions, SymbolRegion, I + 1)</l>
+<l>    smallest_rectangle1 (SymbolRegion, Row1, Column1, Row2, Column2)</l>
+<l>    dev_display (SymbolRegion)</l>
+<l>    Message := ['Codetype: ','Data:     '] + [DecodedTypes[I],DecodedData[I]]</l>
+<l>    disp_message (WindowHandle, Message, 'image', Row1 - 40 / WindowZoomFactor, Column2 - 100, 'forest green', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'The quiet zone verification was enabled. This forces the'</l>
+<l>Message[1] := 'bar code reader to reject the \'Codabar\' sequence, which'</l>
+<l>Message[2] := 'it detects in the lower depicted symbol.'</l>
+<l>Message[3] := ' '</l>
+<l>Message[4] := 'The reader then tries with other bar code types, until'</l>
+<l>Message[5] := 'the proper type of the symbol is finally detected:'</l>
+<l>Message[6] := ' '</l>
+<l>Message[7] := '  \'2/5 Interleaved\''</l>
+<l>dev_clear_description_field (DescrRegion)</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Prepare and display quiet zones' regions and</c>
+<c>* drawings</c>
+<l>gen_quiet_zone_region (Code39Region, Code39Region, Code39QZones, 'Code 39', 10)</l>
+<l>gen_quiet_zone_region (SymbolRegions, Interl25Region, Interl25QZones, '2/5 Interleaved', 10)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Code39Region)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (Code39QZones)</l>
+<l>dev_set_line_width (2)</l>
+<l>gen_arrow_contour_xld (Arrow1, 480, 80, 300, 50, 15, 15)</l>
+<l>dev_display (Arrow1)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Interl25QZones)</l>
+<l>gen_arrow_contour_xld (Arrow2, 630, 60, 730, 26, 15, 15)</l>
+<l>dev_display (Arrow2)</l>
+<l>disp_message (WindowHandle, 'Only edge pairs are detected\nSingle edges are tolerated', 'image', 600 - 20 / WindowZoomFactor, 50, 'black', 'false')</l>
+<l>disp_message (WindowHandle, 'A bar disturbing the quiet zone', 'image', 520 - 20 / WindowZoomFactor, 50, 'black', 'false')</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'The \'2/5 Interleaved\' bar code is successfully decoded'</l>
+<l>Message[1] := 'since there are no bars detected in any of its quiet'</l>
+<l>Message[2] := 'zones (even though there is one single edge).'</l>
+<l>Message[3] := ' '</l>
+<l>Message[4] := 'Unfortunately, now the \'Code 39\' cannot be decoded anymore'</l>
+<l>Message[5] := 'since there is a bar detected in one of its quiet zones.'</l>
+<l>Message[6] := ' '</l>
+<l>Message[7] := 'To solve this problem, a user defined quiet zone size'</l>
+<l>Message[8] := 'can be selected ... '</l>
+<l>dev_clear_description_field (DescrRegion)</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* PART III, enable tolerant quiet zone verification</c>
+<c>* </c>
+<c>* Enable standard conform quiet zone,</c>
+<c>* but allow minor disturbances</c>
+<l>QuietZone := 'tolerant'</l>
+<l>set_bar_code_param (BarCodeHandle, 'quiet_zone', QuietZone)</l>
+<c>* Perform decoding and prepare results</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'auto', DecodedData)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<c>* Display results and labels</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Looking for bar codes','\'quiet_zone\' = \'' + QuietZone + '\''], 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>for I := 0 to |DecodedData| - 1 by 1</l>
+<l>    select_obj (SymbolRegions, SymbolRegion, I + 1)</l>
+<l>    smallest_rectangle1 (SymbolRegion, Row1, Column1, Row2, Column2)</l>
+<l>    dev_display (SymbolRegion)</l>
+<l>    Message := ['Codetype: ','Data:     '] + [DecodedTypes[I],DecodedData[I]]</l>
+<l>    disp_message (WindowHandle, Message, 'image', Row1 - 40 / WindowZoomFactor, Column2 - 100, 'forest green', 'true')</l>
+<l>endfor</l>
+<l>gen_quiet_zone_region (SymbolRegions, CodeRegion, QZones, DecodedTypes, 10)</l>
+<c>* </c>
+<c>* Prepare and display quiet zones' regions and</c>
+<c>* drawings</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SymbolRegions)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (QZones)</l>
+<l>gen_arrow_contour_xld (Arrow, 480, 80, 300, 50, 15, 15)</l>
+<l>dev_display (Arrow)</l>
+<l>disp_message (WindowHandle, 'This bar now is also tolerated.', 'image', 520 - 20 / WindowZoomFactor, 50, 'black', 'false')</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'The quiet zone verification was set to \'tolerant\'.'</l>
+<l>Message[1] := 'This way, both codes are detected, although small'</l>
+<l>Message[2] := 'disturbances are present.'</l>
+<l>dev_clear_description_field (DescrRegion)</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* PART IV, quiet zone verification with user defined quiet zone size</c>
+<c>* </c>
+<c>* Select a user defined quiet zone</c>
+<l>QuietZone := 4</l>
+<l>set_bar_code_param (BarCodeHandle, 'quiet_zone', QuietZone)</l>
+<c>* Perform decoding and prepare results</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'auto', DecodedData)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<c>* Display results and labels</c>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Looking for bar codes','\'quiet_zone\' = ' + QuietZone], 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>for I := 0 to |DecodedData| - 1 by 1</l>
+<l>    select_obj (SymbolRegions, SymbolRegion, I + 1)</l>
+<l>    smallest_rectangle1 (SymbolRegion, Row1, Column1, Row2, Column2)</l>
+<l>    gen_quiet_zone_region (SymbolRegion, SymbolRegion, QZones, DecodedTypes[I], QuietZone)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    dev_display (QZones)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegion)</l>
+<l>    Message := ['Codetype: ','Data:     '] + [DecodedTypes[I],DecodedData[I]]</l>
+<l>    disp_message (WindowHandle, Message, 'image', Row1 - 40 / WindowZoomFactor, Column2 - 100, 'forest green', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'Selecting a user defined quiet zone can adjust the'</l>
+<l>Message[1] := 'quiet zone verification behavior between:'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := ' - suppressing false detections'</l>
+<l>Message[4] := ' - tolerating disturbances near the symbol'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'Typically values between 2 and 5 result in a good'</l>
+<l>Message[7] := 'compromise between both goals.'</l>
+<l>disp_message (WindowHandle, Message, 'window', DescrStartRow, 12, 'black', 'false')</l>
+<c>* </c>
+<c>* Clean up memory</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_clear_description_field">
+<interface>
+<io>
+<par name="DescrRegion" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (DescrRegion)</l>
+<l>return ()</l>
+</body>
+<docu id="dev_clear_description_field">
+<parameters>
+<parameter id="DescrRegion"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_quiet_zone_region">
+<interface>
+<io>
+<par name="SymbolRegion" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="SymbolRegionRect2" base_type="iconic" dimension="0"/>
+<par name="QuietZoneRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="DecodedTypes" base_type="ctrl" dimension="0"/>
+<par name="QZone" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Generate the quiet zone region for visualization</c>
+<l>for I := 0 to |DecodedTypes| - 1 by 1</l>
+<l>    if (DecodedTypes[I] == 'Code 39')</l>
+<c>        * We know the element size of the QR code is 2.9 pixels.</c>
+<l>        QZoneWidth[I] := 2.9 * QZone</l>
+<l>    else</l>
+<c>        * The element size of the 2/5 interleaved code is 6 pixels.</c>
+<c>        * (This is also used for the Codabar code, that is wrongly</c>
+<c>        * read in the first example.)</c>
+<l>        QZoneWidth[I] := 6.0 * QZone</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>copy_obj (SymbolRegion, SymbolRegionRect2, 1, -1)</l>
+<l>smallest_rectangle2 (SymbolRegionRect2, Row, Column, Phi, Length1, Length2)</l>
+<l>gen_rectangle2 (SymbolRegionRect2, Row, Column, Phi, Length1, Length2)</l>
+<l>gen_rectangle2 (QuietZoneRegions, Row, Column, Phi, Length1 + QZoneWidth, Length2)</l>
+<l>gen_rectangle2 (WiderRect2, Row, Column, Phi, Length1, Length2 + 1)</l>
+<l>difference (QuietZoneRegions, WiderRect2, QuietZoneRegions)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_quiet_zone_region">
+<parameters>
+<parameter id="DecodedTypes"/>
+<parameter id="QZone"/>
+<parameter id="QuietZoneRegions"/>
+<parameter id="SymbolRegion"/>
+<parameter id="SymbolRegionRect2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_quiet_zone_example_symbols">
+<interface>
+<oo>
+<par name="Code39Region" base_type="iconic" dimension="0"/>
+<par name="CodabarRegion" base_type="iconic" dimension="0"/>
+<par name="SymbolRegionsOut" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="BarCodeHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DecodedTypesOut" base_type="ctrl" dimension="0"/>
+<par name="DecodedDataOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<l>get_bar_code_object (SymbolRegions, BarCodeHandle, 'all', 'symbol_regions')</l>
+<l>gen_rectangle1 (Code39Rect, 230, 54, 360, 645)</l>
+<l>gen_rectangle1 (CodabarRect, 698, 52, 920, 790)</l>
+<l>count_obj (SymbolRegions, Number)</l>
+<l>Code39Index := -1</l>
+<l>CodabarIndex := -1</l>
+<l>for Idx := 1 to Number by 1</l>
+<l>    select_obj (SymbolRegions, Symbol, Idx)</l>
+<l>    intersection (Symbol, Code39Rect, Code39RectIntersection)</l>
+<l>    area_center (Code39RectIntersection, AreaIntersectCode39, _, _)</l>
+<l>    intersection (Symbol, CodabarRect, CodabarRectIntersection)</l>
+<l>    area_center (CodabarRectIntersection, AreaIntersectCodabar, _, _)</l>
+<l>    if (AreaIntersectCode39 &gt; 0)</l>
+<l>        Code39Index := Idx</l>
+<l>        select_obj (SymbolRegions, Code39Region, Code39Index)</l>
+<l>    elseif (AreaIntersectCodabar &gt; 0)</l>
+<l>        CodabarIndex := Idx</l>
+<l>        select_obj (SymbolRegions, CodabarRegion, CodabarIndex)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>SelectionIndices := [Code39Index,CodabarIndex]</l>
+<c>* </c>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_strings', DecodedData)</l>
+<c>* </c>
+<c>* If the bar code reader does not decode a false positive code here,</c>
+<c>* we will simulate a false positive in order to show, that the parameter</c>
+<c>* 'quiet_zone' could be used, if this situation happens.</c>
+<l>smallest_rectangle2 (CodabarRegion, Row, Column, Phi, Length1, Length2)</l>
+<l>if (Length1 &gt; 140)</l>
+<l>    gen_rectangle2 (CodabarRegion, Row, Column, Phi, Length2 * 1.1, Length2)</l>
+<l>    DecodedTypes[CodabarIndex - 1] := 'Codabar'</l>
+<l>    DecodedData[CodabarIndex - 1] := 'B6B'</l>
+<l>    select_obj (SymbolRegions, S1, Code39Index)</l>
+<l>    if (Code39Index &gt; CodabarIndex)</l>
+<l>        concat_obj (CodabarRegion, S1, SymbolRegionsOut)</l>
+<l>    else</l>
+<l>        concat_obj (S1, CodabarRegion, SymbolRegionsOut)</l>
+<l>    endif</l>
+<l>else</l>
+<l>    select_obj (SymbolRegions, SymbolRegionsOut, SelectionIndices)</l>
+<l>endif</l>
+<c>* </c>
+<l>DecodedTypesOut := DecodedTypes[SelectionIndices - 1]</l>
+<l>DecodedDataOut := DecodedData[SelectionIndices - 1]</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="get_quiet_zone_example_symbols">
+<parameters>
+<parameter id="BarCodeHandle"/>
+<parameter id="CodabarRegion"/>
+<parameter id="Code39Region"/>
+<parameter id="DecodedDataOut"/>
+<parameter id="DecodedTypesOut"/>
+<parameter id="SymbolRegionsOut"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

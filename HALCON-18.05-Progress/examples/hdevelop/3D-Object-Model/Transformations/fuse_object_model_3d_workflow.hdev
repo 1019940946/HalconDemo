@@ -1,0 +1,618 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the fusion of multiple 3D object models into one</c>
+<c>* surface, along with the suggested workflow to prepare and execute</c>
+<c>* this fusion.</c>
+<c>* </c>
+<c>* Prepare window.</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 600, 450, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Prepare 3D visualization parameters.</c>
+<l>Instructions := 'Rotate: Left Button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl + left button'</l>
+<l>create_pose (-57, -34, 1097, 131, 6, 293, 'Rp+T', 'gba', 'point', VisPose)</l>
+<l>GenParamNames := ['colored','point_size']</l>
+<l>GenParamValues := [12,1]</l>
+<l>GenParamNamesBB := ['colored','color_15','alpha_15','point_size']</l>
+<l>GenParamValuesBB := [12,'white',0.5,1]</l>
+<c>* </c>
+<c>* Display introduction text.</c>
+<l>dev_disp_introduction_text ()</l>
+<l>stop ()</l>
+<c>* Display workflow text.</c>
+<l>dev_disp_workflow_text ()</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read in the input point clouds.</c>
+<l>get_system ('example_dir', ExampleDir)</l>
+<l>Path := ExampleDir + '/3d_models/universal_joint_part/'</l>
+<l>list_files (Path, 'files', Files)</l>
+<l>SelectedFiles := regexp_select(Files,'registered_')</l>
+<l>NumObjects := |SelectedFiles|</l>
+<l>ObjectModel3D := []</l>
+<c>* The point clouds are read in a unit (in this example [mm])</c>
+<c>* and therefore all further lengths will be taken</c>
+<c>* as in this unit as well.</c>
+<l>Scale := 'mm'</l>
+<l>for IndexOM3D := 0 to NumObjects - 1 by 1</l>
+<l>    read_object_model_3d (SelectedFiles[IndexOM3D], Scale, [], [], ObjectModel3DIn, Status)</l>
+<l>    ObjectModel3D := [ObjectModel3D,ObjectModel3DIn]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* **** 1) Prepare the input for fusion.</c>
+<c>* </c>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3D, [], VisPose, GenParamNames, GenParamValues, 'All 15 input point clouds that should be fused into one surface.', [], Instructions, VisPose)</l>
+<l>GenParamNames := [GenParamNames,'disp_normals','normal_color']</l>
+<l>GenParamValues := [GenParamValues,'true','yellow']</l>
+<c>* Calculate the 3D surface normals of the objects.</c>
+<l>surface_normals_object_model_3d (ObjectModel3D, 'xyz_mapping', [], [], ObjectModel3DNormals)</l>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3DNormals, [], VisPose, GenParamNames, GenParamValues, 'Input point clouds with normals: \nHere, the NormalDirection is \'outwards\'.', [], Instructions, VisPose)</l>
+<c>* Set NormalDirection as inspected; this direction should be consistent</c>
+<c>* all over the surface. An incorrect value of the parameter might result</c>
+<c>* in an incorrect surface or even empty output.</c>
+<l>NormalDirection := 'outwards'</l>
+<c>* </c>
+<c>* **** 2) Set a bounding box of the volume of interest.</c>
+<c>* </c>
+<c>* Create an initial bounding box.</c>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>dev_open_window (0, Width + 8, 400, Height, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>dev_disp_bounding_box_text ()</l>
+<l>union_object_model_3d (ObjectModel3DNormals, 'points_surface', UnionObjectModel3D)</l>
+<l>get_object_model_3d_params (UnionObjectModel3D, 'bounding_box1', BoundingBox)</l>
+<l>gen_box_object_model_3d_from_coordinates (BoundingBox, ObjectModel3DBoundingBox)</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DNormals,ObjectModel3DBoundingBox], [], VisPose, GenParamNamesBB, GenParamValuesBB, 'Input point clouds with initial bounding box.', [], Instructions, VisPose)</l>
+<c>* </c>
+<c>* Adapt the bounding box.</c>
+<l>BoundingBox := [55,1,16,115,55,26]</l>
+<l>gen_box_object_model_3d_from_coordinates (BoundingBox, ObjectModel3DBoundingBox)</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DNormals,ObjectModel3DBoundingBox], [], VisPose, GenParamNamesBB, GenParamValuesBB, 'Input point clouds with adapted bounding box\n(excluding the region on the left).', [], Instructions, VisPose)</l>
+<c>* Set an initial set of parameters.</c>
+<c>* Start with a rough resolution.</c>
+<l>get_object_model_3d_params (ObjectModel3DBoundingBox, 'diameter_axis_aligned_bounding_box', DiameterBoundingBox)</l>
+<l>Resolution := DiameterBoundingBox / 100.0</l>
+<c>* SurfaceTolerance should be at least as large as Resolution in order</c>
+<c>* to avoid discretization effects.</c>
+<l>SurfaceTolerance := Resolution * 4</l>
+<c>* MinThickness is best set as the thickness of the objects narrowest part.</c>
+<c>* If the input clouds represent the object only from one side, this parameter</c>
+<c>* should be set very large, so that the object is cut off at the bounding box.</c>
+<c>* This is the case here.</c>
+<l>MinThickness := DiameterBoundingBox</l>
+<c>* Smoothing is set initially to a heuristic value.</c>
+<l>Smoothing := 1.0</l>
+<c>* </c>
+<c>* Perform the initial point cloud fusion</c>
+<c>* and visualize the resulting watertight surface.</c>
+<l>dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>dev_disp_fusion_text (WindowHandle2)</l>
+<l>fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerance, MinThickness, Smoothing, NormalDirection, [], [], ObjectModel3DFusion)</l>
+<l>GenParamNamesBB := ['color','color_1','alpha_1','point_size']</l>
+<l>GenParamValuesBB := ['orange','white',0.5,1]</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DFusion,ObjectModel3DBoundingBox], [], VisPose, GenParamNamesBB, GenParamValuesBB, 'Resulting surface of the initial point cloud fusion.', [], Instructions, VisPose)</l>
+<l>GenParamNames := ['color','point_size']</l>
+<l>GenParamValues := ['orange',1]</l>
+<c>* </c>
+<c>* **** 3) Adapt the parameters for fuse_object_model_3d.</c>
+<c>* </c>
+<c>* **** a) Adapt the 'Resolution' parameter.</c>
+<l>dev_disp_resolution_text (WindowHandle2)</l>
+<l>Resolutions := [DiameterBoundingBox / 100,DiameterBoundingBox / 150]</l>
+<l>for Index := 0 to |Resolutions| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    count_seconds (T1)</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolutions[Index], SurfaceTolerance, MinThickness, Smoothing, NormalDirection, [], [], ObjectModel3DFusion)</l>
+<l>    count_seconds (T2)</l>
+<l>    Time := T2 - T1</l>
+<l>    Title[0] := 'Coarse default resolution (' + Resolutions[0]$'.2f' + ' ' + Scale + '), reconstructed in ' + Time$'.2f' + ' s'</l>
+<l>    Title[1] := 'Finer resolution (' + Resolutions[1]$'.2f' + ' ' + Scale + '), reconstructed in ' + Time$'.2f' + ' s'</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<c>* </c>
+<l>Resolution := Resolutions[0]</l>
+<c>* **** b) Adapt the 'SurfaceTolerance' parameter.</c>
+<l>dev_disp_surface_tolerance_text (WindowHandle2)</l>
+<l>SurfaceTolerances := [Resolution * 2,Resolution * 50]</l>
+<l>Title[0] := 'Low SurfaceTolerance (' + SurfaceTolerances[0]$'.2f' + ' ' + Scale + '); more outliers.'</l>
+<l>Title[1] := 'Higher SurfaceTolerance (' + SurfaceTolerances[1]$'.2f' + ' ' + Scale + ');\nsome outliers combined to the surface.'</l>
+<l>for Index := 0 to |SurfaceTolerances| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerances[Index], MinThickness, Smoothing, NormalDirection, [], [], ObjectModel3DFusion)</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<c>* </c>
+<l>SurfaceTolerance := 1</l>
+<c>* </c>
+<c>* **** c) Adapt the 'MinThickness' parameter.</c>
+<l>dev_disp_min_thickness_text (WindowHandle2)</l>
+<l>MinThicknesses := [1,DiameterBoundingBox]</l>
+<l>Title[0] := 'MinThickness specifying the object\'s narrowest part.\nHere, it is too low (' + MinThicknesses[0]$'.2f' + ' ' + Scale + '), which causes holes in the surface.'</l>
+<l>Title[1] := 'Large value (' + MinThicknesses[1]$'.2f' + ' ' + Scale + '); object is cut off at the bounding box.'</l>
+<l>for Index := 0 to |MinThicknesses| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerance, MinThicknesses[Index], Smoothing, NormalDirection, [], [], ObjectModel3DFusion)</l>
+<l>    visualize_object_model_3d (WindowHandle, [ObjectModel3DFusion,ObjectModel3DBoundingBox], [], VisPose, GenParamNamesBB, GenParamValuesBB, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<l>SurfaceTolerance := 2</l>
+<c>* </c>
+<c>* **** d) Adapt the 'Smoothing' parameter.</c>
+<l>dev_disp_smoothing_text (WindowHandle2)</l>
+<l>Smoothings := [0.5,152,15]</l>
+<l>Title[0] := 'Smoothing too small (' + Smoothings[0]$'.1f' + '); uneven surface.'</l>
+<l>Title[1] := 'Smoothing too large (' + Smoothings[1]$'.1f' + '); loss of detail.'</l>
+<l>Title[2] := 'Medium Smoothing (' + Smoothings[2]$'.1f' + ').'</l>
+<l>for Index := 0 to |Smoothings| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerance, MinThickness, Smoothings[Index], NormalDirection, [], [], ObjectModel3DFusion)</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* **** 4) Adapt the generic parameters.</c>
+<c>* </c>
+<c>* a) Adapt the 'distance_in_front' generic parameter.</c>
+<l>dev_disp_dist_in_front_text (WindowHandle2)</l>
+<l>DistancesInFront := [Resolution * 2,DiameterBoundingBox]</l>
+<l>Title[0] := 'Smaller \'distance_in_front\' value (' + DistancesInFront[0]$'.2f' + ' ' + Scale + ');\n\'holes\' between outliers are closed.'</l>
+<l>Title[1] := 'Large \'distance_in_front\' value (' + DistancesInFront[1]$'.2f' + ' ' + Scale + ').'</l>
+<l>for Index := 0 to |DistancesInFront| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerance, MinThickness, Smoothing, NormalDirection, 'distance_in_front', DistancesInFront[Index], ObjectModel3DFusion)</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* b) Adapt the 'angle_threshold' generic parameter.</c>
+<l>dev_disp_angle_threshold_text (WindowHandle2)</l>
+<l>AngleThresholds := [rad(5),rad(30)]</l>
+<l>Title[0] := 'Smaller angle_threshold (' + AngleThresholds[0]$'.2f' + ' rad); many outliers are excluded.'</l>
+<l>Title[1] := 'Larger angle_threshold (' + AngleThresholds[1]$'.2f' + ' rad); more outliers are included.'</l>
+<l>for Index := 0 to |AngleThresholds| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, 2, 2, Smoothing, NormalDirection, ['distance_in_front','angle_threshold'], [Resolution * 2,AngleThresholds[Index]], ObjectModel3DFusion)</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* c) Adapt the 'point_meshing' generic parameter.</c>
+<l>dev_disp_point_meshing_text (WindowHandle2)</l>
+<l>PointMeshing := ['none','isosurface']</l>
+<l>Title[0] := 'point_meshing is deactivated; output is not triangulated.'</l>
+<l>Title[1] := 'point_meshing is activated; \ntriangulation with the \'marching tetrahedra\' algorithm.'</l>
+<l>for Index := 0 to |PointMeshing| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_disp_text ('Fusing point clouds...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerance, MinThickness, Smoothing, NormalDirection, 'point_meshing', PointMeshing[Index], ObjectModel3DFusion)</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, Title[Index], [], Instructions, VisPose)</l>
+<l>endfor</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* We can now perform the optimal fusion</c>
+<c>* with the adapted set of parameters.</c>
+<l>Resolution := 0.53</l>
+<l>SurfaceTolerance := 1.5</l>
+<l>MinThickness := 80</l>
+<l>Smoothing := 20</l>
+<l>dev_disp_text ('Fusing point clouds with final adapted parameters...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>fuse_object_model_3d (ObjectModel3DNormals, BoundingBox, Resolution, SurfaceTolerance, MinThickness, Smoothing, NormalDirection, [], [], ObjectModel3DFusion)</l>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3DFusion, [], VisPose, GenParamNames, GenParamValues, 'Final fused surface with all parameters optimized.', [], Instructions, VisPose)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_box_object_model_3d_from_coordinates">
+<interface>
+<ic>
+<par name="BoxCoordinates" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ObjectModel3DBox" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure generates a 3D model from the minimum box coordinates,</c>
+<c>* to be used in visualization.</c>
+<c>* </c>
+<l>Points := {[]}</l>
+<l>Points.at(0) := [BoxCoordinates[0],BoxCoordinates[1],BoxCoordinates[2]]</l>
+<l>Points.at(1) := [BoxCoordinates[3],BoxCoordinates[1],BoxCoordinates[2]]</l>
+<l>Points.at(2) := [BoxCoordinates[3],BoxCoordinates[4],BoxCoordinates[2]]</l>
+<l>Points.at(3) := [BoxCoordinates[0],BoxCoordinates[4],BoxCoordinates[2]]</l>
+<l>Points.at(4) := [BoxCoordinates[0],BoxCoordinates[1],BoxCoordinates[5]]</l>
+<l>Points.at(5) := [BoxCoordinates[3],BoxCoordinates[1],BoxCoordinates[5]]</l>
+<l>Points.at(6) := [BoxCoordinates[3],BoxCoordinates[4],BoxCoordinates[5]]</l>
+<l>Points.at(7) := [BoxCoordinates[0],BoxCoordinates[4],BoxCoordinates[5]]</l>
+<c>* </c>
+<c>* Sort the corner points by coordinate direction.</c>
+<l>PX := []</l>
+<l>PY := []</l>
+<l>PZ := []</l>
+<l>for Index := 0 to 7 by 1</l>
+<l>    PX := [PX,Points.at(Index)[0]]</l>
+<l>    PY := [PY,Points.at(Index)[1]]</l>
+<l>    PZ := [PZ,Points.at(Index)[2]]</l>
+<l>endfor</l>
+<l>gen_object_model_3d_from_points (PX, PY, PZ, ObjectModel3DBox)</l>
+<c>* </c>
+<c>* Set the sides of the cuboid.</c>
+<l>Faces := []</l>
+<l>Faces := [Faces,4,0,1,5,4]</l>
+<l>Faces := [Faces,4,1,2,6,5]</l>
+<l>Faces := [Faces,4,2,3,7,6]</l>
+<l>Faces := [Faces,4,3,0,4,7]</l>
+<l>Faces := [Faces,4,0,1,2,3]</l>
+<l>Faces := [Faces,4,4,5,6,7]</l>
+<l>set_object_model_3d_attrib_mod (ObjectModel3DBox, 'polygons', [], Faces)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_box_object_model_3d_from_coordinates">
+<parameters>
+<parameter id="BoxCoordinates"/>
+<parameter id="ObjectModel3DBox">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_introduction_text">
+<interface/>
+<body>
+<l>Text := 'This example fuses several 3D object models into one surface.'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'The 3D object models to be fused are point clouds.'</l>
+<l>Text[3] := 'These point clouds have to lie in a common coordinate system.'</l>
+<l>Text[4] := 'To ensure this, you need to perform a so-called registration. '</l>
+<l>Text[5] := 'It can be performed using the operators'</l>
+<l>Text[6] := 'register_object_model_3d_pair and register_object_model_3d_global.'</l>
+<l>Text[7] := 'In this example, this step is skipped since the 3D object models'</l>
+<l>Text[8] := 'already lie in a common coordinate system. See the example'</l>
+<l>Text[9] := 'reconstruct_3d_object_model_for_matching.hdev to learn'</l>
+<l>Text[10] := 'how this is done.'</l>
+<l>Text[11] := ' '</l>
+<l>Text[12] := 'The input point clouds must also contain either triangles or point'</l>
+<l>Text[13] := 'normals before calling fuse_object_model_3d.'</l>
+<l>Text[14] := 'This can be achieved with'</l>
+<l>Text[15] := 'a) \'triangulate_object_model_3d\' to compute triangles or'</l>
+<l>Text[16] := 'b) \'surface_normals_object_model_3d\' to compute normals. '</l>
+<l>Text[17] := ' '</l>
+<l>Text[18] := 'The parameters can be adapted to optimally fit a particular use'</l>
+<l>Text[19] := 'case, hence improving the final reconstruction. The suggested'</l>
+<l>Text[20] := 'workflow to prepare and execute the method is also explained'</l>
+<l>Text[21] := 'in this example.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_introduction_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_workflow_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'The following steps are to be applied in order to execute the'</l>
+<l>Text[1] := '\'surface_fusion\' method with optimal parameter values:'</l>
+<l>Text[2] := '1) Ensure that the input object models have either point normals'</l>
+<l>Text[3] := '   or triangles. Then, set the parameter NormalDirection accordingly.'</l>
+<l>Text[4] := '2) Set a suitable bounding box around the point clouds.'</l>
+<l>Text[5] := '3) Adapt the parameters of fuse_object_model_3d:'</l>
+<l>Text[6] := '   a) Resolution'</l>
+<l>Text[7] := '   b) SurfaceTolerance'</l>
+<l>Text[8] := '   c) MinThickness'</l>
+<l>Text[9] := '   d) Smoothing'</l>
+<l>Text[10] := '4) Adapt the generic parameters of fuse_object_model_3d:'</l>
+<l>Text[11] := '   a) \'distance_in_front\''</l>
+<l>Text[12] := '   b) \'angle_threshold\''</l>
+<l>Text[13] := '   c) \'point_meshing\''</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_workflow_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_bounding_box_text">
+<interface/>
+<body>
+<l>Text := 'Setting a suitable bounding box'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'The bounding box should be set such'</l>
+<l>Text[3] := 'that the object to be reconstructed'</l>
+<l>Text[4] := 'fits completely, but also tightly,'</l>
+<l>Text[5] := 'into the bounding box.'</l>
+<l>Text[6] := ''</l>
+<l>Text[7] := 'If these recommendations are not met,'</l>
+<l>Text[8] := 'the reconstruction will take longer'</l>
+<l>Text[9] := 'or even fail completely since initial'</l>
+<l>Text[10] := 'internal parameters derived from the'</l>
+<l>Text[11] := 'bounding box are estimated wrongly.'</l>
+<l>Text[12] := ' '</l>
+<l>Text[13] := 'You may have to rotate the point clouds'</l>
+<l>Text[14] := 'to fit them better into the axis-parallel'</l>
+<l>Text[15] := 'bounding box, which can be done using'</l>
+<l>Text[16] := 'affine_trans_object_model_3d or'</l>
+<l>Text[17] := 'rigid_trans_object_model_3d.'</l>
+<l>Text[18] := ''</l>
+<l>Text[19] := 'Here, get_object_model_3d_params is used'</l>
+<l>Text[20] := 'to find the initial bounding box'</l>
+<l>Text[21] := 'around the input objects.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_bounding_box_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_fusion_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'Surface fusion of point clouds'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Here you can see the resulting'</l>
+<l>Text[3] := 'watertight surface after the'</l>
+<l>Text[4] := 'input point clouds were fused with'</l>
+<l>Text[5] := 'fuse_object_model_3d, using'</l>
+<l>Text[6] := 'an initial set of parameters.'</l>
+<l>Text[7] := ' '</l>
+<l>Text[8] := 'Next, the parameters will be adapted'</l>
+<l>Text[9] := 'to demonstrate their effects on the'</l>
+<l>Text[10] := 'resulting surface.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_fusion_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_resolution_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'Resolution\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Specifies the distance in axis direction'</l>
+<l>Text[3] := 'of neighboring sample points in the'</l>
+<l>Text[4] := 'discretization of the bounding box.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'Too small values will drastically'</l>
+<l>Text[7] := 'increase the runtime. Too large values'</l>
+<l>Text[8] := 'will lead to a reconstruction with loss'</l>
+<l>Text[9] := 'of detail.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_resolution_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_min_thickness_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'MinThickness\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Specifies the minimum thickness'</l>
+<l>Text[3] := 'of the object in normal direction of the'</l>
+<l>Text[4] := 'initial surfaces.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'Points in the interior of the object'</l>
+<l>Text[7] := 'as specified by \'NormalDirection\' '</l>
+<l>Text[8] := 'and \'angle_threshold\' are only'</l>
+<l>Text[9] := 'considered to be inside if their'</l>
+<l>Text[10] := 'distance to the initial surface does not'</l>
+<l>Text[11] := 'exceed \'MinThickness\'.'</l>
+<l>Text[12] := ' '</l>
+<l>Text[13] := 'Note that inappropriate values may lead'</l>
+<l>Text[14] := 'to a hollow part of the object.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_min_thickness_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_surface_tolerance_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'SurfaceTolerance\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Determines the tolerance range around the'</l>
+<l>Text[3] := 'initial surface within which the input points'</l>
+<l>Text[4] := 'are merged into the resulting surface.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'Small values lead to an uneven surface.'</l>
+<l>Text[7] := 'Large values may smudge distinct surfaces'</l>
+<l>Text[8] := 'into one. '</l>
+<l>Text[9] := ' '</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_surface_tolerance_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_smoothing_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'Smoothing\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Regulates the importance of a small'</l>
+<l>Text[3] := 'total variation of the distance'</l>
+<l>Text[4] := 'function compared to the data fidelity,'</l>
+<l>Text[5] := 'i.e., the jumpiness of the resulting '</l>
+<l>Text[6] := 'surface.'</l>
+<l>Text[7] := ' '</l>
+<l>Text[8] := 'Too small values lead to integrating'</l>
+<l>Text[9] := 'many outliers into the surface whereas'</l>
+<l>Text[10] := 'too large values lead to lost fidelity'</l>
+<l>Text[11] := 'towards the initial data.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_smoothing_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_dist_in_front_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'distance_in_front\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Specifies the points that lie outside'</l>
+<l>Text[3] := 'the object.'</l>
+<l>Text[4] := ' '</l>
+<l>Text[5] := 'Points in the exterior of the object'</l>
+<l>Text[6] := 'as specified by \'NormalDirection\' and'</l>
+<l>Text[7] := '\'angle_threshold\' are only considered'</l>
+<l>Text[8] := 'if their distance to the initial surface'</l>
+<l>Text[9] := 'does not exceed \'distance_in_front\'.'</l>
+<l>Text[10] := ' '</l>
+<l>Text[11] := 'A small value can be used to close'</l>
+<l>Text[12] := 'holes in the object.'</l>
+<l>Text[13] := ' '</l>
+<l>Text[14] := 'Our input, however, does not have'</l>
+<l>Text[15] := 'such holes. We rather notice a closing'</l>
+<l>Text[16] := 'of the holes between the outliers.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_dist_in_front_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_angle_threshold_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'angle_threshold\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Specifies the angle of a cone around'</l>
+<l>Text[3] := 'a surface normal. Only sample points within'</l>
+<l>Text[4] := 'such a cone are taken into account.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'If distances to triangles are'</l>
+<l>Text[7] := 'considered, \'angle_threshold\' can be set'</l>
+<l>Text[8] := 'to 0, to only consider the volume directly'</l>
+<l>Text[9] := 'above the triangle (a right prism).'</l>
+<l>Text[10] := ' '</l>
+<l>Text[11] := 'In our case, distances to normals are'</l>
+<l>Text[12] := 'considered and hence \'angle_threshold\''</l>
+<l>Text[13] := 'has to be set to a larger value.'</l>
+<l>Text[14] := ' '</l>
+<l>Text[15] := 'Decreasing this value might help when'</l>
+<l>Text[16] := 'outliers disrupt the result. Increasing'</l>
+<l>Text[17] := 'it might help if holes on the surface'</l>
+<l>Text[18] := 'are to be closed.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_angle_threshold_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_point_meshing_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Text := '\'point_meshing\''</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Specifies if the output points should'</l>
+<l>Text[3] := 'be triangulated with the algorithm'</l>
+<l>Text[4] := '\'marching tetrahedra\'.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := '\'none\' deactivates this triangulation,'</l>
+<l>Text[7] := '\'isosurface\' activates it.'</l>
+<l>Text[8] := ' '</l>
+<l>Text[9] := 'Note that there are more points in the'</l>
+<l>Text[10] := 'fused object if meshing is enabled.'</l>
+<l>Text[11] := ' '</l>
+<l>Text[12] := '\'point_meshing\' is enabled by default.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_point_meshing_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

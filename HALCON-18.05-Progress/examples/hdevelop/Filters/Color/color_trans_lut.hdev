@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Compare the processing time difference between the color space</c>
+<c>* transformation using trans_from/to_rgb with or without LUT</c>
+<c>* </c>
+<c>* initializations</c>
+<l>dev_update_off ()</l>
+<l>duration_without_lut := []</l>
+<l>duration_with_lut := []</l>
+<l>duration_without_lut2 := []</l>
+<l>duration_with_lut2 := []</l>
+<l>Spaces := ['',' ','  ','   ','    ','     ']</l>
+<l>NumLoops := 10</l>
+<l>read_image (Image, 'montery')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, [600,800], [400,600], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>decompose3 (Image, Image1, Image2, Image3)</l>
+<c>* </c>
+<c>* Color space transformation from RGB</c>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Performing color space transformation   ','from RGB to ...'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Runtime         with LUT     without LUT', 'window', 60, 12, 'black', 'true')</l>
+<l>get_param_info ('trans_from_rgb', 'ColorSpace', 'value_list', ColorSpace)</l>
+<l>for Index := 0 to |ColorSpace| - 1 by 1</l>
+<l>    Time1 := 0</l>
+<l>    Time2 := 0</l>
+<l>    Time3 := 0</l>
+<l>    create_color_trans_lut (ColorSpace[Index], 'from_rgb', 8, ColorTransLUTHandle)</l>
+<l>    trans_from_rgb (Image1, Image2, Image3, ImageResult11, ImageResult21, ImageResult31, ColorSpace[Index])</l>
+<l>    apply_color_trans_lut (Image1, Image2, Image3, ImageResult1, ImageResult2, ImageResult3, ColorTransLUTHandle)</l>
+<l>    for Index1 := 0 to NumLoops by 1</l>
+<l>        count_seconds (Seconds1)</l>
+<l>        trans_from_rgb (Image1, Image2, Image3, ImageResult11, ImageResult21, ImageResult31, ColorSpace[Index])</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        apply_color_trans_lut (Image1, Image2, Image3, ImageResult1, ImageResult2, ImageResult3, ColorTransLUTHandle)</l>
+<l>        count_seconds (Seconds3)</l>
+<l>        Time1 := Seconds1 + Time1</l>
+<l>        Time2 := Seconds2 + Time2</l>
+<l>        Time3 := Seconds3 + Time3</l>
+<l>    endfor</l>
+<l>    TimeWithoutLUT := (Time2 - Time1) / NumLoops * 1000</l>
+<l>    TimeWithLUT := (Time3 - Time2) / NumLoops * 1000</l>
+<l>    if (TimeWithLUT &gt; TimeWithoutLUT * 1.1)</l>
+<l>        FontColor := 'red'</l>
+<l>    elseif (TimeWithoutLUT &gt; TimeWithLUT * 1.1)</l>
+<l>        FontColor := 'forest green'</l>
+<l>    else</l>
+<l>        FontColor := 'black'</l>
+<l>    endif</l>
+<l>    Tab := '         ' + Spaces[8 - strlen(ColorSpace[Index])]</l>
+<l>    disp_message (WindowHandle, ColorSpace[Index] + Tab + TimeWithLUT$'.2f' + ' ms' + TimeWithoutLUT$'11.2f' + ' ms  ', 'window', 80 + Index * 20, 12, FontColor, 'true')</l>
+<l>    duration_without_lut := [duration_without_lut,TimeWithoutLUT]</l>
+<l>    duration_with_lut := [duration_with_lut,TimeWithLUT]</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Color space transformation to RGB</c>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Performing color space transformation   ','from ... to RGB'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Runtime         with LUT     without LUT', 'window', 60, 12, 'black', 'true')</l>
+<l>get_param_info ('trans_to_rgb', 'ColorSpace', 'value_list', ColorSpace2)</l>
+<l>for Index := 0 to |ColorSpace2| - 1 by 1</l>
+<l>    Time1 := 0</l>
+<l>    Time2 := 0</l>
+<l>    Time3 := 0</l>
+<l>    create_color_trans_lut (ColorSpace2[Index], 'to_rgb', 8, ColorTransLUTHandle)</l>
+<l>    trans_to_rgb (Image1, Image2, Image3, ImageResult11, ImageResult21, ImageResult31, ColorSpace2[Index])</l>
+<l>    apply_color_trans_lut (Image1, Image2, Image3, ImageResult1, ImageResult2, ImageResult3, ColorTransLUTHandle)</l>
+<l>    for Index1 := 0 to NumLoops by 1</l>
+<l>        count_seconds (Seconds1)</l>
+<l>        trans_to_rgb (Image1, Image2, Image3, ImageResult11, ImageResult21, ImageResult31, ColorSpace2[Index])</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        apply_color_trans_lut (Image1, Image2, Image3, ImageResult1, ImageResult2, ImageResult3, ColorTransLUTHandle)</l>
+<l>        count_seconds (Seconds3)</l>
+<l>        Time1 := Seconds1 + Time1</l>
+<l>        Time2 := Seconds2 + Time2</l>
+<l>        Time3 := Seconds3 + Time3</l>
+<l>    endfor</l>
+<l>    TimeWithoutLUT := (Time2 - Time1) / NumLoops * 1000</l>
+<l>    TimeWithLUT := (Time3 - Time2) / NumLoops * 1000</l>
+<l>    if (TimeWithLUT &gt; TimeWithoutLUT * 1.1)</l>
+<l>        FontColor := 'red'</l>
+<l>    elseif (TimeWithoutLUT &gt; TimeWithLUT * 1.1)</l>
+<l>        FontColor := 'forest green'</l>
+<l>    else</l>
+<l>        FontColor := 'black'</l>
+<l>    endif</l>
+<l>    Tab := '         ' + Spaces[8 - strlen(ColorSpace2[Index])]</l>
+<l>    disp_message (WindowHandle, ColorSpace2[Index] + Tab + TimeWithLUT$'.2f' + ' ms' + TimeWithoutLUT$'11.2f' + ' ms  ', 'window', 80 + Index * 20, 12, FontColor, 'true')</l>
+<l>    duration_without_lut2 := [duration_without_lut2,TimeWithoutLUT]</l>
+<l>    duration_with_lut2 := [duration_with_lut2,TimeWithLUT]</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

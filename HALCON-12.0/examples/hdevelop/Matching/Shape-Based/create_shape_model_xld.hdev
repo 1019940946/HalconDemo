@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the creation of shape models</c>
+<c>* from XLD contours.</c>
+<c>* In this example, the possibility to create a shape model from</c>
+<c>* XLD contours is used to incorporate knowledge about the</c>
+<c>* object's geometry. The objective is to find the four medium-sized</c>
+<c>* holes. It is known that these holes are circular and that they have</c>
+<c>* the same size.</c>
+<c>* To use this knowledge, the holes are extracted from the image.</c>
+<c>* Then, circles are fitted into the contours that represent the holes.</c>
+<c>* In the next step, one circular XLD contour is created using the</c>
+<c>* mean radius of the four fitted circles. Finally, this XLD contour is</c>
+<c>* used to create the shape model.</c>
+<c>* </c>
+<c>* In the second part of the example program, we use the additionally</c>
+<c>* available knowledge that the circles are arranged in a square.</c>
+<c>* Therefore, we create four circular contours arranged in a square</c>
+<c>* that has the same size as the quadrilateral enclosed by the extracted</c>
+<c>* circles. These contours are used as input for the shape model creation.</c>
+<c>* </c>
+<c>* Read the image of the brake disc and determine the size of the holes.</c>
+<l>read_image (Image, 'brake_disk/brake_disk_part_01')</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 640, 640, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_set_line_width (3)</l>
+<l>binary_threshold (Image, Region, 'smooth_histo', 'light', UsedThreshold)</l>
+<l>connection (Region, Holes)</l>
+<l>select_shape (Holes, SmallHoles, 'area', 'and', 5000, 10000)</l>
+<l>boundary (SmallHoles, RegionBorder, 'inner_filled')</l>
+<l>dilation_circle (RegionBorder, RegionBorderDilation, 3.5)</l>
+<l>union1 (RegionBorderDilation, ROI)</l>
+<l>reduce_domain (Image, ROI, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 0.5, 20, 40)</l>
+<l>fit_circle_contour_xld (Edges, 'algebraic', -1, 0, 0, 3, 2, RowCenter, ColumnCenter, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Edges)</l>
+<l>disp_message (WindowHandle, 'Extracted edges', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the circular XLD contour.</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'First example:\nCreate a shape model from one circular contour', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>MeanRadius := mean(Radius)</l>
+<l>gen_circle_contour_xld (ContCircle, 300, 300, MeanRadius, 0, 6.28318, 'positive', 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ContCircle)</l>
+<l>disp_message (WindowHandle, 'Circular XLD contour from which the\nshape model is created that will be used\nto find individual circles:', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the shape model.</c>
+<l>create_shape_model_xld (ContCircle, 'auto', 0, 0, 'auto', 'auto', 'ignore_local_polarity', 10, ModelID)</l>
+<l>get_shape_model_params (ModelID, NumLevels, AngleStart, AngleExtent, AngleStep, ScaleMin, ScaleMax, ScaleStep, Metric, MinContrast)</l>
+<c>* </c>
+<c>* Try to find the holes in the brake disc.</c>
+<l>find_shape_model (Image, ModelID, 0, 0, 0.7, 0, 0, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<c>* </c>
+<c>* Determine which of the found matches represent the desired holes,</c>
+<c>* i.e., which of the circles have a brighter interior.</c>
+<l>IsHole := []</l>
+<l>SeamWidth := 5</l>
+<l>for Index := 0 to |Row| - 1 by 1</l>
+<l>    polar_trans_image_ext (Image, ImagePolar, Row[Index] + 0.5, Column[Index] + 0.5, 0, 6.28319, 0, MeanRadius + SeamWidth, 1, MeanRadius + SeamWidth + 1, 'nearest_neighbor')</l>
+<l>    SequenceInner := [round(MeanRadius) - SeamWidth:round(MeanRadius) - 1]</l>
+<l>    get_grayval (ImagePolar, SequenceInner, gen_tuple_const(|SequenceInner|,0), GrayvalInner)</l>
+<l>    SequenceOuter := [round(MeanRadius) + 1:round(MeanRadius) + SeamWidth]</l>
+<l>    get_grayval (ImagePolar, SequenceOuter, gen_tuple_const(|SequenceOuter|,0), GrayvalOuter)</l>
+<l>    if (mean(GrayvalInner) &gt; mean(GrayvalOuter))</l>
+<l>        IsHole := [IsHole,true]</l>
+<l>    else</l>
+<l>        IsHole := [IsHole,false]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>HoleIndices := find(IsHole,true)</l>
+<l>NoHoleIndices := find(IsHole,false)</l>
+<c>* </c>
+<c>* Visualize results.</c>
+<l>dev_display (Image)</l>
+<l>dev_display_shape_matching_results (ModelID, 'lime green', subset(Row,HoleIndices), subset(Column,HoleIndices), Angle, 1.0, 1.0, 0)</l>
+<l>dev_display_shape_matching_results (ModelID, 'red', subset(Row,NoHoleIndices), subset(Column,NoHoleIndices), Angle, 1.0, 1.0, 0)</l>
+<l>disp_message (WindowHandle, 'Undesired result\ndue to missing\npolarity information', 'image', Row[NoHoleIndices[0]] - 2 * MeanRadius, Column[NoHoleIndices[0]] + 1.1 * MeanRadius, 'red', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the polarity information from one correct match.</c>
+<l>vector_angle_to_rigid (0, 0, 0, Row[HoleIndices[0]], Column[HoleIndices[0]], Angle[HoleIndices[0]], HomMat2D)</l>
+<l>set_shape_model_metric (Image, ModelID, HomMat2D, 'use_polarity')</l>
+<l>find_shape_model (Image, ModelID, 0, 0, 0.7, 0, 0, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>dev_display (Image)</l>
+<l>dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>disp_message (WindowHandle, 'Results using the polarity information', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Results on further test images.</c>
+<l>for Index := 2 to 9 by 1</l>
+<l>    read_image (Image, 'brake_disk/brake_disk_part_' + Index$'02d')</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model (Image, ModelID, 0, 0, 0.7, 0, 0, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>    disp_message (WindowHandle, |Row| + ' Matches found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', -1, -1, 'lime green', 'false')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>clear_shape_model (ModelID)</l>
+<c>* </c>
+<c>* Create four circular contours arranged in a square with the</c>
+<c>* same area as the quadrilateral formed by the four holes.</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Second example:\nCreate a shape model from four circular\ncontours that are arranged in a square', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>read_image (Image, 'brake_disk/brake_disk_part_01')</l>
+<l>line_orientation (gen_tuple_const(|RowCenter|,mean(RowCenter)), gen_tuple_const(|ColumnCenter|,mean(ColumnCenter)), RowCenter, ColumnCenter, Phi)</l>
+<l>Phi := atan2(gen_tuple_const(|RowCenter|,mean(RowCenter)) - RowCenter,gen_tuple_const(|ColumnCenter|,mean(ColumnCenter)) - ColumnCenter)</l>
+<l>Indices := sort_index(Phi)</l>
+<l>gen_contour_polygon_xld (Contour, subset(RowCenter,Indices), subset(ColumnCenter,Indices))</l>
+<l>area_center_xld (Contour, Area, Row, Column, PointOrder)</l>
+<l>orientation_xld (Contour, Phi)</l>
+<l>SideLength := sqrt(Area)</l>
+<l>gen_circle_contour_xld (ContCircles, [0,0,1,1] * SideLength + 300, [0,1,0,1] * SideLength + 300, gen_tuple_const(4,MeanRadius), 0, 6.283180236816, 'positive', 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ContCircles)</l>
+<l>disp_message (WindowHandle, 'Circular XLD contours from which the\nshape model is created that will be used\nto find four circles arranged in a square:', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the shape model.</c>
+<l>create_shape_model_xld (ContCircles, NumLevels, 0, rad(90), 'auto', 'auto', 'ignore_local_polarity', 10, ModelID)</l>
+<c>* </c>
+<c>* Try to find the four holes in the brake disc.</c>
+<l>count_seconds (Seconds1)</l>
+<l>find_shape_model (Image, ModelID, 0, rad(90), 0.5, 1, 0.5, 'least_squares', 0, 0.5, Row, Column, Angle, Score)</l>
+<l>count_seconds (Seconds2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>disp_message (WindowHandle, |Row| + ' Match found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms\n(without using the polarity information)', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the polarity information from one correct match.</c>
+<l>vector_angle_to_rigid (0, 0, 0, Row, Column, Angle, HomMat2D)</l>
+<l>set_shape_model_metric (Image, ModelID, HomMat2D, 'use_polarity')</l>
+<l>count_seconds (Seconds1)</l>
+<l>find_shape_model (Image, ModelID, 0, rad(90), 0.5, 1, 0.5, 'least_squares', 0, 0.5, Row, Column, Angle, Score)</l>
+<l>count_seconds (Seconds2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>disp_message (WindowHandle, |Row| + ' Match found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms\n(using the polarity information)', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Results on further test images.</c>
+<l>for Index := 2 to 9 by 1</l>
+<l>    read_image (Image, 'brake_disk/brake_disk_part_' + Index$'02d')</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model (Image, ModelID, 0, rad(90), 0.5, 1, 0.5, 'least_squares', 0, 0.5, Row, Column, Angle, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>    disp_message (WindowHandle, |Row| + ' Match found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', -1, -1, 'lime green', 'false')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>disp_message (WindowHandle, 'Press \'Run\' to clear model', 'window', 480, 270, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image)</l>
+<l>clear_shape_model (ModelID)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

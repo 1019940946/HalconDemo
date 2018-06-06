@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This program demonstrates the automatic refinement of the</c>
+<c>* orientation of a measure object used for 1D measuring.</c>
+<c>* If the ROI for the measurement entered by the user is</c>
+<c>* not exactly perpendicular to the measured structure,</c>
+<c>* the program estimates the correct orientation and</c>
+<c>* rotates the ROI accordingly</c>
+<c>* </c>
+<c>* Display initializations</c>
+<l>Interactive := 0</l>
+<l>dev_close_window ()</l>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image, 'fuse')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<l>if (Interactive == 0)</l>
+<l>    disp_message (WindowHandle, 'Measure rectangle generated', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Wrong rotation will be corrected in the next step', 'window', 50, 12, 'black', 'true')</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    gen_rectangle2 (Rectangle, 292, 540, rad(85), 80, 5)</l>
+<l>    dev_display (Rectangle)</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    smallest_rectangle2 (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>else</l>
+<c>    * User interaction: input measure rectangle</c>
+<l>    disp_message (WindowHandle, 'Modify measure rectangle (arrow up, confirm with right mouse)', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Eventually wrong rotations will be corrected', 'window', 50, 12, 'black', 'true')</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    draw_rectangle2_mod (WindowHandle, 292, 540, rad(85), 80, 5, Row, Column, Phi, Length1, Length2)</l>
+<l>    gen_rectangle2 (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Apply a first measurement</c>
+<l>gen_measure_rectangle2 (Row, Column, Phi, Length1, Length2, Width, Height, 'bicubic', MeasureHandle)</l>
+<l>measure_pairs (Image, MeasureHandle, 1, 30, 'all', 'all', RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<c>* </c>
+<c>* Extract edges and edge directions within a slightly extended ROI</c>
+<l>gen_rectangle2 (RectangleROI, Row, Column, Phi, Length1, 4 * Length2)</l>
+<l>reduce_domain (Image, RectangleROI, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 1, 20, 40)</l>
+<l>get_contour_angle_xld (Edges, 'abs', 'regress', 3, Angles)</l>
+<c>* </c>
+<c>* Use the mean edge direction to estimate the correct orientation</c>
+<c>* of the measure rectangle.</c>
+<l>MeanAngle := mean(Angles) - rad(90)</l>
+<l>MeanAngleDeg := deg(MeanAngle)</l>
+<c>* </c>
+<c>* Correct the orientation of the measure rectangle</c>
+<l>gen_measure_rectangle2 (Row, Column, MeanAngle, Length1, Length2, Width, Height, 'bicubic', MeasureHandle)</l>
+<l>gen_rectangle2 (Rectangle2, Row, Column, MeanAngle, Length1, Length2)</l>
+<l>measure_pairs (Image, MeasureHandle, 1, 30, 'all', 'all', RowEdgeFirst2, ColumnEdgeFirst2, AmplitudeFirst2, RowEdgeSecond2, ColumnEdgeSecond2, AmplitudeSecond2, IntraDistance2, InterDistance2)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>p_disp_edge_marker (RowEdgeFirst, ColumnEdgeFirst, Phi, Length2, 'red', 2)</l>
+<l>p_disp_edge_marker (RowEdgeSecond, ColumnEdgeSecond, Phi, Length2, 'red', 2)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Rectangle)</l>
+<l>p_disp_edge_marker (RowEdgeFirst2, ColumnEdgeFirst2, MeanAngle, Length2, 'green', 2)</l>
+<l>p_disp_edge_marker (RowEdgeSecond2, ColumnEdgeSecond2, MeanAngle, Length2, 'green', 2)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Rectangle2)</l>
+<l>disp_message (WindowHandle, 'Measure direction corrected from ' + deg(Phi)$'.3' + ' deg to ' + MeanAngleDeg$'.3' + ' deg', 'window', 12, 12, 'black', 'true')</l>
+<l>LastCommonIndex := min([|RowEdgeFirst|,|RowEdgeSecond|,|RowEdgeFirst2|,|RowEdgeSecond2|]) - 1</l>
+<l>disp_message (WindowHandle, 'Width [px]: ' + IntraDistance[0:LastCommonIndex]$'.3' + ', corrected: ' + IntraDistance2[0:LastCommonIndex]$'.3', 'window', (RowEdgeFirst[0:LastCommonIndex] + RowEdgeSecond[0:LastCommonIndex]) / 2 - 10, 150, 'black', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="p_disp_edge_marker">
+<interface>
+<ic>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="Cols" base_type="ctrl" dimension="0"/>
+<par name="Phi" base_type="ctrl" dimension="0"/>
+<par name="Length" base_type="ctrl" dimension="0"/>
+<par name="Color" base_type="ctrl" dimension="0"/>
+<par name="LineWidth" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Determine the number of edges</c>
+<l>NumRows := |Rows|</l>
+<l>NumCols := |Cols|</l>
+<l>Num := min([NumRows,NumCols])</l>
+<c>* </c>
+<c>* Loop over the edges</c>
+<l>for i := 0 to Num - 1 by 1</l>
+<l>    Row := Rows[i]</l>
+<l>    Col := Cols[i]</l>
+<c>    * </c>
+<c>    * Determine start and end point of the edge marker.</c>
+<l>    RowStart := Row + Length * cos(Phi)</l>
+<l>    RowEnd := Row - Length * cos(Phi)</l>
+<l>    ColStart := Col + Length * sin(Phi)</l>
+<l>    ColEnd := Col - Length * sin(Phi)</l>
+<c>    * </c>
+<c>    * Generate a contour that connects the start and end point.</c>
+<l>    gen_contour_polygon_xld (Marker, [RowStart,RowEnd], [ColStart,ColEnd])</l>
+<c>    * </c>
+<c>    * Display the contour with  the specified style.</c>
+<l>    dev_set_color (Color)</l>
+<l>    dev_set_line_width (LineWidth)</l>
+<l>    dev_display (Marker)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="p_disp_edge_marker">
+<short lang="en_US">Displays a marker, which indicates the position of an edge</short>
+<parameters>
+<parameter id="Color"/>
+<parameter id="Cols"/>
+<parameter id="Length"/>
+<parameter id="LineWidth"/>
+<parameter id="Phi"/>
+<parameter id="Rows"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

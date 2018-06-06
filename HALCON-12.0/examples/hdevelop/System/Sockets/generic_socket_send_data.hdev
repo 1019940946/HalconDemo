@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* This example program shows how to use the HALCON generic socket</c>
+<c>* functionality to send and receive arbitrary data via sockets. In this</c>
+<c>* example, a TCP connection is opened to another HALCON process and</c>
+<c>* arbitrary data is exchanged. To see how it works, please start another</c>
+<c>* HDevelop with the program 'generic_socket_receive.hdev' before starting</c>
+<c>* this example.</c>
+<c>* ***********************************************************************</c>
+<c>* Initialize program</c>
+<l>Protocol := 'TCP4'</l>
+<l>Timeout := 5.0</l>
+<c>* Open a socket connection</c>
+<l>open_socket_connect ('127.0.0.1', 4660, ['protocol','timeout'], [Protocol,Timeout], Socket)</l>
+<l>get_socket_param (Socket, 'address_info', Address)</l>
+<c>* </c>
+<c>* To is not evaluated for TCP and connected UDP sockets</c>
+<l>To := []</l>
+<c>* </c>
+<l>send_data (Socket, 'cz-csi', [1,'Generic sockets are great!',-1,-2,-3], To)</l>
+<l>receive_data (Socket, ['c','z'], Answer, From)</l>
+<l>send_data (Socket, 'A3', 'End', To)</l>
+<l>receive_data (Socket, ['c','z'], Answer2, From)</l>
+<l>stop ()</l>
+<l>close_socket (Socket)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

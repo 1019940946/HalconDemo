@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a BitFlow frame grabber board</c>
+<c>* (two cameras + port switching)</c>
+<c>* </c>
+<c>* </c>
+<c>* Note, that you have to configure your board (via the tools of the BitFlow SDK) appropriately.</c>
+<c>* Please see also the HTML documentation of the HALCON BitFlow interface!</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', 0, 1, AcqHandle)</l>
+<c>* </c>
+<l>grab_image (Image0, AcqHandle)</l>
+<l>get_image_size (Image0, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle0)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_open_window (0, Width / 2 + 20, Width / 2, Height / 2, 'black', WindowHandle1)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image (Image0, AcqHandle)</l>
+<l>    set_framegrabber_param (AcqHandle, 'port', 1)</l>
+<l>    dev_set_window (WindowHandle0)</l>
+<l>    dev_display (Image0)</l>
+<l>    grab_image (Image1, AcqHandle)</l>
+<l>    set_framegrabber_param (AcqHandle, 'port', 0)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image1)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

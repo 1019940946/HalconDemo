@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'claudia')</l>
+<l>concat_obj (Image, Image, Images)</l>
+<l>tile_images (Images, TiledImage1, 1, 'vertical')</l>
+<l>tile_images (Images, TiledImage2, 2, 'horizontal')</l>
+<l>crop_rectangle1 (Image, ImagePart1, 20, 20, 459, 349)</l>
+<l>concat_obj (ImagePart1, ImagePart1, ImagesPart1)</l>
+<l>concat_obj (Images, ImagesPart1, Images4)</l>
+<l>tile_images (Images4, TiledImage3, 2, 'horizontal')</l>
+<l>tile_images (Images4, TiledImage4, 2, 'vertical')</l>
+<l>crop_rectangle1 (Image, ImagePart2, 30, 100, 229, 299)</l>
+<l>concat_obj (Images4, ImagePart2, Images5)</l>
+<l>tile_images (Images5, TiledImage5, 3, 'horizontal')</l>
+<l>tile_images (Images5, TiledImage6, 3, 'vertical')</l>
+<l>crop_rectangle1 (Image, ImagePart3, 250, 80, 399, 199)</l>
+<l>concat_obj (ImagePart3, ImagePart3, ImagesPart3)</l>
+<l>concat_obj (Images5, ImagesPart3, Images7)</l>
+<l>tile_images (Images7, TiledImage7, 5, 'horizontal')</l>
+<l>tile_images (Images7, TiledImage8, 5, 'vertical')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

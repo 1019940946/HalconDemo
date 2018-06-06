@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***************************************************************</c>
+<c>* This program shows how to access intermediate results while</c>
+<c>* searching for data codes. This enables to obtain hints how</c>
+<c>* the search process can be enhanced with respect to run time</c>
+<c>* or why a symbol is not found or decoded.</c>
+<c>* </c>
+<c>* The program first creates a 2d data code model and queries</c>
+<c>* the names of the available parameters.</c>
+<c>* In the next step the data code symbols are searched and</c>
+<c>* decoded in each image. Then further information in general</c>
+<c>* and some more specific information about the search process</c>
+<c>* and the symbol(candidates) are queried to obtain hints how the</c>
+<c>* search process can be enhanced with respect to runtime or</c>
+<c>* why a symbol is not found or decoded.</c>
+<c>* The list of available parameters is displayed on the left while</c>
+<c>* the parameter values are displayed on the right.</c>
+<c>* ***************************************************************</c>
+<c>* </c>
+<c>* Initialize image path</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>ImagePath := 'datacode/ecc200/'</l>
+<l>ImageFiles := ImagePath + ['ecc200_distorted_001','ecc200_distorted_002','ecc200_to_preprocess_002','ecc200_to_preprocess_004','ecc200_to_preprocess_003','ecc200_to_preprocess_001']</l>
+<c>* </c>
+<c>* Open window for list of parameters</c>
+<l>dev_open_window (0, 0, 550, 600, 'black', ParamWindow)</l>
+<l>set_display_font (ParamWindow, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Display short description</c>
+<l>Message := 'This program shows how to access intermediate'</l>
+<l>Message[1] := 'results while searching for ECC 200 data codes.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'This enables to obtain hints how the search process'</l>
+<l>Message[4] := 'can be enhanced with respect to runtime or why a'</l>
+<l>Message[5] := 'symbol is not found or decoded.'</l>
+<l>disp_message (ParamWindow, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (ParamWindow, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 1: Create a 2d data code model</c>
+<c>* -------------------------------------------------------</c>
+<c>* Create a 2d data code model of the 2d data code class</c>
+<c>* 'Data Matrix ECC 200' and set the model to persistent</c>
+<c>* storage of the intermediate results</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', 'default_parameters', 'enhanced_recognition', DataCodeHandle)</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'persistence', 1)</l>
+<c>* </c>
+<c>* Query the parameter names</c>
+<c>* ----------------------------------</c>
+<c>* Get the lists of parameters which can be used to query the</c>
+<c>* alphanumeric results and iconic objects of the search</c>
+<l>query_data_code_2d_params (DataCodeHandle, 'get_result_params', GenParamName)</l>
+<l>query_data_code_2d_params (DataCodeHandle, 'get_result_objects', GenObjectNames)</l>
+<c>* </c>
+<c>* Set color of parameter names</c>
+<l>ColorAlph := gen_tuple_const(|GenParamName|,'#808080')</l>
+<l>ColorIcon := gen_tuple_const(|GenObjectNames|,'#808080')</l>
+<c>* </c>
+<c>* Open new windows</c>
+<c>* ------------------------------</c>
+<c>* Open window for iconic objects</c>
+<l>WWidth := 500</l>
+<l>WHeight := 300</l>
+<l>WRatio := real(WWidth) / WHeight</l>
+<l>dev_open_window (0, 560, WWidth, WHeight, 'white', ImageWindow)</l>
+<l>set_display_font (ImageWindow, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* Open window for alphanumeric results</c>
+<l>dev_open_window (360, 560, 500, 240, 'white', ResultWindow)</l>
+<l>set_display_font (ResultWindow, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Step 2: Read the data codes</c>
+<c>* --------------------------------------------------------------</c>
+<c>* Search the data codes in each image and try to decode the</c>
+<c>* symbol. Then query alphanumeric results and iconic objects</c>
+<c>* of the search and decoding process.</c>
+<l>for Index := 0 to 5 by 1</l>
+<l>    dev_set_window (ImageWindow)</l>
+<l>    dev_clear_window ()</l>
+<l>    read_image (Image, ImageFiles[Index])</l>
+<c>    * </c>
+<c>    * Display the image</c>
+<l>    determine_part (Image, WRatio, WWidth, WHeight, Row1, Col1, Row2, Col2)</l>
+<l>    dev_set_part (Row1, Col1, Row2, Col2)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (ImageWindow, 'Example ' + (Index + 1) + ' of 6', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Set parameters</c>
+<c>    * ----------------</c>
+<c>    * Set the minimum size of the modules (in pixel) for specific</c>
+<c>    * images to reduce the number of candidates</c>
+<l>    if (Index == 3)</l>
+<l>        set_data_code_2d_param (DataCodeHandle, 'module_size_min', 24)</l>
+<l>    endif</l>
+<l>    if (Index == 4)</l>
+<l>        set_data_code_2d_param (DataCodeHandle, 'module_size_min', 10)</l>
+<l>    endif</l>
+<l>    if (Index == 5)</l>
+<l>        set_data_code_2d_param (DataCodeHandle, 'module_size_min', 2)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Find and decode the data codes</c>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Alphanumeric results:  various results about search</c>
+<c>    * ---------------------------------------------------</c>
+<c>    * Get some alphanumeric results about the search process in general</c>
+<l>    GenResultNames := ['min_search_level','max_search_level','pass_num','result_num','candidate_num','undecoded_num','aborted_num']</l>
+<l>    GenResultValues := []</l>
+<l>    get_data_code_2d_results (DataCodeHandle, 'general', GenResultNames, GenResultValues)</l>
+<l>    GenResult := (GenResultNames + ': ')$'-20' + GenResultValues$'2'</l>
+<c>    * </c>
+<c>    * Display results in ResultWindow</c>
+<l>    disp_message (ResultWindow, 'General alphanumeric results about the search:', 'window', 12, 12, 'black', 'false')</l>
+<l>    disp_message (ResultWindow, GenResult, 'window', 40, 12, 'black', 'false')</l>
+<c>    * </c>
+<c>    * Update highlighting of parameter names</c>
+<c>    * ---------------------------------------</c>
+<c>    * Clear the window for new highlighting</c>
+<l>    dev_set_window (ParamWindow)</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (ParamWindow, 'Highlighted parameters are shown on the right', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Parameters for iconic objects</c>
+<l>    disp_message (ParamWindow, 'Parameters for iconic objects:', 'window', 50, 12, 'black', 'true')</l>
+<l>    disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<c>    * </c>
+<c>    * Parameters for alphanumeric results</c>
+<l>    ColorAlph[0,1,2,3,4,5,6] := 'white'</l>
+<l>    disp_message (ParamWindow, 'Parameters for alphanumeric results:', 'window', 190, 12, 'black', 'true')</l>
+<l>    disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>    ColorAlph[0,1,2,3,4,5,6] := '#808080'</l>
+<l>    disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>    disp_continue_message (ResultWindow, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_set_window (ResultWindow)</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * Initialize variables for number of candidates,</c>
+<c>    * undecoded symbols and aborted searches</c>
+<l>    CandidateNum := GenResultValues[4]</l>
+<l>    UndecodedNum := GenResultValues[5]</l>
+<l>    AbortedNum := GenResultValues[6]</l>
+<c>    * </c>
+<c>    * Query iconic objects for all candidates</c>
+<c>    * -----------------------------------------------</c>
+<c>    * For all 2d data code candidates, query and display the</c>
+<c>    * the search image and process image.</c>
+<l>    if (CandidateNum &gt; 0)</l>
+<l>        dev_set_window (ImageWindow)</l>
+<l>        dev_clear_window ()</l>
+<c>        * </c>
+<c>        * Search image</c>
+<c>        * ---------------------------</c>
+<c>        * Get the search image, in which a candidate was found</c>
+<l>        get_data_code_2d_objects (SearchImage, DataCodeHandle, 0, 'search_image')</l>
+<c>        * </c>
+<c>        * Display the search image</c>
+<l>        determine_part (SearchImage, WRatio, WWidth, WHeight, SearchRow1, SearchCol1, SearchRow2, SearchCol2)</l>
+<l>        dev_set_part (SearchRow1, SearchCol1, SearchRow2, SearchCol2)</l>
+<l>        dev_display (SearchImage)</l>
+<l>        Message := 'Example ' + (Index + 1) + ' of 6  Search image'</l>
+<l>        disp_message (ImageWindow, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>        * </c>
+<c>        * Update highlighting of parameter names</c>
+<c>        * -------------------------------------------</c>
+<c>        * Clear parameter window for new highlighting</c>
+<l>        dev_set_window (ParamWindow)</l>
+<l>        dev_clear_window ()</l>
+<l>        disp_message (ParamWindow, 'Highlighted parameters are shown on the right', 'window', 12, 12, 'black', 'true')</l>
+<c>        * </c>
+<c>        * Parameters for iconic objects</c>
+<l>        ColorIcon[3] := 'white'</l>
+<l>        disp_message (ParamWindow, 'Parameters for iconic objects:', 'window', 50, 12, 'black', 'true')</l>
+<l>        disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<l>        ColorIcon[3] := '#808080'</l>
+<c>        * </c>
+<c>        * Parameters for alphanumeric results</c>
+<l>        disp_message (ParamWindow, 'Parameters for alphanumeric results:', 'window', 190, 12, 'black', 'true')</l>
+<l>        disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>        disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>        disp_continue_message (ResultWindow, 'black', 'true')</l>
+<l>        stop ()</l>
+<c>        * </c>
+<c>        * Clear the ImageWindow for the process image</c>
+<l>        dev_set_window (ImageWindow)</l>
+<l>        dev_clear_window ()</l>
+<c>        * </c>
+<c>        * Process image</c>
+<c>        * -------------------------------</c>
+<c>        * Get the process image, in which the candidate is investigated</c>
+<l>        get_data_code_2d_objects (ProcessImage, DataCodeHandle, 0, 'process_image')</l>
+<c>        * </c>
+<c>        * Display the process image</c>
+<l>        determine_part (ProcessImage, WRatio, WWidth, WHeight, ProcessRow1, ProcessCol1, ProcessRow2, ProcessCol2)</l>
+<l>        dev_set_part (ProcessRow1, ProcessCol1, ProcessRow2, ProcessCol2)</l>
+<l>        dev_display (ProcessImage)</l>
+<l>        Message := 'Example ' + (Index + 1) + ' of 6  Process image'</l>
+<l>        disp_message (ImageWindow, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>        * </c>
+<c>        * Update highlighting of parameter names</c>
+<c>        * -------------------------------------------</c>
+<c>        * Parameters for iconic objects</c>
+<l>        ColorIcon[4] := 'white'</l>
+<l>        disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<l>        ColorIcon[4] := '#808080'</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Successfully decoded symbols</c>
+<c>    * -----------------------------------------------------------</c>
+<c>    * Get information about the current parameter values of</c>
+<c>    * decoded symbols so we can enhance the runtime</c>
+<l>    if (|ResultHandles| &gt; 0)</l>
+<c>        * </c>
+<c>        * Query information for each decoded data string</c>
+<l>        for J := 0 to |ResultHandles| - 1 by 1</l>
+<c>            * </c>
+<c>            * Display the image and XLD contour</c>
+<l>            dev_clear_window ()</l>
+<l>            dev_set_part (Row1, Col1, Row2, Col2)</l>
+<l>            dev_display (Image)</l>
+<l>            dev_display (SymbolXLDs)</l>
+<l>            disp_message (ImageWindow, 'Example ' + (Index + 1) + ' of 6', 'window', 12, 12, 'black', 'true')</l>
+<c>            * </c>
+<c>            * Query alphanumeric results: various results</c>
+<c>            * --------------------------------------------------</c>
+<c>            * Get and display some parameter values of the</c>
+<c>            * symbol and the search</c>
+<l>            ResultVariousNames := ['polarity','module_gap','pass','status','mirrored','module_height','module_width','slant','contrast','decoded_string']</l>
+<l>            ResultVariousValues := []</l>
+<l>            get_data_code_2d_results (DataCodeHandle, ResultHandles[J], ResultVariousNames, ResultVariousValues)</l>
+<c>            * </c>
+<c>            * Determine the length for decoded data strings that are too large</c>
+<l>            get_string_extents (ImageWindow, ResultVariousValues[9], Ascent, Descent, TWidth, THeight)</l>
+<l>            if (TWidth &gt;= WWidth)</l>
+<l>                ResultVariousValues[9] := ResultVariousValues[9]{0:20} + ' ...'</l>
+<l>            endif</l>
+<l>            VariousResults := (ResultVariousNames + ':')$'-18' + ResultVariousValues</l>
+<c>            * </c>
+<c>            * Display the results in ResultWindow</c>
+<l>            disp_message (ResultWindow, 'Alphanumeric results about the symbol:', 'window', 12, 12, 'black', 'false')</l>
+<l>            disp_message (ResultWindow, VariousResults, 'window', 30, 12, 'black', 'false')</l>
+<c>            * </c>
+<c>            * Query iconic objects: Regions of the modules</c>
+<c>            * ------------------------------------------------</c>
+<c>            * Get and display the modules to check the</c>
+<c>            * quality of the module classification.</c>
+<l>            dev_set_window (ImageWindow)</l>
+<c>            * </c>
+<c>            * Foreground modules</c>
+<l>            get_data_code_2d_objects (Foreground, DataCodeHandle, ResultHandles[J], 'module_1_rois')</l>
+<l>            dev_set_line_width (1)</l>
+<l>            dev_set_draw ('margin')</l>
+<l>            dev_set_color ('blue')</l>
+<l>            dev_display (Foreground)</l>
+<c>            * </c>
+<c>            * Background modules</c>
+<l>            get_data_code_2d_objects (Background, DataCodeHandle, ResultHandles[J], 'module_0_rois')</l>
+<l>            dev_set_color ('yellow')</l>
+<l>            dev_display (Background)</l>
+<l>            disp_message (ImageWindow, 'Foreground and Background', 'window', 40, 12, 'black', 'true')</l>
+<l>            dev_set_line_width (3)</l>
+<l>            dev_set_color ('green')</l>
+<c>            * </c>
+<c>            * Update highlighting of parameter names</c>
+<c>            * --------------------------------------</c>
+<c>            * Clear window for new highlighting</c>
+<l>            dev_set_window (ParamWindow)</l>
+<l>            dev_clear_window ()</l>
+<l>            disp_message (ParamWindow, 'Highlighted parameters are shown on the right', 'window', 12, 12, 'black', 'true')</l>
+<c>            * </c>
+<c>            * Parameters of iconic objects</c>
+<l>            ColorIcon[1,2] := ['blue','yellow']</l>
+<l>            disp_message (ParamWindow, 'Parameters for iconic objects:', 'window', 50, 12, 'black', 'true')</l>
+<l>            disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<c>            * </c>
+<c>            * Parameters of alphanumeric results</c>
+<l>            ColorAlph[8,11,16,17,18] := 'white'</l>
+<l>            disp_message (ParamWindow, 'Parameters for alphanumeric results:', 'window', 190, 12, 'black', 'true')</l>
+<l>            disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>            ColorAlph[8,11,16,17,18] := '#808080'</l>
+<l>            ColorAlph[2,3,4,5,6] := 'white'</l>
+<l>            disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>            ColorAlph[2,3,4,5,6] := '#808080'</l>
+<l>            stop ()</l>
+<c>            * </c>
+<c>            * Query alphanumeric result: ASCII Code ('decoded_data')</c>
+<c>            * ------------------------------------------------------</c>
+<c>            * Get and display the ASCII code of the decoded string</c>
+<l>            get_data_code_2d_results (DataCodeHandle, ResultHandles[J], 'decoded_data', ResultASCIICode)</l>
+<l>            format_text (3, ResultASCIICode, 10, FormattedString)</l>
+<c>            * </c>
+<c>            * Display the code in ResultWindow</c>
+<l>            dev_set_window (ResultWindow)</l>
+<l>            dev_clear_window ()</l>
+<l>            disp_message (ResultWindow, 'ASCII Code of the symbol:', 'window', 12, 12, 'black', 'false')</l>
+<l>            disp_message (ResultWindow, FormattedString, 'window', 40, 12, 'black', 'false')</l>
+<c>            * </c>
+<c>            * Update highlighting of parameter names</c>
+<c>            * ---------------------------------------</c>
+<c>            * Clear window for new highlighting</c>
+<l>            dev_set_window (ParamWindow)</l>
+<l>            dev_clear_window ()</l>
+<l>            disp_message (ParamWindow, 'Highlighted parameters are shown on the right', 'window', 12, 12, 'black', 'true')</l>
+<c>            * </c>
+<c>            * Parameters of iconic objects</c>
+<l>            disp_message (ParamWindow, 'Parameters for iconic objects:', 'window', 50, 12, 'black', 'true')</l>
+<l>            disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<l>            ColorIcon[1,2] := '#808080'</l>
+<c>            * </c>
+<c>            * Parameters of alphanumeric results</c>
+<l>            disp_message (ParamWindow, 'Parameters for alphanumeric results:', 'window', 190, 12, 'black', 'true')</l>
+<l>            disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>            ColorAlph[12] := 'white'</l>
+<l>            disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>            ColorAlph[12] := '#808080'</l>
+<l>            disp_continue_message (ResultWindow, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endfor</l>
+<l>    else</l>
+<c>        * </c>
+<c>        * Undecoded symbols</c>
+<c>        * -----------------------------------------------------</c>
+<c>        * Get information about the current parameter values of</c>
+<c>        * symbols that were found, but could not be decoded</c>
+<l>        if (UndecodedNum &gt; 0)</l>
+<c>            * </c>
+<c>            * Get the handles of all undecoded symbols</c>
+<l>            get_data_code_2d_results (DataCodeHandle, 'all_undecoded', 'handle', HandlesUndecoded)</l>
+<c>            * </c>
+<c>            * Investigate the reason why a symbol could not be decoded</c>
+<l>            for J := 0 to |HandlesUndecoded| - 1 by 1</l>
+<c>                * </c>
+<c>                * Display the image</c>
+<l>                dev_set_window (ImageWindow)</l>
+<l>                dev_clear_window ()</l>
+<l>                dev_set_part (Row1, Col1, Row2, Col2)</l>
+<l>                dev_display (Image)</l>
+<l>                Message := 'Example ' + (Index + 1) + ' of 6  Undecoded symbol ' + (J + 1) + ' of ' + |HandlesUndecoded|</l>
+<l>                disp_message (ImageWindow, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>                * </c>
+<c>                * Query and display the status of the search</c>
+<l>                get_data_code_2d_results (DataCodeHandle, HandlesUndecoded[J], 'status', StatusValue)</l>
+<l>                disp_message (ResultWindow, 'Alphanumeric results about the symbol:', 'window', 12, 12, 'black', 'false')</l>
+<l>                disp_message (ResultWindow, 'Status: ' + StatusValue, 'window', 40, 12, 'black', 'false')</l>
+<c>                * </c>
+<c>                * Query iconic objects: XLD contour and regions of modules</c>
+<c>                * ---------------------------------------------------------</c>
+<c>                * Get XLD contour and modules of the undecoded symbol to</c>
+<c>                * obtain information why a candidate was not decoded</c>
+<c>                * </c>
+<c>                * XLD contour of the candidate</c>
+<l>                get_data_code_2d_objects (DataCodeObject, DataCodeHandle, HandlesUndecoded[J], 'candidate_xld')</l>
+<l>                dev_set_color ('red')</l>
+<l>                dev_display (DataCodeObject)</l>
+<c>                * </c>
+<c>                * Foreground modules</c>
+<l>                get_data_code_2d_objects (Foreground, DataCodeHandle, HandlesUndecoded[J], 'module_1_rois')</l>
+<l>                dev_set_line_width (1)</l>
+<l>                dev_set_draw ('margin')</l>
+<l>                dev_set_color ('blue')</l>
+<l>                dev_display (Foreground)</l>
+<c>                * </c>
+<c>                * Background modules</c>
+<l>                get_data_code_2d_objects (Background, DataCodeHandle, HandlesUndecoded[J], 'module_0_rois')</l>
+<l>                dev_set_color ('yellow')</l>
+<l>                dev_display (Background)</l>
+<l>                disp_message (ImageWindow, 'Foreground and Background', 'window', 40, 12, 'black', 'true')</l>
+<l>                dev_set_line_width (3)</l>
+<l>                dev_set_color ('green')</l>
+<c>                * </c>
+<c>                * Update highlighting of parameter names</c>
+<c>                * -------------------------------------------</c>
+<c>                * Parameters for iconic objects</c>
+<l>                ColorIcon[0,1,2] := ['red','blue','yellow']</l>
+<l>                disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<l>                ColorIcon[0,1,2] := '#808080'</l>
+<c>                * </c>
+<c>                * Parameters for alphanumeric results</c>
+<l>                ColorAlph[17] := 'white'</l>
+<l>                disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>                ColorAlph[17] := '#808080'</l>
+<l>                disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>                stop ()</l>
+<c>                * </c>
+<c>                * Query alphanumeric results: Binary symbol data</c>
+<c>                * ------------------------------------------------------</c>
+<c>                * Get binary information about individual modules to</c>
+<c>                * evaluate the module classification.</c>
+<l>                get_data_code_2d_results (DataCodeHandle, HandlesUndecoded[J], 'bin_module_data', ResultBinModules)</l>
+<l>                format_text (3, ResultBinModules, 10, FormattedBinModules)</l>
+<c>                * </c>
+<c>                * Display the binary results</c>
+<l>                dev_set_window (ResultWindow)</l>
+<l>                dev_clear_window ()</l>
+<l>                disp_message (ResultWindow, 'Binary symbol data of the modules:', 'window', 12, 12, 'black', 'false')</l>
+<l>                disp_message (ResultWindow, FormattedBinModules, 'window', 30, 12, 'black', 'false')</l>
+<c>                * </c>
+<c>                * Update highlighting of parameter names</c>
+<c>                * -------------------------------------------</c>
+<c>                * Clear window for new highlighting</c>
+<c>                * </c>
+<c>                * Parameters for alphanumeric results</c>
+<l>                disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>                ColorAlph[9] := 'white'</l>
+<l>                disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>                ColorAlph[9] := '#808080'</l>
+<l>                disp_continue_message (ResultWindow, 'black', 'true')</l>
+<l>                stop ()</l>
+<c>                * </c>
+<c>                * Clear the ResultWindow</c>
+<l>                dev_set_window (ResultWindow)</l>
+<l>                dev_clear_window ()</l>
+<l>            endfor</l>
+<l>        else</l>
+<c>            * </c>
+<c>            * No canditates found</c>
+<c>            * --------------------------------------------------------------</c>
+<c>            * If no candidates for 2d data code symbols were found</c>
+<l>            if (CandidateNum == 0)</l>
+<l>                disp_message (ParamWindow, 'No candidate found', 'window', 12, 12, 'black', 'true')</l>
+<l>                stop ()</l>
+<l>            endif</l>
+<c>            * </c>
+<c>            * Aborted Search</c>
+<c>            * --------------------------------------------------------------</c>
+<c>            * Get information about the current parameter values of the</c>
+<c>            * search to investigate why the search was aborted</c>
+<l>            if (AbortedNum &gt; 0)</l>
+<c>                * </c>
+<c>                * Display the image</c>
+<l>                dev_set_window (ImageWindow)</l>
+<l>                dev_clear_window ()</l>
+<l>                dev_set_part (Row1, Col1, Row2, Col2)</l>
+<l>                dev_display (Image)</l>
+<l>                Message := 'Example ' + (Index + 1) + ' of 6'</l>
+<l>                Message[1] := 'Search aborted: Invalid candidates'</l>
+<l>                disp_message (ImageWindow, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>                * </c>
+<c>                * Get handle to all invalid candidates</c>
+<c>                * -------------------------------------------</c>
+<l>                get_data_code_2d_results (DataCodeHandle, 'all_aborted', 'handle', HandlesAborted)</l>
+<c>                * </c>
+<c>                * Display message in case of more than 3 candidates</c>
+<l>                if (|HandlesAborted| &gt; 3)</l>
+<l>                    disp_message (ImageWindow, 'The first 3 invalid candidates are ...', 'window', 60, 12, 'black', 'true')</l>
+<l>                endif</l>
+<c>                * </c>
+<c>                * Update highlighting of parameter names</c>
+<c>                * -------------------------------------------</c>
+<c>                * Clear window for new highlighting</c>
+<l>                dev_set_window (ParamWindow)</l>
+<l>                dev_clear_window ()</l>
+<l>                disp_message (ParamWindow, 'Highlighted parameters are shown on the right', 'window', 12, 12, 'black', 'true')</l>
+<c>                * </c>
+<c>                * Iconic parameter names</c>
+<l>                disp_message (ParamWindow, 'Parameters for iconic objects:', 'window', 50, 12, 'black', 'true')</l>
+<l>                disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<c>                * </c>
+<c>                * Alphanumeric parameter names</c>
+<l>                disp_message (ParamWindow, 'Parameters for alphanumeric results:', 'window', 190, 12, 'black', 'true')</l>
+<l>                ColorAlph[6] := 'white'</l>
+<l>                disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>                ColorAlph[6] := '#808080'</l>
+<l>                disp_message (ParamWindow, GenParamName[19:37], 'window', 220, 260, ColorAlph, 'false')</l>
+<l>                stop ()</l>
+<c>                * </c>
+<c>                * Query information for each invalid candidate</c>
+<l>                for J := 0 to |HandlesAborted| - 1 by 1</l>
+<c>                    * </c>
+<c>                    * Stepwise only for the first candidates</c>
+<l>                    if (J &lt; 3)</l>
+<c>                        * </c>
+<c>                        * Display the image</c>
+<l>                        dev_set_window (ImageWindow)</l>
+<l>                        dev_clear_window ()</l>
+<l>                        dev_set_part (Row1, Col1, Row2, Col2)</l>
+<l>                        dev_display (Image)</l>
+<l>                        Message := 'Example ' + (Index + 1) + ' of 6  Invalid candidate: ' + (J + 1) + ' of ' + |HandlesAborted|</l>
+<l>                        disp_message (ImageWindow, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>                        * </c>
+<c>                        * Get and display the XLD contour of the candidate</c>
+<l>                        get_data_code_2d_objects (DataCodeObject, DataCodeHandle, HandlesAborted[J], 'candidate_xld')</l>
+<l>                        dev_set_color ('yellow')</l>
+<l>                        dev_display (DataCodeObject)</l>
+<l>                        dev_set_color ('green')</l>
+<c>                        * </c>
+<c>                        * Get and display the status of the search</c>
+<l>                        get_data_code_2d_results (DataCodeHandle, HandlesAborted[J], 'status', StatusValue)</l>
+<l>                        Substrings := regexp_replace(StatusValue,'(: )',':\n')</l>
+<l>                        disp_message (ResultWindow, 'Alphanumeric results about the symbol:', 'window', 12, 12, 'black', 'false')</l>
+<l>                        disp_message (ResultWindow, 'status:\n\'' + Substrings + '\'', 'window', 40, 12, 'black', 'false')</l>
+<c>                        * </c>
+<c>                        * Update highlighting of parameter names</c>
+<c>                        * -------------------------------------------</c>
+<c>                        * Alphanumeric parameter names</c>
+<l>                        ColorIcon[0] := 'yellow'</l>
+<l>                        ColorAlph[17] := 'white'</l>
+<l>                        disp_message (ParamWindow, GenObjectNames, 'window', 80, 12, ColorIcon, 'false')</l>
+<l>                        disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>                        ColorIcon[0] := '#808080'</l>
+<l>                        ColorAlph[17] := '#808080'</l>
+<l>                        disp_continue_message (ResultWindow, 'black', 'true')</l>
+<l>                        stop ()</l>
+<c>                        * </c>
+<c>                        * Clear the ResultWindow</c>
+<l>                        dev_set_window (ResultWindow)</l>
+<l>                        dev_clear_window ()</l>
+<l>                    endif</l>
+<l>                endfor</l>
+<c>                * </c>
+<c>                * In case of more than 3 candidates</c>
+<c>                * display all of them</c>
+<l>                if (|HandlesAborted| &gt; 3)</l>
+<c>                    * </c>
+<c>                    * Display all invalid candidates</c>
+<l>                    dev_set_window (ImageWindow)</l>
+<l>                    dev_clear_window ()</l>
+<l>                    dev_set_colored (12)</l>
+<l>                    dev_display (Image)</l>
+<l>                    get_data_code_2d_objects (DataCodeObjects, DataCodeHandle, 'all_aborted', 'candidate_xld')</l>
+<l>                    dev_display (DataCodeObjects)</l>
+<l>                    disp_message (ImageWindow, 'Example ' + (Index + 1) + ' of 6', 'window', 12, 12, 'black', 'true')</l>
+<l>                    disp_message (ImageWindow, 'All ' + |HandlesAborted| + ' invalid candidates', 'window', 40, 12, 'black', 'true')</l>
+<c>                    * </c>
+<c>                    * Update the highlighting of the last parameters</c>
+<l>                    disp_message (ParamWindow, GenParamName[0:18], 'window', 220, 12, ColorAlph, 'false')</l>
+<l>                    if (Index &lt; 5)</l>
+<l>                        disp_continue_message (ResultWindow, 'black', 'true')</l>
+<l>                        stop ()</l>
+<l>                    endif</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    dev_set_window (ResultWindow)</l>
+<l>    dev_clear_window ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="format_text">
+<interface>
+<ic>
+<par name="TabWidth" base_type="ctrl" dimension="0"/>
+<par name="Input" base_type="ctrl" dimension="0"/>
+<par name="ValuesPerRow" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="FormattedString" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This local procedure formats the result data</c>
+<c>* for the display in the ResultWindow.</c>
+<c>* </c>
+<c>* Define the length of the strings</c>
+<l>FormatString := TabWidth$'1'</l>
+<c>* Add a comma to each string</c>
+<l>Tmp := Input$FormatString + ','</l>
+<c>* </c>
+<c>* Append a new line at each 10th element</c>
+<l>I := [ValuesPerRow - 1:ValuesPerRow:|Tmp| - 2]</l>
+<l>String := sum(replace(Tmp,I,Tmp[I] + '\n'))</l>
+<c>* Get string for display</c>
+<l>FormattedString := String{0:strlen(String) - 2}</l>
+<l>return ()</l>
+</body>
+<docu id="format_text">
+<parameters>
+<parameter id="FormattedString"/>
+<parameter id="Input"/>
+<parameter id="TabWidth"/>
+<parameter id="ValuesPerRow"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_part">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WRatio" base_type="ctrl" dimension="0"/>
+<par name="WWidth" base_type="ctrl" dimension="0"/>
+<par name="WHeight" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Col1" base_type="ctrl" dimension="0"/>
+<par name="Row2" base_type="ctrl" dimension="0"/>
+<par name="Col2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This local procedure determines the corners of the</c>
+<c>* image part that shall be displayed.</c>
+<c>* </c>
+<c>* Get size of the image</c>
+<l>get_image_size (Image, IWidth, IHeight)</l>
+<c>* </c>
+<c>* Get corner of the image part to be displayed</c>
+<l>IRatio := real(IWidth) / IHeight</l>
+<l>if (WRatio &lt;= IRatio)</l>
+<c>    * </c>
+<c>    * Get the vertical image part</c>
+<l>    Scale := real(IWidth) / WWidth</l>
+<l>    PartHeight := WHeight * Scale</l>
+<l>    Border := (PartHeight - IHeight) / 2</l>
+<l>    Row1 := -Border</l>
+<l>    Row2 := IHeight + Border - 1</l>
+<c>    * </c>
+<c>    * Get horizontal image part (the whole image width)</c>
+<l>    Col1 := 0</l>
+<l>    Col2 := IWidth - 1</l>
+<l>else</l>
+<c>    * </c>
+<c>    * Get vertical image part (the whole image height)</c>
+<l>    Row1 := 0</l>
+<l>    Row2 := IHeight - 1</l>
+<c>    * </c>
+<c>    * Get horizontal image part</c>
+<l>    Scale := real(IHeight) / WHeight</l>
+<l>    PartWidth := WWidth * Scale</l>
+<l>    Border := (PartWidth - IWidth) / 2</l>
+<l>    Col1 := -Border</l>
+<l>    Col2 := IWidth + Border - 1</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="determine_part">
+<parameters>
+<parameter id="Col1"/>
+<parameter id="Col2"/>
+<parameter id="Image"/>
+<parameter id="Row1"/>
+<parameter id="Row2"/>
+<parameter id="WHeight"/>
+<parameter id="WRatio"/>
+<parameter id="WWidth"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

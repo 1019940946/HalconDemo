@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example how to configure two GigEVision cameras</c>
+<c>* when they are connected via a single switch to one</c>
+<c>* network interface at the PC.</c>
+<c>* </c>
+<c>* This is done by setting the interpacket delay such that</c>
+<c>* there is enough space between the packets so the switch is</c>
+<c>* not forced to discard packets which arrive at the same time.</c>
+<c>* Note that this is somehow independent of the average bandwidth</c>
+<c>* of the camera as by default most cameras transfer images in a</c>
+<c>* burst as fast as possible.</c>
+<c>* </c>
+<l>info_framegrabber ('GigEVision', 'device', Information, Devices)</l>
+<l>if (|Devices| &lt; 2)</l>
+<c>    * This example requires two GigEVision cameras.</c>
+<l>    stop ()</l>
+<l>endif</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GigEVision', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', Devices[0], 0, -1, AcqHandle1)</l>
+<l>open_framegrabber ('GigEVision', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', Devices[1], 0, -1, AcqHandle2)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle2)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle1, 'GevSCPSPacketSize', PacketSize1)</l>
+<l>get_framegrabber_param (AcqHandle2, 'GevSCPSPacketSize', PacketSize2)</l>
+<c>* </c>
+<c>* Determine an InterpacketDelay that allows the cameras to transfer packets alternating.</c>
+<c>* The transfer time per packet calculates as follows:</c>
+<c>* speed = 1 Gbit/s = 1 bit/ns</c>
+<c>* size = PacketSize byte = 8*PacketSize bit</c>
+<c>* time = size/speed = 8*PacketSize ns</c>
+<c>* Generously, give the other camera twice as much time as it needs.</c>
+<l>InterpacketDelay1 := 2 * 8 * PacketSize2</l>
+<l>InterpacketDelay2 := 2 * 8 * PacketSize1</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle1, 'GtlGVSPInterpacketDelay', InterpacketDelay1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'GtlBufferHandlingMode', '2')</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle2, 'GtlGVSPInterpacketDelay', InterpacketDelay2)</l>
+<l>set_framegrabber_param (AcqHandle2, 'GtlBufferHandlingMode', '2')</l>
+<c>* </c>
+<c>* Deactivate HDevelop update for better performance.</c>
+<l>dev_update_off ()</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,1]" as_ord="1">grab_image_start (AcqHandle1, -1)</l>
+<l>grab_image_start (AcqHandle2, -1)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">while (true)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,3]" as_ord="1">    grab_image_async (Image1, AcqHandle1, -1)</l>
+<l>    dev_display (Image1)</l>
+<c>    * </c>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    grab_image_async (Image2, AcqHandle2, -1)</l>
+<l>    dev_display (Image2)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle1)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

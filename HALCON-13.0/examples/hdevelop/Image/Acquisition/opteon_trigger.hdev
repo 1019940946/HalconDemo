@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a Opteon imaging system</c>
+<c>* (use of external trigger)</c>
+<c>* </c>
+<c>* </c>
+<l>open_framegrabber ('Opteon', 1, 1, 0, 0, 0, 0, 'default', -1, 'gray', -1, 'default', 'default', 'default', 0, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, ['trigger_signal','trigger_mode'], TriggerSettings)</l>
+<l>get_framegrabber_param (AcqHandle, 'grab_timeout', GrabTimeout)</l>
+<l>get_framegrabber_param (AcqHandle, 'external_trigger', ExternalTrigger)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'external_trigger', 'true')</l>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 2000)</l>
+<l>set_framegrabber_param (AcqHandle, 'trigger_signal', 'falling')</l>
+<l>set_framegrabber_param (AcqHandle, 'trigger_mode', 'master')</l>
+<l>get_framegrabber_param (AcqHandle, ['trigger_signal','trigger_mode'], TriggerSettings)</l>
+<c>* </c>
+<l>count_seconds (SecondsOld)</l>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (SecondsNew)</l>
+<l>    FrameRate := 1 / (SecondsNew - SecondsOld)</l>
+<l>    SecondsOld := SecondsNew</l>
+<l>endwhile</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'trigger_signal', 'rising')</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    sobel_amp (Image, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>    dev_display (EdgeAmplitude)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'external_trigger', 'false')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

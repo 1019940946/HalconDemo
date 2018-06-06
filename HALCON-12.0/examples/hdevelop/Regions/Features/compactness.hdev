@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the shape factor for the compactness of regions</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_color ('white')</l>
+<c>* Segment an image using region growing</c>
+<l>regiongrowing (Image, Regions, 1, 1, 3, 100)</l>
+<l>count_obj (Regions, Number)</l>
+<c>* Display regions: if compactness &lt; 1.8, display in green, else in red</c>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (Regions, ObjectSelected, i)</l>
+<l>    compactness (ObjectSelected, Compactness)</l>
+<l>    if (Compactness &lt; 1.8)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* Now faster</c>
+<l>dev_set_color ('red')</l>
+<c>* Select regions by checking their compactness</c>
+<l>select_shape (Regions, SelectedRegions1, 'compactness', 'and', 1.8, 1000)</l>
+<l>dev_set_color ('green')</l>
+<l>select_shape (Regions, SelectedRegions2, 'compactness', 'and', 1, 1.8)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

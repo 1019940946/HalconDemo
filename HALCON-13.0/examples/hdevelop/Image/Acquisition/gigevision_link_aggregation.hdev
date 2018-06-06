@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *************************************************************</c>
+<c>* This example shows how to use a GigE Vision camera with</c>
+<c>* static link aggregation (LAG) from the GigEVision interface</c>
+<c>* *************************************************************</c>
+<c>* </c>
+<c>* System requirements and setup:</c>
+<c>* Windows XP/Vista/7 either 32 Bit or 64 Bit.</c>
+<c>* At least two network cards which are teamed and use static</c>
+<c>* LAG.</c>
+<c>* HALCON filter driver &gt;=v1.0.6.6 installed on the teamed</c>
+<c>* adapter.</c>
+<c>* Ideally JumboFrames are enabled on all adapters which belong</c>
+<c>* to the team to enhance performance.</c>
+<c>* GigEVision Camera connected to all ports which belong to the</c>
+<c>* team.</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Get the list of connected devices</c>
+<c>* </c>
+<l>info_framegrabber ('GigEVision', 'device', Information, ValueList)</l>
+<c>* </c>
+<c>* </c>
+<c>* Open first device (this is assumed to be the static LAG device)</c>
+<c>* </c>
+<l>open_framegrabber ('GigEVision', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', ValueList[0], 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Check correct versions and that the filter driver is really used</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, 'GtlVersion', GtlVersion)</l>
+<l>get_framegrabber_param (AcqHandle, 'GtlAcquisitionEngine', GtlAcquisitionEngine)</l>
+<l>if (GtlAcquisitionEngine != 'filter driver')</l>
+<c>    * You need to check your setup, filter driver is not used!</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<c>* As the interface does not necessarily now the sending strategy of</c>
+<c>* the camera we may need to adapt the resending strategy to not start</c>
+<c>* requesting resends before the maximum _expected_ packet difference is</c>
+<c>* reached. Else it would be assumed all packets arrive in order and an</c>
+<c>* resend request would be sent very early which does not make sense</c>
+<c>* for this use case.</c>
+<c>* </c>
+<c>* There are cameras which send the first and the last packet of an image</c>
+<c>* at the same time, for these we need to adjust the value to the number</c>
+<c>* of packets for a complete image. The number of packets can be roughly</c>
+<c>* calculated as follows:</c>
+<c>* size_of_image_in_bytes / packet_size</c>
+<c>* e.g. for a 29MP Mono8 camera with JumboPackets of 9000 Bytes:</c>
+<c>* 29000000Byte/9000Byte = 3222 packets</c>
+<c>* </c>
+<c>* Then we need to add some overhead for the static LAG links. This is</c>
+<c>* typically about 10 to 100 packets, but depends on your system. You need</c>
+<c>* to experiment with it. For the above case an overhead of about 80</c>
+<c>* packets on a littlebit older system with Intel NICs was used:</c>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'GtlGVSPResendWait', 3300)</l>
+<c>* </c>
+<c>* Other cameras do not change the order of the packets and send them</c>
+<c>* iterating on the links. But we also need to add overhead for static LAG</c>
+<c>* links as above. Please choose the following setting for these devices:</c>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'GtlGVSPResendWait', 100)</l>
+<c>* </c>
+<c>* </c>
+<c>* Alternatively switch off resending completely as it is most often</c>
+<c>* not necessary when there is a direct link (i.e. no networking equipment</c>
+<c>* like switches in between), good quality cables and enough computing</c>
+<c>* power available.</c>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'GtlGVSPResends', 0)</l>
+<c>* </c>
+<c>* </c>
+<c>* Adapt frame rate if available:</c>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'AcquisitionFrameRate', 1.0)</l>
+<c>* </c>
+<c>* </c>
+<c>* You might need to adapt the block timeout to the frame rate of the</c>
+<c>* camera when it is a high resolution camera. E.g. one frame per second</c>
+<c>* equals to 1000ms (you might need to add some overhead):</c>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'GtlBlockTimeout', 1000000000)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Check current statistic counters</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'GtlGVSPReceivedPackets', GtlGVSPReceivedPackets)</l>
+<l>get_framegrabber_param (AcqHandle, 'GtlGVSPResendsRequested', GtlGVSPResendsRequested)</l>
+<c>* </c>
+<c>* </c>
+<c>* Start the acquisition</c>
+<c>* Use F9 to stop</c>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">while (true)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,3]" as_ord="1">    grab_image_async (Image, AcqHandle, -1)</l>
+<c>    * Image Acquisition: Do something</c>
+<c>    * If interested check the statistics</c>
+<l>    get_framegrabber_param (AcqHandle, 'GtlGVSPReceivedPackets', GtlGVSPReceivedPackets)</l>
+<l>    get_framegrabber_param (AcqHandle, 'GtlGVSPResendsRequested', GtlGVSPResendsRequested)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<c>* </c>
+<c>* </c>
+<c>* Close the framegrabber handle</c>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

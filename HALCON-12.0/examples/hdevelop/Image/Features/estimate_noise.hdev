@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to use estimate_noise.</c>
+<c>* The program estimates the standard deviation of the noise within</c>
+<c>* 8 example images, which show different degree of textured regions.</c>
+<c>* Additionally, artificial Gaussian noise with standard deviations of 5,</c>
+<c>* 10, and 15 is added to each image and the noise is estimated again.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>TestImages := ['for6','pumpe','die/die_02','clip','ic0','horses','board/board-01','combine']</l>
+<l>NumImages := |TestImages|</l>
+<l>for I := 0 to NumImages - 1 by 1</l>
+<l>    read_image (Image, TestImages[I])</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    for AddedNoise := 0 to 15 by 5</l>
+<l>        gauss_distribution (AddedNoise + 1e-2, Distribution)</l>
+<l>        add_noise_distribution (Image, ImageNoise, Distribution)</l>
+<l>        estimate_noise (ImageNoise, 'foerstner', 20, SigmaFoerstner)</l>
+<l>        estimate_noise (ImageNoise, 'immerkaer', 20, SigmaImmerkaer)</l>
+<l>        estimate_noise (ImageNoise, 'least_squares', 20, SigmaLeastSquares)</l>
+<l>        estimate_noise (ImageNoise, 'mean', 20, SigmaMean)</l>
+<l>        dev_display (ImageNoise)</l>
+<l>        disp_message (WindowHandle, 'Added Gaussian noise: Sigma = ' + AddedNoise, 'window', 12, 12, 'black', 'true')</l>
+<l>        Message := 'Estimated image noise (Sigma):'</l>
+<l>        Message[1] := 'Method \'foerstner\':     ' + SigmaFoerstner$'5.2f'</l>
+<l>        Message[2] := 'Method \'immerkaer\':     ' + SigmaImmerkaer$'5.2f'</l>
+<l>        Message[3] := 'Method \'least_squares\': ' + SigmaLeastSquares$'5.2f'</l>
+<l>        Message[4] := 'Method \'mean\':          ' + SigmaMean$'5.2f'</l>
+<l>        disp_message (WindowHandle, Message, 'windowe', 40, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

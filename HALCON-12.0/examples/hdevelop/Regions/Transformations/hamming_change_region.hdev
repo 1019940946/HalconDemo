@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Generate a region having a given Hamming distance</c>
+<c>* </c>
+<l>read_image (Caltab, 'caltab')</l>
+<l>get_image_size (Caltab, Width, Height)</l>
+<l>threshold (Caltab, Region, 0, 120)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<c>* Select regions</c>
+<l>select_shape (ConnectedRegions, SelectedRegions1, 'convexity', 'and', 0.9, 1)</l>
+<l>select_shape (SelectedRegions1, SelectedRegions2, 'area', 'and', 200, 1000)</l>
+<l>union1 (SelectedRegions2, Holes)</l>
+<l>for Error := 1 to 5000 by 100</l>
+<l>    hamming_change_region (Holes, OutputRegion, Width, Height, Error)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (OutputRegion)</l>
+<c>    * Hamming distance between selected region and new created regions</c>
+<l>    hamming_distance (Holes, OutputRegion, Distance, Similarity)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the tuple operators and functions for working</c>
+<c>* with regular expressions.</c>
+<c>* </c>
+<c>* ***************************************************</c>
+<c>* ***** Regular expression basics</c>
+<c>* ***************************************************</c>
+<l>tuple_regexp_match ('abba', 'ab*', Matches)</l>
+<l>tuple_regexp_match ('abba', 'ba*', Matches)</l>
+<l>tuple_regexp_match ('abba', 'b+a*', Matches)</l>
+<l>tuple_regexp_test ('ababab', '(ab){3}', NumMatches)</l>
+<l>tuple_regexp_test ('abababa', '(ab){3}', NumMatches)</l>
+<l>tuple_regexp_test ('abababa', '^(ab){3}$', NumMatches)</l>
+<l>tuple_regexp_replace ('abba', 'b*', 'x', Result)</l>
+<l>tuple_regexp_replace ('abba', 'b', 'x', Result)</l>
+<l>tuple_regexp_replace ('abba', ['b','replace_all'], 'x', Result)</l>
+<c>* ***************************************************</c>
+<c>* ***** Some sample expressions</c>
+<c>* ***************************************************</c>
+<l>tuple_regexp_replace (['SN/1234567-X','SN/2345678-Y','SN/3456789-Z'], 'SN/(\\d{7})-([A-Z])', 'Product Model $2, Serial Number $1', Result)</l>
+<l>tuple_regexp_replace (['01/04/2000','06/30/2007'], '(\\d{2})/(\\d{2})/(\\d{4})', 'Day: $2, Month: $1, Year: $3', Result)</l>
+<c>* ***************************************************</c>
+<c>* ***** Working with file names</c>
+<c>* ***************************************************</c>
+<l>get_system ('image_dir', HalconImages)</l>
+<l>get_system ('operating_system', OS)</l>
+<l>if (OS{0:2} == 'Win')</l>
+<l>    tuple_split (HalconImages, ';', HalconImagesSplit)</l>
+<l>else</l>
+<l>    tuple_split (HalconImages, ':', HalconImagesSplit)</l>
+<l>endif</l>
+<l>list_files (HalconImagesSplit[0], ['files','follow_links'], Files)</l>
+<c>* Filter list of files by extension PNG</c>
+<l>tuple_regexp_select (Files, '\\.png$', FilesPNG)</l>
+<c>* Ignore images sets by removing all files which end with a digit</c>
+<l>tuple_regexp_select (FilesPNG, ['\\d\\.png$','invert_match'], FilesNoDigit)</l>
+<c>* Extract file names without slashes (strip directory part)</c>
+<l>tuple_regexp_match (FilesNoDigit, '[^/\\\\]*.png', ShortNames)</l>
+<c>* Transform file names, e.g., for creating processed output files</c>
+<l>tuple_regexp_replace (ShortNames, '(.*)\\.png$', 'out_$1.jpg', ConvertedNames)</l>
+<c>* Count number of files with multi-word names (name contains hyphen or underscore)</c>
+<l>tuple_regexp_test (ShortNames, '_|-', NumCombined)</l>
+<c>* ***************************************************</c>
+<c>* ***** Using regular expressions in HDevelop expressions</c>
+<c>* ***************************************************</c>
+<c>* Again count number of files with digit and calculate percentage</c>
+<l>if (|ShortNames| &gt; 0)</l>
+<l>    Result := 100.0 * regexp_test(ShortNames,'\\d') / |ShortNames| + '% of PNG file names contain a digit'</l>
+<l>endif</l>
+<c>* Return letters 2-n of all files starting with 'a'</c>
+<l>Result := regexp_match(regexp_select(ShortNames,'^a'),'^a(.*)')</l>
+<c>* The operator =~ is short for regexp_test and useful for boolean expressions</c>
+<l>if (ShortNames =~ '^z')</l>
+<l>    Result := 'A filename starting with z exists'</l>
+<l>endif</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

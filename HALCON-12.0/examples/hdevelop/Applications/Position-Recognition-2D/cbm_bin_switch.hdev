@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the component-based matching in order</c>
+<c>* to locate all instances of a switch that consists of two components. The</c>
+<c>* relative movements (relations) are automatically trained by using only one</c>
+<c>* training image. Because the model image shows the switch turned on, it is</c>
+<c>* sufficient to use one training image that shows the switch turned off in order</c>
+<c>* to cover all relative movements. After creating the component model all</c>
+<c>* instances of the switch are found in a run-time image. Finally, the angle</c>
+<c>* difference between both components can be used to decide whether the</c>
+<c>* switches shown in the image are turned on or off.</c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>read_image (ModelImage, 'bin_switch/bin_switch_model')</l>
+<l>get_image_size (ModelImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Define the initial components</c>
+<l>gen_rectangle1 (Region1, 78, 196, 190, 359)</l>
+<l>gen_rectangle1 (Sub1, 150, 196, 190, 321)</l>
+<l>difference (Region1, Sub1, InitialComponents)</l>
+<l>gen_rectangle1 (Region2, 197, 204, 305, 339)</l>
+<l>gen_rectangle1 (Sub2, 205, 232, 285, 314)</l>
+<l>difference (Region2, Sub2, InitialComponent)</l>
+<l>concat_obj (InitialComponents, InitialComponent, InitialComponents)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (InitialComponents)</l>
+<l>disp_message (WindowHandle, 'Model image and', 'window', 20, 20, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, 'input regions describing the initial components', 'window', 40, 20, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'blue', 'false')</l>
+<l>get_mbutton (WindowHandle, Row1, Column1, Button1)</l>
+<c>* Get the training image</c>
+<l>read_image (TrainingImage, 'bin_switch/bin_switch_training_1')</l>
+<l>dev_display (TrainingImage)</l>
+<l>disp_message (WindowHandle, 'Training image', 'window', 20, 20, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'blue', 'false')</l>
+<l>get_mbutton (WindowHandle, Row2, Column2, Button2)</l>
+<c>* The component-based matching uses the contours of the components</c>
+<c>* as features for the matching. In order to make sure that only significant</c>
+<c>* features are involved in the matching the parameters ContrastLow,</c>
+<c>* ContrastHigh, and MinSize can be passed to the training. To inspect the</c>
+<c>* effect of different values for these three parameters, and hence to find</c>
+<c>* the optimum values for a certain application, the following two lines of</c>
+<c>* code can be used:</c>
+<l>* add_channels (InitialComponents, ModelImage, ModelImageInitComp)</l>
+<l>* gen_initial_components (ModelImageInitComp, InitialComponentsContours, 30, 30, 20, 'connection', [], [])</l>
+<c>* Extract the model components and train the relations</c>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Train the model components...', 'window', 20, 20, 'blue', 'false')</l>
+<l>train_model_components (ModelImage, InitialComponents, TrainingImage, ModelComponents, 30, 30, 20, 0.7, -1, -1, rad(25), 'speed', 'rigidity', 0.2, 0.5, ComponentTrainingID)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Result of the training:', 'window', 20, 20, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, '  1) Final model components', 'window', 40, 20, 'blue', 'false')</l>
+<l>dev_set_colored (12)</l>
+<l>get_training_components (ModelComponents, ComponentTrainingID, 'model_components', 'model_image', 'false', RowRef, ColumnRef, AngleRef, ScoreRef)</l>
+<l>dev_display (ModelComponents)</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'blue', 'false')</l>
+<l>get_mbutton (WindowHandle, Row3, Column3, Button3)</l>
+<l>count_obj (ModelComponents, NumComp)</l>
+<l>dev_set_line_width (1)</l>
+<l>for I := 0 to NumComp - 1 by 1</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (ModelImage)</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Result of the training:')</l>
+<l>    set_tposition (WindowHandle, 40, 20)</l>
+<l>    write_string (WindowHandle, '  1) Final model components')</l>
+<l>    set_tposition (WindowHandle, 60, 20)</l>
+<l>    write_string (WindowHandle, '  2) Relations with respect to component ' + I)</l>
+<l>    dev_set_colored (12)</l>
+<l>    get_component_relations (Relations, ComponentTrainingID, I, 'model_image', Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>    dev_display (Relations)</l>
+<l>    disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'blue', 'false')</l>
+<l>    get_mbutton (WindowHandle, Row4, Column4, Button4)</l>
+<l>endfor</l>
+<c>* Add small tolerances to the automatically derived relations in order</c>
+<c>* to receive a higher robustness.</c>
+<l>modify_component_relations (ComponentTrainingID, 'all', 'all', 1, rad(1))</l>
+<c>* Create the component model based on the training result.</c>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Create the component model...', 'window', 20, 20, 'blue', 'false')</l>
+<l>create_trained_component_model (ComponentTrainingID, 0, rad(360), 10, 0.7, 'auto', 'auto', 'none', 'use_polarity', 'false', ComponentModelID, RootRanking)</l>
+<l>get_component_model_tree (Tree, Relations, ComponentModelID, 1, 'model_image', StartNode, EndNode, Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Component model', 'window', 20, 20, 'blue', 'false')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Tree)</l>
+<l>dev_display (Relations)</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'blue', 'false')</l>
+<l>get_mbutton (WindowHandle, Row5, Column5, Button5)</l>
+<l>wait_seconds (0.5)</l>
+<l>clear_training_components (ComponentTrainingID)</l>
+<c>* Find the component model in a run-time image</c>
+<l>dev_set_line_width (2)</l>
+<l>Button := 0</l>
+<l>ImgNo := 1</l>
+<l>while (Button != 1)</l>
+<l>    read_image (SearchImage, 'bin_switch/bin_switch_' + ImgNo)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_component_model (SearchImage, ComponentModelID, 1, 0, rad(360), 0, 0, 1, 'stop_search', 'prune_branch', 'none', 0.6, 'least_squares', 0, 0.85, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    dev_display (SearchImage)</l>
+<l>    NumFound := |ModelStart|</l>
+<l>    Time := (Seconds2 - Seconds1) * 1000</l>
+<l>    disp_message (WindowHandle, NumFound + ' object(s) found in ' + Time$'3.2f' + ' ms', 'window', 20, 20, 'blue', 'false')</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>        visualize_bin_switch_match (AngleCompInst, Match, WindowHandle)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, 'Press mouse button to stop', 'window', 450, 20, 'blue', 'false')</l>
+<l>    ImgNo := ImgNo + 1</l>
+<l>    if (ImgNo &gt; 9)</l>
+<l>        ImgNo := 1</l>
+<l>    endif</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>*     stop ()</l>
+<l>endwhile</l>
+<l>clear_component_model (ComponentModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="visualize_bin_switch_match">
+<interface>
+<ic>
+<par name="AngleCompInst" base_type="ctrl" dimension="0"/>
+<par name="Match" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>DeltaAngle := abs(AngleCompInst[0] - AngleCompInst[1])</l>
+<l>if (DeltaAngle &gt; rad(180))</l>
+<l>    DeltaAngle := rad(360) - DeltaAngle</l>
+<l>endif</l>
+<l>RowResult := 380 + 35 * Match</l>
+<l>set_tposition (WindowHandle, RowResult, 20)</l>
+<l>dev_set_color ('blue')</l>
+<l>write_string (WindowHandle, 'Switch ' + Match + ' is')</l>
+<l>dev_set_color ('green')</l>
+<l>disp_rectangle1 (WindowHandle, RowResult + 5, 237, RowResult + 20, 269)</l>
+<l>if (DeltaAngle &lt; rad(15))</l>
+<l>    dev_set_color ('green')</l>
+<l>    write_string (WindowHandle, ' on')</l>
+<l>    dev_set_color ('red')</l>
+<l>    disp_polygon (WindowHandle, [RowResult,RowResult,RowResult - 10,RowResult], [253,269,241,253])</l>
+<l>else</l>
+<l>    dev_set_color ('red')</l>
+<l>    write_string (WindowHandle, ' off')</l>
+<l>    disp_polygon (WindowHandle, [RowResult,RowResult - 10,RowResult,RowResult], [253,265,237,253])</l>
+<l>endif</l>
+<l>dev_set_color ('blue')</l>
+<l>return ()</l>
+</body>
+<docu id="visualize_bin_switch_match">
+<short lang="en_US">Display a generalized graphical model of the found bin switch</short>
+<parameters>
+<parameter id="AngleCompInst"/>
+<parameter id="Match"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON frame grabber interface for DirectShow file reader</c>
+<c>* </c>
+<l>FileName := 'xing/xing.avi'</l>
+<l>open_framegrabber ('DirectFile', -1, -1, -1, -1, -1, -1, 'default', -1, 'default', -1, 'default', FileName, 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, 'first_frame', FirstFrame)</l>
+<l>get_framegrabber_param (AcqHandle, 'last_frame', LastFrame)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Play forward</c>
+<l>set_framegrabber_param (AcqHandle, 'frame_number', FirstFrame)</l>
+<l>for CurFrame := FirstFrame to LastFrame by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_display (Image)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Play backward</c>
+<l>for CurFrame := LastFrame to FirstFrame by -1</l>
+<l>    set_framegrabber_param (AcqHandle, 'frame_number', CurFrame)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_display (Image)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<l>while (1)</l>
+<c>    * Every subsequent call of grab_image() reads the next image file of the image sequence!</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

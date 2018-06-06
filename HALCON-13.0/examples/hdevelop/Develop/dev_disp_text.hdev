@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use dev_disp_text and demonstrates what</c>
+<c>* effect the individual parameters have.</c>
+<c>* </c>
+<c>* Generate a neutral squared paper background for visualization purposes.</c>
+<l>gen_image_squared_paper (ImageSquaredPaper)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ImageSquaredPaper, 0, 0, 800, 600, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* 1. Default Parameters.</c>
+<l>dev_display (ImageSquaredPaper)</l>
+<l>Text := '1. When using the default parameters, dev_disp_text displays'</l>
+<l>Text[1] := '   text at the window position (12,12) in black color within'</l>
+<l>Text[2] := '   an orange box with a slightly darker shadow beneath the box.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<c>* </c>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 2. Position and color of the text.</c>
+<l>dev_display (ImageSquaredPaper)</l>
+<l>Text := '2. The position and the color of the text can be changed with'</l>
+<l>Text[1] := '   the parameters Row, Column, and Color. Some examples with'</l>
+<l>Text[2] := '   different values for the three parameters are shown below.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<c>* Set Row and Column to coordinate values.</c>
+<l>dev_disp_text ('Row = 100\nColumn = 60\nColor = \'black\'', 'window', 100, 60, 'black', [], [])</l>
+<c>* Set Row and Column to predefined string values.</c>
+<l>dev_disp_text ('Row = \'center\',\nColumn = \'right\'\nColor = \'red\'', 'window', 'center', 'right', 'red', [], [])</l>
+<c>* Use coordinate values and predefined string values.</c>
+<l>dev_disp_text ('Row = 372.7\nColumn = \'center\'\nColor = \'blue\'', 'window', 372.7, 'center', 'blue', [], [])</l>
+<c>* Use multiple colors within a multiline text.</c>
+<l>dev_disp_text ('Row = \'bottom\'\nColumn = \'left\'\nColor = [\'forest green\', \'orange\', \'black\']', 'window', 'bottom', 'left', ['forest green','orange','black'], [], [])</l>
+<c>* </c>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 3. Appearance of the box.</c>
+<l>dev_display (ImageSquaredPaper)</l>
+<l>Text := '3. The appearance of the box can be set with generic parameters:'</l>
+<l>Text[1] := '   - \'box\': switches the box on/off'</l>
+<l>Text[2] := '   - \'box_color\': sets the color and transparency of the box'</l>
+<l>Text[3] := '   - \'border_radius\': sets the roundness of the box'</l>
+<l>Text[4] := '   - \'box_padding\': sets the extent of the box around the text'</l>
+<l>Text[5] := '   Some examples are shown below.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<c>* 'box': switch the display of the box on/off.</c>
+<l>dev_disp_text ('\'box\' = \'false\'', 'window', 200, 40, 'black', 'box', 'false')</l>
+<c>* 'box_color': set the box color.</c>
+<l>dev_disp_text ('\'box_color\' = \'sky blue\'', 'window', 300, 40, 'black', 'box_color', 'sky blue')</l>
+<c>* 'box_color': it is valid to use colors with an alpha value (rgba) to</c>
+<c>* display transparent boxes.</c>
+<l>dev_disp_text ('\'box_color\' = \'#ff8d2644\'', 'window', 340, 40, 'black', 'box_color', '#f28d2644')</l>
+<c>* 'border_radius': set the roundness of the box.</c>
+<l>dev_disp_text ('\'border_radius\' = 0', 'window', 200, 400, 'black', 'border_radius', 0)</l>
+<l>dev_disp_text ('\'border_radius\' = 10', 'window', 240, 400, 'black', 'border_radius', 10)</l>
+<c>* 'box_padding': set the amount of padding around the text within the box.</c>
+<l>dev_disp_text ('\'box_padding\' = 0', 'window', 300, 400, 'black', 'box_padding', 0)</l>
+<l>dev_disp_text ('\'box_padding\' = 10', 'window', 340, 400, 'black', 'box_padding', 10)</l>
+<c>* </c>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 4. Appearance of the box's shadow.</c>
+<l>dev_display (ImageSquaredPaper)</l>
+<l>Text := '4. The appearance of the box\'s shadow can be set with generic parameters:'</l>
+<l>Text[1] := '   - \'shadow\': switches the shadow on/off'</l>
+<l>Text[2] := '   - \'shadow_color\': sets the color and transparency of the shadow'</l>
+<l>Text[3] := '   - \'shadow_sigma\': sets the blurring of the shadow'</l>
+<l>Text[4] := '   - \'shadow_dx\', \'shadow_dy\': sets the offset of the shadow'</l>
+<l>Text[5] := '   Some examples are shown below.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<c>* 'shadow': switch the shadow on/off.</c>
+<l>dev_disp_text ('\'shadow\' = \'false\'', 'window', 200, 40, 'black', 'shadow', 'false')</l>
+<c>* 'shadow_color': set the shadow color.</c>
+<l>dev_disp_text ('\'shadow_color\' = \'green\'', 'window', 300, 40, 'black', 'shadow_color', 'green')</l>
+<c>* 'shadow_color': it is valid to use colors with an alpha value (rgba)</c>
+<c>* to display transparent shadows.</c>
+<l>dev_disp_text ('\'shadow_color\' = \'#f28d2688\'', 'window', 340, 40, 'black', 'shadow_color', '#f28d2688')</l>
+<c>* 'shadow_sigma': set the blurring of the shadow.</c>
+<l>dev_disp_text ('\'shadow_sigma\' = 0', 'window', 200, 400, 'black', 'shadow_sigma', 0)</l>
+<l>dev_disp_text ('\'shadow_sigma\' = 2.5', 'window', 240, 400, 'black', 'shadow_sigma', 2.5)</l>
+<c>* 'shadow_dx', 'shadow_dy': set the offset of the shadow.</c>
+<l>dev_disp_text ('\'shadow_dx\' = -5, \'shadow_dy\' = -3', 'window', 300, 400, 'black', ['shadow_dx','shadow_dy'], [-5,-3])</l>
+<l>dev_disp_text ('\'shadow_dx\' =  3, \'shadow_dy\' =  -3', 'window', 340, 400, 'black', ['shadow_dx','shadow_dy'], [3,-3])</l>
+<c>* </c>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 5. Coordinate system.</c>
+<l>read_image (Image, 'clip')</l>
+<l>dev_resize_window_fit_image (Image, 0, 0, 1024, 768)</l>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 99999)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (SelectedRegions)</l>
+<l>area_center (SelectedRegions, Area, Row, Column)</l>
+<c>* Display the results in image coordinates. The position of this text is</c>
+<c>* automatically adapted if the displayed iconic objects are moved or</c>
+<c>* scaled.</c>
+<l>dev_disp_text ('Area: ' + Area, 'image', Row, Column, 'black', 'box_color', '#ffffff77')</l>
+<c>* </c>
+<l>Text := '5. The coordinate system can be set with the parameter CoordSystem:'</l>
+<l>Text[1] := '   - \'window\': Row and Column must be specified in window coordinates'</l>
+<l>Text[2] := '               -&gt; the displayed text is attached to the window'</l>
+<l>Text[3] := '   - \'image\': Row and Column must be specified in image coordinates'</l>
+<l>Text[4] := '              -&gt; the displayed text is attached to the image'</l>
+<c>* Display the text in window coordinates. This text stays fixed at the</c>
+<c>* specified position even if the content of the graphic window is moved</c>
+<c>* or zoomed.</c>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>Text := ['Feel free to interactively move or scale the content of the','graphic window to experience the difference.']</l>
+<l>dev_disp_text (Text, 'window', 'bottom', 'center', 'white', 'box_color', 'forest green')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_image_squared_paper">
+<interface>
+<oo>
+<par name="ImageSquaredPaper" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Define the parameters of the squared paper.</c>
+<l>Width := 800</l>
+<l>Height := 600</l>
+<l>Step := 20</l>
+<l>GrayBackground := 230</l>
+<l>GrayGrid := 120</l>
+<l>Smoothing := 3</l>
+<c>* Generate the squared paper.</c>
+<l>gen_image_const (Image, 'byte', Width, Height)</l>
+<l>scale_image (Image, ImageScaled, 1, GrayBackground)</l>
+<l>gen_grid_region (RegionGrid, Step, Step, 'lines', Width, Height)</l>
+<l>paint_region (RegionGrid, ImageScaled, ImageResult, GrayGrid, 'fill')</l>
+<l>gauss_filter (ImageResult, ImageSquaredPaper, Smoothing)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_image_squared_paper">
+<short lang="en_US">Generate a neutral squared paper background for visualization purposes.</short>
+<parameters>
+<parameter id="ImageSquaredPaper">
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

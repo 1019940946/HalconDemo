@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to use simplify_object_model_3d</c>
+<c>* to simplify a complex 3d object model to different degrees.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Specify a camera for visualization purposes</c>
+<l>CamParam := [0.08,0,6e-6,6e-6,256,256,512,512]</l>
+<l>CamPose := [-40,45,2100,195,45,5,0]</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Read the triangulated 3d object model (note that the</c>
+<c>* model must be triangulated to be able to pass it to</c>
+<c>* simplify_object_model_3d).</c>
+<l>read_object_model_3d ('mvtec_bunny.om3', 'm', [], [], ObjectModel3D, Status)</l>
+<c>* </c>
+<c>* Visualize the original 3d object model</c>
+<l>get_object_model_3d_params (ObjectModel3D, 'num_points', NumPointsOrig)</l>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3D, CamParam, CamPose, ['color','disp_background'], ['green','true'], ['Original model','with ' + NumPointsOrig + ' points'], [], Instructions, CamPose)</l>
+<c>* </c>
+<c>* Simplify the 3d object model to different degrees</c>
+<l>dev_open_window (0, 516, 512, 512, 'black', WindowHandleSimplified)</l>
+<l>set_display_font (WindowHandleSimplified, 14, 'mono', 'true', 'false')</l>
+<l>PercentageRemaining := [10,1,0.1]</l>
+<l>for Index := 0 to |PercentageRemaining| - 1 by 1</l>
+<l>    Amount := PercentageRemaining[Index]</l>
+<l>    simplify_object_model_3d (ObjectModel3D, 'preserve_point_coordinates', Amount, 'amount_type', 'percentage_remaining', SimplifiedObjectModel3D)</l>
+<l>    dev_clear_window ()</l>
+<l>    get_object_model_3d_params (SimplifiedObjectModel3D, 'num_points', NumPoints)</l>
+<l>    visualize_object_model_3d (WindowHandleSimplified, SimplifiedObjectModel3D, CamParam, CamPose, 'color', 'green', ['Simplified model','with ' + NumPoints + ' points (' + Amount + '% of original points)'], [], Instructions, CamPose)</l>
+<l>    clear_object_model_3d (SimplifiedObjectModel3D)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Cleanup</c>
+<l>clear_object_model_3d (ObjectModel3D)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

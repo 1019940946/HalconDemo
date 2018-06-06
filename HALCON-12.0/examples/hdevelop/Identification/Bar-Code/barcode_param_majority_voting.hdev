@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the effect of the bar code</c>
+<c>* parameter 'majority_voting'.</c>
+<c>* </c>
+<c>* The bar code reader analyses multiple scanlines and tries</c>
+<c>* to decode them. By default, this process is terminated as soon</c>
+<c>* as one scanline can be decoded successfully. In some cases,</c>
+<c>* the result derived from this scanline may be wrong due to</c>
+<c>* local printing errors.</c>
+<c>* </c>
+<c>* If the parameter 'majority_voting' is set to 'true', all</c>
+<c>* scanlines are analysed. The final reading result is then</c>
+<c>* determined by a majority voting of all successful decoding</c>
+<c>* results.</c>
+<c>* </c>
+<c>* Prepare visualization settings and objects</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/ean13/ean13_label')</l>
+<l>get_image_size (Image, WidthI, HeightI)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 600, 500, WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>WindowZoomFactor := real(WidthI) / Width</l>
+<l>dev_open_window (0, Width + 5, 400, 300, 'white', WindowHandleText)</l>
+<l>set_display_font (WindowHandleText, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create bar code reader model</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* PART I, read bar code without majority voting</c>
+<l>MajorityVotingSetting := 'false'</l>
+<l>set_bar_code_param (BarCodeHandle, 'majority_voting', MajorityVotingSetting)</l>
+<l>set_bar_code_param (BarCodeHandle, 'persistence', 1)</l>
+<c>* </c>
+<c>* Perform decoding and prepare results</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>decode_bar_code_rectangle2 (Image, BarCodeHandle, 'EAN-13', 280, 223, 3.14125 / 2.0, 200, 50, DecodedDataStrings)</l>
+<l>get_bar_code_object (SymbolRegion, BarCodeHandle, 'all', 'symbol_regions')</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_strings', DecodedData)</l>
+<l>get_bar_code_object (ValidScanlines, BarCodeHandle, 'all', 'scanlines_valid')</l>
+<l>select_obj (ValidScanlines, FirstScanline, 5)</l>
+<c>* </c>
+<c>* Display results and labels</c>
+<l>disp_message (WindowHandle, ['Looking for bar codes','\'majority_voting\' = \'' + MajorityVotingSetting + '\''], 'window', 12, 12, 'black', 'true')</l>
+<l>ColorsText := ['forest green','red']</l>
+<l>dev_set_line_width (2)</l>
+<l>smallest_rectangle1 (SymbolRegion, Row1, Column1, Row2, Column2)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (SymbolRegion)</l>
+<l>dev_display (FirstScanline)</l>
+<c>* </c>
+<l>Message := ['Codetype: ','Data:     '] + [DecodedTypes,DecodedData]</l>
+<l>disp_message (WindowHandle, Message, 'image', Row1 - 40 * WindowZoomFactor, Column2 - 100, ColorsText[1], 'true')</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'By default \'majority_voting\' is set to \'false\'.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'If the parameter \'majority_voting\' is set to \'false\', the reading result is set to the decoding result of the first scanline that could be decoded.'</l>
+<l>Message[3] := ' '</l>
+<l>Message[4] := 'Here, an \'EAN-13\' code is detected wrongly inside of another \'EAN-13\' because of a printing error.'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,35})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandleText, MessageWrapped, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* PART II, enable majority voting</c>
+<c>* </c>
+<l>MajorityVotingSetting := 'true'</l>
+<l>set_bar_code_param (BarCodeHandle, 'majority_voting', MajorityVotingSetting)</l>
+<c>* </c>
+<c>* Perform decoding and prepare results</c>
+<l>decode_bar_code_rectangle2 (Image, BarCodeHandle, 'EAN-13', 280, 223, 3.14125 / 2.0, 200, 50, DecodedDataStrings)</l>
+<l>get_bar_code_object (SymbolRegion, BarCodeHandle, 'all', 'symbol_regions')</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_strings', DecodedData)</l>
+<l>get_bar_code_object (ValidScanlines, BarCodeHandle, 'all', 'scanlines_valid')</l>
+<l>select_obj (ValidScanlines, MajorityScanlines, [[1:4],6,7,8])</l>
+<c>* </c>
+<c>* Display results and labels</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Looking for bar codes','\'majority_voting\' = \'' + MajorityVotingSetting + '\''], 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>smallest_rectangle1 (SymbolRegion, Row1, Column1, Row2, Column2)</l>
+<l>dev_display (SymbolRegion)</l>
+<l>dev_display (MajorityScanlines)</l>
+<l>Message := ['Codetype: ','Data:     '] + [DecodedTypes,DecodedData]</l>
+<l>disp_message (WindowHandle, Message, 'image', Row1 - 40 * WindowZoomFactor, Column2 - 100, 'forest green', 'true')</l>
+<c>* </c>
+<c>* Display description</c>
+<l>dev_set_window (WindowHandleText)</l>
+<l>Message := 'If majority voting is enabled, the bar code reader uses a majority voting scheme to determine the reading results. It returns the result that has been decoded from the majority of all scanlines.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'Here, the correct \'EAN-13\' code is found.'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,35})\\s','replace_all'],'$1\n')</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandleText, MessageWrapped, 'window', 12, 12, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Clean up memory</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

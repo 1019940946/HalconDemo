@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how the metrology model can be used to</c>
+<c>* obtain calibrated measurements for various geometric forms</c>
+<c>* lying in a plane. The parameters of the geometric forms are</c>
+<c>* derived from a model image.</c>
+<c>* </c>
+<c>* To find the objects to be measured in a new image, three different</c>
+<c>* alignment methods are shown:</c>
+<c>* a) Using shape-based matching</c>
+<c>* b) Using region processing</c>
+<c>* c) Using a rigid transformation from point correspondences</c>
+<c>* </c>
+<c>* The results of a measurement are returned as contours</c>
+<c>* and as adjusted parameters of the given geometric objects</c>
+<c>* </c>
+<c>* </c>
+<c>* Choose an alignment method by activating the desired line</c>
+<l>AlignmentMode := 'shape-based matching'</l>
+<l>* AlignmentMode := 'region processing'</l>
+<l>* AlignmentMode := 'rigid transformation'</l>
+<c>* </c>
+<c>* Initialize visualization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>gen_empty_obj (EmptyObject)</l>
+<l>read_image (Image, 'metal-parts/circle_plate_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Part I:</c>
+<c>* </c>
+<c>* Initialize metrology model</c>
+<c>* </c>
+<c>* Define camera parameter</c>
+<l>gen_cam_par_area_scan_division (0.0128649, -661.434, 5.30004e-006, 5.3e-006, 620.043, 497.402, Width, Height, CameraParam)</l>
+<c>* The pose of the measurement plane was derived by placing a</c>
+<c>* calibration plate in the plane of the object to be measured</c>
+<c>* and by determining its pose</c>
+<l>MeasurementPlane := [0.00940956,-0.00481017,0.29128,0.478648,359.65,0.785,0]</l>
+<c>* Adjust the pose of the measurement plane</c>
+<c>* for the height of the part and the height of the calibration plate</c>
+<c>* </c>
+<c>* Thickness of the calibration plate</c>
+<l>CalibPlateThickness := 0.006</l>
+<c>* Thickness of the object to be measured</c>
+<l>PartHeight := 0.005</l>
+<l>AdjustThickness := CalibPlateThickness - PartHeight</l>
+<l>set_origin_pose (MeasurementPlane, 0, 0, AdjustThickness, MeasurementPlaneAdjusted)</l>
+<c>* </c>
+<c>* Create the metrology model and prepare it for</c>
+<c>* calibrated measurements</c>
+<l>create_metrology_model (MetrologyHandle)</l>
+<c>* Set the image size in advance to speed up the</c>
+<c>* first call of apply_metrology_model.</c>
+<l>set_metrology_model_image_size (MetrologyHandle, Width, Height)</l>
+<c>* Set the camera parameters</c>
+<l>set_metrology_model_param (MetrologyHandle, 'camera_param', CameraParam)</l>
+<c>* Set the plane in which the measured object lies</c>
+<l>set_metrology_model_param (MetrologyHandle, 'plane_pose', MeasurementPlaneAdjusted)</l>
+<c>* </c>
+<c>* Add the objects to be measured to the metrology model</c>
+<c>* </c>
+<c>* Add several full circles</c>
+<l>CircleParam := [354,274,53]</l>
+<l>CircleParam := [CircleParam,350,519,53]</l>
+<l>CircleParam := [CircleParam,345,764,52]</l>
+<l>CircleParam := [CircleParam,596,523,53]</l>
+<l>add_metrology_object_generic (MetrologyHandle, 'circle', CircleParam, 20, 5, 1, 30, [], [], CircleIndices1)</l>
+<c>* </c>
+<c>* Add two partial circles</c>
+<l>CircleParam1 := [583,1010,79]</l>
+<l>CircleParam2 := [336,1005,77]</l>
+<l>add_metrology_object_generic (MetrologyHandle, 'circle', CircleParam1, 20, 5, 1, 30, ['start_phi','end_phi'], [0,rad(185)], CircleIndices2)</l>
+<l>add_metrology_object_generic (MetrologyHandle, 'circle', CircleParam2, 20, 5, 1, 30, ['start_phi','end_phi'], [rad(45),rad(185)], Index3)</l>
+<l>CircleIndices2 := [CircleIndices2,Index3]</l>
+<c>* </c>
+<c>* Add a retangle</c>
+<l>RectangleParam := [599,279,rad(90),62,51]</l>
+<l>add_metrology_object_generic (MetrologyHandle, 'rectangle2', RectangleParam, 20, 5, 1, 30, [], [], RectIndices)</l>
+<c>* Add two lines</c>
+<l>Line1 := [143,1122,709,1132]</l>
+<l>Line2 := [151,153,136,1115]</l>
+<l>add_metrology_object_generic (MetrologyHandle, 'line', [Line1,Line2], 20, 5, 1, 30, [], [], LineIndices)</l>
+<c>* Inspect the shapes that have been added to the metrology model</c>
+<l>get_metrology_object_model_contour (ModelContour, MetrologyHandle, 'all', 1.5)</l>
+<l>get_metrology_object_measures (MeasureContour, MetrologyHandle, 'all', 'all', Row, Column)</l>
+<l>Message := 'This example shows how to measure geometric shapes using a'</l>
+<l>Message[1] := 'metrology model. As preparation, their roughly known '</l>
+<l>Message[2] := 'dimensions and tolerances are specified by the user.'</l>
+<l>show_contours (Image, ModelContour, MeasureContour, EmptyObject, WindowHandle, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 2:</c>
+<c>* </c>
+<c>* Prepare the alignment</c>
+<c>* </c>
+<c>* a) Shape-based matching</c>
+<l>if (AlignmentMode == 'shape-based matching')</l>
+<l>    dev_set_part (-Height / 2 - 100, -Width / 2, 1.5 * Height - 100, 1.5 * Width)</l>
+<c>    * </c>
+<c>    * Create the shape model for the alignment</c>
+<c>    * of the metrology model in images where the</c>
+<c>    * object occurs in positions and orientations different</c>
+<c>    * from the ones in the image used for creating the model</c>
+<l>    get_system ('border_shape_models', BorderShapeModel)</l>
+<l>    set_system ('border_shape_models', 'true')</l>
+<l>    threshold (Image, Region, 0, 50)</l>
+<l>    dilation_rectangle1 (Region, ModelRegion, 5, 5)</l>
+<l>    reduce_domain (Image, ModelRegion, ImageReduced)</l>
+<l>    create_shape_model (ImageReduced, 6, 0, rad(360), 'auto', 'auto', 'use_polarity', 'auto', 20, ShapeModelID)</l>
+<c>    * The origin of the shape model is the center of the</c>
+<c>    * input region used in create_shape_model</c>
+<l>    area_center (ModelRegion, Area, RowModel, ColumnModel)</l>
+<l>    get_shape_model_contours (ShapeModelContours, ShapeModelID, 1)</l>
+<l>    Message := 'A shape model will be used for the alignment of the metrology'</l>
+<l>    Message[1] := 'model. The contours of the shape model (white) and of the'</l>
+<l>    Message[2] := 'metrology model (blue) are shown.'</l>
+<l>    show_contours (Image, ModelContour, EmptyObject, ShapeModelContours, WindowHandle, Message)</l>
+<c>    * </c>
+<c>    * Change the reference system in which the metrology model is</c>
+<c>    * defined to correspond to the one used by the shape model.</c>
+<c>    * This is necessary to be able to directly use the results of</c>
+<c>    * find_shape_model to align the metrology model</c>
+<l>    set_metrology_model_param (MetrologyHandle, 'reference_system', [RowModel,ColumnModel,0])</l>
+<l>    get_metrology_object_model_contour (ModelContour, MetrologyHandle, 'all', 1.5)</l>
+<l>    Message := 'To prepare the alignment, the origin of the shape model'</l>
+<l>    Message[1] := 'is set as the reference system of the metrology model.'</l>
+<l>    show_contours (Image, ModelContour, EmptyObject, ShapeModelContours, WindowHandle, Message)</l>
+<l>    stop ()</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>endif</l>
+<c>* </c>
+<c>* b) Region processing</c>
+<l>if (AlignmentMode == 'region processing')</l>
+<c>    * Determine reference position and orientation</c>
+<l>    threshold (Image, Region, 0, 50)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    difference (RegionFillUp, Region, OriginalRegion)</l>
+<l>    area_center (OriginalRegion, Area, RowOrig, ColumnOrig)</l>
+<l>    orientation_region (OriginalRegion, AngleOrig)</l>
+<c>    * Change the reference system of the metrology model</c>
+<l>    set_metrology_model_param (MetrologyHandle, 'reference_system', [RowOrig,ColumnOrig,AngleOrig])</l>
+<l>endif</l>
+<c>* </c>
+<c>* c) Rigid transformation</c>
+<l>if (AlignmentMode == 'rigid transformation')</l>
+<c>    * Reference points:</c>
+<l>    extract_reference_points (Image, RowReference, ColumnReference)</l>
+<l>    gen_cross_contour_xld (ReferencePoints, RowReference, ColumnReference, 15, 0.785398)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (ReferencePoints)</l>
+<l>    Message := 'To prepare the alignment, reference points are extracted.'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, [1:4], 'image', RowReference, ColumnReference, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Online phase</c>
+<l>for I := 2 to 5 by 1</l>
+<l>    read_image (CurrentImage, 'metal-parts/circle_plate_' + I$'02d')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (CurrentImage)</l>
+<c>    * </c>
+<c>    * a) Shape-based matching</c>
+<l>    if (AlignmentMode == 'shape-based matching')</l>
+<c>        * </c>
+<c>        * Measure the position and orientation of the object in the</c>
+<c>        * current image using the shape model</c>
+<l>        find_shape_model (CurrentImage, ShapeModelID, 0, rad(360), 0.5, 1, 0, 'least_squares', 5, 0.9, RowAlign, ColumnAlign, AngleAlign, Score)</l>
+<l>        dev_display_shape_matching_results (ShapeModelID, 'white', RowAlign, ColumnAlign, AngleAlign, 1, 1, 0)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * b) Region processing</c>
+<l>    if (AlignmentMode == 'region processing')</l>
+<c>        * Determine the current position and orientation</c>
+<l>        threshold (CurrentImage, Region, 0, 50)</l>
+<l>        fill_up (Region, RegionFillUp)</l>
+<l>        difference (RegionFillUp, Region, CurrentRegion)</l>
+<l>        area_center (CurrentRegion, Area, RowAlign, ColumnAlign)</l>
+<l>        orientation_region (CurrentRegion, AngleAlign)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * c) Rigid transformation</c>
+<l>    if (AlignmentMode == 'rigid transformation')</l>
+<c>        * Referenzpunkte:</c>
+<l>        extract_reference_points (CurrentImage, RowExtracted, ColumnExtracted)</l>
+<l>        gen_cross_contour_xld (ExtractedPoints, RowExtracted, ColumnExtracted, 15, 0.785398)</l>
+<l>        dev_display (CurrentImage)</l>
+<l>        dev_set_color ('white')</l>
+<l>        dev_display (ExtractedPoints)</l>
+<c></c>
+<l>        disp_message (WindowHandle, [1:4], 'image', RowExtracted, ColumnExtracted, 'black', 'true')</l>
+<l>        vector_to_rigid (RowReference, ColumnReference, RowExtracted, ColumnExtracted, HomMat2D)</l>
+<l>        hom_mat2d_to_affine_par (HomMat2D, Sx, Sy, AngleAlign, Theta, RowAlign, ColumnAlign)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Use the computed position and orientation to</c>
+<c>    * align the metrology model with its current occurrence</c>
+<l>    align_metrology_model (MetrologyHandle, RowAlign, ColumnAlign, AngleAlign)</l>
+<c>    * Display the aligned metrology model</c>
+<l>    if (I &lt;= 2)</l>
+<l>        get_metrology_object_model_contour (ModelContour, MetrologyHandle, 'all', 1.5)</l>
+<l>        dev_set_color ('blue')</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_display (ModelContour)</l>
+<l>        Message := 'In each image, the object is matched and aligned'</l>
+<l>        Message[1] := 'before the metrology measurement.'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Perform the measurement for all metrology objects in one call</c>
+<l>    apply_metrology_model (CurrentImage, MetrologyHandle)</l>
+<c>    * Get measure regions for visualization</c>
+<l>    get_metrology_object_measures (Contour, MetrologyHandle, 'all', 'all', Row, Column)</l>
+<c>    * Get the edge points that were actually used to fit the</c>
+<c>    * geometric forms</c>
+<l>    get_metrology_object_result (MetrologyHandle, 'all', 'all', 'used_edges', 'row', UsedRow)</l>
+<l>    get_metrology_object_result (MetrologyHandle, 'all', 'all', 'used_edges', 'column', UsedColumn)</l>
+<l>    gen_cross_contour_xld (UsedEdges, UsedRow, UsedColumn, 10, rad(45))</l>
+<c>    * </c>
+<c>    * Access the results of the measurement</c>
+<c>    * Since camera parameters were set, all results are given in</c>
+<c>    * metric coordinates relative to the coordinate system</c>
+<c>    * defined by the measurement plane</c>
+<c>    * </c>
+<c>    * Get a visualization of the measured geometric forms</c>
+<l>    get_metrology_object_result_contour (ResultContours, MetrologyHandle, 'all', 'all', 1.5)</l>
+<c>    * Extract the radius of the smaller circles</c>
+<l>    get_metrology_object_result (MetrologyHandle, CircleIndices1, 'all', 'result_type', 'radius', RadiusC1)</l>
+<c>    * Extract the radius of the larger incomplete circles</c>
+<l>    get_metrology_object_result (MetrologyHandle, CircleIndices2, 'all', 'result_type', 'radius', RadiusC2)</l>
+<c>    * Extract the lengths of the rectangle sides</c>
+<l>    get_metrology_object_result (MetrologyHandle, RectIndices, 'all', 'result_type', 'length1', Length1R)</l>
+<l>    get_metrology_object_result (MetrologyHandle, RectIndices, 'all', 'result_type', 'length2', Length2R)</l>
+<c>    * Get the start and end point of each measured line</c>
+<l>    get_metrology_object_result (MetrologyHandle, LineIndices[0], 'all', 'result_type', 'all_param', ParamLine1)</l>
+<l>    get_metrology_object_result (MetrologyHandle, LineIndices[1], 'all', 'result_type', 'all_param', ParamLine2)</l>
+<c>    * Display the results</c>
+<l>    dev_display (CurrentImage)</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_set_color ('light gray')</l>
+<l>    dev_display (Contour)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display (ResultContours)</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (UsedEdges)</l>
+<c>    * </c>
+<c>    * Display the radii for each circle at the circle centers</c>
+<c>    * Obtain the metric coordinates of the circle centers</c>
+<l>    get_metrology_object_result (MetrologyHandle, CircleIndices1, 'all', 'result_type', 'x', XC1)</l>
+<l>    get_metrology_object_result (MetrologyHandle, CircleIndices1, 'all', 'result_type', 'y', YC1)</l>
+<c>    * Project the metric coordinates of the circle centers</c>
+<c>    * into the image to get the image coordinates of the</c>
+<c>    * circle centers</c>
+<l>    project_xy_to_image (XC1, YC1, MeasurementPlaneAdjusted, CameraParam, Row1, Column1)</l>
+<l>    get_metrology_object_result (MetrologyHandle, CircleIndices2, 'all', 'result_type', 'x', XC2)</l>
+<l>    get_metrology_object_result (MetrologyHandle, CircleIndices2, 'all', 'result_type', 'y', YC2)</l>
+<l>    project_xy_to_image (XC2, YC2, MeasurementPlaneAdjusted, CameraParam, Row2, Column2)</l>
+<l>    disp_message (WindowHandle, 'r=' + (RadiusC1 * 1000)$'.2f', 'image', Row1, Column1 - 80, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'r=' + (RadiusC2 * 1000)$'.2f', 'image', Row2, Column2 - 80, 'black', 'true')</l>
+<l>    get_metrology_object_result (MetrologyHandle, RectIndices, 'all', 'result_type', 'x', XRectangle)</l>
+<l>    get_metrology_object_result (MetrologyHandle, RectIndices, 'all', 'result_type', 'y', YRectangle)</l>
+<l>    project_xy_to_image (XRectangle, YRectangle, MeasurementPlaneAdjusted, CameraParam, RowR, ColumnR)</l>
+<l>    Area := Length1R * Length2R * 4 * 1000 * 1000</l>
+<l>    disp_message (WindowHandle, 'area=' + Area$'.2f', 'image', RowR, ColumnR - 120, 'black', 'true')</l>
+<l>    Message := 'Measured metric results after alignment (r in mm, area in mm^2):'</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I &lt; 5)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* Clean up memory</c>
+<l>clear_metrology_model (MetrologyHandle)</l>
+<l>if (AlignmentMode == 'shape-based matching')</l>
+<l>    clear_shape_model (ShapeModelID)</l>
+<l>    set_system ('border_shape_models', BorderShapeModel)</l>
+<l>endif</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="project_xy_to_image">
+<interface>
+<ic>
+<par name="XC1" base_type="ctrl" dimension="0"/>
+<par name="YC1" base_type="ctrl" dimension="0"/>
+<par name="MeasurementPlaneAdjusted" base_type="ctrl" dimension="0"/>
+<par name="CameraParam" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Column1" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>pose_to_hom_mat3d (MeasurementPlaneAdjusted, HomMat3D)</l>
+<l>affine_trans_point_3d (HomMat3D, XC1, YC1, 0 * XC1, Qx, Qy, Qz)</l>
+<l>project_3d_point (Qx, Qy, Qz, CameraParam, Row1, Column1)</l>
+<l>return ()</l>
+</body>
+<docu id="project_xy_to_image">
+<parameters>
+<parameter id="CameraParam"/>
+<parameter id="Column1"/>
+<parameter id="MeasurementPlaneAdjusted"/>
+<parameter id="Row1"/>
+<parameter id="XC1"/>
+<parameter id="YC1"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_contours">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="ModelContour" base_type="iconic" dimension="0"/>
+<par name="MeasureContour" base_type="iconic" dimension="0"/>
+<par name="ShapeModelContours" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (ModelContour)</l>
+<l>dev_set_line_width (1)</l>
+<l>count_obj (MeasureContour, Number)</l>
+<c>* Determine if the measure contours should be shown</c>
+<l>if (Number &gt; 0)</l>
+<l>    dev_set_color ('gray')</l>
+<l>    dev_display (MeasureContour)</l>
+<l>endif</l>
+<l>count_obj (ShapeModelContours, Number)</l>
+<l>if (Number &gt; 0)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (ShapeModelContours)</l>
+<l>endif</l>
+<c>* </c>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="show_contours">
+<parameters>
+<parameter id="Image"/>
+<parameter id="MeasureContour"/>
+<parameter id="Message"/>
+<parameter id="ModelContour"/>
+<parameter id="ShapeModelContours"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="extract_reference_points">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Extract reference points as center points of uniquely</c>
+<c>* identifiable regions.</c>
+<l>threshold (Image, Region, 50, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, Rectangle, 'num_sides', 'and', 3.5, 4.5)</l>
+<l>select_shape (ConnectedRegions, Snake, 'area', 'and', 3000, 5000)</l>
+<l>select_shape (ConnectedRegions, QuarterCircles, 'area', 'and', 1000, 3000)</l>
+<l>union1 (QuarterCircles, QuarterCirclesUnion)</l>
+<l>select_shape (ConnectedRegions, Star, ['area','outer_radius','num_sides'], 'and', [7500,70,3], [10000,90,5])</l>
+<l>area_center (Star, Area1, Row1, Column1)</l>
+<l>area_center (Rectangle, Area2, Row2, Column2)</l>
+<l>area_center (Snake, Area3, Row3, Column3)</l>
+<l>area_center (QuarterCirclesUnion, Area4, Row4, Column4)</l>
+<l>Rows := [Row1,Row2,Row3,Row4]</l>
+<l>Columns := [Column1,Column2,Column3,Column4]</l>
+<l>return ()</l>
+</body>
+<docu id="extract_reference_points">
+<parameters>
+<parameter id="Columns"/>
+<parameter id="Image"/>
+<parameter id="Rows"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

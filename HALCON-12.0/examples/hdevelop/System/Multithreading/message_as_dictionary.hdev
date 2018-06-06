@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* The primary purpose of HALCON messages queues is to deliver data safely</c>
+<c>* among multiple threads without the need for explicit synchronization.</c>
+<c>* The message itself is designed as a "dictionary", storing arbitrary</c>
+<c>* tuple and/or object data associated with string keys.</c>
+<c>* This example demonstrates the basic dictionary-like functionality</c>
+<c>* of the message, message passing using message queues is shown</c>
+<c>* in other examples.</c>
+<c>* </c>
+<c>* Display information about this example program</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>* dev_resize_window_fit_size (0, 0, 512, 512, -1, -1)</l>
+<l>Message := 'This example demonstrates the basic'</l>
+<l>Message[1] := 'dictionary-like functionality of messages.'</l>
+<l>Message[2] := 'It shows how arbitrary data can be'</l>
+<l>Message[3] := 'stored in and retrieved from a message.'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'Use F6 to step through the example program,'</l>
+<l>Message[6] := 'read the comments, and inspect the'</l>
+<l>Message[7] := 'contents of the variables.'</l>
+<l>dev_get_window (WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Prepare a few sample images...</c>
+<l>gen_image_gray_ramp (HorizontalImage, 0, 1, 128, 256, 256, 512, 512)</l>
+<l>gen_image_gray_ramp (VerticalImage, 1, 0, 128, 256, 256, 512, 512)</l>
+<l>concat_obj (HorizontalImage, VerticalImage, ConcatImage)</l>
+<c>* </c>
+<c>* Create the message and store some data in it</c>
+<l>create_message (Message)</l>
+<l>set_message_tuple (Message, 'simple_integer', 27)</l>
+<l>set_message_tuple (Message, 'simple_string', 'Hello world')</l>
+<l>set_message_tuple (Message, 'mixed_tuple', ['The answer',42])</l>
+<l>set_message_obj (HorizontalImage, Message, 'horizontal_ramp')</l>
+<l>set_message_obj (VerticalImage, Message, 'vertical_ramp')</l>
+<l>set_message_obj (ConcatImage, Message, 'both_ramps')</l>
+<c>* </c>
+<c>* Query information about the message</c>
+<c>* - Get all available keys</c>
+<l>get_message_param (Message, 'message_keys', [], AllKeys)</l>
+<c>* - Test if specific keys exist</c>
+<l>get_message_param (Message, 'key_exists', ['mixed_tuple','foo','bar','both_ramps'], KeysPresence)</l>
+<c>* - Determine the type of the data referenced by a given key</c>
+<l>get_message_param (Message, 'key_data_type', ['mixed_tuple','both_ramps'], KeysType)</l>
+<c>* </c>
+<c>* Read back the data stored in the message using directly the key</c>
+<l>get_message_tuple (Message, 'mixed_tuple', TupleCopy)</l>
+<l>get_message_obj (ObjectCopy, Message, 'both_ramps')</l>
+<c>* </c>
+<c>* Read back the data enumerating all the keys</c>
+<l>get_message_param (Message, 'message_keys', [], AllKeys)</l>
+<l>for Index := 0 to |AllKeys| - 1 by 1</l>
+<l>    NextKey := AllKeys[Index]</l>
+<l>    get_message_param (Message, 'key_data_type', NextKey, NextKeyDataType)</l>
+<l>    if (NextKeyDataType == 'tuple')</l>
+<l>        get_message_tuple (Message, NextKey, NextTupleCopy)</l>
+<l>    else</l>
+<l>        get_message_obj (NextObjectCopy, Message, NextKey)</l>
+<l>    endif</l>
+<c>    * Here, the key/value pairs can be processed as required by the application</c>
+<l>endfor</l>
+<c>* </c>
+<c>* Manipulate the message and its keys</c>
+<c>* 1. Remove some keys</c>
+<l>set_message_param (Message, 'remove_key', ['horizontal_ramp','vertical_ramp'], [])</l>
+<c>* 2. Add another key</c>
+<l>set_message_tuple (Message, 'new_key', ['a string','yet another string'])</l>
+<c>* 3. Reassign new data to an existing key</c>
+<l>set_message_tuple (Message, 'both_ramps', 'this is now a simple text')</l>
+<l>get_message_param (Message, 'message_keys', [], AllKeys_Modified)</l>
+<l>get_message_param (Message, 'key_data_type', ['mixed_tuple','both_ramps'], KeysTypeModified)</l>
+<c>* 4. Remove all keys</c>
+<l>set_message_param (Message, 'remove_all_keys', [], [])</l>
+<l>get_message_param (Message, 'message_keys', [], AllKeysCleared)</l>
+<c>* </c>
+<c>* Cleanup</c>
+<l>clear_message (Message)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

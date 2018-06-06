@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to segment an image based on</c>
+<c>* texture by using an MLP pixel classifier, which is used</c>
+<c>* directly and indirectly with a look-up table classifier (LUT).</c>
+<c>* To construct a six-channel image for the classification,</c>
+<c>* six Laws filters are used.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandleL)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_colored (12)</l>
+<l>set_display_font (WindowHandleL, 14, 'mono', 'true', 'false')</l>
+<l>read_image (Image, 'combine')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Apply the six texture filters</c>
+<l>texture_laws (Image, ImageTexture1, 'ee', 5, 7)</l>
+<l>texture_laws (Image, ImageTexture2, 'ss', 2, 7)</l>
+<l>texture_laws (Image, ImageTexture3, 'rr', 0, 7)</l>
+<l>texture_laws (Image, ImageTexture4, 'ww', 0, 7)</l>
+<l>texture_laws (Image, ImageTexture5, 'le', 7, 7)</l>
+<l>texture_laws (Image, ImageTexture6, 'el', 7, 7)</l>
+<c>* </c>
+<c>* Compute the local average of the output of the texture filters</c>
+<l>MaskWidth := 41</l>
+<l>mean_image (ImageTexture1, ImageMean1, MaskWidth, MaskWidth)</l>
+<l>mean_image (ImageTexture2, ImageMean2, MaskWidth, MaskWidth)</l>
+<l>mean_image (ImageTexture3, ImageMean3, MaskWidth, MaskWidth)</l>
+<l>mean_image (ImageTexture4, ImageMean4, MaskWidth, MaskWidth)</l>
+<l>mean_image (ImageTexture5, ImageMean5, MaskWidth, MaskWidth)</l>
+<l>mean_image (ImageTexture6, ImageMean6, MaskWidth, MaskWidth)</l>
+<l>compose6 (ImageMean1, ImageMean2, ImageMean3, ImageMean4, ImageMean5, ImageMean6, TextureImage)</l>
+<c>* </c>
+<c>* Create the training regions for the eight classes</c>
+<l>gen_empty_obj (ClassSamples)</l>
+<l>R1 := 10</l>
+<l>dR := 255</l>
+<l>C1 := 80</l>
+<l>dC := 125</l>
+<l>W := 10</l>
+<l>H := 225</l>
+<l>for Row := R1 to R1 + dR by dR</l>
+<l>    for Col := C1 to C1 + 3 * dC by dC</l>
+<l>        gen_rectangle1 (ClassSample, Row, Col, Row + H, Col + W)</l>
+<l>        concat_obj (ClassSamples, ClassSample, ClassSamples)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>dev_display (ClassSamples)</l>
+<l>disp_message (WindowHandleL, 'ROIs for the training data', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the MLP classifier, add the samples, and train it</c>
+<l>create_class_mlp (6, 6, 8, 'softmax', 'principal_components', 3, 42, MLPHandle)</l>
+<l>add_samples_image_class_mlp (TextureImage, ClassSamples, MLPHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ClassSamples)</l>
+<l>Message := 'Training MLP classifier ...'</l>
+<l>disp_message (WindowHandleL, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>train_class_mlp (MLPHandle, 200, 1, 0.01, Error, ErrorLog)</l>
+<l>Message := 'Training MLP classifier ... ready.'</l>
+<l>disp_message (WindowHandleL, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Create the MLP-based LUT classifier</c>
+<l>Message[1] := 'Creating MLP-based LUT classifier ...'</l>
+<l>disp_message (WindowHandleL, Message, 'image', 12, 12, 'black', 'true')</l>
+<l>count_seconds (t1)</l>
+<l>create_class_lut_mlp (MLPHandle, [], [], ClassLUTHandle)</l>
+<l>count_seconds (t2)</l>
+<l>TimeLUTCreate := t2 - t1</l>
+<l>Message[1] := 'Creating MLP-based LUT classifier ... ready.'</l>
+<l>Message[2] := 'Time to create the LUT: ' + TimeLUTCreate$'.2f' + ' s'</l>
+<l>disp_message (WindowHandleL, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment (classify) the image with the MLP-based LUT classifier.</c>
+<l>count_seconds (t1)</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    classify_image_class_lut (TextureImage, ClassRegionsLUT, ClassLUTHandle)</l>
+<l>endfor</l>
+<l>count_seconds (t2)</l>
+<l>TimeLUT := (t2 - t1) / 100</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (ClassRegionsLUT)</l>
+<l>disp_message (WindowHandleL, 'Result of the LUT classifier\nTime to classify: ' + TimeLUT$'.4f' + ' s', 'image', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Segment (classify) the image with the MLP classifier.</c>
+<c>* Note: The result of the MLP classifier used directly is more</c>
+<c>* accurate because the MLP-based LUT classifier needs to</c>
+<c>* discretize the reduced channels.</c>
+<l>dev_open_window (0, 512 + 5, 512, 512, 'black', WindowHandleR)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandleR, 14, 'mono', 'true', 'false')</l>
+<l>count_seconds (t1)</l>
+<l>classify_image_class_mlp (TextureImage, ClassRegions, MLPHandle, 0.5)</l>
+<l>count_seconds (t2)</l>
+<l>TimeMLP := t2 - t1</l>
+<l>dev_display (ClassRegions)</l>
+<l>disp_message (WindowHandleR, 'Result of the MLP classifier\nTime to classify: ' + TimeMLP$'.4f' + ' s', 'image', 12, 12, 'black', 'true')</l>
+<l>TimeSpeedUpMLP := (TimeMLP / TimeLUT - 1.0) * 100.0</l>
+<l>disp_message (WindowHandleL, 'Speed-Up: ' + TimeSpeedUpMLP$'.2f' + ' %', 'image', 60, 12, 'dark green', 'true')</l>
+<c>* </c>
+<c>* Reset view and clear handles</c>
+<l>clear_class_lut (ClassLUTHandle)</l>
+<l>clear_class_mlp (MLPHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

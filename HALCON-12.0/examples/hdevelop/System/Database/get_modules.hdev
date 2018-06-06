@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Query of used modules and the module key</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>sobel_amp (Image, EdgeAmplitude, 'thin_sum_abs', 3)</l>
+<l>threshold (EdgeAmplitude, Edges, 30, 255)</l>
+<c>* Close edge gaps using the edge amplitude image</c>
+<l>close_edges (Edges, EdgeAmplitude, EdgesExtended, 15)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (EdgesExtended)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Edges)</l>
+<l>get_modules (UsedModules, ModuleKey)</l>
+<c>* Please note:</c>
+<c>* 1D Metrology, 3D Metrology, Bar Code, Data Code, OCR/OCV, and Matching</c>
+<c>* are used by HDevelop.</c>
+<c>* Check with the dialog in the menu File &gt; Properties... &gt; Used Modules</c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

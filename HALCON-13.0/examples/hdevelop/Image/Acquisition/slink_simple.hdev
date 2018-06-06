@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example how to use the Slink interface.</c>
+<c>* Grab images in both monochrome and color mode.</c>
+<c>* </c>
+<l>open_framegrabber ('Slink', 0, 0, 0, 0, 0, 0, 'default', 8, 'rgb', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Set monochrome mode.</c>
+<l>set_framegrabber_param (AcqHandle, 'color_space', 'gray')</l>
+<c>* Get current buffer.</c>
+<l>get_framegrabber_param (AcqHandle, 'current_buffer', PreviousBuffer)</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<c>* Grab 20 monochrome images.</c>
+<l>i := 0</l>
+<l>while (i &lt; 20)</l>
+<c>    * Make sure that new buffer is available.</c>
+<l>    get_framegrabber_param (AcqHandle, 'current_buffer', CurrentBuffer)</l>
+<l>    if (CurrentBuffer != PreviousBuffer)</l>
+<l>        i := i + 1</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>        PreviousBuffer := CurrentBuffer</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* Abort.</c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 1)</l>
+<c>* </c>
+<c>* Set color mode.</c>
+<l>set_framegrabber_param (AcqHandle, 'color_space', 'rgb')</l>
+<c>* Get current buffer.</c>
+<l>get_framegrabber_param (AcqHandle, 'current_buffer', PreviousBuffer)</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<c>* Grab 20 color images.</c>
+<l>i := 0</l>
+<l>while (i &lt; 20)</l>
+<c>    * Make sure that new buffer is available.</c>
+<l>    get_framegrabber_param (AcqHandle, 'current_buffer', CurrentBuffer)</l>
+<l>    if (CurrentBuffer != PreviousBuffer)</l>
+<l>        i := i + 1</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>        PreviousBuffer := CurrentBuffer</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* Abort.</c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 1)</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* online pattern matching with adaptation to illumination changes</c>
+<c>* rotational invariant</c>
+<c>* rotation/translation to "normalize" the input image</c>
+<c>* </c>
+<c>* set online to true if you are using an image acquisition device</c>
+<c>* if online is set to false, a virtual image acquisition device is opened which reads an image sequence from hard disk</c>
+<c>* </c>
+<l>online := false</l>
+<l>VisUndefPixelBlack := 1</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_time ('off')</l>
+<l>if (online)</l>
+<c>    * open the 'real' image acquisition device</c>
+<l>    info_framegrabber ('1394IIDC', 'revision', RevisionInfo, RevisionInfoValues)</l>
+<l>    open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>else</l>
+<c>    * open the virtual image acquisition device</c>
+<l>    info_framegrabber ('File', 'general', Information, ValueList)</l>
+<l>    open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'pendulum/pendulum', 'default', -1, 1, AcqHandle)</l>
+<l>endif</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, Width + 30, Width, Height, 'black', WindowRot)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_set_window (WindowID)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_set_window (WindowRot)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>* disp_continue_message (WindowID, 'black', 'true')</l>
+<l>* stop ()</l>
+<c>* ------------------------</c>
+<c>* define template</c>
+<c>* ------------------------</c>
+<l>if (online)</l>
+<c>    * </c>
+<c>    * define template by drawing a rectangle</c>
+<c>    * </c>
+<l>    dev_update_pc ('off')</l>
+<l>    dev_set_window (WindowID)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_line_width (5)</l>
+<l>    grab_image (ImageTempl, AcqHandle)</l>
+<l>    dev_set_window (WindowID)</l>
+<l>    dev_display (ImageTempl)</l>
+<l>    disp_message (WindowID, 'define the template', 'image', -1, -1, 'black', 'true')</l>
+<l>    dev_set_color ('green')</l>
+<l>    draw_rectangle2 (WindowID, RowTempl, ColumnTempl, PhiTempl, Length1, Length2)</l>
+<l>    gen_rectangle2 (Rectangle, RowTempl, ColumnTempl, PhiTempl, Length1, Length2)</l>
+<l>    dev_display (Rectangle)</l>
+<l>    reduce_domain (ImageTempl, Rectangle, ImageReduced)</l>
+<l>    create_template_rot (ImageReduced, 4, 0, rad(360), rad(1), 'sort', 'original', TemplateID)</l>
+<l>    intensity (ImageReduced, Image, TemplMean, Deviation)</l>
+<l>    dev_update_pc ('on')</l>
+<l>else</l>
+<c>    * </c>
+<c>    * load default pattern for virtual framegrabber</c>
+<c>    * </c>
+<l>    Length1 := 32.0</l>
+<l>    Length2 := 12.5</l>
+<l>    PhiTempl := -0.315</l>
+<l>    RowTempl := 112.5</l>
+<l>    ColumnTempl := 92.0</l>
+<l>    copy_obj (Image, ImageTempl, 1, 1)</l>
+<l>    gen_rectangle2 (Rectangle, RowTempl, ColumnTempl, PhiTempl, Length1, Length2)</l>
+<l>    reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>    create_template_rot (ImageReduced, 4, 0, rad(360), rad(1), 'sort', 'original', TemplateID)</l>
+<l>    intensity (ImageReduced, Image, TemplMean, Deviation)</l>
+<l>endif</l>
+<l>* RowRot := RowTempl</l>
+<l>* ColumnRot := ColumnTempl</l>
+<l>RowRot := Height / 2</l>
+<l>ColumnRot := Width / 2</l>
+<c>* ------------------------------------------</c>
+<c>* visualize normalized input image</c>
+<c>* ------------------------------------------</c>
+<c>* Compensate for rotation and translation</c>
+<l>vector_angle_to_rigid (RowTempl, ColumnTempl, PhiTempl, RowRot, ColumnRot, 0, HomMat2DRotate)</l>
+<l>affine_trans_image (ImageTempl, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>if (VisUndefPixelBlack == 1)</l>
+<l>    full_domain (ImageAffinTrans, ImageFull)</l>
+<l>    dev_set_window (WindowRot)</l>
+<l>    dev_display (ImageFull)</l>
+<l>else</l>
+<l>    dev_set_window (WindowRot)</l>
+<l>    dev_display (ImageAffinTrans)</l>
+<l>endif</l>
+<l>dev_set_window (WindowID)</l>
+<l>dev_display (ImageTempl)</l>
+<l>disp_message (WindowID, 'run the template matching', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowID, 'run the template matching', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowID, '(click left to start,', 'image', 50, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowID, 'right to stop)', 'image', 80, 20, 'yellow', 'false')</l>
+<l>* disp_continue_message (WindowID, 'black', 'true')</l>
+<l>* stop ()</l>
+<l>Button := 0</l>
+<l>while (Button != 1)</l>
+<l>    get_mbutton (WindowID, dummy, dummy, Button)</l>
+<l>endwhile</l>
+<l>dev_update_pc ('off')</l>
+<c>* ------------------------</c>
+<c>* pattern matching</c>
+<c>* ------------------------</c>
+<l>Button := 0</l>
+<l>Exp := 1</l>
+<l>while (Button != 4)</l>
+<l>    if (online)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    best_match_rot_mg (Image, TemplateID, 0, rad(360), 30, 'true', 4, Row, Column, Angle, ErrMatch)</l>
+<l>    if (ErrMatch &lt; 255)</l>
+<l>        gen_rectangle2 (Rectangle, Row, Column, PhiTempl + Angle, Length1, Length2)</l>
+<l>        reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>        intensity (ImageReduced, Image, Mean, Deviation)</l>
+<l>        set_offset_template (TemplateID, Mean - TemplMean)</l>
+<c>        * Compensate for rotation and translation</c>
+<l>        vector_angle_to_rigid (Row, Column, Angle, RowRot, ColumnRot, 0, HomMat2DRotate)</l>
+<l>        affine_trans_image (Image, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := round(1000 * (Seconds2 - Seconds1))</l>
+<l>        if (VisUndefPixelBlack == 1)</l>
+<l>            full_domain (ImageAffinTrans, ImageFull)</l>
+<l>            dev_set_window (WindowRot)</l>
+<l>            dev_display (ImageFull)</l>
+<l>        else</l>
+<l>            dev_set_window (WindowRot)</l>
+<l>            dev_display (ImageAffinTrans)</l>
+<l>        endif</l>
+<l>        dev_set_window (WindowID)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowID, Time + ' ms', 'image', -1, -1, 'black', 'true')</l>
+<l>        dev_set_color ('green')</l>
+<l>        disp_region (Rectangle, WindowID)</l>
+<l>    else</l>
+<l>        disp_image (Image, WindowID)</l>
+<l>    endif</l>
+<c>    * --------------------------</c>
+<c>    * Exit with mouse click</c>
+<c>    * --------------------------</c>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowID, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>clear_template (TemplateID)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_set_window (WindowRot)</l>
+<l>dev_close_window ()</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>dev_update_time ('on')</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

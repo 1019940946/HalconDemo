@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the difference of AOP (automatic</c>
+<c>* operator parallelization) models that can be trained using</c>
+<c>* optimize_aop. The speed-up of the sobel_amp operator for</c>
+<c>* various image sizes is measured for different aop optimizations</c>
+<c>* and the results are plotted. The example program is optimized</c>
+<c>* for machines with more than 16 Processors.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>WindowWidth := 500</l>
+<l>WindowHeight := 500</l>
+<l>dev_open_window (0, 0, WindowWidth, WindowHeight, 'black', WindowHandle1)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>get_system ('processor_num', NumCPUs)</l>
+<l>read_image (Image, 'monkey')</l>
+<c>* </c>
+<l>ImageSize := [32,48,64,96,128,192,256,372,512]</l>
+<l>Threads := [1:NumCPUs]</l>
+<l>Speedup := [1:max([2,NumCPUs / 2])]</l>
+<c>* </c>
+<l>Loops := 50</l>
+<l>OperatorName := 'sobel_amp'</l>
+<l>Method := 'sum_abs'</l>
+<l>Mask := 3</l>
+<l>Param := 'false'</l>
+<l>InputControl := [Method,Mask]</l>
+<c>* </c>
+<l>Message := 'This program shows the effect of \'optimize_aop\''</l>
+<l>Message[1] := 'using the example of \'sobel_amp\'.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'Therefore, \'optimize_aop\' is called'</l>
+<l>Message[4] := 'with four different training modes:'</l>
+<l>Message[5] := '- \'nil\' (no optimization)'</l>
+<l>Message[6] := '- \'threshold\' (either use only one or all cores)'</l>
+<l>Message[7] := '- \'linear\' (# cores proportional to image size)'</l>
+<l>Message[8] := '- \'mlp\' (classifier-based).'</l>
+<l>Message[9] := ' '</l>
+<l>Message[10] := 'After that, the execution times of \'sobel_amp\''</l>
+<l>Message[11] := 'are measured for different image sizes.'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'white', 'false')</l>
+<c>* </c>
+<c>* Clear AOP information</c>
+<l>disp_message (WindowHandle1, 'Measure \'nil\' ... ', 'window', 250, 12, 'yellow', 'false')</l>
+<l>count_seconds (S1)</l>
+<l>optimize_aop (OperatorName, 'byte', 'no_file', ['file_mode','system_mode'], ['nil','remove'])</l>
+<c>* </c>
+<l>get_system ('parallelize_operators', Information)</l>
+<l>get_aop_info (OperatorName, ['iconic_type','parameter:0'], ['byte',''], 'max_threads', Value)</l>
+<c>* </c>
+<c>* Use no AOP model</c>
+<l>measure_speedup_on_size (Image, InputControl, Loops, ImageSize, SpeedupNil, UsedThreadsNil)</l>
+<l>count_seconds (S2)</l>
+<l>TimeNil := S2 - S1</l>
+<l>disp_message (WindowHandle1, 'Measure \'nil\' ... done in ' + TimeNil$'.2' + ' s', 'window', 250, 12, 'green', 'false')</l>
+<c>* </c>
+<c>* Use threshold AOP model</c>
+<l>disp_message (WindowHandle1, 'Measure \'threshold\' ...', 'window', 280, 12, 'yellow', 'false')</l>
+<l>count_seconds (S1)</l>
+<l>optimize_aop (OperatorName, 'byte', 'no_file', ['file_mode','model','parameters'], ['nil','threshold',Param])</l>
+<l>measure_speedup_on_size (Image, InputControl, Loops, ImageSize, SpeedupThresh, UsedThreadsThresh)</l>
+<l>count_seconds (S2)</l>
+<l>TimeThresh := S2 - S1</l>
+<l>disp_message (WindowHandle1, 'Measure \'threshold\' ... done in ' + TimeThresh$'.2' + ' s', 'window', 280, 12, 'green', 'false')</l>
+<c>* </c>
+<c>* Use linear AOP model</c>
+<l>disp_message (WindowHandle1, 'Measure \'linear\' ...', 'window', 310, 12, 'yellow', 'false')</l>
+<l>count_seconds (S1)</l>
+<l>optimize_aop (OperatorName, 'byte', 'no_file', ['file_mode','model','parameters'], ['nil','linear',Param])</l>
+<l>measure_speedup_on_size (Image, InputControl, Loops, ImageSize, SpeedupLinear, UsedThreadsLinear)</l>
+<l>count_seconds (S2)</l>
+<l>TimeLinear := S2 - S1</l>
+<l>disp_message (WindowHandle1, 'Measure \'linear\' ... done in ' + TimeThresh$'.2' + ' s', 'window', 310, 12, 'green', 'false')</l>
+<c>* </c>
+<c>* Use MLP AOP model</c>
+<l>disp_message (WindowHandle1, 'Measure \'mlp\' ...', 'window', 340, 12, 'yellow', 'false')</l>
+<l>count_seconds (S1)</l>
+<l>optimize_aop (OperatorName, 'byte', 'no_file', ['file_mode','model','parameters'], ['nil','mlp',Param])</l>
+<l>measure_speedup_on_size (Image, InputControl, Loops, ImageSize, SpeedupMLP, UsedThreadsMLP)</l>
+<l>count_seconds (S2)</l>
+<l>TimeMLP := S2 - S1</l>
+<l>disp_message (WindowHandle1, 'Measure \'mlp\' ... done in ' + TimeThresh$'.2' + ' s', 'window', 340, 12, 'green', 'false')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_clear_window ()</l>
+<l>dev_open_window (0, WindowWidth + 13, WindowWidth, WindowHeight, 'black', WindowHandle2)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>Legend := ['\'nil\'','\'threshold\'','\'linear\'','\'mlp\'']</l>
+<l>Colors := ['red','orange','yellow','green']</l>
+<c>* </c>
+<c>* Plot results</c>
+<l>plot_tuple (WindowHandle1, ImageSize$'d', [SpeedupNil,SpeedupThresh,SpeedupLinear,SpeedupMLP], 'Image Size', ' Speedup factor', Colors, ['grid_y','ticks_y','start_y'], [1,1,0])</l>
+<l>disp_message (WindowHandle1, Legend, 'window', 280, 300, Colors, 'false')</l>
+<l>plot_tuple (WindowHandle2, ImageSize$'d', [UsedThreadsNil,UsedThreadsThresh,UsedThreadsLinear,UsedThreadsMLP], 'Image Size', '# Threads', Colors, ['grid_y','ticks_y','start_y'], [1,1,0])</l>
+<l>disp_message (WindowHandle2, Legend, 'window', 280, 300, Colors, 'false')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="measure_operator_execution_time">
+<interface>
+<io>
+<par name="InputImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="InputControl" base_type="ctrl" dimension="0"/>
+<par name="Loops" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MinTime" base_type="ctrl" dimension="0"/>
+<par name="UsedThreadNum" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* This procedure measures your operator running within a loop</c>
+<c>* </c>
+<c>* Run multiple measurements to reduce noise</c>
+<c>* (only the fastest time will be taken)</c>
+<l>NumMeasurements := 2</l>
+<c>* </c>
+<l>Method := InputControl[0]</l>
+<l>Mask := InputControl[1]</l>
+<c>* Measure NumMeasurements times and take the minimum time</c>
+<l>for MeasureIndex := NumMeasurements - 1 to 0 by -1</l>
+<l>    count_seconds (S1)</l>
+<l>    for Index := 1 to Loops by 1</l>
+<c>        * INSERT YOUR OPERATOR HERE</c>
+<l>        sobel_amp (InputImage, EdgeAmplitude, Method, Mask)</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    Times[MeasureIndex] := (S2 - S1) / Loops</l>
+<l>endfor</l>
+<l>MinTime := min(Times)</l>
+<l>sobel_amp (InputImage, EdgeAmplitude, Method, Mask)</l>
+<l>get_system ('tsp_used_thread_num', UsedThreadNum)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="measure_operator_execution_time">
+<parameters>
+<parameter id="InputControl"/>
+<parameter id="InputImage"/>
+<parameter id="Loops"/>
+<parameter id="MinTime"/>
+<parameter id="UsedThreadNum"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="measure_speedup_on_size">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="InputControl" base_type="ctrl" dimension="0"/>
+<par name="Loops" base_type="ctrl" dimension="0"/>
+<par name="ImageSize" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Speedup" base_type="ctrl" dimension="0"/>
+<par name="UsedThreadNum" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Speedup := []</l>
+<l>UsedThreadNum := []</l>
+<l>for Index := 0 to |ImageSize| - 1 by 1</l>
+<l>    CurrentImageSize := ImageSize[Index]</l>
+<l>    zoom_image_size (Image, InputImage, CurrentImageSize, CurrentImageSize, 'constant')</l>
+<l>    set_system ('parallelize_operators', 'false')</l>
+<l>    measure_operator_execution_time (InputImage, InputControl, Loops, SeqTime, NotUsed)</l>
+<l>    set_system ('parallelize_operators', 'true')</l>
+<l>    measure_operator_execution_time (InputImage, InputControl, Loops, ParTime, NumThreads)</l>
+<l>    Speedup := [Speedup,SeqTime / ParTime]</l>
+<l>    UsedThreadNum := [UsedThreadNum,NumThreads]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="measure_speedup_on_size">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageSize"/>
+<parameter id="InputControl"/>
+<parameter id="Loops"/>
+<parameter id="Speedup"/>
+<parameter id="UsedThreadNum"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

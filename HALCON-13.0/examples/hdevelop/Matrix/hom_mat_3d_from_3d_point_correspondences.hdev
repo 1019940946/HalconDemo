@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to estimate a HomMat3D from given</c>
+<c>* 3D point correspondences.</c>
+<c>* For that, a least-squares estimation based on an SVD is used.</c>
+<c>* First, only a translation along one axis is simulated.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle, 'Please see the code for further information.', 'window', 12, 12, 'black', 'true')</l>
+<c>* Define arbitrary point sets.</c>
+<l>PX := [0.1,0.2,0.3]</l>
+<l>PY := [0.1,0.2,0.1]</l>
+<l>PZ := [0.1,0.1,0.1]</l>
+<l>QX := [0.2,0.3,0.4]</l>
+<l>QY := [0.1,0.2,0.1]</l>
+<l>QZ := [0.1,0.1,0.1]</l>
+<c>* Estimate HomMat3D</c>
+<l>hom_mat_3d_from_3d_3d_point_correspondence (PX, PY, PZ, QX, QY, QZ, HomMat3D)</l>
+<c>* Then, it is tested if the translation is OK</c>
+<l>affine_trans_point_3d (HomMat3D, PX, PY, PZ, Qxtest, Qytest, Qztest)</l>
+<c>* Q*test must be the same as Q*.</c>
+<c>* Because of numerical reasons, we obtain not 0 for some pose parameters,</c>
+<c>* but some very small number.</c>
+<l>hom_mat3d_to_pose (HomMat3D, Pose)</l>
+<l>* stop ()</l>
+<c>* Here, we translate and rotate</c>
+<l>create_pose (1, 0, 0, 45, 0, 0, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>pose_to_hom_mat3d (Pose1, HomMat3D1)</l>
+<l>affine_trans_point_3d (HomMat3D1, PX, PY, PZ, Qxpose1, Qypose1, Qzpose1)</l>
+<l>hom_mat_3d_from_3d_3d_point_correspondence (PX, PY, PZ, Qxpose1, Qypose1, Qzpose1, HomMat3DEstimated)</l>
+<c>* Please note that Pose 1 is not similar to Posetest.</c>
+<l>hom_mat3d_to_pose (HomMat3DEstimated, Posetest)</l>
+<c>* However, a simple test shows that they are identical.</c>
+<l>affine_trans_point_3d (HomMat3DEstimated, PX, PY, PZ, Qxtest, Qytest, Qztest)</l>
+<l>* dev_inspect_ctrl ([Qxpose1,Qxtest,Qypose1,Qytest,Qzpose1,Qztest])</l>
+<l>* stop ()</l>
+<l>* dev_close_inspect_ctrl ([Qxpose1,Qxtest,Qypose1,Qytest,Qzpose1,Qztest])</l>
+<c>* Now, another test.</c>
+<l>create_pose (1, -320, 10, 45, -53, 22, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>pose_to_hom_mat3d (Pose1, HomMat3D1)</l>
+<l>affine_trans_point_3d (HomMat3D1, PX, PY, PZ, Qxpose1, Qypose1, Qzpose1)</l>
+<l>hom_mat_3d_from_3d_3d_point_correspondence (PX, PY, PZ, Qxpose1, Qypose1, Qzpose1, HomMat3DEstimated)</l>
+<c>* Please note that Pose 1 is not similar to Posetest.</c>
+<l>hom_mat3d_to_pose (HomMat3DEstimated, Posetest)</l>
+<c>* However, a simple test shows that they are identical.</c>
+<l>affine_trans_point_3d (HomMat3DEstimated, PX, PY, PZ, Qxtest, Qytest, Qztest)</l>
+<l>* dev_inspect_ctrl ([Qxpose1,Qxtest,Qypose1,Qytest,Qzpose1,Qztest])</l>
+<l>* stop ()</l>
+<l>* dev_close_inspect_ctrl ([Qxpose1,Qxtest,Qypose1,Qytest,Qzpose1,Qztest])</l>
+<c>* Please note that if you have more than 3 points a least squares solution</c>
+<c>* is estimated. Hence, in case of noise or errors only the "best" possible</c>
+<c>* estimate is returned, but it is impossible to give a transformation such that</c>
+<c>* the data is fitted exactly.</c>
+<l>PX := [0.2,0.4,0.2,0.3]</l>
+<l>PY := [0.4,0.6,0.8,0.6]</l>
+<l>PZ := [0.6,0.8,0.6,0.5]</l>
+<l>QX := [0.25,0.44,0.61,0.3]</l>
+<l>QY := [0.32,0.56,0.82,0.4]</l>
+<l>QZ := [0.4,0.18,0.6,0.51]</l>
+<l>hom_mat_3d_from_3d_3d_point_correspondence (PX, PY, PZ, QX, QY, QZ, HomMat3D)</l>
+<l>affine_trans_point_3d (HomMat3D, PX, PY, PZ, Qxtest, Qytest, Qztest)</l>
+<l>* dev_inspect_ctrl ([QX,Qxtest,QY,Qytest,QZ,Qztest])</l>
+<l>* stop ()</l>
+<l>* dev_close_inspect_ctrl ([QX,Qxtest,QY,Qytest,QZ,Qztest])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="shift_data_to_origin">
+<interface>
+<ic>
+<par name="P" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PShift" base_type="ctrl" dimension="0"/>
+<par name="PMean" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_size_matrix (P, Rows, Columns)</l>
+<c>* One could also use sum_/scale_matrix</c>
+<l>* sum_matrix (P, 'rows', PSum)</l>
+<l>* scale_matrix (PSum, 1. / Columns, PMean)</l>
+<c>* Determine the mean of the data set</c>
+<l>mean_matrix (P, 'rows', PMean)</l>
+<c>* Move data to the origin of the coordinate system.</c>
+<l>create_matrix (1, Columns, 1, Ones)</l>
+<l>mult_matrix (PMean, Ones, 'AB', PSub)</l>
+<l>sub_matrix (P, PSub, PShift)</l>
+<c>* Delete intermediate calculation results.</c>
+<l>clear_matrix ([PSub,Ones])</l>
+<l>return ()</l>
+</body>
+<docu id="shift_data_to_origin">
+<parameters>
+<parameter id="P"/>
+<parameter id="PMean"/>
+<parameter id="PShift"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="hom_mat_3d_from_3d_3d_point_correspondence">
+<interface>
+<ic>
+<par name="PX" base_type="ctrl" dimension="0"/>
+<par name="PY" base_type="ctrl" dimension="0"/>
+<par name="PZ" base_type="ctrl" dimension="0"/>
+<par name="QX" base_type="ctrl" dimension="0"/>
+<par name="QY" base_type="ctrl" dimension="0"/>
+<par name="QZ" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Create data matrix from given points and shift them to the origin.</c>
+<l>create_matrix (3, |PX|, [PX,PY,PZ], P)</l>
+<l>shift_data_to_origin (P, PShift, PMean)</l>
+<l>create_matrix (3, |QX|, [QX,QY,QZ], Q)</l>
+<l>shift_data_to_origin (Q, QShift, QMean)</l>
+<c>* Create matrix for rotational part.</c>
+<l>create_matrix (3, 3, 0, M)</l>
+<l>for Index := 0 to |PX| - 1 by 1</l>
+<l>    get_sub_matrix (PShift, 0, Index, 3, 1, PVec)</l>
+<l>    get_sub_matrix (QShift, 0, Index, 3, 1, QVec)</l>
+<l>    transpose_matrix_mod (QVec)</l>
+<l>    mult_matrix (PVec, QVec, 'AB', PQ)</l>
+<l>    add_matrix_mod (M, PQ)</l>
+<l>    clear_matrix ([PVec,QVec,PQ])</l>
+<l>endfor</l>
+<c>* The left and right orthogonal matrices are extracted with SVD.</c>
+<l>svd_matrix (M, 'full', 'both', U, S, V)</l>
+<l>transpose_matrix_mod (U)</l>
+<c>* They give us the rotation.</c>
+<l>mult_matrix (V, U, 'AB', R)</l>
+<c>* Check: The determinant of a rotation matrix must be 1 by definition.</c>
+<l>determinant_matrix (R, 'general', Value)</l>
+<l>if (Value &lt; 0)</l>
+<l>    get_value_matrix (V, [0,1,2], [2,2,2], Value1)</l>
+<l>    set_value_matrix (V, [0,1,2], [2,2,2], [-Value1[0],-Value1[1],-Value1[2]])</l>
+<l>    clear_matrix (R)</l>
+<l>    mult_matrix (V, U, 'AB', R)</l>
+<l>endif</l>
+<c>* Extract final translational part.</c>
+<l>mult_matrix (R, PMean, 'AB', RPMean)</l>
+<l>sub_matrix (QMean, RPMean, t)</l>
+<c>* Create final affine matrix from rotation and translation.</c>
+<l>create_matrix (3, 4, 0, HomMat3DID)</l>
+<l>set_sub_matrix (HomMat3DID, R, 0, 0)</l>
+<l>set_sub_matrix (HomMat3DID, t, 0, 3)</l>
+<l>get_full_matrix (HomMat3DID, HomMat3D)</l>
+<c>* Delete all matrices that are used.</c>
+<l>clear_matrix ([P,PShift,PMean,Q,QShift,QMean])</l>
+<l>clear_matrix ([M,U,S,V,R,RPMean])</l>
+<l>clear_matrix ([t,HomMat3DID])</l>
+<l>return ()</l>
+</body>
+<docu id="hom_mat_3d_from_3d_3d_point_correspondence">
+<short lang="de_DE">Estimate the affine 3D transformation between corresponding two 3D point sets</short>
+<short lang="en_US">Estimate the affine 3D transformation between corresponding two 3D point sets</short>
+<parameters>
+<parameter id="HomMat3D"/>
+<parameter id="PX"/>
+<parameter id="PY"/>
+<parameter id="PZ"/>
+<parameter id="QX"/>
+<parameter id="QY"/>
+<parameter id="QZ"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

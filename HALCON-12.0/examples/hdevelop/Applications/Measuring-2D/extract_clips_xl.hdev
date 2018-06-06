@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the processing of a large image with HALCON XL.</c>
+<c>* </c>
+<c>* First, a large image is created. Then, all clips are segmented and their</c>
+<c>* orientation is calculated. Finally, to show the dimensions of the image,</c>
+<c>* the whole image is displayed by scrolling from the top of the image to the</c>
+<c>* bottom.</c>
+<c>* </c>
+<c>* Test if the program is started with HALCON XL</c>
+<l>get_system ('halcon_xl', IsHalconXL)</l>
+<l>if (IsHalconXL == 'false')</l>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, 512, 100, 'black', WindowHandle)</l>
+<l>    set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>    disp_message (WindowHandle, 'Run this example with HALCON XL', 'window', 12, 12, 'red', 'false')</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Simulate a large image from a line scan camera</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'clip')</l>
+<l>crop_rectangle1 (Image, ImagePart, 40, 0, 770, 830)</l>
+<l>mirror_image (ImagePart, ImageMirror, 'row')</l>
+<l>concat_obj (ImagePart, ImageMirror, Images)</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    concat_obj (Images, Images, Images)</l>
+<l>endfor</l>
+<l>tile_images (Images, Clip, 1, 'vertical')</l>
+<c>* </c>
+<c>* Display the upper part of the image</c>
+<l>dev_close_window ()</l>
+<l>get_image_size (Clip, Width, Height)</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (-150, -100, Width + 50, Width + 100)</l>
+<l>dev_display (Clip)</l>
+<l>disp_message (WindowHandle, 'Upper part of a line scan image\nof size ' + Height + ' x ' + Width + ' Pixels', 'window', 12, 50, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment the image</c>
+<l>count_seconds (Seconds1)</l>
+<l>threshold (Clip, Dark, 0, 100)</l>
+<l>connection (Dark, Single)</l>
+<l>select_shape (Single, Selected, 'area', 'and', 5000, 10000)</l>
+<l>count_seconds (Seconds2)</l>
+<l>count_obj (Selected, NumClips)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Clip)</l>
+<l>dev_display (Selected)</l>
+<l>disp_message (WindowHandle, 'Segmentation result:', 'window', 12, 50, 'lime green', 'false')</l>
+<l>disp_message (WindowHandle, 'All clips (' + NumClips + ') found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', 36, 50, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the orientation of the clips</c>
+<l>count_seconds (Seconds1)</l>
+<l>orientation_region (Selected, Phi)</l>
+<l>area_center (Selected, Area, Row, Column)</l>
+<l>count_seconds (Seconds2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (3)</l>
+<l>Length := 80</l>
+<l>gen_empty_obj (Arrows)</l>
+<l>for i := 0 to |Phi| - 1 by 1</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    gen_arrow_contour_xld (Arrow, Row[i], Column[i], Row[i] - Length * sin(Phi[i]), Column[i] + Length * cos(Phi[i]), 30, 30)</l>
+<l>    concat_obj (Arrows, Arrow, Arrows)</l>
+<l>endfor</l>
+<l>dev_display (Clip)</l>
+<l>dev_display (Arrows)</l>
+<l>disp_message (WindowHandle, 'Clip orientation:', 'window', 12, 50, 'lime green', 'false')</l>
+<l>disp_message (WindowHandle, 'Orientation of all clips calculated in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', 36, 50, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Scroll over the complete image</c>
+<l>get_window_extents (WindowHandle, Row0, Column0, WidthWin, HeightWin)</l>
+<l>open_window (0, 0, WidthWin, HeightWin, 0, 'buffer', '', WindowHandleBuffer)</l>
+<l>set_display_font (WindowHandleBuffer, 14, 'mono', 'true', 'false')</l>
+<l>set_color (WindowHandleBuffer, 'yellow')</l>
+<l>set_line_width (WindowHandleBuffer, 3)</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>set_part (WindowHandleBuffer, Row1, Column1, Row2, Column2)</l>
+<l>determine_step_size (Clip, Arrows, WindowHandleBuffer, WindowHandle, HeightWin, WidthWin, StepSize)</l>
+<l>while (Row2 &lt; Height + 100)</l>
+<l>    get_part (WindowHandleBuffer, Row1, Column1, Row2, Column2)</l>
+<l>    set_part (WindowHandleBuffer, Row1 + StepSize, Column1, Row2 + StepSize, Column2)</l>
+<l>    clear_window (WindowHandleBuffer)</l>
+<l>    disp_image (Clip, WindowHandleBuffer)</l>
+<l>    disp_obj (Arrows, WindowHandleBuffer)</l>
+<l>    disp_message (WindowHandleBuffer, 'Row:', 'window', 1, 1, 'white', 'false')</l>
+<l>    for ImageRow := Row1 + StepSize - (Row1 + StepSize) % 1000 to Row2 + StepSize - (Row2 + StepSize) % 1000 by 1000</l>
+<l>        disp_message (WindowHandleBuffer, ImageRow, 'image', ImageRow, -100, 'white', 'false')</l>
+<l>    endfor</l>
+<l>    copy_rectangle (WindowHandleBuffer, WindowHandle, 0, 0, HeightWin - 1, WidthWin - 1, 0, 0)</l>
+<l>endwhile</l>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="determine_step_size">
+<interface>
+<io>
+<par name="Clip" base_type="iconic" dimension="0"/>
+<par name="Arrows" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandleBuffer" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="HeightWin" base_type="ctrl" dimension="0"/>
+<par name="WidthWin" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="StepSize" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>NumTest := 5</l>
+<l>count_seconds (Seconds1)</l>
+<l>for Index := 1 to NumTest by 1</l>
+<l>    clear_window (WindowHandleBuffer)</l>
+<l>    disp_image (Clip, WindowHandleBuffer)</l>
+<l>    disp_obj (Arrows, WindowHandleBuffer)</l>
+<l>    copy_rectangle (WindowHandleBuffer, WindowHandle, 0, 0, HeightWin - 1, WidthWin - 1, 0, 0)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>Seconds := (Seconds2 - Seconds1) / NumTest * 1000</l>
+<l>StepSize := max([int(Seconds + 0.5),1])</l>
+<l>return ()</l>
+</body>
+<docu id="determine_step_size">
+<parameters>
+<parameter id="Arrows"/>
+<parameter id="Clip"/>
+<parameter id="HeightWin"/>
+<parameter id="StepSize"/>
+<parameter id="WidthWin"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleBuffer"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

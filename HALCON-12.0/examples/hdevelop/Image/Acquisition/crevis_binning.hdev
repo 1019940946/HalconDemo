@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a Crevis USB camera</c>
+<c>* (HRS 1/4 binning mode)</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('Crevis', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('Crevis', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* Open first Crevis camera with Mono8 PixelFormat in HRS 1/4 binning mode</c>
+<c>* </c>
+<l>Binning := 4</l>
+<l>open_framegrabber ('Crevis', 1, Binning, 0, 0, 0, 0, 'default', 8, 'default', -1, 'default', 'default', '-1', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageSize[0], ImageSize[1], 'black', WindowID)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Determine the fuzzy entropy of regions</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<c>* Define the region fill mode</c>
+<l>dev_set_draw ('margin')</l>
+<l>gen_rectangle1 (Rectangle1, 351, 289, 407, 340)</l>
+<l>gen_rectangle1 (Rectangle2, 78, 178, 144, 244)</l>
+<l>fuzzy_entropy (Rectangle1, Image, 0, 255, Entropy1)</l>
+<l>fuzzy_entropy (Rectangle2, Image, 0, 255, Entropy2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

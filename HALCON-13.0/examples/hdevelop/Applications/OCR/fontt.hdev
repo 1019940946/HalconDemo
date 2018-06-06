@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* OCR (Training)</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* Train Font 'arial'</c>
+<l>FontName := 'arial'</l>
+<l>FontImages := ['a1','a2','a3','a4','a5','a6','a7','a8','a9']</l>
+<l>NumImages := |FontImages|</l>
+<l>read_image (Image, 'fonts/' + FontName + '_' + FontImages[0])</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>dev_update_off ()</l>
+<c>* ---------- Characters to be recognized ----------</c>
+<l>Char := []</l>
+<l>for I := 0 to 25 by 1</l>
+<l>    Char[I] := chr(round(I + ord('A')))</l>
+<l>endfor</l>
+<l>for I := 0 to 25 by 1</l>
+<l>    Char[I + 26] := chr(round(I + ord('a')))</l>
+<l>endfor</l>
+<l>for I := 0 to 9 by 1</l>
+<l>    Char[I + 52] := chr(round(I + ord('0')))</l>
+<l>endfor</l>
+<l>NumChar := |Char|</l>
+<c>* ---------- Segment characters ----------</c>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (FontName + '.trf')</l>
+<l>dev_set_check ('give_error')</l>
+<l>gen_empty_obj (TrainImage)</l>
+<l>gen_empty_obj (TrainRegion)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'fonts/' + FontName + '_' + FontImages[I - 1])</l>
+<l>    char_threshold (Image, Image, DarkRegion, 5, 99, Threshold)</l>
+<l>    closing_circle (DarkRegion, CharRegion, 7.5)</l>
+<l>    connection (CharRegion, CharConnected)</l>
+<l>    intersection (CharConnected, DarkRegion, CharOrig)</l>
+<l>    select_shape (CharOrig, CharSel, 'area', 'and', 50, 99999)</l>
+<l>    sort_region (CharSel, Characters, 'character', 'true', 'row')</l>
+<c>    * Adapt to different brightness</c>
+<l>    shape_trans (CharRegion, CharRectangle, 'rectangle1')</l>
+<l>    dilation_rectangle1 (CharRectangle, CharROI, 10, 10)</l>
+<l>    reduce_domain (Image, CharROI, ImageReduced)</l>
+<l>    min_max_gray (CharROI, Image, 5, Min, Max, Range)</l>
+<l>    scale_image (ImageReduced, ImageScaled, 255 / Range, -Min * 255 / Range)</l>
+<l>    count_obj (Characters, Num)</l>
+<l>    if (Num == NumChar)</l>
+<l>        concat_obj (TrainImage, ImageScaled, TrainImage)</l>
+<l>        concat_obj (TrainRegion, Characters, TrainRegion)</l>
+<l>    endif</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Characters)</l>
+<l>    disp_message (WindowID, 'Segment characters', 'window', 12, 12, 'black', 'true')</l>
+<l>    append_ocr_trainf (Characters, ImageScaled, Char, FontName + '.trf')</l>
+<l>endfor</l>
+<l>count_obj (TrainImage, NumImages)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* ---------- Training of the OCR classifier ---------</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowID, 'Train the font classifier', 'window', 12, 12, 'black', 'true')</l>
+<l>create_ocr_class_mlp (8, 10, 'constant', 'default', Char, 10, 'none', 10, 42, OCRHandle)</l>
+<l>trainf_ocr_class_mlp (OCRHandle, FontName + '.trf', 200, 1, 0.01, Error, ErrorLog)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Check for correct classification</c>
+<l>dev_set_color ('green')</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    select_obj (TrainImage, Image, I)</l>
+<l>    copy_obj (TrainRegion, Characters, 1 + (I - 1) * NumChar, NumChar)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Characters)</l>
+<l>    disp_message (WindowID, 'Check result', 'window', 12, 12, 'black', 'true')</l>
+<l>    do_ocr_multi_class_mlp (Characters, Image, OCRHandle, RecChar, Confidence)</l>
+<l>    CheckDiff := ord(Char) [!=] ord(RecChar)</l>
+<l>    select_mask_obj (Characters, WrongChar, CheckDiff)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (WrongChar)</l>
+<l>    disp_continue_message (WindowID, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* ---------- Write OCR classifier ---------</c>
+<l>write_ocr_class_mlp (OCRHandle, FontName)</l>
+<l>stop ()</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

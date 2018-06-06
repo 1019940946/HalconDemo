@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-ScanningRuler Image Acquisition</c>
+<c>* Interface with the SICK ScanningRuler sensor in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note: The object 3D model is represented with the HALCON camera</c>
+<c>*       3D coordinate system in meters.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<l>Device := 'default'</l>
+<l>* Device := '192.168.0.11'</l>
+<l>CameraType := 'default'</l>
+<l>* CameraType := 'ConfigurationFile.icx'</l>
+<l>* CameraType := 'CameraParametersFile.prm'</l>
+<c>* Connect to the SICK-ScanningRuler device</c>
+<l>open_framegrabber ('SICK-ScanningRuler', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', ['use_error_handler=1','buffer_size=200'], 'false', CameraType, Device, -1, -1, AcqHandle)</l>
+<c>* Settings</c>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 20000)</l>
+<l>get_framegrabber_param (AcqHandle, 'channel_names', ChannelNames)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>get_framegrabber_param (AcqHandle, 'invalid_data_value', InvalidDataValue)</l>
+<c>* Disable the rectification filter</c>
+<l>set_framegrabber_param (AcqHandle, '&lt;Filter&gt;rectification enabled', 'disable')</l>
+<c>* Set trigger mode</c>
+<l>set_framegrabber_param (AcqHandle, '&lt;Camera&gt;&lt;Measurement&gt;image trig', 2)</l>
+<l>while (1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_software_trigger', -1)</l>
+<c>    * grab_data returns all Cir 1 sub-component</c>
+<l>    grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<l>    count_obj (Image, NumImage)</l>
+<c>    * Prepare graphics windows using the image dimensions</c>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, Width, Height, 'black', WindowID1)</l>
+<l>    dev_open_window (Height + 5, 0, Width, Height, 'black', WindowID2)</l>
+<c>    * </c>
+<c>    * Extract the images</c>
+<l>    for Index := 1 to NumImage by 1</l>
+<l>        select_obj (Image, ObjectSelected, Index)</l>
+<l>        threshold (ObjectSelected, Region, InvalidDataValue + 0.1, 2000.0)</l>
+<l>        reduce_domain (ObjectSelected, Region, ObjectSelected)</l>
+<l>        display_current_channel (ObjectSelected, WindowID1, ChannelNames[Index - 1])</l>
+<l>        scale_image_max (ObjectSelected, ImageScaleMax)</l>
+<l>        display_current_channel (ObjectSelected, WindowID2, ChannelNames[Index - 1] + ' - ScaleMax')</l>
+<l>        if (ChannelNames[Index - 1] == 'Cir 1 (X)')</l>
+<l>            select_obj (Image, ImageX, Index)</l>
+<l>        elseif (ChannelNames[Index - 1] == 'Cir 1 (Y)')</l>
+<l>            select_obj (Image, ImageY, Index)</l>
+<l>        elseif (ChannelNames[Index - 1] == 'Cir 1 (Z)')</l>
+<l>            select_obj (Image, ImageZ, Index)</l>
+<l>        elseif (ChannelNames[Index - 1] == 'Cir 1 (Intensity)')</l>
+<l>            select_obj (Image, Intensity, Index)</l>
+<l>        endif</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<c>    * Reduce domain to valid values</c>
+<l>    threshold (ImageZ, Region, InvalidDataValue + 0.1, 2000.0)</l>
+<l>    reduce_domain (ImageX, Region, ImageX)</l>
+<l>    reduce_domain (ImageY, Region, ImageY)</l>
+<l>    reduce_domain (ImageZ, Region, ImageZ)</l>
+<l>    reduce_domain (Intensity, Region, Intensity)</l>
+<c>    * Set HALCON camera 3D coordinate system:</c>
+<c>    * (Xh, Yh, Zh) = (-Xs/1000, Ys/1000, 2-(Zs/1000))</c>
+<l>    scale_image (ImageX, ImageX, -0.001, 0)</l>
+<l>    scale_image (ImageY, ImageY, 0.001, 0)</l>
+<l>    scale_image (ImageZ, ImageZ, -0.001, 2)</l>
+<c>    * Generate an ObjectModel3D and visualize it, press button</c>
+<c>    * to continue</c>
+<l>    xyz_to_object_model_3d (ImageX, ImageY, ImageZ, ObjectModel3D)</l>
+<l>    dev_open_window (0, 0, 800, 600, 'black', WindowID)</l>
+<l>    dev_set_window (WindowID)</l>
+<l>    dev_clear_window ()</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        VisPose := []</l>
+<l>        Instructions[0] := 'Rotate: Left button'</l>
+<l>        Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>        Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>        visualize_object_model_3d (WindowID, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['coord_z','rainbow'], 'ObjectModel3D', [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * Visualize using the intensity data</c>
+<l>        get_region_points (ImageZ, Rows, Columns)</l>
+<l>        get_grayval (Intensity, Rows, Columns, Grayval)</l>
+<l>        set_object_model_3d_attrib_mod (ObjectModel3D, '&amp;intensity', 'points', Grayval)</l>
+<l>        dev_clear_window ()</l>
+<l>        visualize_object_model_3d (WindowID, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['&amp;intensity','sqrt'], 'ObjectModel3D with Intensity', [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * In order to create a surface triangulation from the</c>
+<c>        * ObjectModel3D, please see the following examples:</c>
+<c>        *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>        *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>        * </c>
+<l>    else</l>
+<l>        disp_message (WindowID, 'No 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<l>endwhile</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_current_channel">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowID" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowID)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowID, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_current_channel">
+<parameters>
+<parameter id="Image"/>
+<parameter id="Message"/>
+<parameter id="WindowID"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

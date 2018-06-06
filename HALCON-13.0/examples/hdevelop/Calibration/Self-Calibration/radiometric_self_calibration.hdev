@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows you how to calibrate a camera radiometrically.</c>
+<c>* The calibration is performed for two different cameras.  The first camera</c>
+<c>* exhibits an almost perfect linear response.  The only deviation is that the</c>
+<c>* smallest gray value that occurs is approximately 8.  The second camera</c>
+<c>* has a very strong gamma curve.  Please note that the image content has</c>
+<c>* is non-technical by intention to show that an arbitrary scene can be used</c>
+<c>* to calibrate a camera radiometrically as long as the gray value distribution is</c>
+<c>* suitable.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 652, 494, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 493, 651)</l>
+<l>dev_set_lut ('default')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('red')</l>
+<c>* Set the file names of the image files.</c>
+<l>Files := ['camera_1_0032','camera_1_0016','camera_1_0008','camera_1_0004','camera_1_0002']</l>
+<c>* Specify the exposures of the images.  Since the only relevant data is the</c>
+<c>* ratio of the exposures, arbitrary units can be used.  Here, we specify the</c>
+<c>* exposure in milliseconds.  Note that in general this step is not necessary.</c>
+<c>* We could specify the exposure ratios directly.  However, in this example</c>
+<c>* program, we also display the exposure times, and hence we need this</c>
+<c>* information.</c>
+<l>Exposures := [32,16,8,4,2]</l>
+<c>* Compute the exposure ratios from the exposure times.</c>
+<l>ExposureRatios := real(Exposures[1:4]) / real(Exposures[0:3])</l>
+<l>Num := |Files|</l>
+<c>* Read and display the images.</c>
+<l>gen_empty_obj (Images)</l>
+<l>for J := 0 to Num - 1 by 1</l>
+<l>    read_image (Image, 'radiometry/' + Files[J])</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Exposure: ' + Exposures[J]$'2d' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    concat_obj (Images, Image, Images)</l>
+<l>    wait_seconds (1)</l>
+<l>endfor</l>
+<c>* Since we will perform the radiometric calibration based on the 2d histograms</c>
+<c>* of consecutive images, we compute these histograms and display them.</c>
+<c>* The interesting information that can be seen from these histograms is the</c>
+<c>* saturation behavior of the camera and how well we have covered the entire</c>
+<c>* gray value range of the camera.  In this case, we can get very close to</c>
+<c>* the lowest gray value that can be achieved by the camera.  Also, we can</c>
+<c>* see that the camera saturates at the single gray value 255, as should be</c>
+<c>* expected.</c>
+<l>dev_set_window_extents (-1, -1, 512, 512)</l>
+<l>dev_set_part (0, 0, 255, 255)</l>
+<l>dev_set_lut ('change3')</l>
+<l>for J := 0 to Num - 2 by 1</l>
+<l>    select_obj (Images, Image1, J + 1)</l>
+<l>    select_obj (Images, Image2, J + 2)</l>
+<l>    histo_2dim (Image1, Image1, Image2, Histo2Dim)</l>
+<l>    dev_display (Histo2Dim)</l>
+<l>    disp_message (WindowHandle, '2D histogram of image ' + (J + 1) + ' and ' + (J + 2), 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (2)</l>
+<l>endfor</l>
+<l>dev_set_lut ('default')</l>
+<c>* Now perform the radiometric self calibration and display the inverse response.</c>
+<l>radiometric_self_calibration (Images, ExposureRatios, '2d_histogram', 'discrete', 1, 5, InverseResponse)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_clear_window ()</l>
+<l>plot_response (WindowHandle, InverseResponse)</l>
+<l>disp_message (WindowHandle, 'Inverse response', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window_extents (-1, -1, 640, 480)</l>
+<l>dev_set_part (0, 0, 479, 639)</l>
+<c>* Set the file names of the image files.</c>
+<l>Files := ['camera_2_3000','camera_2_2000','camera_2_1000','camera_2_0500','camera_2_0250','camera_2_0125']</l>
+<c>* Specify the exposures of the images.</c>
+<l>Exposures := [30.0,20.0,10.0,5.0,2.5,1.25]</l>
+<c>* Compute the exposure ratios from the exposure times.</c>
+<l>ExposureRatios := Exposures[1:5] / Exposures[0:4]</l>
+<l>Num := |Files|</l>
+<c>* Read and display the images.</c>
+<l>gen_empty_obj (Images)</l>
+<l>for J := 0 to Num - 1 by 1</l>
+<l>    read_image (Image, 'radiometry/' + Files[J])</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Exposure: ' + Exposures[J]$'5.2f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    concat_obj (Images, Image, Images)</l>
+<l>    wait_seconds (1)</l>
+<l>endfor</l>
+<c>* For this camera, the display of the 2d histograms will reveal a very unusual</c>
+<c>* saturation behavior.  The camera does not saturate at a gray level of 255.</c>
+<c>* Instead, it saturates at a much lower gray value, and saturates in a broad</c>
+<c>* range of gray values.  However, the radiometric self calibration is able to</c>
+<c>* handle this unusual saturation behavior correctly.  Another interesting</c>
+<c>* information that we can see from this example is that despite the fact that</c>
+<c>* the camera has a very nonlinear response, the values in the 2d histogram</c>
+<c>* form a perfect straight line.  This is generally the case if the camera has</c>
+<c>* a gamma curve as its response curve.  Finally, we can see that not the</c>
+<c>* range of gray values is covered.  The lowest gray values are not reached</c>
+<c>* with the present set of exposures.  Ideally, we would have to take a few</c>
+<c>* more images with less exposure.  Therefore, the response curve will be</c>
+<c>* extrapolated by the smoothness constraints for very small gray values.</c>
+<l>dev_set_window_extents (-1, -1, 512, 512)</l>
+<l>dev_set_part (0, 0, 255, 255)</l>
+<l>dev_set_lut ('change3')</l>
+<l>for J := 0 to Num - 2 by 1</l>
+<l>    select_obj (Images, Image1, J + 1)</l>
+<l>    select_obj (Images, Image2, J + 2)</l>
+<l>    histo_2dim (Image1, Image1, Image2, Histo2Dim)</l>
+<l>    dev_display (Histo2Dim)</l>
+<l>    disp_message (WindowHandle, '2D histogram of image ' + (J + 1) + ' and ' + (J + 2), 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (2)</l>
+<l>endfor</l>
+<l>dev_set_lut ('default')</l>
+<c>* Now perform the radiometric self calibration and display the inverse response.</c>
+<l>radiometric_self_calibration (Images, ExposureRatios, '2d_histogram', 'discrete', 1, 5, InverseResponse)</l>
+<l>dev_clear_window ()</l>
+<l>plot_response (WindowHandle, InverseResponse)</l>
+<l>disp_message (WindowHandle, 'Inverse response', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="plot_response">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Response" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Num := |Response|</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>SX := real(Width) / real(Num)</l>
+<l>SY := real(Height) / real(Num)</l>
+<l>Sequence := [0:Num - 1]</l>
+<l>gen_contour_polygon_xld (Plot, Height - 1 - SY * Response, Sequence * SX)</l>
+<l>dev_display (Plot)</l>
+<l>return ()</l>
+</body>
+<docu id="plot_response">
+<parameters>
+<parameter id="Response"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

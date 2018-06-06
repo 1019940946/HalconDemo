@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to multiply two images using</c>
+<c>* the operator 'mult_image'.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Read an input image and generate a second input image</c>
+<c>* by creating a gray value ramp</c>
+<l>read_image (Scene00, 'autobahn/scene_00')</l>
+<l>gen_image_gray_ramp (ImageGrayRamp, 0.5, 0.5, 128, 256, 256, 512, 512)</l>
+<c>* </c>
+<c>* Display the input images for the multiplication</c>
+<l>dev_open_window_fit_image (Scene00, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Scene00)</l>
+<l>disp_message (WindowHandle, 'Multiply the image with a gray value ramp', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageGrayRamp)</l>
+<l>disp_message (WindowHandle, 'Created gray value ramp', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Multiply the images with factor 0.005 for the gray value</c>
+<c>* adaption and display the resulting image</c>
+<l>mult_image (Scene00, ImageGrayRamp, ImageResult, 0.005, 0)</l>
+<l>dev_display (ImageResult)</l>
+<l>disp_message (WindowHandle, 'Resulting image of the product', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

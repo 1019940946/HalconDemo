@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* xing.hdev: Traffic monitoring (by Kalman filtering)</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'xing/init')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>read_region (XingRegion, 'xing/xing_region')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>zoom_image_factor (Image, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>create_bg_esti (ImageZoomed, 0.7, 0.7, 'fixed', 0.001, 0.03, 'on', 8.0, 10, 3.25, 15, BgEstiHandle)</l>
+<l>for I := 0 to 587 by 1</l>
+<l>    read_image (ActualImage, 'xing/xing' + (I$'03'))</l>
+<l>    zoom_image_factor (ActualImage, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>    run_bg_esti (ImageZoomed, ForegroundRegion, BgEstiHandle)</l>
+<l>    zoom_region (ForegroundRegion, RegionZoom, 2, 2)</l>
+<l>    intersection (RegionZoom, XingRegion, RegionIntersection)</l>
+<l>    connection (RegionIntersection, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 20, 99999)</l>
+<l>    shape_trans (SelectedRegions, RegionTrans, 'convex')</l>
+<l>    union1 (RegionTrans, RegionUnion)</l>
+<l>    connection (RegionUnion, FinalConnected)</l>
+<l>    select_gray (FinalConnected, ActualImage, SelectedRegionsGray, 'deviation', 'and', 25, 1000)</l>
+<l>    union1 (SelectedRegionsGray, RegionUnionFinal)</l>
+<l>    dilation_rectangle1 (RegionUnionFinal, RegionDilation, 5, 5)</l>
+<l>    complement (RegionDilation, BackGround)</l>
+<l>    clip_region (BackGround, RegionClipped, 0, 0, Height - 1, Width - 1)</l>
+<l>    zoom_region (RegionClipped, BackGroundZoom, 0.5, 0.5)</l>
+<l>    update_bg_esti (ImageZoomed, BackGroundZoom, BgEstiHandle)</l>
+<l>    shape_trans (SelectedRegionsGray, Rects, 'rectangle1')</l>
+<l>    dev_display (ActualImage)</l>
+<l>    dev_display (Rects)</l>
+<l>endfor</l>
+<l>give_bg_esti (BackgroundImage, BgEstiHandle)</l>
+<l>dev_display (BackgroundImage)</l>
+<l>close_bg_esti (BgEstiHandle)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

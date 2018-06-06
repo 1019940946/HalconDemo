@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>dev_set_color ('black')</l>
+<c>* Draw with the mouse an arbitrary (small) region into the window</c>
+<l>draw_region (Region, WindowID)</l>
+<l>zoom_region (Region, RegionZoom, 2, 2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RegionZoom)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

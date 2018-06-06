@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Pattern matching with adaptation to illumination changes</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'card/card_00')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Create template</c>
+<l>Row := 180.5</l>
+<l>Column := 191</l>
+<l>Phi := 0</l>
+<l>Length1 := 38.5</l>
+<l>Length2 := 16</l>
+<l>dev_display (Image)</l>
+<l>gen_rectangle2 (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>dev_display (Rectangle)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>create_template (ImageReduced, 255, 4, 'sort', 'original', TemplateID)</l>
+<l>Angle := 0</l>
+<l>TemplH2 := Length2</l>
+<l>TemplW2 := Length1</l>
+<l>TemplPhi := Phi</l>
+<l>intensity (ImageReduced, Image, TemplMean, Deviation)</l>
+<l>disp_message (WindowID, 'Create template', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Pattern matching loop</c>
+<l>for Index := 0 to 20 by 1</l>
+<l>    read_image (Image, 'card/card_' + Index$'02')</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (Seconds1)</l>
+<c>    * </c>
+<c>    * Pattern Matching</c>
+<c>    * </c>
+<l>    best_match_mg (Image, TemplateID, 20, 'false', 3, 'original', Row, Column, Error)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := 1000 * (Seconds2 - Seconds1)</l>
+<l>    disp_message (WindowID, 'Template found in ' + Time$'.2' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowID)</l>
+<l>    if (Error &lt; 255)</l>
+<l>        gen_rectangle2 (Rectangle, Row, Column, TemplPhi + Angle, Length1, Length2)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>        intensity (ImageReduced, Image, Mean, Deviation)</l>
+<l>        set_offset_template (TemplateID, Mean - TemplMean)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_template (TemplateID)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

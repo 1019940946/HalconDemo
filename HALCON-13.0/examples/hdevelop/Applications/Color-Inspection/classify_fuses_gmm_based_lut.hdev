@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* In this example five different color fuses are segmented with</c>
+<c>* a look-up table classifier (LUT) based on a Gaussian Mixture</c>
+<c>* Model (GMM).</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 600, 'white', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>ImageRootName := 'color/color_fuses_0'</l>
+<l>FuseTypes := [5,10,15,20,30]</l>
+<l>FuseColors := ['Orange','Red','Blue','Yellow','Green']</l>
+<l>FuseHighlight := ['orange','red','blue','goldenrod','forest green']</l>
+<l>DisplayTextShift := [85,65,75,85,85]</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_line_width (2)</l>
+<l>read_image (Image, ImageRootName + '0')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Define ROIs for the training data of the classifier</c>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>gen_rectangle1 (FuseOrange, 195, 90, 230, 120)</l>
+<l>dev_display (FuseOrange)</l>
+<l>disp_message (WindowHandle, 'Orange Fuse', 'image', 160, 90 - 65, 'black', 'true')</l>
+<l>gen_rectangle1 (FuseRed, 191, 280, 226, 310)</l>
+<l>dev_display (FuseRed)</l>
+<l>disp_message (WindowHandle, 'Red Fuse', 'image', 160, 280 - 55, 'black', 'true')</l>
+<l>gen_rectangle1 (FuseBlue, 190, 470, 225, 500)</l>
+<l>dev_display (FuseBlue)</l>
+<l>disp_message (WindowHandle, 'Blue Fuse', 'image', 160, 470 - 60, 'black', 'true')</l>
+<l>gen_rectangle1 (FuseYellow, 192, 672, 227, 702)</l>
+<l>dev_display (FuseYellow)</l>
+<l>disp_message (WindowHandle, 'Yellow Fuse', 'image', 160, 672 - 70, 'black', 'true')</l>
+<l>gen_rectangle1 (FuseGreen, 197, 880, 232, 910)</l>
+<l>dev_display (FuseGreen)</l>
+<l>disp_message (WindowHandle, 'Green Fuse', 'image', 160, 880 - 65, 'black', 'true')</l>
+<l>gen_empty_obj (Classes)</l>
+<l>concat_obj (FuseOrange, FuseRed, Classes)</l>
+<l>concat_obj (Classes, FuseBlue, Classes)</l>
+<l>concat_obj (Classes, FuseYellow, Classes)</l>
+<l>concat_obj (Classes, FuseGreen, Classes)</l>
+<l>disp_message (WindowHandle, 'ROIs for the training data', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the GMM classifier, add the samples, and train it</c>
+<l>create_class_gmm (3, 5, 1, 'full', 'none', 3, 42, GMMHandle)</l>
+<l>add_samples_image_class_gmm (Image, Classes, GMMHandle, 0)</l>
+<l>disp_message (WindowHandle, 'Training GMM classifier...', 'window', 48, 12, 'black', 'true')</l>
+<l>train_class_gmm (GMMHandle, 100, 0.001, 'training', 0.001, Centers, Iter)</l>
+<c>* </c>
+<c>* Create the GMM-based LUT classifier</c>
+<l>disp_message (WindowHandle, 'Creating LUT classifier...', 'window', 84, 12, 'black', 'true')</l>
+<l>create_class_lut_gmm (GMMHandle, ['bit_depth','rejection_threshold'], [6,0.03], ClassLUTHandle)</l>
+<l>clear_class_gmm (GMMHandle)</l>
+<c>* </c>
+<c>* Segment images with LUT classifier</c>
+<l>for Img := 0 to 3 by 1</l>
+<l>    read_image (Image, ImageRootName + Img)</l>
+<l>    count_seconds (T1)</l>
+<l>    classify_image_class_lut (Image, ClassRegions, ClassLUTHandle)</l>
+<l>    count_seconds (T2)</l>
+<l>    TimeToClassify := (T2 - T1) * 1000</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (3)</l>
+<l>    for Fuse := 1 to 5 by 1</l>
+<c>        * </c>
+<c>        * Perform post-processing on returned classes</c>
+<l>        copy_obj (ClassRegions, ObjectsSelected, Fuse, 1)</l>
+<l>        closing_circle (ObjectsSelected, RegionClosing, 3.5)</l>
+<l>        connection (RegionClosing, ConnectedRegions)</l>
+<l>        select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 2500, 99999)</l>
+<l>        fill_up (SelectedRegions, RegionFillUp)</l>
+<l>        area_center (RegionFillUp, Area, Row, Column)</l>
+<l>        shape_trans (RegionFillUp, RegionTrans, 'convex')</l>
+<l>        dev_set_color (FuseHighlight[Fuse - 1])</l>
+<l>        dev_display (RegionTrans)</l>
+<c>        * </c>
+<l>        disp_message (WindowHandle, FuseColors[Fuse - 1] + ' ' + FuseTypes[Fuse - 1] + ' A', 'image', Row - 10, Column - DisplayTextShift[Fuse - 1], FuseHighlight[Fuse - 1], 'white')</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, TimeToClassify$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Img &lt; 3)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>clear_class_lut (ClassLUTHandle)</l>
+<l>disp_message (WindowHandle, 'No more lines to execute', 'window', 50, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

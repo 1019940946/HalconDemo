@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>kirsch_amp (Image, ImageEdgeAmp)</l>
+<l>threshold (ImageEdgeAmp, Region, 70, 255)</l>
+<l>skeleton (Region, Skeleton)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Skeleton)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

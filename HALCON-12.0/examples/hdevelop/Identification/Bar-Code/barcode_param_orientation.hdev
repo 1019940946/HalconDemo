@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the use of the</c>
+<c>* bar code parameters: orientation and orientation_tol</c>
+<c>* </c>
+<c>* Create Barcode reader</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_min', 1.5)</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/25interleaved/25interleaved16')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read all barcodes with default parameters</c>
+<l>get_bar_code_param (BarCodeHandle, 'orientation', InputOrient)</l>
+<l>get_bar_code_param (BarCodeHandle, 'orientation_tol', InputOrientTol)</l>
+<l>Mode := 'Default orientation'</l>
+<l>find_oriented_bar_code (Image, BarCodeHandle, Mode, InputOrient, InputOrientTol, WindowHandle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Restrict search to 0 - 20 deg</c>
+<c>* Only 1 code will be found</c>
+<l>InputOrient := 10</l>
+<l>InputOrientTol := 10</l>
+<l>Mode := 'Restricted orientation'</l>
+<l>find_oriented_bar_code (Image, BarCodeHandle, Mode, InputOrient, InputOrientTol, WindowHandle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Restrict search to 90 - 110 deg</c>
+<c>* Only the other code will be found</c>
+<l>InputOrient := 100</l>
+<l>InputOrientTol := 10</l>
+<l>Mode := 'Restricted orientation'</l>
+<l>find_oriented_bar_code (Image, BarCodeHandle, Mode, InputOrient, InputOrientTol, WindowHandle)</l>
+<c>* </c>
+<c>* Close Barcode reader</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_oriented_bar_code">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="BarCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="Mode" base_type="ctrl" dimension="0"/>
+<par name="InputOrient" base_type="ctrl" dimension="0"/>
+<par name="InputOrientTol" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure first sets the bar code parameters</c>
+<c>* 'orientation' and 'orientation_tol' to the values specified</c>
+<c>* in InputOrient and InputOrientTol. After that, it calls</c>
+<c>* find_bar_code and displays the results and execution time.</c>
+<l>set_bar_code_param (BarCodeHandle, ['orientation','orientation_tol'], [InputOrient,InputOrientTol])</l>
+<l>count_seconds (Seconds1)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, '2/5 Interleaved', DecodedDataStrings)</l>
+<l>count_seconds (Seconds2)</l>
+<l>Time := (Seconds2 - Seconds1) * 1000</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'orientation', Orientation)</l>
+<l>area_center (SymbolRegions, Area, Row, Column)</l>
+<l>for I := 0 to |Row| - 1 by 1</l>
+<l>    disp_message (WindowHandle, 'Orientation = ' + Orientation[I]$'.1f' + chr(0xb0), 'image', Row[I] - 30, Column[I] - 120, 'black', 'true')</l>
+<l>endfor</l>
+<l>Message := Mode + ': ' + InputOrient + chr(0xb0) + ' +/- ' + InputOrientTol + chr(0xb0)</l>
+<l>Message[1] := |Row| + ' code(s) found in ' + Time$'.1f' + ' ms'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="find_oriented_bar_code">
+<parameters>
+<parameter id="BarCodeHandle"/>
+<parameter id="Image"/>
+<parameter id="InputOrient"/>
+<parameter id="InputOrientTol"/>
+<parameter id="Mode"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

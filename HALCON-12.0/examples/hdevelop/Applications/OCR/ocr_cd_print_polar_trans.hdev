@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates how to perform OCR</c>
+<c>* of symbols printed along a non-linear pattern.</c>
+<c>* In particular, this example reads the characters</c>
+<c>* printed on a CD</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>WidthP := 900</l>
+<l>HeightP := 20</l>
+<l>read_image (Image, 'ocr/cd_print')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (HeightP + 60, 0, Width * 2 / 3, Height * 2 / 3, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Show original image</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Read the number on the outer ring', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment disc in which the characters have been printed</c>
+<l>mean_image (Image, ImageMean, 211, 211)</l>
+<l>dyn_threshold (Image, ImageMean, RegionDynThresh, 15, 'dark')</l>
+<l>connection (RegionDynThresh, ConnectedRegions)</l>
+<l>select_shape_std (ConnectedRegions, SelectedRegions, 'max_area', 0)</l>
+<l>gen_contour_region_xld (SelectedRegions, Contours, 'border')</l>
+<l>fit_circle_contour_xld (Contours, 'ahuber', -1, 0, 0, 3, 2, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>gen_circle (CircleO, Row, Column, Radius - 5)</l>
+<l>gen_circle (CircleI, Row, Column, Radius - 30)</l>
+<l>difference (CircleO, CircleI, Ring)</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Ring)</l>
+<l>Message := '1. Segment ring'</l>
+<l>disp_message (WindowHandle, Message, 'window', 36, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Rectify the region through a polar transformation</c>
+<c>* so that the characters now are aligned along an</c>
+<c>* horizontal line</c>
+<l>polar_trans_image_ext (Image, ImagePolar, Row, Column, 0, rad(360), Radius - 30, Radius - 5, WidthP, HeightP, 'bilinear')</l>
+<l>dev_open_window (0, 0, WidthP, HeightP, 'black', WindowHandle2)</l>
+<l>rotate_image (ImagePolar, ImageRotate, 180, 'constant')</l>
+<c>* </c>
+<c>* Segment the characters</c>
+<l>mean_image (ImageRotate, ImageMeanRotate, 51, 9)</l>
+<l>dyn_threshold (ImageRotate, ImageMeanRotate, RegionDynThreshChar, 5, 'dark')</l>
+<l>connection (RegionDynThreshChar, ConnectedRegions1)</l>
+<l>select_shape (ConnectedRegions1, SelectedRegions, ['area','width'], 'and', [30,4], [150,10])</l>
+<l>sort_region (SelectedRegions, SortedRegions, 'character', 'false', 'column')</l>
+<c>* Remove distractors which happen to have similar dimensions to the characters.</c>
+<c>* From all the candidate regions pickup those consisting of dark regions</c>
+<c>* on light background</c>
+<l>threshold (ImageMeanRotate, Region, 90, 255)</l>
+<l>intersection (SelectedRegions, Region, RegionIntersection)</l>
+<c>* Filter out resulting empty regions</c>
+<l>area_center (RegionIntersection, Area, Row1, Column1)</l>
+<l>tuple_find (sgn(Area), 1, Indices)</l>
+<l>select_obj (RegionIntersection, Characters, Indices + 1)</l>
+<c>* </c>
+<l>dev_display (ImageRotate)</l>
+<l>Message := [Message,'2. Calculate polar transform']</l>
+<l>disp_message (WindowHandle, Message, 'window', 36, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read out</c>
+<l>read_ocr_class_mlp ('Industrial_0-9A-Z_NoRej', OCRHandle)</l>
+<l>sort_region (Characters, SortedRegions, 'character', 'true', 'row')</l>
+<l>do_ocr_multi_class_mlp (SortedRegions, ImageRotate, OCRHandle, Class, Confidence)</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+<c>* Correct zeros that are mistaken as capital O's.</c>
+<c>* In a more general situation one may use a more</c>
+<c>* complex regular expression or else the operator</c>
+<c>* do_ocr_word_mlp()</c>
+<l>tuple_regexp_replace (sum(Class), 'O', '0', Result)</l>
+<c>* </c>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (RegionIntersection)</l>
+<l>Message := [Message,'3. Segment and read text']</l>
+<l>disp_message (WindowHandle, Message, 'window', 36, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, Result, 'image', Height / 2 - 20, Width / 2 - 150, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

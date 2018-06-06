@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the photometric stereo technique</c>
+<c>* for the inspection and reading of braille text on a pharmaceutical</c>
+<c>* package. Input are 4 images taken from the pharmaceutical package with</c>
+<c>* light coming from different orientations.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Images, 'photometric_stereo/braille_0' + [1:4])</l>
+<l>select_obj (Images, Image, 1)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Inspect and read braille text on a pharmaceutical package'</l>
+<l>Message[1] := 'using photometric stereo.'</l>
+<l>Message[2] := 'In this case four different light orientations are used.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* This code table maps between the hexadecimal representation</c>
+<c>* of the braille pattern and the corresponding character.</c>
+<c>* In this case a german 6-dot code is used.</c>
+<l>CodeTable := ['','a',',','b','.','k',';','l','´','c','i','f','äu','m','s','p','','e',':','h','*','o','!','r','CAPS','d','j','g','ä','n','t','q','lcase','au','?','eu','-','u','"','v','Cap','ei','ö','','ie','x','ß','','','sch','','ü','"','z','()','','&lt;e&gt;','ch','w','','','y','st','']</l>
+<c>* </c>
+<c>* Show input images with different illumination</c>
+<l>for I := 1 to 4 by 1</l>
+<l>    Message := 'Acquire image ' + I + ' of 4'</l>
+<l>    select_obj (Images, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Apply photometric stereo to determine the albedo and compute the mean</c>
+<c>* curvature of the surface</c>
+<l>Tilts := [6.1,95.0,-176.1,-86.8]</l>
+<l>Slants := [41.4,42.6,41.7,40.9]</l>
+<l>ResultType := ['gradient','albedo']</l>
+<l>photometric_stereo (Images, HeightField, Gradient, Albedo, Slants, Tilts, ResultType, 'poisson', [], [])</l>
+<c>* </c>
+<c>* Display the albedo image</c>
+<l>dev_display (Albedo)</l>
+<l>disp_message (WindowHandle, 'The albedo image still has some artefacts', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Calculate the mean curvature of the surface</c>
+<c>* using the gradient field as input for the operator</c>
+<c>* derivate_vector_field.</c>
+<l>derivate_vector_field (Gradient, MeanCurvature, 1, 'mean_curvature')</l>
+<c>* </c>
+<c>* It is easy to segment the dots in the curvature image</c>
+<l>dev_display (MeanCurvature)</l>
+<l>disp_message (WindowHandle, 'But it is easy to segment the dots in the curvature image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment dots</c>
+<l>threshold (MeanCurvature, Regions, -0.14, -0.017)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>dilation_circle (ConnectedRegions, RegionDilation, 1.5)</l>
+<l>select_shape (RegionDilation, Braille, ['area','roundness'], 'and', [191.82,0.8108], [360.12,1])</l>
+<l>union1 (Braille, RegionUnion)</l>
+<c>* </c>
+<c>* Group dots to words and characters</c>
+<l>closing_rectangle1 (Regions, RegionClosing, 90, 40)</l>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<l>shape_trans (ConnectedRegions, RegionTrans, 'rectangle1')</l>
+<l>select_shape (RegionTrans, SelectedRegions, 'height', 'and', 50, 90)</l>
+<l>dilation_rectangle1 (SelectedRegions, RegionDilation1, 21, 1)</l>
+<l>partition_dynamic (RegionDilation1, Partitioned, 72, 5)</l>
+<l>intersection (Partitioned, RegionUnion, Letters)</l>
+<c>* </c>
+<c>* Display segmentation result</c>
+<l>dev_display (MeanCurvature)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Partitioned)</l>
+<l>dev_display (Letters)</l>
+<l>disp_message (WindowHandle, 'Result', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Decode text letter by letter</c>
+<l>count_obj (Letters, NumLetters)</l>
+<l>for I := 1 to NumLetters by 1</l>
+<c>    * </c>
+<c>    * Define borders for the six dot sectors inside the rectangle</c>
+<l>    select_obj (Partitioned, CurrentRectangle, I)</l>
+<l>    region_features (CurrentRectangle, ['row1','height','column'], Limits)</l>
+<l>    MaxFirstRow := Limits[0] + Limits[1] / 3.0</l>
+<l>    MaxSecondRow := Limits[0] + Limits[1] * 2 / 3.0</l>
+<l>    MaxFirstColumn := Limits[2]</l>
+<c>    * </c>
+<c>    * Decode the letter dot by dot</c>
+<c>    * </c>
+<c>    * Code values calculated depending</c>
+<c>    * on the presence of dots using</c>
+<c>    * the following scheme:</c>
+<c>    *    (1) ( 8)</c>
+<c>    *    (2) (16)</c>
+<c>    *    (4) (32)</c>
+<c>    * If a dot is present, the corresponding</c>
+<c>    * value is added to the Code.</c>
+<c>    * This way, 2^6 = 64 different codes are possible.</c>
+<l>    select_obj (Letters, CurrentLetter, I)</l>
+<l>    connection (CurrentLetter, Dots)</l>
+<l>    count_obj (Dots, NumDots)</l>
+<l>    Code := 0</l>
+<l>    for J := 1 to NumDots by 1</l>
+<l>        select_obj (Dots, CurrentDot, J)</l>
+<l>        area_center (CurrentDot, _Area, Row, Column)</l>
+<l>        if (Column &lt;= MaxFirstColumn)</l>
+<l>            if (Row &lt;= MaxFirstRow)</l>
+<c>                * Left upper (1)</c>
+<l>                Code := Code + 1</l>
+<l>            elseif (Row &lt;= MaxSecondRow)</l>
+<c>                * Left middle (2)</c>
+<l>                Code := Code + 2</l>
+<l>            else</l>
+<c>                * Left lower (4)</c>
+<l>                Code := Code + 4</l>
+<l>            endif</l>
+<l>        else</l>
+<l>            if (Row &lt;= MaxFirstRow)</l>
+<c>                * Right upper (8)</c>
+<l>                Code := Code + 8</l>
+<l>            elseif (Row &lt;= MaxSecondRow)</l>
+<c>                * Right middle (16)</c>
+<l>                Code := Code + 16</l>
+<l>            else</l>
+<c>                * Right lower (32)</c>
+<l>                Code := Code + 32</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    Character[I - 1] := CodeTable[Code]</l>
+<l>    disp_message (WindowHandle, CodeTable[Code], 'image', Limits[0] + Limits[1], Limits[2] - 20, 'black', 'true')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

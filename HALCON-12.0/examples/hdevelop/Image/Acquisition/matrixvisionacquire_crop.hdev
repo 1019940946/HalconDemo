@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images with the MatrixVisionAcquire interface</c>
+<c>* (image cropping)</c>
+<c>* </c>
+<c>* </c>
+<c>* Adapt the following settings according to your configuration!</c>
+<l>MyColorSpace := 'gray'</l>
+<l>open_framegrabber ('MatrixVisionAcquire', 1, 1, 0, 0, 0, 0, 'default', -1, MyColorSpace, -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<c>* </c>
+<c>* "zoom" into the image:</c>
+<l>for i := 1 to 9 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'Camera/Aoi/X', 16 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'Camera/Aoi/Y', 16 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'Camera/Aoi/W', MaxWidth - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'Camera/Aoi/H', MaxHeight - 32 * i)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>*     stop ()</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* reset full image size:</c>
+<l>set_framegrabber_param (AcqHandle, 'Camera/Aoi/H', MaxHeight)</l>
+<l>set_framegrabber_param (AcqHandle, 'Camera/Aoi/W', MaxWidth)</l>
+<l>set_framegrabber_param (AcqHandle, 'Camera/Aoi/X', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'Camera/Aoi/Y', 0)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<c>* "zoom" into the image during open_framegrabber:</c>
+<l>for i := 0 to 9 by 1</l>
+<l>    open_framegrabber ('MatrixVisionAcquire', 1, 1, MaxWidth - 32 * i, MaxHeight - 32 * i, 16 * i, 16 * i, 'default', -1, MyColorSpace, -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    close_framegrabber (AcqHandle)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

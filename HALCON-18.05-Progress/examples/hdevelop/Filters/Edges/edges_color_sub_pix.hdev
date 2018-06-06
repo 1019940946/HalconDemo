@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use edges_color_sub_pix and the</c>
+<c>* differences between the output of edges_color_sub_pix and edges_sub_pix</c>
+<c>* using an image in which some edges can only be extracted from a color image.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'olympic_stadium')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Color image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Convert the color image to a gray value image.  Note that there is no contrast</c>
+<c>* between the soccer field and the track in the gray value image.</c>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<l>dev_display (GrayImage)</l>
+<l>Message := 'Gray value image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the subpixel-precise color edge extraction.  Note the segmented</c>
+<c>* edge between the soccer field and the track.</c>
+<l>edges_color_sub_pix (Image, EdgesColor, 'canny', 1, 20, 40)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EdgesColor)</l>
+<l>Message := 'Segmented color edges'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the subpixel-precise gray value edge extraction.  Note the absence</c>
+<c>* of an edge between the soccer field and the track.</c>
+<l>edges_sub_pix (GrayImage, EdgesGray, 'canny', 1, 20, 40)</l>
+<l>dev_display (GrayImage)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EdgesGray)</l>
+<l>Message := 'Segmented gray value edges'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now display everything again, while only showing the part of the image</c>
+<c>* containing the soccer field and the track.</c>
+<l>Row1 := 220</l>
+<l>Col1 := 215</l>
+<l>Row2 := 399</l>
+<l>Col2 := 489</l>
+<l>dev_set_part (Row1, Col1, Row2, Col2)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_display (GrayImage)</l>
+<l>stop ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EdgesColor)</l>
+<l>stop ()</l>
+<l>dev_display (GrayImage)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EdgesGray)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

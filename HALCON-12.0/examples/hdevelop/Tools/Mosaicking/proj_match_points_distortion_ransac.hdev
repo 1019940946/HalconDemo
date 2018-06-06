@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use proj_match_points_distortion_ransac to</c>
+<c>* match two images in a mosaicking application.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<c>* Read and display the images</c>
+<l>read_image (Image1, 'mosaic/building_01')</l>
+<l>read_image (Image2, 'mosaic/building_02')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image1)</l>
+<l>disp_message (WindowHandle, 'Image 1 to be matched', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image2)</l>
+<l>disp_message (WindowHandle, 'Image 2 to be matched', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract points to be matched from the images</c>
+<l>points_foerstner (Image1, 1, 2, 3, 50, 0.1, 'gauss', 'true', Rows1, Columns1, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>points_foerstner (Image2, 1, 2, 3, 50, 0.1, 'gauss', 'true', Rows2, Columns2, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* </c>
+<c>* We will first perform a normal projective matching that does not take</c>
+<c>* the radial distortions into account to show the errors that are caused</c>
+<c>* by neglecting the radial distortions.</c>
+<l>proj_match_points_ransac (Image1, Image2, Rows1, Columns1, Rows2, Columns2, 'ncc', 10, 0, 0, Height, Width, 0, 0.5, 'gold_standard', 2, 42, HomMat2DUnrectified, Points1Unrectified, Points2Unrectified)</l>
+<c>* Construct a projective mosaic from the two unrectified images.</c>
+<l>concat_obj (Image1, Image2, Images)</l>
+<l>gen_projective_mosaic (Images, MosaicImageUnrectified, 1, 1, 2, HomMat2DUnrectified, 'default', 'false', MosaicMatrices2DUnrectified)</l>
+<c>* </c>
+<c>* Display unrectified results</c>
+<l>get_image_size (MosaicImageUnrectified, Width, Height)</l>
+<l>dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (MosaicImageUnrectified)</l>
+<c>* Display seam line</c>
+<l>projective_trans_pixel (MosaicMatrices2DUnrectified[9:17], [0,493], [0,0], RowTrans, ColumnTrans)</l>
+<l>gen_contour_polygon_xld (Contour, RowTrans, ColumnTrans)</l>
+<l>set_line_style (WindowHandle, [1,5])</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Contour)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (3)</l>
+<l>gen_circle (Circle, [82,402], [228,223], [15,15])</l>
+<l>dev_display (Circle)</l>
+<l>Message := 'The mosaic image does not fit'</l>
+<l>Message[1] := 'perfectly, if radial distortions'</l>
+<l>Message[2] := 'are not taken into account.'</l>
+<l>disp_message (WindowHandle, Message, 'image', 200, 300, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now, we will perform a projective matching that takes the radial</c>
+<c>* distortions into account.</c>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>proj_match_points_distortion_ransac (Image1, Image2, Rows1, Columns1, Rows2, Columns2, 'ncc', 10, 0, 0, Height, Width, 0, 0.5, 'gold_standard', 1, 42, HomMat2D, Kappa, Error, Points1, Points2)</l>
+<c>* Construct camera parameters for the purpose of rectifying the images,</c>
+<c>* i.e., to remove the radial distortions.</c>
+<l>CamParDist := [0.0,Kappa,1.0,1.0,0.5 * (Width - 1),0.5 * (Height - 1),Width,Height]</l>
+<c>* Remove the radial distortions from the images.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParDist, 0, CamPar)</l>
+<l>change_radial_distortion_image (Image1, Image1, Image1Rect, CamParDist, CamPar)</l>
+<l>change_radial_distortion_image (Image2, Image2, Image2Rect, CamParDist, CamPar)</l>
+<c>* Construct a mosaic from the two rectified images.  Note that the images</c>
+<c>* fit together perfectly.</c>
+<l>concat_obj (Image1Rect, Image2Rect, ImagesRect)</l>
+<l>gen_projective_mosaic (ImagesRect, MosaicImage, 1, 1, 2, HomMat2D, 'default', 'false', MosaicMatrices2D)</l>
+<c>* </c>
+<c>* Display rectified results</c>
+<l>get_image_size (MosaicImage, Width, Height)</l>
+<l>dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (MosaicImage)</l>
+<c>* Display seam line</c>
+<l>projective_trans_pixel (MosaicMatrices2D[9:17], [0,493], [0,0], RowTrans, ColumnTrans)</l>
+<l>gen_contour_polygon_xld (Contour2, RowTrans, ColumnTrans)</l>
+<l>set_line_style (WindowHandle, [1,5])</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Contour2)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>gen_circle (Circle, [124,496], [244,239], [15,15])</l>
+<l>dev_display (Circle)</l>
+<l>Message := 'The mosaic image fits perfectly,'</l>
+<l>Message[1] := 'if radial distortions are taken'</l>
+<l>Message[2] := 'into account.'</l>
+<l>disp_message (WindowHandle, Message, 'image', 200, 300, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the photometric stereo technique</c>
+<c>* to read imprinted letters on a tire with a low cost setup.</c>
+<c>* Even if the light sources are not very homogeneous and their</c>
+<c>* orientation is only very roughly known, the text can be</c>
+<c>* read robustly.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>PolarTransWidth := 512</l>
+<l>PolarTransHeight := 80</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Images, 'photometric_stereo/tire_0' + [1:4])</l>
+<l>select_obj (Images, ObjectSelected, 1)</l>
+<l>dev_open_window_fit_image (ObjectSelected, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>for Index := 1 to 4 by 1</l>
+<l>    select_obj (Images, ObjectSelected, Index)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    disp_message (WindowHandle, 'Image ' + Index + '/4', 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* We do not know the exact orientations of the light sources</c>
+<c>* and therefore use only very rough estimates.</c>
+<l>Tilts := [180,270,0,90]</l>
+<l>Slants := [45,45,45,45]</l>
+<c>* </c>
+<c>* Apply photometric stereo to determine the surface gradient</c>
+<l>photometric_stereo (Images, HeightField, Gradient, Albedo, Slants, Tilts, 'gradient', 'poisson', [], [])</l>
+<c>* </c>
+<c>* Calculate the surface curvature for easy segmentation of the letters</c>
+<l>derivate_vector_field (Gradient, Result, 3, 'mean_curvature')</l>
+<c>* Display surface curvature</c>
+<l>dev_display (Result)</l>
+<l>disp_message (WindowHandle, 'Surface curvature image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment text and base line</c>
+<c>* The base line of the text is used to align</c>
+<c>* the text horizontally (to simplify the OCR)</c>
+<l>threshold (Result, Region, -0.2, -0.01)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, BaseLine, ['width','row'], 'and', [600,280], [99999,350])</l>
+<c>* The base line is converted to an XLD contour</c>
+<c>* to determine the radius of the line by fitting</c>
+<c>* a circle to the contour</c>
+<l>gen_contour_region_xld (BaseLine, Contours, 'center')</l>
+<l>segment_contours_xld (Contours, ContoursSplit, 'lines_circles', 8, 14, 12)</l>
+<l>select_contours_xld (ContoursSplit, SelectedContours, 'contour_length', 500, 1e10, -0.5, 0.5)</l>
+<l>fit_circle_contour_xld (ContoursSplit, 'ahuber', -1, 0, 0, 3, 1, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<c>* Generate circle contours for debugging (not used)</c>
+<l>* gen_circle_contour_xld (ContCircle, Row, Column, Radius, StartPhi, EndPhi, PointOrder, 1)</l>
+<c>* If more than 1 contour have been selected,</c>
+<c>* choose the one with the largest radius</c>
+<l>I := sort_index(Radius)[|Radius| - 1]</l>
+<c>* If the point order of the fitted circle is 'positive',</c>
+<c>* start and end angle have to be swapped for the polar transform</c>
+<l>if (PointOrder[I] == 'positive')</l>
+<l>    Tmp := StartPhi[I]</l>
+<l>    StartPhi[I] := EndPhi[I]</l>
+<l>    EndPhi[I] := Tmp</l>
+<l>endif</l>
+<c>* Perform a polar transform on the region</c>
+<c>* to align the text with the base line</c>
+<l>polar_trans_region (Region, RegionPolarTrans, Row[I], Column[I], StartPhi[I], EndPhi[I], Radius[I] + PolarTransHeight, Radius[I], PolarTransWidth, PolarTransHeight, 'nearest_neighbor')</l>
+<c>* Select characters from the transformed region</c>
+<l>connection (RegionPolarTrans, ConnectedTransRegions)</l>
+<l>select_shape (ConnectedTransRegions, Letters, ['height','width'], 'and', [40,20], [60,50])</l>
+<l>sort_region (Letters, SortedLetters, 'character', 'true', 'row')</l>
+<c>* Create a black &amp; white image from the region for the OCR</c>
+<l>region_to_bin (SortedLetters, BinImage, 0, 255, 512, 100)</l>
+<c>* Read text using a pre-trained classifier</c>
+<l>read_ocr_class_mlp ('Industrial_NoRej', OCRHandle)</l>
+<l>do_ocr_multi_class_mlp (SortedLetters, BinImage, OCRHandle, Class, Confidence)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_display (ObjectSelected)</l>
+<l>area_center (SortedLetters, Area, Row, Column)</l>
+<l>dev_open_window (60, 12, PolarTransWidth, PolarTransHeight + 50, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_part (-30, 0, PolarTransHeight - 1 + 20, PolarTransWidth - 1)</l>
+<l>dev_display (SortedLetters)</l>
+<l>DispRow := mean(Row) + 30</l>
+<l>disp_message (WindowHandle1, 'OCR result after polar transform', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle1, Class, 'image', DispRow, Column - 18, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,715 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program calculates evaluation measures</c>
+<c>* for calibration images similar to the Calibration Assistant</c>
+<c>* in HDevelop. Note that due to some simplifications,</c>
+<c>* the values do not necessarily coincide.</c>
+<c>* </c>
+<c>* Input data.</c>
+<l>ImagePath := 'calib/check_calib_image_quality'</l>
+<l>list_image_files (ImagePath, 'default', [], ImageFiles)</l>
+<l>CalibObjDescr := 'calplate_160mm.cpd'</l>
+<l>read_image (Image, ImageFiles[0])</l>
+<l>get_image_size (Image, ImageWidth, ImageHeight)</l>
+<c>* Specify the used calibration plate.</c>
+<l>gen_cam_par_area_scan_division (0.012, 0, 3.7e-006, 3.7e-006, ImageWidth / 2, ImageHeight / 2, ImageWidth, ImageHeight, CamParam)</l>
+<c>* </c>
+<c>* Initialization.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandleImage)</l>
+<l>set_display_font (WindowHandleImage, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>get_window_extents (WindowHandleImage, Row1, Column1, Width1, Height1)</l>
+<l>dev_open_window (0, Width1 + 8, 350, 350, 'black', WindowHandleResult)</l>
+<l>set_display_font (WindowHandleResult, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Loop through images and check the quality for calibration.</c>
+<l>ObservPointsRows := []</l>
+<l>ObservPointsColumns := []</l>
+<l>ObservPoses := []</l>
+<l>gen_empty_obj (CoverageRegion)</l>
+<l>for Index := 0 to |ImageFiles| - 1 by 1</l>
+<l>    read_image (Image, ImageFiles[Index])</l>
+<c>    * Convert RGB image.</c>
+<l>    count_channels (Image, Channels)</l>
+<l>    if (Channels &gt; 1)</l>
+<l>        rgb1_to_gray (Image, Image)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Prepare the calibration data model.</c>
+<l>    create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>    set_calib_data_calib_object (CalibDataID, 0, CalibObjDescr)</l>
+<l>    set_calib_data_cam_param (CalibDataID, 0, [], CamParam)</l>
+<c>    * Find the calibration object.</c>
+<c>    * Adapt the generic parameters if necessary.</c>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, 0, [], [])</l>
+<c>    * Get observed marks.</c>
+<l>    get_calib_data_observ_contours (CalibPlateMarks, CalibDataID, 'marks', 0, 0, 0)</l>
+<c>    * Concatenate coordinates of marks.</c>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, 0, Row, Column, I, Pose)</l>
+<l>    ObservPointsRows := [ObservPointsRows,Row]</l>
+<l>    ObservPointsColumns := [ObservPointsColumns,Column]</l>
+<l>    ObservPoses := [ObservPoses,Pose]</l>
+<c>    * Get region of calibration plate.</c>
+<l>    gen_region_contour_xld (CalibPlateMarks, Region, 'filled')</l>
+<l>    union1 (Region, RegionUnion)</l>
+<l>    shape_trans (RegionUnion, RegionCalibPlate, 'convex')</l>
+<c>    * </c>
+<c>    * Evaluate quality parameters for the current image.</c>
+<l>    evaluate_caltab_image_overexposure (Image, RegionCalibPlate, OverexposureScore)</l>
+<l>    evaluate_caltab_image_contrast_homogeneity (Image, CalibPlateMarks, Contrast, ContrastScore, HomogeneityScore)</l>
+<l>    evaluate_caltab_image_focus (Image, CalibPlateMarks, Contrast, FocusScore)</l>
+<l>    evaluate_caltab_image_marks_size (CalibPlateMarks, MarksDiameter)</l>
+<l>    evaluate_caltab_image_coverage (Image, RegionCalibPlate, CalibPlateMarks, CoverageScore)</l>
+<c>    * Evaluate the distribution of the marks</c>
+<c>    * and the amount of tilt achieved with the current</c>
+<c>    * sequence of images.</c>
+<l>    evaluate_caltab_sequence_marks_distribution (DistanceImage, ObservPointsRows, ObservPointsColumns, ImageWidth, ImageHeight, MarksDiameter, MarksDistributionScore)</l>
+<l>    evaluate_caltab_sequence_tilt (ObservPoses, TiltScore)</l>
+<c>    * </c>
+<c>    * Display image, marks,</c>
+<c>    * and calibration plate origin.</c>
+<l>    dev_set_window (WindowHandleImage)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (CalibPlateMarks)</l>
+<l>    dev_set_colored (3)</l>
+<l>    dev_disp_3d_coord_system (WindowHandleImage, CamParam, Pose, 1e-2)</l>
+<l>    dev_disp_text ('Evaluated calibration image ' + (Index + 1) + '/' + |ImageFiles|, 'window', 'top', 'left', 'black', [], [])</l>
+<c>    * </c>
+<c>    * Display values.</c>
+<l>    dev_set_window (WindowHandleResult)</l>
+<l>    dev_disp_calibration_results (CoverageScore, MarksDiameter, OverexposureScore, HomogeneityScore, ContrastScore, FocusScore, MarksDistributionScore, TiltScore, WindowHandleResult)</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Display coverage of sequence.</c>
+<l>    dev_set_window (WindowHandleImage)</l>
+<l>    dev_display_coverage (DistanceImage)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_3d_coord_system">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="CoordAxesLength" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (|Pose| != 7)</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>if (Pose[5] == 0.0)</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>pose_to_hom_mat3d (Pose, TransWorld2Cam)</l>
+<c>* Project the world origin into the image.</c>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, 0, 0, OrigCamX, OrigCamY, OrigCamZ)</l>
+<l>project_3d_point (OrigCamX, OrigCamY, OrigCamZ, CamParam, Row0, Column0)</l>
+<c>* Project the coordinate axes into the image.</c>
+<l>affine_trans_point_3d (TransWorld2Cam, CoordAxesLength, 0, 0, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxX, ColumnAxX)</l>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, CoordAxesLength, 0, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxY, ColumnAxY)</l>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, 0, CoordAxesLength, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxZ, ColumnAxZ)</l>
+<l>gen_arrow_contour_xld (ContX, Row0, Column0, RowAxX, ColumnAxX, CoordAxesLength * 1000, CoordAxesLength * 1000)</l>
+<l>gen_arrow_contour_xld (ContY, Row0, Column0, RowAxY, ColumnAxY, CoordAxesLength * 1000, CoordAxesLength * 1000)</l>
+<l>gen_arrow_contour_xld (ContZ, Row0, Column0, RowAxZ, ColumnAxZ, CoordAxesLength * 1000, CoordAxesLength * 1000)</l>
+<c>* </c>
+<l>concat_obj (ContX, ContY, ObjectsConcat)</l>
+<l>concat_obj (ObjectsConcat, ContZ, ContXYZ)</l>
+<c>* </c>
+<l>dev_display (ContXYZ)</l>
+<l>dev_disp_text ('X', 'image', RowAxX + 3, ColumnAxX + 3, 'red', 'box', 'false')</l>
+<l>dev_disp_text ('Y', 'image', RowAxY + 3, ColumnAxY + 3, 'green', 'box', 'false')</l>
+<l>dev_disp_text ('Z', 'image', RowAxZ + 3, ColumnAxZ + 3, 'blue', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_3d_coord_system">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Display the axes of a 3d coordinate system</short>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="CoordAxesLength"/>
+<parameter id="Pose"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_calibration_results">
+<interface>
+<ic>
+<par name="CoverageScore" base_type="ctrl" dimension="0"/>
+<par name="MarksDiameter" base_type="ctrl" dimension="0"/>
+<par name="OverexposureScore" base_type="ctrl" dimension="0"/>
+<par name="HomogeneityScore" base_type="ctrl" dimension="0"/>
+<par name="ContrastScore" base_type="ctrl" dimension="0"/>
+<par name="FocusScore" base_type="ctrl" dimension="0"/>
+<par name="MarksDistributionScore" base_type="ctrl" dimension="0"/>
+<par name="TiltScore" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<l>Text := 'Image quality score'</l>
+<l>Text[|Text|] := '-------------------'</l>
+<l>Text[|Text|] := 'Coverage:            ' + CoverageScore$'.2f'</l>
+<l>Text[|Text|] := 'Diameter Of Marks:   ' + MarksDiameter$'.2f' + ' px'</l>
+<l>Text[|Text|] := 'Exposure:            ' + OverexposureScore$'.2f'</l>
+<l>Text[|Text|] := 'Homogeneity:         ' + HomogeneityScore$'.2f'</l>
+<l>Text[|Text|] := 'Contrast:            ' + ContrastScore$'.2f'</l>
+<l>Text[|Text|] := 'Focus:               ' + FocusScore$'.2f'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Quality score for whole sequence'</l>
+<l>Text[|Text|] := '--------------------------------'</l>
+<l>Text[|Text|] := 'Marks Distribution:  ' + MarksDistributionScore$'.2f'</l>
+<l>Text[|Text|] := 'CalibPlate Tilt:     ' + TiltScore$'.2f'</l>
+<c>* </c>
+<l>WarningThreshold := 0.7</l>
+<l>Color := gen_tuple_const(|Text|,'white')</l>
+<l>if (CoverageScore &lt;= WarningThreshold)</l>
+<l>    Color[2] := 'orange'</l>
+<l>endif</l>
+<l>MinMarksDiameter := 20</l>
+<l>if (MarksDiameter &lt;= MinMarksDiameter)</l>
+<l>    Color[3] := 'orange'</l>
+<l>endif</l>
+<l>if (OverexposureScore &lt;= WarningThreshold)</l>
+<l>    Color[4] := 'orange'</l>
+<l>endif</l>
+<l>if (HomogeneityScore &lt;= WarningThreshold)</l>
+<l>    Color[5] := 'orange'</l>
+<l>endif</l>
+<l>if (ContrastScore &lt;= WarningThreshold)</l>
+<l>    Color[6] := 'orange'</l>
+<l>endif</l>
+<l>if (FocusScore &lt;= WarningThreshold)</l>
+<l>    Color[7] := 'orange'</l>
+<l>endif</l>
+<l>if (MarksDistributionScore &lt;= WarningThreshold)</l>
+<l>    Color[11] := 'orange'</l>
+<l>endif</l>
+<l>if (TiltScore &lt;= WarningThreshold)</l>
+<l>    Color[12] := 'orange'</l>
+<l>endif</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', Color, 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_calibration_results">
+<parameters>
+<parameter id="ContrastScore"/>
+<parameter id="CoverageScore"/>
+<parameter id="FocusScore"/>
+<parameter id="HomogeneityScore"/>
+<parameter id="MarksDiameter"/>
+<parameter id="MarksDistributionScore"/>
+<parameter id="OverexposureScore"/>
+<parameter id="TiltScore"/>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_coverage">
+<interface>
+<io>
+<par name="DistanceImage" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>gen_image_proto (DistanceImage, ImageCleared, 0)</l>
+<l>invert_image (DistanceImage, DistanceImageInvert)</l>
+<l>append_channel (DistanceImage, DistanceImageInvert, ImageExtended)</l>
+<l>append_channel (ImageExtended, ImageCleared, DistanceImageDisplay)</l>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_display (DistanceImageDisplay)</l>
+<l>dev_set_lut ('default')</l>
+<c>* </c>
+<l>Text := 'Field of view covered by the calibration marks of the current image sequence.'</l>
+<l>Text[|Text|] := 'This determines the Marks Distribution score.'</l>
+<l>Text[|Text|] := 'Note that the marks cannot come perfectly close to the border.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_coverage">
+<parameters>
+<parameter id="DistanceImage"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_image_overexposure">
+<interface>
+<io>
+<par name="ImageCalibPlate" base_type="iconic" dimension="0"/>
+<par name="RegionCalibPlate" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="OverexposureScore" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure returns a measure</c>
+<c>* of the amount of overexposure</c>
+<c>* in the calibration plate image.</c>
+<l>OverexposureScore := 0.0</l>
+<l>area_center (RegionCalibPlate, AreaCalibPlate, Row, Column)</l>
+<l>if (AreaCalibPlate == 0 or AreaCalibPlate == [])</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>reduce_domain (ImageCalibPlate, RegionCalibPlate, ImageReduced)</l>
+<c>* If the gray value is 255,</c>
+<c>* we interpret this as overexposure.</c>
+<l>threshold (ImageReduced, Region, 255, 255)</l>
+<l>area_center (Region, AreaOverexp, Row, Column)</l>
+<c>* </c>
+<l>MaxRatio := 0.15</l>
+<l>Ratio := real(AreaOverexp) / AreaCalibPlate</l>
+<l>if (Ratio &lt; MaxRatio)</l>
+<c>    * This score indicates the amount of overexposure</c>
+<c>    * compared to the maximum tolerated overexposure.</c>
+<l>    OverexposureScore := min([1.0,1 - Ratio / MaxRatio])</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_image_overexposure">
+<parameters>
+<parameter id="ImageCalibPlate">
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="OverexposureScore">
+<default_type>real</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="RegionCalibPlate">
+<multivalue>false</multivalue>
+<sem_type>region</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_image_contrast_homogeneity">
+<interface>
+<io>
+<par name="ImageCalibPlate" base_type="iconic" dimension="0"/>
+<par name="CalibPlateMarks" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="Contrast" base_type="ctrl" dimension="0"/>
+<par name="ContrastScore" base_type="ctrl" dimension="0"/>
+<par name="HomogeneityScore" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ContrastScore := 0.0</l>
+<l>Contrast := 0.0</l>
+<l>HomogeneityScore := 0.0</l>
+<l>count_obj (CalibPlateMarks, Number)</l>
+<l>if (Number &lt; 4)</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* Calculate contrast.</c>
+<l>gen_region_contour_xld (CalibPlateMarks, Region, 'margin')</l>
+<l>dilation_circle (Region, RegionDilation, 5.5)</l>
+<l>min_max_gray (RegionDilation, ImageCalibPlate, 3, Min, Max, Range)</l>
+<l>Contrast := mean(Range)</l>
+<c>* Calculate contrast score.</c>
+<c>* Indicates the average contrast of the calibration mark</c>
+<l>MinContrast := 70.0</l>
+<l>MaxContrast := 160.0</l>
+<l>if (Contrast &gt; MinContrast)</l>
+<l>    ContrastScore := (Contrast - MinContrast) / (MaxContrast - MinContrast)</l>
+<l>    ContrastScore := min([ContrastScore,1.0])</l>
+<l>endif</l>
+<c>* Calculate homogeneity score.</c>
+<c>* Indicates the homogenity of the calibration marks</c>
+<c>* concerning their brightness.</c>
+<l>HomogeneityScore := 1.1 - (deviation(Max) / 40.0)</l>
+<l>HomogeneityScore := max([min([HomogeneityScore,1.0]),0.0])</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_image_contrast_homogeneity">
+<parameters>
+<parameter id="CalibPlateMarks">
+<multivalue>true</multivalue>
+<sem_type>xld</sem_type>
+</parameter>
+<parameter id="Contrast">
+<default_type>real</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="ContrastScore">
+<default_type>real</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="HomogeneityScore">
+<default_type>real</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="ImageCalibPlate">
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_image_focus">
+<interface>
+<io>
+<par name="ImageCalibPlate" base_type="iconic" dimension="0"/>
+<par name="CalibPlateMarks" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Contrast" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="FocusScore" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure compares</c>
+<c>* the contrast of the markers boundary</c>
+<c>* (= MeanGradient)</c>
+<c>* with the contrast values found</c>
+<c>* around the boundary (= Contrast).</c>
+<c>* </c>
+<l>FocusScore := 0.0</l>
+<l>if (Contrast == 0)</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>count_obj (CalibPlateMarks, Number)</l>
+<l>if (Number &lt; 4)</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>gen_region_contour_xld (CalibPlateMarks, Region, 'margin')</l>
+<l>union1 (Region, RegionUnion)</l>
+<l>reduce_domain (ImageCalibPlate, RegionUnion, ImageReduced)</l>
+<l>derivate_gauss (ImageReduced, DerivGauss, 0.7, 'gradient')</l>
+<l>intensity (Region, DerivGauss, MeanGradient, Deviation)</l>
+<l>MinScore := 0.25</l>
+<c>* Normalize the gradient with the contrast.</c>
+<l>RawResult := MeanGradient / Contrast</l>
+<c>* Select a value representing a non-extreme case.</c>
+<l>FocusScore := sort(RawResult * 4.5)[round(|RawResult| / 20.0)]</l>
+<l>FocusScore := min([max([FocusScore - MinScore,0.0]),1.0])</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_image_focus">
+<parameters>
+<parameter id="CalibPlateMarks">
+<multivalue>true</multivalue>
+<sem_type>xld</sem_type>
+</parameter>
+<parameter id="Contrast">
+<default_type>real</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="FocusScore"/>
+<parameter id="ImageCalibPlate">
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_image_marks_size">
+<interface>
+<io>
+<par name="Marks" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="MarksDiameter" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure calculates</c>
+<c>* the mean diameter of the calibration marks.</c>
+<c>* </c>
+<l>MarksDiameter := 0.0</l>
+<l>count_obj (Marks, Number)</l>
+<l>if (Number &lt; 4)</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>gen_region_contour_xld (Marks, Region, 'filled')</l>
+<l>diameter_region (Region, Row11, Column11, Row2, Column2, MarksDiameter)</l>
+<l>MarksDiameter := mean(MarksDiameter)</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_image_marks_size">
+<parameters>
+<parameter id="Marks">
+<multivalue>true</multivalue>
+<sem_type>xld</sem_type>
+</parameter>
+<parameter id="MarksDiameter">
+<default_type>real</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_image_coverage">
+<interface>
+<io>
+<par name="CalibPlateImage" base_type="iconic" dimension="0"/>
+<par name="CalibPlateRegion" base_type="iconic" dimension="0"/>
+<par name="Marks" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="CoverageScore" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure compares the area</c>
+<c>* defined by the calibration marks</c>
+<c>* with the image size.</c>
+<c>* </c>
+<l>CoverageScore := 0.0</l>
+<l>get_image_size (CalibPlateImage, Width, Height)</l>
+<l>count_obj (Marks, Number)</l>
+<l>if (Number &gt;= 4)</l>
+<c>    * Best approach:</c>
+<c>    * Use the surrounding box of the marks as reference size.</c>
+<l>    gen_region_contour_xld (Marks, Region, 'filled')</l>
+<l>    union1 (Region, RegionUnion)</l>
+<l>    smallest_rectangle2 (RegionUnion, Row1, Column1, Phi1, Length1, Length2)</l>
+<l>    Area := Length1 * Length2 * 4</l>
+<l>else</l>
+<c>    * If no marks could be found:</c>
+<c>    * Use the CalibPlate as reference size.</c>
+<l>    area_center (CalibPlateRegion, Area, Row, Column)</l>
+<l>    if (Area == 0 or Area == [])</l>
+<l>        return ()</l>
+<l>    endif</l>
+<l>endif</l>
+<l>MinRatio := 0.015</l>
+<l>MaxRatio := 0.075</l>
+<l>Ratio := real(Area) / (Width * Height)</l>
+<l>if (Ratio &gt; MinRatio)</l>
+<l>    CoverageScore := (Ratio - MinRatio) / (MaxRatio - MinRatio)</l>
+<l>    CoverageScore := min([1.0,CoverageScore])</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_image_coverage">
+<parameters>
+<parameter id="CalibPlateImage"/>
+<parameter id="CalibPlateRegion"/>
+<parameter id="CoverageScore"/>
+<parameter id="Marks"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_sequence_marks_distribution">
+<interface>
+<oo>
+<par name="DistanceImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ObservPointsRows" base_type="ctrl" dimension="0"/>
+<par name="ObservPointsColumns" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="MarksDiameter" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MarksDistributionScore" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure gives an indication whether the</c>
+<c>* calibration marker cover the whole image sequence.</c>
+<c>* </c>
+<l>gen_region_points (Region, ObservPointsRows, ObservPointsColumns)</l>
+<l>distance_transform (Region, DistanceImage, 'octagonal', 'false', ImageWidth, ImageHeight)</l>
+<c>* A clipping is needed because the marks cannot come close to the border.</c>
+<l>Border := max([ImageWidth,ImageHeight]) / 15</l>
+<l>gen_rectangle1 (Mask, Border, Border, ImageHeight - 1 - Border, ImageWidth - 1 - Border)</l>
+<l>min_max_gray (Mask, DistanceImage, 0, Min, Max, Range)</l>
+<l>distance_pp (0, 0, ImageHeight - 1, ImageWidth - 1, ImageDiagonal)</l>
+<l>MinThresh := 0.3</l>
+<l>MaxThresh := 0.85</l>
+<l>Ratio := Max / ImageDiagonal * 2.5</l>
+<l>Tmp1 := 1 - Ratio</l>
+<l>Tmp2 := (Tmp1 - MinThresh) / (MaxThresh - MinThresh)</l>
+<l>MarksDistributionScore := max([min([Tmp2,1.0]),0.0])</l>
+<c>* </c>
+<c>* Compute a distance image that is suitable for visualization.</c>
+<l>dilation_circle (Region, RegionDilation, MarksDiameter * 1.25)</l>
+<l>distance_transform (RegionDilation, DistanceImage, 'octagonal', 'false', ImageWidth, ImageHeight)</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_sequence_marks_distribution">
+<parameters>
+<parameter id="DistanceImage"/>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="MarksDiameter"/>
+<parameter id="MarksDistributionScore"/>
+<parameter id="ObservPointsColumns"/>
+<parameter id="ObservPointsRows"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_fuzzy_weight_funct">
+<interface>
+<ic>
+<par name="NPoints" base_type="ctrl" dimension="0"/>
+<par name="Min" base_type="ctrl" dimension="0"/>
+<par name="Max" base_type="ctrl" dimension="0"/>
+<par name="LowPass" base_type="ctrl" dimension="0"/>
+<par name="HighPass" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="FuzzyFunct" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Generate a function which is 0.0 for values lower than LowPass,</c>
+<c>* 1.0 for values over HighPass,</c>
+<c>* and grows linearly for values in between the two.</c>
+<c>* </c>
+<l>Ones := gen_tuple_const(NPoints,1)</l>
+<l>Index := (cumul(Ones) - 1) / real(|Ones|)</l>
+<l>X := Index * (Max - Min) + Min</l>
+<l>Y := gen_tuple_const(|X|,0.0)</l>
+<l>IndicesTrans := find(X [&gt;=] LowPass,1)</l>
+<l>IndicesHigh := find(X [&gt;=] HighPass,1)</l>
+<c>* Ramp from LowPass (0.0) to Highpass (1.0).</c>
+<l>NumTransPoints := |IndicesTrans| - |IndicesHigh|</l>
+<l>for i := 0 to NumTransPoints - 1 by 1</l>
+<l>    Y[IndicesTrans[i]] := real(i) / NumTransPoints</l>
+<l>endfor</l>
+<l>for i := IndicesTrans[NumTransPoints] to |Y| - 1 by 1</l>
+<l>    Y[i] := 1.0</l>
+<l>endfor</l>
+<l>create_funct_1d_pairs (X, Y, FuzzyFunct)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_fuzzy_weight_funct">
+<parameters>
+<parameter id="FuzzyFunct"/>
+<parameter id="HighPass"/>
+<parameter id="LowPass"/>
+<parameter id="Max"/>
+<parameter id="Min"/>
+<parameter id="NPoints"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_caltab_sequence_tilt">
+<interface>
+<ic>
+<par name="ObservPoses" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TiltScore" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure indicates whether the calibration plates</c>
+<c>* have been tilted sufficiently in both directions.</c>
+<c>* </c>
+<l>Ones := gen_tuple_const(|ObservPoses| / 7,1)</l>
+<l>Indices := cumul(Ones) - 1</l>
+<l>Slant := ObservPoses[7 * Indices + 3]</l>
+<l>Pan := ObservPoses[7 * Indices + 4]</l>
+<l>for Index := 0 to |Slant| - 1 by 1</l>
+<l>    if (Slant[Index] &gt; 180)</l>
+<l>        Slant[Index] := 360 - Slant[Index]</l>
+<l>    endif</l>
+<l>    if (Pan[Index] &gt; 180)</l>
+<l>        Pan[Index] := 360 - Pan[Index]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>Pan := rad(Pan)</l>
+<l>Slant := rad(Slant)</l>
+<c>* Check if the tilt angles are sufficient,</c>
+<c>* meaning &gt; 2.5°, but better &gt; 10°.</c>
+<c>* Function acting as a fuzzy weighting.</c>
+<l>gen_fuzzy_weight_funct (256, rad(0.0), rad(90.0), rad(2.5), rad(10.0), FuzzyFunct)</l>
+<l>get_y_value_funct_1d (FuzzyFunct, Slant, 'constant', SlantWeight)</l>
+<l>get_y_value_funct_1d (FuzzyFunct, Pan, 'constant', PanWeight)</l>
+<c>* Calculate score value.</c>
+<l>TmpPan := sum(PanWeight) / 6</l>
+<l>TmpPan := min([TmpPan,0.5])</l>
+<l>TmpSlant := sum(SlantWeight) / 6</l>
+<l>TmpSlant := min([TmpSlant,0.5])</l>
+<l>TiltScore := TmpSlant + TmpPan</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_caltab_sequence_tilt">
+<parameters>
+<parameter id="ObservPoses"/>
+<parameter id="TiltScore"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

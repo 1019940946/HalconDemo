@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operator</c>
+<c>* set_object_model_3d_attrib and set_object_model_3d_attrib_mod</c>
+<c>* in HALCON.  In this example the coordinates of a cube of a 3d</c>
+<c>* object model are set. Second, the triangles and the color is</c>
+<c>* set. Third, the cordinates of a 3d object model are modified.</c>
+<c>* Between all steps, the resulting 3d object model is visualized.</c>
+<c>* ******************************</c>
+<c>* Initialize program</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>DisplayPose := [0,0,40,30,60,15,0]</l>
+<l>VisualParamNames := ['point_size','disp_lines','attribute_0','color_0']</l>
+<l>VisualParamValues := [8,'true','points','yellow']</l>
+<l>Instructions := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom: Shift + left button'</l>
+<l>Instructions[2] := 'Move: Ctrl + left button'</l>
+<c>* </c>
+<c>* Create an empty 3D object model</c>
+<l>gen_empty_object_model_3d (ObjectModel3D)</l>
+<c>* </c>
+<c>* Set point coordinates of a cube with an additional</c>
+<c>* point in one plane</c>
+<l>PointCoordX := [0.5,0,1,1,0,0,1,1,0] - 0.5</l>
+<l>PointCoordY := [0,1,1,1,1,0,0,0,0] - 0.5</l>
+<l>PointCoordZ := [0.5,0,0,1,1,0,0,1,1] - 0.5</l>
+<l>set_object_model_3d_attrib_mod (ObjectModel3D, ['point_coord_x','point_coord_y','point_coord_z'], [], [PointCoordX,PointCoordY,PointCoordZ])</l>
+<c>* </c>
+<c>* Display the 9 points</c>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3D, [], DisplayPose, VisualParamNames, VisualParamValues, 'Define a cube by point coordinates', [], Instructions, DisplayPose)</l>
+<c>* </c>
+<c>* Set 4 triangles of the plane with the additional</c>
+<c>* point of the 3D object model</c>
+<l>T1 := [0,8,5]</l>
+<l>T2 := [0,7,8]</l>
+<l>T3 := [0,6,7]</l>
+<l>T4 := [0,5,6]</l>
+<l>T5 := [5,6,2]</l>
+<l>T6 := [5,2,1]</l>
+<l>T7 := [6,7,3]</l>
+<l>T8 := [6,3,2]</l>
+<l>T9 := [7,3,4]</l>
+<l>T10 := [7,4,8]</l>
+<l>T11 := [8,4,1]</l>
+<l>T12 := [8,1,5]</l>
+<l>T13 := [2,3,4]</l>
+<l>T14 := [2,4,1]</l>
+<l>set_object_model_3d_attrib (ObjectModel3D, 'triangles', [], [T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14], ObjectModel3D2)</l>
+<c>* </c>
+<c>* Display the manually triangulated cube</c>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3D2,ObjectModel3D2], [], DisplayPose, VisualParamNames, VisualParamValues, 'Connect points to triangles', [], Instructions, DisplayPose)</l>
+<c>* </c>
+<c>* Modify point coordinates</c>
+<l>PointCoordY[0,3,6,7] := [-1,0.3,-.8,-.3]</l>
+<l>set_object_model_3d_attrib_mod (ObjectModel3D2, 'point_coord_y', [], PointCoordY)</l>
+<c>* </c>
+<c>* Display modified object (no longer a cube)</c>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3D2,ObjectModel3D2], [], DisplayPose, VisualParamNames, VisualParamValues, 'Modify some point coordiantes', [], Instructions, DisplayPose)</l>
+<c>* </c>
+<c>* Set extended attributes of the triangles</c>
+<c>* to visualize the distance from the plane</c>
+<l>gen_plane_object_model_3d ([0,.55,0,90,0,0,0], [-1,-1,1,1], [-1,1,1,-1], PlaneOM3D)</l>
+<l>distance_object_model_3d (ObjectModel3D2, PlaneOM3D, [], 0, [], [])</l>
+<l>VisualParamNames := [VisualParamNames,'color_attrib_0','color_attrib_1','color_0','color_1','color_2']</l>
+<l>VisualParamValues := [VisualParamValues,'&amp;distance','&amp;distance','yellow','orange','blue']</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3D2,ObjectModel3D2,PlaneOM3D], [], DisplayPose, VisualParamNames, VisualParamValues, ['Set extended attribute \'&amp;distance\'','(from plane) and display as color value'], [], Instructions, DisplayPose)</l>
+<c>* </c>
+<c>* Cleanup memory</c>
+<l>clear_object_model_3d ([ObjectModel3D,ObjectModel3D2,PlaneOM3D])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

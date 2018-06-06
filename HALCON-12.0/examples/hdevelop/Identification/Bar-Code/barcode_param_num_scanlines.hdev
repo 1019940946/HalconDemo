@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example presents the bar code parameter 'num_scanlines'.</c>
+<c>* With this parameter you can improve performance in two cases:</c>
+<c>* </c>
+<c>*  - case 1: images with too many false candidates</c>
+<c>*  - case 2: images with stacked codes</c>
+<c>* </c>
+<c>* Please refer to the reference manual for further explanations.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 512, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* </c>
+<l>Message[0] := 'This example presents the bar code parameter \'num_scanlines\'.\n \n'</l>
+<l>Message[1] := 'With this parameter, you can improve performance in two cases \n \n'</l>
+<l>Message[2] := '  - case 1: images with too many false candidates\n'</l>
+<l>Message[3] := '  - case 2: images with stacked codes \n \n'</l>
+<l>Message[4] := 'Please refer to the reference documentation for further \nexplanations.'</l>
+<l>Message := sum(Message)</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* The minimal contrast on these images can be savely specified at 100 gray values</c>
+<l>set_bar_code_param (BarCodeHandle, 'contrast_min', 100)</l>
+<c>* </c>
+<c>* </c>
+<c>* Case 1 shows the improvement for images with many false candidates.</c>
+<l>StatusHeight := 180</l>
+<l>for I := 1 to 2 by 1</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * read image, initialize window</c>
+<l>    read_image (Image, 'barcode/gs1databar_truncated/gs1databar_truncated_0' + I)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (-1, -1, Width, Height + StatusHeight)</l>
+<l>    dev_set_part (0, 0, Height + StatusHeight - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * run detection with the default number of scanlines</c>
+<l>    set_bar_code_param (BarCodeHandle, 'num_scanlines', 0)</l>
+<l>    find_bar_code_timing (Image, SymbolRegions, BarCodeHandle, 'RSS-14 Truncated', DecodedDataStrings, Time1)</l>
+<c>    * </c>
+<c>    * run detection with 3 scanlines</c>
+<l>    set_bar_code_param (BarCodeHandle, 'num_scanlines', 3)</l>
+<c>    * </c>
+<c>    * determine the runtime of find_bar_code</c>
+<l>    find_bar_code_timing (Image, SymbolRegions2, BarCodeHandle, 'RSS-14 Truncated', DecodedDataStrings, Time2)</l>
+<c>    * </c>
+<c>    * show candidates (red) and decoded symbols (green)</c>
+<l>    get_bar_code_object (Candidates, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Candidates)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<c>    * </c>
+<l>    Message[0] := 'Elapsed time \n'</l>
+<l>    Message[1] := '     10 scanlines (default):   ' + Time1$'7.2f' + ' ms\n'</l>
+<l>    Message[2] := '      3 scanlines          :   ' + Time2$'7.2f' + ' ms\n'</l>
+<l>    Message := sum(Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I == 1)</l>
+<l>        Message[0] := 'While the bar code itself is usually decoded after one \n'</l>
+<l>        Message[1] := 'or two scans, a false candidate is scanned with the default \n'</l>
+<l>        Message[2] := 'value of 10 scanlines, which increases the runtime \n'</l>
+<l>        Message[3] := 'unnecessarily. Reducing the number of scanlines can therefore \n'</l>
+<l>        Message[4] := 'improve the performance in images with many false candidates.'</l>
+<l>        Message := sum(Message)</l>
+<l>        disp_message (WindowHandle, Message, 'window', Height + 12, 12, 'black', 'false')</l>
+<l>    endif</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Case 2 shows the improvement for RSS Expanded Stacked code.</c>
+<l>StatusHeight := 220</l>
+<l>for I := 1 to 2 by 1</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * read image, initialize window</c>
+<l>    read_image (Image, 'barcode/gs1databar_expanded_stacked/gs1databar_expanded_stacked_0' + I)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (-1, -1, Width / 2, Height / 2 + StatusHeight)</l>
+<l>    dev_set_part (0, 0, Height + 2 * StatusHeight - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * run detection with the default number of scanlines</c>
+<l>    set_bar_code_param (BarCodeHandle, 'num_scanlines', 0)</l>
+<c>    * </c>
+<c>    * determine the runtime of find_bar_code</c>
+<l>    find_bar_code_timing (Image, SymbolRegions1, BarCodeHandle, 'GS1 DataBar Expanded Stacked', DecodedDataStrings, Time1)</l>
+<c>    * </c>
+<c>    * run detection with 7 scanlines</c>
+<l>    get_bar_code_object (Candidates, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>    set_bar_code_param (BarCodeHandle, 'num_scanlines', 14)</l>
+<l>    find_bar_code_timing (Image, SymbolRegions2, BarCodeHandle, 'GS1 DataBar Expanded Stacked', DecodedDataStrings, Time2)</l>
+<c>    * </c>
+<c>    * show resulting symbol regions</c>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegions1)</l>
+<c>    * </c>
+<l>    Message[0] := 'Elapsed time \n'</l>
+<l>    Message[1] := '     55 scanlines (default):   ' + Time1$'7.2f' + ' ms\n'</l>
+<l>    Message[2] := '      7 scanlines          :   ' + Time2$'7.2f' + ' ms\n'</l>
+<l>    Message := sum(Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    if (I == 1)</l>
+<l>        Message[0] := 'GS1 DataBar Expanded Stacked requires 55 scanlines to\n'</l>
+<l>        Message[1] := 'robustly discover the actual number of rows in a symbol\n'</l>
+<l>        Message[2] := '(which might be up to 11). Unlike for single line codes,\n'</l>
+<l>        Message[3] := 'the detection does not terminate with the first\n'</l>
+<l>        Message[4] := 'successfully decoded scanline, but scans all 55 lines.\n'</l>
+<l>        Message[5] := 'If you estimate the number of rows, you can reduce the\n'</l>
+<l>        Message[6] := 'number of scanlines (to 1.5 - 5 per assumed row) in\n'</l>
+<l>        Message[7] := 'advance and achieve an essential performance advantage.'</l>
+<l>        Message := sum(Message)</l>
+<l>        disp_message (WindowHandle, Message, 'window', Height / 2 + 12, 12, 'black', 'false')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'End of program', 'window', Height / 2 + StatusHeight - 30, Width / 2 - 200, 'black', 'false')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_bar_code_timing">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="SymbolRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="BarCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="CodeType" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DecodedDataStrings" base_type="ctrl" dimension="0"/>
+<par name="Time" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* find_bar_code_timing calls find_bar_code multiple times for comparable</c>
+<c>* timing measurements. Returns the required time in millisecond units.</c>
+<c>* </c>
+<c>* Call find_bar_code directly before time measurements to prepare the reader</c>
+<c>* for time measurements.</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<c>* </c>
+<c>* Do 10 repeated measurements</c>
+<l>Repeat := 10</l>
+<l>count_seconds (StartTime)</l>
+<l>for Index := 1 to Repeat by 1</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>endfor</l>
+<l>count_seconds (EndTime)</l>
+<l>Time := 1000.0 * (EndTime - StartTime) / Repeat</l>
+<l>return ()</l>
+</body>
+<docu id="find_bar_code_timing">
+<parameters>
+<parameter id="BarCodeHandle"/>
+<parameter id="CodeType"/>
+<parameter id="DecodedDataStrings"/>
+<parameter id="Image"/>
+<parameter id="SymbolRegions"/>
+<parameter id="Time"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

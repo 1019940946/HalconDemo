@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to detect defects (scratches) in</c>
+<c>* an inhomogeneously illuminated surface by filtering in</c>
+<c>* the frequency domain.</c>
+<c>* First, a suitable bandpass filter is created. Then, the</c>
+<c>* input image is fourier transformed and filtered in the</c>
+<c>* frequency domain, so that high frequency information is</c>
+<c>* enhanced. Finally, it is transformed back to the</c>
+<c>* spatial domain and the enhanced defects are post-processed</c>
+<c>* by morphology.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'surface_scratch')</l>
+<l>invert_image (Image, ImageInverted)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Optimize the speed of the fast fourier transform</c>
+<l>* Message := 'Optimize the speed of the fast fourier transform.'</l>
+<l>* Message[1] := 'Please wait...'</l>
+<l>* disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>* optimize_rft_speed (Width, Height, 'standard')</l>
+<l>* disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>* stop ()</l>
+<c>* </c>
+<c>* Enhance the scratches by filtering in the frequency domain</c>
+<l>gen_sin_bandpass (ImageBandpass, 0.4, 'none', 'rft', Width, Height)</l>
+<l>rft_generic (ImageInverted, ImageFFT, 'to_freq', 'none', 'complex', Width)</l>
+<l>convol_fft (ImageFFT, ImageBandpass, ImageConvol)</l>
+<l>rft_generic (ImageConvol, Lines, 'from_freq', 'n', 'byte', Width)</l>
+<c>* </c>
+<c>* Segment the scratches by using morphology</c>
+<l>threshold (Lines, Region, 5, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5, 5000)</l>
+<l>dilation_circle (SelectedRegions, RegionDilation, 5.5)</l>
+<l>union1 (RegionDilation, RegionUnion)</l>
+<l>reduce_domain (Image, RegionUnion, ImageReduced)</l>
+<l>lines_gauss (ImageReduced, LinesXLD, 0.8, 3, 5, 'dark', 'false', 'bar-shaped', 'false')</l>
+<l>union_collinear_contours_xld (LinesXLD, UnionContours, 40, 3, 3, 0.2, 'attr_keep')</l>
+<l>select_shape_xld (UnionContours, SelectedXLD, 'contlength', 'and', 15, 1000)</l>
+<l>gen_region_contour_xld (SelectedXLD, RegionXLD, 'filled')</l>
+<l>union1 (RegionXLD, RegionUnion)</l>
+<l>dilation_circle (RegionUnion, RegionScratches, 10.5)</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionScratches)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the effect of using the</c>
+<c>* generic parameter 'recompute_score' of the operator</c>
+<c>* find_shape_model_3d.</c>
+<c>* </c>
+<c>* By setting 'recompute_score' to 'true', the score</c>
+<c>* is recomputed after the pose refinement, which</c>
+<c>* may lead to slightly different (but more consistent)</c>
+<c>* score values at the cost of a slightly larger</c>
+<c>* execution time.</c>
+<c>* </c>
+<c>* For this, a 3D shape model of a cube is searched in</c>
+<c>* a sequence of artificially created images by using</c>
+<c>* find_shape_model_3d. The images are created by</c>
+<c>* changing the longitude of the camera in the object</c>
+<c>* centered spherical coordinate system.</c>
+<c>* </c>
+<c>* The matching is performed twice. In the first run,</c>
+<c>* 'recompute_score' is set to 'false', while in the</c>
+<c>* second run, 'recompute_score' is set to 'true'. The</c>
+<c>* score is stored for each of the two runs over all</c>
+<c>* images. Finally, the score values are plotted with</c>
+<c>* respect to the camera longitude.</c>
+<c>* </c>
+<c>* Note that the variation of the score values is</c>
+<c>* significantly higher when setting 'recompute_score'</c>
+<c>* to 'false'. Also note that in real images typically</c>
+<c>* the variation of the score is lower.</c>
+<c>* </c>
+<l>gen_cam_par_area_scan_division (0.01, 0, 7e-6, 7e-6, 320, 240, 640, 480, CamParam)</l>
+<l>get_cam_par_data (CamParam, 'image_width', Width)</l>
+<l>get_cam_par_data (CamParam, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Generate a cube</c>
+<l>X := [-1,-1,1,1,-1,-1,1,1]</l>
+<l>Y := [1,-1,-1,1,1,-1,-1,1]</l>
+<l>Z := [-1,-1,-1,-1,1,1,1,1]</l>
+<l>Polygons := [4,0,1,2,3,4,4,5,6,7,4,0,1,5,4,4,3,2,6,7,4,0,3,7,4,4,1,2,6,5]</l>
+<l>gen_object_model_3d_from_points (X, Y, Z, ObjectModel3DID)</l>
+<l>set_object_model_3d_attrib_mod (ObjectModel3DID, 'polygons', [], Polygons)</l>
+<c>* </c>
+<c>* Prepare the 3D object model for matching</c>
+<l>prepare_object_model_3d (ObjectModel3DID, 'shape_based_matching_3d', 'true', [], [])</l>
+<c>* </c>
+<c>* Display the 3D object model</c>
+<l>disp_object_model_3d_safe (WindowHandle, ObjectModel3DID, CamParam, [0,0,11,30,40,0,0], [], [])</l>
+<l>disp_message (WindowHandle, '3D Object Model of a Cube', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Generate the 3D shape model</c>
+<l>create_cube_shape_model_3d (WindowHandle, ObjectModel3DID, CamParam, ShapeModel3DID)</l>
+<l>clear_object_model_3d (ObjectModel3DID)</l>
+<c>* </c>
+<l>Scores1 := []</l>
+<l>Scores2 := []</l>
+<l>Times1 := []</l>
+<l>Times2 := []</l>
+<l>Longitudes := []</l>
+<l>Latitude := rad(45)</l>
+<l>Distance := 11.5</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>for Longitude := rad(30) to rad(60) by rad(0.25)</l>
+<l>    convert_point_3d_spher_to_cart (Longitude, Latitude, Distance, '-y', '-z', CamX, CamY, CamZ)</l>
+<l>    create_cam_pose_look_at_point (CamX, CamY, CamZ, 0, 0, 0, '-y', 0, CamPose)</l>
+<c>    * Prevent flickering</c>
+<l>    set_system ('flush_graphic', 'false')</l>
+<c>    * </c>
+<c>    * Generate an artificial image of the cube</c>
+<l>    project_cube_image (Image, CamPose, CamParam, X, Y, Z, Polygons)</l>
+<c>    * </c>
+<c>    * Find the cube by using 3D shape-based matching</c>
+<c>    * ('recompute_score' = 'false')</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model_3d (Image, ShapeModel3DID, 0.7, 0.9, 0, [], [], Pose1, CovPose1, Score1)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time1 := (Seconds2 - Seconds1) * 1000.0</l>
+<c>    * Find the cube by using 3D shape-based matching</c>
+<c>    * ('recompute_score' = 'true')</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model_3d (Image, ShapeModel3DID, 0.7, 0.9, 0, 'recompute_score', 'true', Pose2, CovPose2, Score2)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time2 := (Seconds2 - Seconds1) * 1000.0</l>
+<c>    * </c>
+<c>    * Display the matching result</c>
+<l>    dev_display (Image)</l>
+<l>    if (|Score1| == 1 and |Score2| == 1)</l>
+<c>        * Display the match</c>
+<l>        project_shape_model_3d (ModelContours, ShapeModel3DID, CamParam, Pose1, 'true', rad(30))</l>
+<l>        dev_display (ModelContours)</l>
+<c>        * Display the matching time and score</c>
+<l>        disp_message (WindowHandle, 'Matching at Longitude: ' + deg(Longitude)$'3.1f' + ' deg (from 30 to 60 deg)', 'window', 12, 12, 'white', 'false')</l>
+<l>        gen_matching_result_message (Time1, Time2, Score1, Score2, Message)</l>
+<l>        disp_message (WindowHandle, Message, 'window', 420, 12, ['white','yellow','green'], 'false')</l>
+<c>        * Remember the score values</c>
+<l>        Longitudes := [Longitudes,deg(Longitude)]</l>
+<l>        Scores1 := [Scores1,Score1]</l>
+<l>        Scores2 := [Scores2,Score2]</l>
+<l>        Times1 := [Times1,Time1]</l>
+<l>        Times2 := [Times2,Time2]</l>
+<l>    endif</l>
+<c>    * Prevent flickering</c>
+<l>    set_system ('flush_graphic', 'true')</l>
+<c>    * Show what we painted in the loop by drawing a invisible line</c>
+<l>    disp_line (WindowHandle, -1, -1, -1, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display the score values</c>
+<l>dev_clear_window ()</l>
+<l>Title := ['\'recompute_score\'=\'false\'','\'recompute_score\'=\'true\'']</l>
+<l>Colors := ['yellow','green']</l>
+<l>plot_tuple (WindowHandle, Longitudes, [Scores1,Scores2], 'Longitude [deg]', 'Matching score', Colors, ['ticks_x','ticks_y','end_y'], [6,.01,1])</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 350, Colors, 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, Longitudes, [Times1,Times2], 'Longitude [deg]', 'Matching time [ms]', Colors, 'ticks_x', 6)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 350, Colors, 'false')</l>
+<c>* </c>
+<c>* Clear the 3D shape model</c>
+<l>clear_shape_model_3d (ShapeModel3DID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="project_cube_image">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CamPose" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+<par name="Polygons" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>pose_to_hom_mat3d (CamPose, HomMat3D)</l>
+<l>get_cam_par_data (CamParam, 'image_width', ImageWidth)</l>
+<l>get_cam_par_data (CamParam, 'image_height', ImageHeight)</l>
+<l>gen_image_const (Image, 'byte', ImageWidth, ImageHeight)</l>
+<l>gen_image_const (ImageAdd, 'byte', ImageWidth, ImageHeight)</l>
+<l>Faces := [0,3,5]</l>
+<l>Gray := [60,120,180]</l>
+<l>for IndexFace := 0 to |Faces| - 1 by 1</l>
+<l>    Face := Faces[IndexFace]</l>
+<l>    FaceX := [X[Polygons[Face * 5 + 1]],X[Polygons[Face * 5 + 2]],X[Polygons[Face * 5 + 3]],X[Polygons[Face * 5 + 4]]]</l>
+<l>    FaceY := [Y[Polygons[Face * 5 + 1]],Y[Polygons[Face * 5 + 2]],Y[Polygons[Face * 5 + 3]],Y[Polygons[Face * 5 + 4]]]</l>
+<l>    FaceZ := [Z[Polygons[Face * 5 + 1]],Z[Polygons[Face * 5 + 2]],Z[Polygons[Face * 5 + 3]],Z[Polygons[Face * 5 + 4]]]</l>
+<l>    affine_trans_point_3d (HomMat3D, FaceX, FaceY, FaceZ, FaceXCam, FaceYCam, FaceZCam)</l>
+<l>    project_3d_point (FaceXCam, FaceYCam, FaceZCam, CamParam, Row, Column)</l>
+<l>    gen_contour_polygon_xld (Contour, [Row,Row[0]], [Column,Column[0]])</l>
+<l>    paint_xld (Contour, ImageAdd, ImageAddPainted, Gray[IndexFace])</l>
+<l>    add_image (Image, ImageAddPainted, Image, 1.0, 0)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="project_cube_image">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="CamPose"/>
+<parameter id="Image"/>
+<parameter id="Polygons"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_cube_shape_model_3d">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3DID" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ShapeModel3DID" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure tries to read a 3D shape model from disk.</c>
+<c>* If this fails, it creates a new 3D shape model.</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Reading the 3D shape model file from disk ...', 'window', 12, 12, 'white', 'false')</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>file_exists ('cube.sm3', FileExists)</l>
+<l>if (FileExists)</l>
+<l>    read_shape_model_3d ('cube.sm3', ShapeModel3DID)</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file from disk ... done', 'window', 12, 12, 'green', 'false')</l>
+<l>else</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file from disk ... not found!', 'window', 12, 12, 'red', 'false')</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model (may take a minute) ...', 'window', 42, 12, 'white', 'false')</l>
+<l>    create_shape_model_3d (ObjectModel3DID, CamParam, 0, 0, 0, 'gba', rad(30), rad(60), rad(40), rad(50), -3.1416, 3.1416, 11.5, 12.0, 10, [], [], ShapeModel3DID)</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model (may take a minute) ... done', 'window', 42, 12, 'green', 'false')</l>
+<l>    disp_message (WindowHandle, 'Writing model to disk ...', 'window', 72, 12, 'white', 'false')</l>
+<l>    write_shape_model_3d (ShapeModel3DID, 'cube.sm3')</l>
+<l>endif</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>return ()</l>
+</body>
+<docu id="create_cube_shape_model_3d">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="ObjectModel3DID"/>
+<parameter id="ShapeModel3DID"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_matching_result_message">
+<interface>
+<ic>
+<par name="Time1" base_type="ctrl" dimension="0"/>
+<par name="Time2" base_type="ctrl" dimension="0"/>
+<par name="Score1" base_type="ctrl" dimension="0"/>
+<par name="Score2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message[0] := '\'recompute_score\'                     Time [ms]    Score  '</l>
+<l>Message[1] := '     \'false\'                            ' + Time1$'3.0f' + '        ' + Score1$'4.3f'</l>
+<l>Message[2] := '     \'true\'                             ' + Time2$'3.0f' + '        ' + Score2$'4.3f'</l>
+<l>return ()</l>
+</body>
+<docu id="gen_matching_result_message">
+<parameters>
+<parameter id="Message"/>
+<parameter id="Score1"/>
+<parameter id="Score2"/>
+<parameter id="Time1"/>
+<parameter id="Time2"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

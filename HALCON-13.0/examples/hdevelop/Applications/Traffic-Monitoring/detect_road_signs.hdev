@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows an application case from the automobile</c>
+<c>* industry. A monitoring system in a car  checks the sidewalk</c>
+<c>* for roadsigns to support the driver in case of any inattention.</c>
+<c>* To show the imaging process we focus on two road signs,</c>
+<c>* the attention and the dead end road sign. First the models</c>
+<c>* of both signs are generated and then detected in a street</c>
+<c>* sequence.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<c>* Read in model images.</c>
+<c>* While the attention sign is from a synthetic source,</c>
+<c>* the model for the dead end sign is from another sequence.</c>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[2,3]" as_ord="1">read_image (ImageAttentionSign, 'road_signs/attention_road_sign')</l>
+<l>read_image (ImageInit, 'road_signs/street_01')</l>
+<l>dev_open_window_fit_image (ImageInit, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_update_off ()</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Some values for the later matching process are initialized</c>
+<c>* The Attention sign has a significant red part, the</c>
+<c>* dead end sign a blue one. Hence, we can extract the respective</c>
+<c>* channels from the color images.</c>
+<l>Channel := [3,1]</l>
+<c>* In this example, we have significant scalings of the road signs.</c>
+<l>ScaleRMin := [0.5,0.4]</l>
+<l>ScaleRMax := [0.8,2.0]</l>
+<c>* One could add an anisotropic scaling for the exhaustive search.</c>
+<c>* However, this makes the detection slower and is not required here.</c>
+<l>ScaleCMin := [1.0,1.0]</l>
+<l>ScaleCMax := [1.0,1.0]</l>
+<c>* Add names to the signs.</c>
+<l>RoadSign := ['Attention','Dead end']</l>
+<l>HFac := [47.0,50.0]</l>
+<c>* </c>
+<c>* Prepare the attention sign picture for the model</c>
+<c>* creation process.</c>
+<l>access_channel (ImageAttentionSign, Image, Channel[0])</l>
+<l>zoom_image_factor (Image, ImageZoomed, 0.1, 0.1, 'weighted')</l>
+<l>inspect_shape_model (ImageZoomed, ModelImages, ModelRegions, 3, 20)</l>
+<l>create_planar_uncalib_deformable_model (ImageZoomed, 3, [], [], 0.1, ScaleRMin[0], [], 0.05, ScaleCMin[0], [], 0.5, 'none', 'use_polarity', 'auto', 'auto', [], [], ModelID)</l>
+<l>Models := ModelID</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>read_image (ImageDeadEnd, 'road_signs/dead_end_road_sign')</l>
+<l>access_channel (ImageDeadEnd, Image, Channel[1])</l>
+<l>gray_closing_shape (Image, ImageClosing, 5, 5, 'octagon')</l>
+<l>zoom_image_factor (ImageClosing, ImageZoomed, 0.4, 0.4, 'weighted')</l>
+<l>gen_rectangle1 (Rectangle1, 28, 71, 69, 97)</l>
+<l>reduce_domain (ImageZoomed, Rectangle1, ImageReduced)</l>
+<l>create_planar_uncalib_deformable_model (ImageReduced, 3, [], [], 0.1, ScaleRMin[1], [], 0.05, ScaleRMin[1], [], 0.1, 'none', 'use_polarity', 'auto', 'auto', [], [], ModelID)</l>
+<c>* </c>
+<c>* The following three lines theoretically show how to</c>
+<c>* query specific parameters of a model.</c>
+<c>* Practically, the derived information is not needed</c>
+<c>* within the program.</c>
+<l>get_deformable_model_params (ModelID, 'angle_step', AngleStep)</l>
+<l>get_deformable_model_params (ModelID, 'scale_r_step', ScaleRStep)</l>
+<l>Models := [Models,ModelID]</l>
+<c>* </c>
+<c>* Generate ROI in which the road signs are expected.</c>
+<c>* We can discard not significant parts of the image, in which</c>
+<c>* no road sign can be located.</c>
+<l>gen_rectangle1 (Rectangle, 115, 0, 360, 640)</l>
+<c>* </c>
+<c>* Search in image sequence</c>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">for Index := 1 to 16 by 1</l>
+<l>    OutputString := []</l>
+<l>    TotalTime := 0</l>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[2,3]" as_ord="1">    read_image (Image, 'road_signs/street_' + Index$'.02')</l>
+<c>    * We are using color images, hence the ROI of the search image</c>
+<c>    * can significantly be reduced based on the color.</c>
+<l>    determine_area_of_interest (Image, Rectangle, AreaOfInterest)</l>
+<l>    reduce_domain (Image, AreaOfInterest, ImageReduced)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<l>    for Index2 := 0 to |Models| - 1 by 1</l>
+<c>        * </c>
+<c>        * Depending on the street sign to be found, we use different color</c>
+<c>        * channels of the image and the operator find_planar_uncalib_deformable_model</c>
+<c>        * with different parameters because of the varying dimensions of the models.</c>
+<l>        access_channel (ImageReduced, ImageChannel, Channel[Index2])</l>
+<l>        count_seconds (Time1)</l>
+<l>        find_planar_uncalib_deformable_model (ImageChannel, Models[Index2], 0, 0, ScaleRMin[Index2], ScaleRMax[Index2], ScaleCMin[Index2], ScaleCMax[Index2], 0.85, 1, 0, 2, 0.4, [], [], HomMat2D, Score)</l>
+<l>        count_seconds (Time2)</l>
+<l>        Time := Time2 - Time1</l>
+<l>        TotalTime := TotalTime + Time</l>
+<c>        * </c>
+<c>        * Display found models.</c>
+<l>        if (|HomMat2D|)</l>
+<l>            get_deformable_model_contours (ModelContours, Models[Index2], 1)</l>
+<l>            projective_trans_contour_xld (ModelContours, ContoursProjTrans, HomMat2D)</l>
+<l>            gen_region_contour_xld (ContoursProjTrans, Region, 'filled')</l>
+<l>            union1 (Region, RegionU)</l>
+<l>            area_center (RegionU, Area, R, C)</l>
+<l>            get_region_runs (RegionU, Row, ColumnBegin, ColumnEnd)</l>
+<l>            H := max(Row) - min(Row)</l>
+<l>            Fac := H / HFac[Index2]</l>
+<l>            gen_circle (Circle, R, C, 45 * Fac)</l>
+<l>            dev_display (Circle)</l>
+<l>            gen_circle (Circle, R, C, 50 * Fac)</l>
+<l>            dev_display (Circle)</l>
+<l>            dev_display (ContoursProjTrans)</l>
+<l>            if (Index2 == 0)</l>
+<l>                OutputString := 'Attention sign found in : ' + (Time * 1000)$'.2f' + ' ms \n'</l>
+<l>            else</l>
+<l>                OutputString := 'Dead end sign found in  : ' + (Time * 1000)$'.2f' + ' ms \n'</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    if (|OutputString| == 0)</l>
+<l>        OutputString := 'No sign found in        : ' + (Time * 1000)$'.2f' + ' ms \n'</l>
+<l>    endif</l>
+<l>    OutputString := ['Search for all models in: ' + (TotalTime * 1000)$'.2f' + ' ms',OutputString]</l>
+<l>    disp_message (WindowHandle, OutputString, 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endfor</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Program finished.\nPress \'Run\' to clear all deformable models.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Clean the memory of the models.</c>
+<l>for Index1 := 0 to 1 by 1</l>
+<l>    clear_deformable_model (Models[Index1])</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="determine_area_of_interest">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Rectangle" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="AreaOfInterest" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>decompose3 (ImageReduced, ImageR, ImageG, ImageB)</l>
+<l>trans_from_rgb (ImageR, ImageG, ImageB, ImageH, ImageS, ImageV, 'hsv')</l>
+<l>threshold (ImageS, HighSat, 130, 255)</l>
+<l>dilation_circle (HighSat, HighSatD, 2.0)</l>
+<l>fill_up (HighSatD, HighSatD)</l>
+<l>reduce_domain (ImageH, HighSatD, HighHue)</l>
+<l>threshold (HighHue, ColoredAreaOfInterest, [230,145], [255,162])</l>
+<l>fill_up (ColoredAreaOfInterest, ImageFilled)</l>
+<l>dilation_circle (ImageFilled, ImageDilated, 3.0)</l>
+<l>union1 (ImageDilated, AreaOfInterest)</l>
+<l>return ()</l>
+</body>
+<docu id="determine_area_of_interest">
+<parameters>
+<parameter id="AreaOfInterest"/>
+<parameter id="Image"/>
+<parameter id="Rectangle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

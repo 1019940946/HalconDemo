@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use an SVM for classifying</c>
+<c>* two-dimensional data.  2D data is used because it can easily be visualized</c>
+<c>* as regions and images.  The example uses three classes that overlap</c>
+<c>* substantially.  It generates samples from each class and trains the SVM with</c>
+<c>* the samples.  Then, the SVM is used to classify the complete 2D feature</c>
+<c>* space.  From the results, it can be seen that the SVM classifies each point</c>
+<c>* of the feature space as belonging to one of the three classes.  Hence, even</c>
+<c>* points that lie far outside the convex hull of the training samples will be</c>
+<c>* assigned to one of the three classes.  This is a general property of SVM</c>
+<c>* classifiers, which sometimes necessitates that an explicit rejection class</c>
+<c>* is trained.  Furthermore, this example program shows that the parameter Nu</c>
+<c>* needs to be chosen carefully to be larger than the errors that are inevitable</c>
+<c>* if the classes overlap.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 199)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* Generate three overlapping ellipses as the regions from which the training</c>
+<c>* samples are drawn.</c>
+<l>gen_ellipse (RegionClass1, 60, 60, rad(-45), 60, 40)</l>
+<l>gen_ellipse (RegionClass2, 70, 130, rad(-145), 70, 30)</l>
+<l>gen_ellipse (RegionClass3, 140, 100, rad(100), 55, 40)</l>
+<c>* Sample feature points from each region by segmenting a different noisy image</c>
+<c>* for each region and intersecting the segmented region with the class region.</c>
+<l>gen_image_const (Image, 'byte', 200, 200)</l>
+<l>add_noise_white (Image, ImageNoise1, 60)</l>
+<l>add_noise_white (Image, ImageNoise2, 60)</l>
+<l>add_noise_white (Image, ImageNoise3, 60)</l>
+<l>threshold (ImageNoise1, RegionNoise1, 40, 255)</l>
+<l>threshold (ImageNoise2, RegionNoise2, 40, 255)</l>
+<l>threshold (ImageNoise3, RegionNoise3, 40, 255)</l>
+<l>intersection (RegionClass1, RegionNoise1, SamplesClass1)</l>
+<l>intersection (RegionClass2, RegionNoise2, SamplesClass2)</l>
+<l>intersection (RegionClass3, RegionNoise3, SamplesClass3)</l>
+<c>* Display the samples of each class.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (SamplesClass1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SamplesClass2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (SamplesClass3)</l>
+<l>Message := 'Training samples of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (SamplesClass1, SamplesClass2, SamplesClass3, RegionClass1, RegionClass2, RegionClass3, WindowHandle, 'rbf', 0.05, 0.01)</l>
+<l>Message := 'Nu = 0.01: Wrong classification'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (SamplesClass1, SamplesClass2, SamplesClass3, RegionClass1, RegionClass2, RegionClass3, WindowHandle, 'rbf', 0.05, 0.18)</l>
+<l>Message := 'Nu = 0.18: Overfitting'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (SamplesClass1, SamplesClass2, SamplesClass3, RegionClass1, RegionClass2, RegionClass3, WindowHandle, 'rbf', 0.05, 0.25)</l>
+<l>Message := 'Nu = 0.25: Good generalization'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="classify_2d_feature_space">
+<interface>
+<io>
+<par name="SamplesClass1" base_type="iconic" dimension="0"/>
+<par name="SamplesClass2" base_type="iconic" dimension="0"/>
+<par name="SamplesClass3" base_type="iconic" dimension="0"/>
+<par name="RegionClass1" base_type="iconic" dimension="0"/>
+<par name="RegionClass2" base_type="iconic" dimension="0"/>
+<par name="RegionClass3" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="KernelType" base_type="ctrl" dimension="0"/>
+<par name="KernelParam" base_type="ctrl" dimension="0"/>
+<par name="Nu" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Read out the sample points and add them as training samples to the SVM.</c>
+<l>concat_obj (SamplesClass1, SamplesClass2, Samples)</l>
+<l>concat_obj (Samples, SamplesClass3, Samples)</l>
+<c>* It is instructive to try different values for Nu.  For too small values (around 0.2,</c>
+<c>* depending on how the random samples are distributed) the boundaries of the</c>
+<c>* class regions will become quite unsmooth, indicating that the classes overlap</c>
+<c>* too much for the chosen Nu, and hence that the SVM needs to overfit the</c>
+<c>* training data.  Depending on how KernelType and KernelParam are chosen</c>
+<c>* the shape of the class boundaries will vary substantially.  Hence, it can be</c>
+<c>* seen that to obtain optimally smooth class boundaries it is good to have</c>
+<c>* an estimate for the percentage by which the classes will overlap.</c>
+<l>create_class_svm (2, KernelType, KernelParam, Nu, 3, 'one-versus-one', 'normalization', 0, SVMHandle)</l>
+<l>for Class := 0 to 2 by 1</l>
+<l>    select_obj (Samples, SamplesClass, Class + 1)</l>
+<l>    get_region_points (SamplesClass, Rows, Cols)</l>
+<l>    for J := 0 to |Rows| - 1 by 1</l>
+<l>        add_sample_class_svm (SVMHandle, real([Rows[J],Cols[J]]), Class)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>get_sample_num_class_svm (SVMHandle, NumSamples)</l>
+<c>* Train the SVM.</c>
+<l>train_class_svm (SVMHandle, 0.001, 'default')</l>
+<c>* Now classify all points in the 2D feature space and store the classification</c>
+<c>* in a class label image.</c>
+<l>gen_image_const (LabelClass, 'byte', 200, 200)</l>
+<l>for R := 0 to 199 by 1</l>
+<l>    for C := 0 to 199 by 1</l>
+<l>        Features := real([R,C])</l>
+<l>        classify_class_svm (SVMHandle, Features, 1, Class)</l>
+<l>        set_grayval (LabelClass, R, C, Class)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>label_to_region (LabelClass, Classes)</l>
+<c>* Display the class for each point in the feature space.</c>
+<l>dev_set_colored (3)</l>
+<l>dev_display (Classes)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClass1)</l>
+<l>dev_display (RegionClass2)</l>
+<l>dev_display (RegionClass3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>set_tposition (WindowHandle, 5, 5)</l>
+<l>write_string (WindowHandle, 'Class regions')</l>
+<l>return ()</l>
+</body>
+<docu id="classify_2d_feature_space">
+<parameters>
+<parameter id="KernelParam"/>
+<parameter id="KernelType"/>
+<parameter id="Nu"/>
+<parameter id="RegionClass1"/>
+<parameter id="RegionClass2"/>
+<parameter id="RegionClass3"/>
+<parameter id="SamplesClass1"/>
+<parameter id="SamplesClass2"/>
+<parameter id="SamplesClass3"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

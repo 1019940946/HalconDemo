@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to get information about the</c>
+<c>* parameters of operators. In particular, operators that support</c>
+<c>* specific input image types are obtained.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* </c>
+<l>ByteOperators := []</l>
+<l>CyclicOperators := []</l>
+<l>DirectionOperators := []</l>
+<l>Int1Operators := []</l>
+<l>UInt2Operators := []</l>
+<l>Int2Operators := []</l>
+<l>Int4Operators := []</l>
+<l>Int8Operators := []</l>
+<l>RealOperators := []</l>
+<l>ComplexOperators := []</l>
+<l>VectorFieldOperators := []</l>
+<c>* </c>
+<c>* query all supported operator names</c>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>for idx := 0 to |OperatorNames| - 1 by 1</l>
+<c>    *   for all operators ...</c>
+<l>    OperatorName := OperatorNames[idx]</l>
+<l>    get_param_names (OperatorName, InpObjPar, OutpObjPar, InpCtrlPar, OutpCtrlPar)</l>
+<l>    for jdx := 0 to |InpObjPar| - 1 by 1</l>
+<c>        *       for all input object parameters</c>
+<l>        get_param_info (OperatorName, InpObjPar[jdx], 'sem_type', SemType)</l>
+<l>        if ((SemType =~ '^image') &gt; 0)</l>
+<c>            *           input images supported</c>
+<l>            get_param_info (OperatorName, InpObjPar[jdx], 'type_list', Types)</l>
+<l>            if ((Types =~ '^byte') &gt; 0)</l>
+<l>                ByteOperators := [ByteOperators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^cyclic') &gt; 0)</l>
+<l>                CyclicOperators := [CyclicOperators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^direction') &gt; 0)</l>
+<l>                DirectionOperators := [DirectionOperators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^int1') &gt; 0)</l>
+<l>                Int1Operators := [Int1Operators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^uint2') &gt; 0)</l>
+<l>                UInt2Operators := [UInt2Operators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^int2') &gt; 0)</l>
+<l>                Int2Operators := [Int2Operators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^int4') &gt; 0)</l>
+<l>                Int4Operators := [Int4Operators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^int8') &gt; 0)</l>
+<l>                Int8Operators := [Int8Operators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^real') &gt; 0)</l>
+<l>                RealOperators := [RealOperators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^complex') &gt; 0)</l>
+<l>                ComplexOperators := [ComplexOperators,OperatorName]</l>
+<l>            endif</l>
+<l>            if ((Types =~ '^vector_field') &gt; 0)</l>
+<l>                VectorFieldOperators := [VectorFieldOperators,OperatorName]</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<l>ByteOperators := sort(uniq(ByteOperators))</l>
+<l>CyclicOperators := sort(uniq(CyclicOperators))</l>
+<l>DirectionOperators := sort(uniq(DirectionOperators))</l>
+<l>Int1Operators := sort(uniq(Int1Operators))</l>
+<l>UInt2Operators := sort(uniq(UInt2Operators))</l>
+<l>Int2Operators := sort(uniq(Int2Operators))</l>
+<l>Int4Operators := sort(uniq(Int4Operators))</l>
+<l>Int8Operators := sort(uniq(Int8Operators))</l>
+<l>RealOperators := sort(uniq(RealOperators))</l>
+<l>ComplexOperators := sort(uniq(ComplexOperators))</l>
+<l>VectorFieldOperators := sort(uniq(VectorFieldOperators))</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read a string with a predetermined maximum size in a text window</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>disp_arrow (WindowID, 255 - 20, 255 - 20, 255, 255, 1)</l>
+<l>dev_set_color ('green')</l>
+<l>set_tposition (WindowID, 20, 20)</l>
+<l>write_string (WindowID, 'Type in some characters and quit with return')</l>
+<c>* Set the position of the text cursor</c>
+<l>set_tposition (WindowID, 255, 255)</l>
+<l>read_string (WindowID, 'Default', 32, OutString)</l>
+<c>* You can see the result in the variable watch window</c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

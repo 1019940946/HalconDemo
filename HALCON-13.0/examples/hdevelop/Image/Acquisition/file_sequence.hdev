@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the virtual frame grabber (with image sequence)</c>
+<c>* </c>
+<l>SequenceName := 'pendulum/pendulum.seq'</l>
+<l>open_framegrabber ('File', -1, -1, -1, -1, -1, -1, 'default', -1, 'default', -1, 'default', SequenceName, 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<c>* </c>
+<l>MaxImageNum := 200</l>
+<l>ImageNum := 1</l>
+<c>* </c>
+<l>while (ImageNum &lt;= MaxImageNum)</l>
+<c>    * Every subsequent call of grab_image() reads the next image file of the image sequence!</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<c>    * Do something</c>
+<l>    wait_seconds (0.04)</l>
+<c>    * </c>
+<c>    * Next image</c>
+<l>    ImageNum := ImageNum + 1</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

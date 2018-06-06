@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images with the Video4Linux2 image acquisition interface.</c>
+<c>* (performance evaluation to show the difference between grab_image and grab_imamge_async)</c>
+<c>* </c>
+<c>* check interface revision:</c>
+<l>info_framegrabber ('Video4Linux2', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed cameras for device and port:</c>
+<l>info_framegrabber ('Video4Linux2', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open first camera</c>
+<l>open_framegrabber ('Video4Linux2', 640, 480, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>GrabAsync := true</l>
+<l>NumImages := 20</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* </c>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    access_channel (Image, ImageChannel1, 1)</l>
+<l>    sobel_amp (ImageChannel1, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds3)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>    access_channel (Image, ImageChannel1, 1)</l>
+<l>    sobel_amp (ImageChannel1, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds4)</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>TimeGrab := (Seconds2 - Seconds1) / NumImages</l>
+<l>TimeSobel := (Seconds3 - Seconds2) / NumImages</l>
+<l>TimeAll := (Seconds4 - Seconds3) / NumImages</l>
+<l>Overhead := TimeAll - TimeSobel</l>
+<l>stop ()</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

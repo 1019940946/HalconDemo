@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* **************************************************************************************************</c>
+<c>*    PILED BOXES</c>
+<c>* Take two images with single calibrated camera mounted on a moving robot arm.</c>
+<c>* Uncalibrated stereo computes the relative position of the two cameras and</c>
+<c>* reconstructs 3d scene points. Use the result for inferring the distance map and</c>
+<c>* for segmenting the box surfaces.</c>
+<c>* The coordinates of the point where to pick the boxes and the orientation of the</c>
+<c>* surface enables the robot to grab the boxes.</c>
+<c>* **************************************************************************************************</c>
+<c>* </c>
+<c>* Read stereo image pair</c>
+<l>dev_close_window ()</l>
+<l>read_image (Image1, 'stereo/uncalib/boxes_l.png')</l>
+<l>read_image (Image2, 'stereo/uncalib/boxes_r.png')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_update_window ('off')</l>
+<l>ScaleImage := 0.7</l>
+<l>dev_open_window (0, 0, Width * ScaleImage, Height * ScaleImage, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, Width * ScaleImage + 10, Width * ScaleImage, Height * ScaleImage, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_display (Image1)</l>
+<l>disp_message (WindowHandle1, 'Left image', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_display (Image2)</l>
+<l>disp_message (WindowHandle2, 'Right image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract characteristic points</c>
+<l>points_foerstner (Image1, 1, 2, 3, 200, 0.1, 'gauss', 'false', Row1, Col1, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>points_foerstner (Image2, 1, 2, 3, 200, 0.1, 'gauss', 'false', Row2, Col2, CoRRJunctions1, CoRCJunctions1, CoCCJunctions1, RowArea1, ColumnArea1, CoRRArea1, CoRCArea1, CoCCArea1)</l>
+<c>* </c>
+<c>* Camera parameters</c>
+<l>CamPar := [0.00969304,-2729.81,1.46792e-5,1.48e-5,297.85,255.4,640,480]</l>
+<c>* </c>
+<c>* Compute relative pose and reconstruct 3d points</c>
+<l>match_rel_pose_ransac (Image1, Image2, Row1, Col1, Row2, Col2, CamPar, CamPar, 'ncc', 10, 0, 0, 200, 200, 0, 0.5, 'gold_standard', 2, 1, RelPose, CovRelPose, Error, Points1, Points2)</l>
+<l>Row1 := subset(Row1,Points1)</l>
+<l>Col1 := subset(Col1,Points1)</l>
+<l>Row2 := subset(Row2,Points2)</l>
+<l>Col2 := subset(Col2,Points2)</l>
+<l>vector_to_rel_pose (Row1, Col1, Row2, Col2, [], [], [], [], [], [], CamPar, CamPar, 'gold_standard', RelPose, CovRelPose1, Error, X, Y, Z, CovXYZ)</l>
+<c>* </c>
+<c>* Rectification</c>
+<l>gen_binocular_rectification_map (Map1, Map2, CamPar, CamPar, RelPose, 1, 'geometric', 'bilinear', CamParamRect1, CamParamRect2, CamPoseRect1, CamPoseRect2, RelPoseRect)</l>
+<l>map_image (Image1, Map1, ImageRect1)</l>
+<l>map_image (Image2, Map2, ImageRect2)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageRect1)</l>
+<l>disp_message (WindowHandle1, 'Left rectified image', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageRect2)</l>
+<l>disp_message (WindowHandle2, 'Right rectified image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the distance map and segment the biggest connected regions</c>
+<l>binocular_distance (ImageRect1, ImageRect2, Distance, Score, CamParamRect1, CamParamRect2, RelPoseRect, 'ncc', 15, 15, 0, -50, 50, 1, 0.1, 'left_right_check', 'interpolation')</l>
+<l>get_domain (Score, Domains)</l>
+<l>gen_circle (StructElem, 10, 10, 10)</l>
+<l>opening (Domains, StructElem, Domains)</l>
+<l>connection (Domains, Domains)</l>
+<l>area_center (Domains, Area, CenterRow, CenterCol)</l>
+<l>tuple_sort_index (Area, Ind)</l>
+<l>select_obj (Domains, Boxes, Ind[|Ind| - 3:|Ind| - 1] + 1)</l>
+<l>gen_contour_region_xld (Boxes, BoxesContour, 'border')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageRect1)</l>
+<l>dev_display (Distance)</l>
+<l>disp_message (WindowHandle1, 'Distance map', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageRect1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Boxes)</l>
+<l>disp_message (WindowHandle2, 'Segmented box surfaces', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Project the reconstructed 3d world points into the left rectified image</c>
+<l>pose_to_hom_mat3d (CamPoseRect1, HomMat3D)</l>
+<l>hom_mat3d_invert (HomMat3D, HomMat3D)</l>
+<l>affine_trans_point_3d (HomMat3D, X, Y, Z, XX, YY, ZZ)</l>
+<l>project_3d_point (XX, YY, ZZ, CamParamRect1, R1Rect, C1Rect)</l>
+<c>* </c>
+<c>* Compute the position and orientation of the box surfaces</c>
+<l>Normals := []</l>
+<l>Ind := []</l>
+<l>for I := 0 to 2 by 1</l>
+<c>    * Select all points inside the box region</c>
+<l>    select_obj (Boxes, Box, I + 1)</l>
+<l>    gen_contour_region_xld (Box, BoxContour, 'border')</l>
+<l>    test_xld_point (BoxContour, R1Rect, C1Rect, IsInside)</l>
+<l>    tuple_find (IsInside, 1, Ind1)</l>
+<l>    R1 := subset(R1Rect,Ind1)</l>
+<l>    C1 := subset(C1Rect,Ind1)</l>
+<c>    * Find the central point</c>
+<l>    area_center (Box, Area, CenterR, CenterC)</l>
+<l>    Dist := sqrt(pow(R1 - CenterR,2) + pow(C1 - CenterC,2))</l>
+<l>    tuple_sort_index (Dist, Ind2)</l>
+<l>    Ind[I] := Ind1[Ind2[0]]</l>
+<c>    * Compute 2 tangent vectors and with this the surface normal vector</c>
+<l>    tuple_sort_index (R1, Ind2)</l>
+<l>    Ind3 := [Ind1[Ind2[0]],Ind1[Ind2[|Ind2| - 1]]]</l>
+<l>    T1 := [X[Ind3[0]],Y[Ind3[0]],Z[Ind3[0]]] - [X[Ind3[1]],Y[Ind3[1]],Z[Ind3[1]]]</l>
+<l>    tuple_sort_index (C1, Ind2)</l>
+<l>    Ind3 := [Ind1[Ind2[0]],Ind1[Ind2[|Ind2| - 1]]]</l>
+<l>    T2 := [X[Ind3[0]],Y[Ind3[0]],Z[Ind3[0]]] - [X[Ind3[1]],Y[Ind3[1]],Z[Ind3[1]]]</l>
+<l>    cross_product_lp (T1, T2, N)</l>
+<l>    N := N / sqrt(sum(N * N))</l>
+<l>    Normals := [Normals,N]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Scale the reconstruction result with the length of the basis</c>
+<c>* The length of the basis is the distance between the two camera centers,</c>
+<c>* and can be derived for example from the known coordinates of a moving robot arm.</c>
+<c>* Here, an approximated guess of the basis is provided in the unit mm:</c>
+<l>Basis := 500</l>
+<l>X := X * Basis</l>
+<l>Y := Y * Basis</l>
+<l>Z := Z * Basis</l>
+<c>* </c>
+<c>* Visualize the results</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image1)</l>
+<l>R1 := subset(Row1,Ind)</l>
+<l>C1 := subset(Col1,Ind)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>gen_cross_contour_xld (Cross, R1, C1, 20, rad(45))</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle1, ['3d coordinates of surface points','Surface normals'], 'window', 12, 12, ['forest green','magenta'], 'true')</l>
+<l>set_display_font (WindowHandle1, 11, 'mono', 'true', 'false')</l>
+<l>for I := 0 to 2 by 1</l>
+<l>    String := '(' + X[Ind[I]]$'5.0f' + ' / ' + Y[Ind[I]]$'5.0f' + ' / ' + Z[Ind[I]]$'5.0f' + ')'</l>
+<l>    String[1] := '(' + Normals[I * 3]$'5.2f' + ' / ' + Normals[I * 3 + 1]$'5.2f' + ' / ' + Normals[I * 3 + 2]$'5.2f' + ')'</l>
+<l>    disp_message (WindowHandle1, String, 'image', R1[I] + 15, C1[I] - 120, ['forest green','magenta'], 'true')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="cross_product_lp">
+<interface>
+<ic>
+<par name="a" base_type="ctrl" dimension="0"/>
+<par name="b" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="c" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>c := []</l>
+<l>c := [c,a[1] * b[2] - a[2] * b[1]]</l>
+<l>c := [c,a[2] * b[0] - a[0] * b[2]]</l>
+<l>c := [c,a[0] * b[1] - a[1] * b[0]]</l>
+<l>return ()</l>
+</body>
+<docu id="cross_product_lp">
+<short lang="en_US">Local procedure for computing the cross product</short>
+<parameters>
+<parameter id="a"/>
+<parameter id="b"/>
+<parameter id="c"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

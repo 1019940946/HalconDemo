@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the component-based matching in order</c>
+<c>* to locate all instances of a dip switch module that consists of several</c>
+<c>* components. The body of the module and each of the twelve switches</c>
+<c>* represent a separate component. The relative movements (relations) are</c>
+<c>* automatically trained by using twelve training images each of which shows</c>
+<c>* another switch turned on while the remaining switches are turned off. Thus,</c>
+<c>* the training images show all possible relative movements of the components,</c>
+<c>* and hence cover all possible relative movements in a run-time image.</c>
+<c>* After creating the component model all instances of the dip switch module are</c>
+<c>* found in a run-time image. Finally, the found instances are horizontally aligned</c>
+<c>* in order to decide whether the switches are turned on or off.</c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>read_image (ModelImage, 'dip_switch/dip_switch_model')</l>
+<l>get_image_size (ModelImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Define the initial components</c>
+<l>gen_rectangle2 (InitialComponents, 265, 138, -0.02, 23, 13)</l>
+<l>gen_rectangle2 (InitialComponent, 342, 286, -0.02, 168, 13)</l>
+<l>concat_obj (InitialComponents, InitialComponent, InitialComponents)</l>
+<l>for I := 0 to 11 by 1</l>
+<l>    gen_rectangle2 (InitialComponent, 311 + I * 0.5, 128 + I * 28.2, 0, 10, 12)</l>
+<l>    concat_obj (InitialComponents, InitialComponent, InitialComponents)</l>
+<l>endfor</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (InitialComponents)</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_message (WindowHandle, 'Model image and', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, 'input regions describing the initial components', 'image', 40, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'yellow', 'false')</l>
+<l>get_mbutton (WindowHandle, Row1, Column1, Button1)</l>
+<c>* Get the training images</c>
+<l>gen_empty_obj (TrainingImages)</l>
+<l>for I := 1 to 12 by 1</l>
+<l>    read_image (TrainingImage, 'dip_switch/dip_switch_training_' + I$'02')</l>
+<l>    concat_obj (TrainingImages, TrainingImage, TrainingImages)</l>
+<l>    dev_display (TrainingImage)</l>
+<l>    disp_message (WindowHandle, 'Training image ' + I + ' of 12', 'image', 20, 20, 'yellow', 'false')</l>
+<l>    disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'yellow', 'false')</l>
+<l>    get_mbutton (WindowHandle, Row2, Column2, Button2)</l>
+<l>endfor</l>
+<c>* The component-based matching uses the contours of the components</c>
+<c>* as features for the matching. In order to make sure that only significant</c>
+<c>* features are involved in the matching the parameters ContrastLow,</c>
+<c>* ContrastHigh, and MinSize can be passed to the training. To inspect the</c>
+<c>* effect of different values for these three parameters, and hence to find</c>
+<c>* the optimum values for a certain application, the following two lines of</c>
+<c>* code can be used:</c>
+<l>* add_channels (InitialComponents, ModelImage, ModelImageInitComp)</l>
+<l>* gen_initial_components (ModelImageInitComp, InitialComponentEdges, 45, 45, 30, 'connection', [], [])</l>
+<c>* Extract the model components and train the relations</c>
+<c>* (This may take a few minutes!)</c>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Train the model components...', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, '(This may take a few minutes)', 'image', 40, 20, 'yellow', 'false')</l>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (Error, 1)</l>
+<l>read_training_components ('train_dip_switch.ct', ComponentTrainingID)</l>
+<l>dev_error_var (Error, 0)</l>
+<l>dev_set_check ('give_error')</l>
+<l>if (Error != H_MSG_TRUE)</l>
+<l>    train_model_components (ModelImage, InitialComponents, TrainingImages, ModelComponents, 45, 45, 30, 0.95, -1, -1, rad(20), 'speed', 'rigidity', 0.2, 0.5, ComponentTrainingID)</l>
+<c>    * Ignore writing errors as they are not critical for this example</c>
+<l>    dev_set_check ('~give_error')</l>
+<l>    write_training_components (ComponentTrainingID, 'train_dip_switch.ct')</l>
+<l>    dev_set_check ('give_error')</l>
+<l>endif</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Result of the training:', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, '  1) Final model components', 'image', 40, 20, 'yellow', 'false')</l>
+<l>dev_set_colored (12)</l>
+<l>get_training_components (ModelComponents, ComponentTrainingID, 'model_components', 'model_image', 'false', RowRef, ColumnRef, AngleRef, ScoreRef)</l>
+<l>dev_display (ModelComponents)</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'yellow', 'false')</l>
+<l>get_mbutton (WindowHandle, Row3, Column3, Button3)</l>
+<l>count_obj (ModelComponents, NumComp)</l>
+<l>for I := 0 to NumComp - 1 by 1</l>
+<l>    dev_display (ModelImage)</l>
+<l>    disp_message (WindowHandle, 'Result of the training:', 'image', 20, 20, 'yellow', 'false')</l>
+<l>    disp_message (WindowHandle, '  1) Final model components', 'image', 40, 20, 'yellow', 'false')</l>
+<l>    disp_message (WindowHandle, '  2) Relations with respect to component ' + I, 'image', 60, 20, 'yellow', 'false')</l>
+<l>    dev_set_colored (12)</l>
+<l>    get_component_relations (Relations, ComponentTrainingID, I, 'model_image', Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>    dev_display (Relations)</l>
+<l>    disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'yellow', 'false')</l>
+<l>    get_mbutton (WindowHandle, Row4, Column4, Button4)</l>
+<l>endfor</l>
+<c>* Add small tolerances to the automatically derived relations in order</c>
+<c>* to receive a higher robustness.</c>
+<l>modify_component_relations (ComponentTrainingID, 'all', 'all', 0, rad(4))</l>
+<c>* Create the component model based on the training result.</c>
+<c>* The minimum score for the model components should be set individually.</c>
+<c>* On the one hand the print on the module may be occluded, which requires</c>
+<c>* a low minimum score. On the other hand the switches must be distinguished</c>
+<c>* from from the background, which requires to set the corresponding minimum</c>
+<c>* score values to higher values.</c>
+<l>MinScoreComp := gen_tuple_const(13,0.8)</l>
+<l>MinScoreComp[0] := 0.4</l>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Create the component model...', 'image', 20, 20, 'yellow', 'false')</l>
+<c>* Automatically determine the optimum number of pyramid levels for the</c>
+<c>* switches. However, for the print on the module 4 pyramid levels</c>
+<c>* instead of the automatically determined 3 levels are used to speed up</c>
+<c>* the search.</c>
+<l>NumLevelsComp := gen_tuple_const(13,0)</l>
+<l>NumLevelsComp[0] := 4</l>
+<l>create_trained_component_model (ComponentTrainingID, 0, rad(360), 10, MinScoreComp, NumLevelsComp, 'auto', 'none', 'use_polarity', 'false', ComponentModelID, RootRanking)</l>
+<l>get_component_model_tree (Tree, Relations, ComponentModelID, RootRanking, 'model_image', StartNode, EndNode, Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>dev_display (ModelImage)</l>
+<l>disp_message (WindowHandle, 'Component model', 'image', 20, 20, 'yellow', 'false')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Tree)</l>
+<l>dev_display (Relations)</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 450, 20, 'yellow', 'false')</l>
+<l>get_mbutton (WindowHandle, Row5, Column5, Button5)</l>
+<l>wait_seconds (0.5)</l>
+<c>* Find the component model in a run-time image</c>
+<l>ImgNo := 1</l>
+<l>Button := 0</l>
+<l>while (Button != 1)</l>
+<l>    read_image (SearchImage, 'dip_switch/dip_switch_' + ImgNo$'02d')</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_component_model (SearchImage, ComponentModelID, RootRanking, 0, rad(360), 0, 0, 0.5, 'stop_search', 'prune_branch', 'none', MinScoreComp, 'least_squares', 0, 0.9, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    dev_display (SearchImage)</l>
+<l>    NumFound := |ModelStart|</l>
+<l>    Time := (Seconds2 - Seconds1) * 1000</l>
+<l>    disp_message (WindowHandle, NumFound + ' object(s) found in ' + Time$'4.2f' + ' ms', 'image', 20, 20, 'yellow', 'false')</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>        visualize_dip_switch_match (RowCompInst, ColumnCompInst, AngleCompInst, RowRef, ColumnRef, AngleRef, WindowHandle, Match)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, 'Press mouse button to stop', 'window', 450, 20, 'yellow', 'false')</l>
+<l>    ImgNo := ImgNo + 1</l>
+<l>    if (ImgNo &gt; 13)</l>
+<l>        ImgNo := 1</l>
+<l>    endif</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>*     stop ()</l>
+<l>endwhile</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="visualize_dip_switch_match">
+<interface>
+<ic>
+<par name="RowCompInst" base_type="ctrl" dimension="0"/>
+<par name="ColumnCompInst" base_type="ctrl" dimension="0"/>
+<par name="AngleCompInst" base_type="ctrl" dimension="0"/>
+<par name="RowRef" base_type="ctrl" dimension="0"/>
+<par name="ColumnRef" base_type="ctrl" dimension="0"/>
+<par name="AngleRef" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Match" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_color ('yellow')</l>
+<l>vector_angle_to_rigid (RowCompInst[0], ColumnCompInst[0], AngleCompInst[0] - 0.022, RowRef[0], ColumnRef[0], AngleRef[0], HomMat2D)</l>
+<l>affine_trans_point_2d (HomMat2D, RowCompInst, ColumnCompInst, RowSwitch, ColumnSwitch)</l>
+<l>gen_region_points (Region, RowSwitch, ColumnSwitch)</l>
+<l>SwitchPosition := []</l>
+<l>set_tposition (WindowHandle, 370 + 25 * Match, 20)</l>
+<l>write_string (WindowHandle, 'Switches of object ' + (Match + 1) + ': ')</l>
+<l>for Switch := 1 to 12 by 1</l>
+<l>    if (RowCompInst[Switch] == 0)</l>
+<l>        SwitchPosition := [SwitchPosition,'x']</l>
+<l>    else</l>
+<l>        if (RowSwitch[Switch] &lt; 304)</l>
+<l>            SwitchPosition := [SwitchPosition,1]</l>
+<l>        else</l>
+<l>            SwitchPosition := [SwitchPosition,0]</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>for Switch := 0 to 11 by 1</l>
+<l>    dev_set_color ('red')</l>
+<l>    if (SwitchPosition[Switch] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>    endif</l>
+<l>    if (SwitchPosition[Switch] == 0)</l>
+<l>        dev_set_color ('cyan')</l>
+<l>    endif</l>
+<l>    write_string (WindowHandle, SwitchPosition[Switch] + ' ')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="visualize_dip_switch_match">
+<short lang="en_US">Displays the status of the dip switches</short>
+<parameters>
+<parameter id="AngleCompInst"/>
+<parameter id="AngleRef"/>
+<parameter id="ColumnCompInst"/>
+<parameter id="ColumnRef"/>
+<parameter id="Match"/>
+<parameter id="RowCompInst"/>
+<parameter id="RowRef"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

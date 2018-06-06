@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use tuple_histo_range to calculate</c>
+<c>* the value distribution of a tuple in a user-defined value</c>
+<c>* range and number of bins.</c>
+<c>* </c>
+<l>tuple_rand (10, Tuple)</l>
+<c>* </c>
+<l>MinValue := 0.0</l>
+<l>MaxValue := 1.0</l>
+<l>NumBins := 5</l>
+<l>tuple_histo_range (Tuple, MinValue, MaxValue, NumBins, Histo, BinSize)</l>
+<c>* </c>
+<c>* Illustrate value distribution</c>
+<l>Sorted := sort(Tuple)</l>
+<l>dev_inspect_ctrl (Sorted)</l>
+<l>dev_inspect_ctrl ([Histo,Distribution])</l>
+<l>Sequence := [0:NumBins - 1]</l>
+<l>Distribution := subset(Histo,Sequence) + ' values in [' + (Sequence * BinSize + MinValue)$'3' + ',' + ((Sequence + 1) * BinSize + MinValue)$'3' + '['</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

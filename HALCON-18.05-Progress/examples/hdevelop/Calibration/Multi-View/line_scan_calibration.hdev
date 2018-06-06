@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the camera calibration</c>
+<c>* for images taken with linescan cameras.</c>
+<c>* </c>
+<c>* First, some initializations...</c>
+<l>NumCalibImages := 17</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'calib/calib_line_scan_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>OWFMaxExtent := 800</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, Width * (real(OWFMaxExtent) / Height), OWFMaxExtent, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Set the start values for the internal camera</c>
+<c>* parameters</c>
+<l>gen_cam_par_line_scan (0.06, 0, 10e-6, 10e-6, Width / 2.0, 0, Width, Height, 0, 5e-5, 0, StartCamParam)</l>
+<c>*   ... and the caltab description file</c>
+<l>CalTabDescrFile := 'caltab_30mm.descr'</l>
+<c>* </c>
+<c>* Create a calibration data model</c>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], StartCamParam)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalTabDescrFile)</l>
+<c>* </c>
+<c>* Determine the calibration marks and the poses of the</c>
+<c>* calibration plates for all the calibration images and</c>
+<c>* collect them in the calibration data model.</c>
+<l>dev_set_color ('white')</l>
+<l>for i := 1 to NumCalibImages by 1</l>
+<l>    read_image (Image, 'calib/calib_line_scan_' + i$'02d')</l>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, i, 'alpha', 0.5)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, i, Row, Column, Index, StartPose)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_caltab (WindowHandle, CalTabDescrFile, StartCamParam, StartPose, 1.0)</l>
+<l>    disp_message (WindowHandle, 'The start pose of the          ', 'window', 0, 0, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'calibration plate in image ' + i$'02d' + '  ', 'window', 20, 0, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Carry out the camera calibration</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Please wait...', 'window', 0, 0, 'black', 'true')</l>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Error = ' + Error$'.2f', 'window', 0, 0, 'black', 'true')</l>
+<c>* </c>
+<c>* In the following, the determined poses are visualized.</c>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParam)</l>
+<l>for i := 1 to NumCalibImages by 1</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    read_image (Image, 'calib/calib_line_scan_' + i$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    get_calib_data (CalibDataID, 'calib_obj_pose', [0,i], 'pose', CaltabPose)</l>
+<l>    dev_set_color ('white')</l>
+<l>    disp_caltab (WindowHandle, CalTabDescrFile, CamParam, CaltabPose, 1.0)</l>
+<l>    disp_message (WindowHandle, 'The final pose of the          ', 'window', 0, 0, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'calibration plate in image ' + i$'02d' + '  ', 'window', 0, 0, 'black', 'true')</l>
+<l>endfor</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

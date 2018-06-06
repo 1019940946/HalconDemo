@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a VRmagic USB camera device</c>
+<c>* (set external trigger)</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('VRmUsbCam', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('VRmUsbCam', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* Check for the proper Device and CameraType setting (see output of info_framegrabber(..,'info_boards',..)!</c>
+<l>MyDevice := 'default'</l>
+<l>MyCameraType := 'default'</l>
+<c>* </c>
+<l>open_framegrabber ('VRmUsbCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'true', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, 'grab_trigger_timeout_f', GrabTimeout)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'cam_trigger_polarity_e', 'pos_edge')</l>
+<l>set_framegrabber_param (AcqHandle, 'grab_trigger_timeout_f', 5000)</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

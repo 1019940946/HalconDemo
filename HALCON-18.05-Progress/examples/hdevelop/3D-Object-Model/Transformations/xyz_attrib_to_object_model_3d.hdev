@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the usage of the procedure</c>
+<c>* xyz_attrib_to_object_model_3d.</c>
+<c>* It can be used to create 3D object models from X, Y and Z images,</c>
+<c>* and simultaneously attach attributes to every point.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Read the digital surface model.</c>
+<l>read_image (Z, 'mreut_dgm_2.0.tif')</l>
+<l>get_image_size (Z, Width, Height)</l>
+<c>* </c>
+<c>* Read image that contains the gray values that will be added</c>
+<c>* to the 3D object model as attribute.</c>
+<l>read_image (AerialImage, 'mreut4_3.png')</l>
+<c>* </c>
+<c>* Generate a label image with a second attribute.</c>
+<c>* In this case, we label different terrain types very simply,</c>
+<c>* just for demonstration purposes.</c>
+<l>auto_threshold (AerialImage, Regions, 4)</l>
+<l>region_to_label (Regions, LabelImage, 'byte', Width, Height)</l>
+<c>* </c>
+<c>* Create a multichannel image from both attribute images.</c>
+<l>compose2 (AerialImage, LabelImage, MultiChannelAttribImage)</l>
+<c>* </c>
+<c>* Create images that contain X and Y coordinates in a regular grid.</c>
+<c>* For a simple gray ramp, the input parameters of</c>
+<c>* gen_image_surface_first_order are very simple:</c>
+<l>GroundResolution := 2.0</l>
+<l>gen_image_surface_first_order (X, 'real', 0, GroundResolution, 0, 0, 0, Width, Height)</l>
+<l>gen_image_surface_first_order (Y, 'real', -GroundResolution, 0, 0, 0, 0, Width, Height)</l>
+<c>* </c>
+<c>* The following procedure creates a 3D object model from</c>
+<c>* the X, Y and Z image and adds the information contained</c>
+<c>* in the attribute image to each point.</c>
+<l>AttribName := ['&amp;gray','&amp;terrain']</l>
+<l>xyz_attrib_to_object_model_3d (X, Y, Z, MultiChannelAttribImage, AttribName, ObjectModel3D)</l>
+<c>* </c>
+<c>* Display results</c>
+<c>* </c>
+<l>dev_open_window (Height / 2, 0, Width / 2, Height / 2, 'black', WindowHandle1)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color (['red','green','blue'])</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Regions)</l>
+<l>disp_message (WindowHandle1, 'Terrain types', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (AerialImage)</l>
+<l>disp_message (WindowHandle2, 'Aerial image', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>dev_open_window (0, Width / 2 + 8, Width, Height, 'gray', WindowHandle3)</l>
+<l>set_display_font (WindowHandle3, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Z)</l>
+<c>* </c>
+<l>disp_message (WindowHandle3, 'Digital surface model', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle3, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Perform fast triangulation of the object model for better visualization.</c>
+<l>prepare_object_model_3d (ObjectModel3D, 'segmentation', 'true', [], [])</l>
+<c>* Visualize 3d object model interactively</c>
+<l>create_pose (-620, -85, 17000, 135, 2, 10, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>Instructions := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom: Shift + left button'</l>
+<l>Instructions[2] := 'Move: Ctrl + left button'</l>
+<l>visualize_object_model_3d (WindowHandle3, ObjectModel3D, [], Pose, ['color_attrib','color_attrib_start','color_attrib_end'], ['&amp;gray',0,255], ['Created 3D model','Attribute used for visualization: \'&amp;gray\''], [], Instructions, PoseOut)</l>
+<l>visualize_object_model_3d (WindowHandle3, ObjectModel3D, [], PoseOut, ['color_attrib','lut'], ['&amp;terrain','color1'], ['Created 3D model','Attribute used for visualization: \'&amp;terrain\''], [], Instructions, PoseOut)</l>
+<l>disp_end_of_program_message (WindowHandle3, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

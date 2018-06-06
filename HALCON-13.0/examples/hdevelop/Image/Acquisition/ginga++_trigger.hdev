@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a LinX GINGA++ frame grabber board</c>
+<c>* (triggering)</c>
+<c>* </c>
+<c>* </c>
+<c>* Select the desired trigger mode:</c>
+<l>MyCameraType := 'sony/XC55_NI_TRIG_FREERUN'</l>
+<l>* MyCameraType := 'sony/XC55_NI_TRIG_DEMAND'</l>
+<l>* MyCameraType := 'jai/CVM40_NI_TRIG_FREERUN'</l>
+<l>* MyCameraType := 'jai/CVM40_NI_TRIG_DEMAND'</l>
+<c>* </c>
+<c>* Select the desired trigger mode:</c>
+<l>MyBoardType := 'GINGA++M2'</l>
+<l>* MyBoardType := 'GINGA++M4'</l>
+<c>* </c>
+<l>open_framegrabber ('Ginga++', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyBoardType, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Enable shot grabbing mode (software trigger):</c>
+<l>* set_framegrabber_param (AcqHandle, 'software_trigger', 'enable')</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

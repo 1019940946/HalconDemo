@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program demonstrates how to use the operator</c>
+<c>* triangulate_object_model_3d</c>
+<c>* </c>
+<c>* </c>
+<c>* Init visualization</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 800, 600, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>ForcePause := 1.5</l>
+<l>get_system_opengl_supported (WindowHandle, OpenGLSupported)</l>
+<c>* </c>
+<c>* Overview of all default triangulation parameters (greedy mode):</c>
+<c>* 'greedy_kNN' --&gt; 40</c>
+<c>* 'greedy_radius_type' --&gt; 'auto'</c>
+<c>* 'greedy_radius_value' --&gt; 1.0</c>
+<c>* 'greedy_neigh_orient_tol' --&gt; 30</c>
+<c>* 'greedy_neigh_orient_consistent' --&gt; 'false'</c>
+<c>* 'greedy_neigh_vertical_tol' --&gt; 0.1</c>
+<c>* 'greedy_neigh_latitude_tol' --&gt; 30</c>
+<c>* 'greedy_hole_filling' --&gt; 40</c>
+<c>* 'greedy_fix_flips' --&gt; 'true'</c>
+<c>* 'greedy_mesh_erosion' --&gt; 0</c>
+<c>* 'greedy_mesh_dilation' --&gt; 0</c>
+<c>* 'greedy_remove_small_surfaces' --&gt; 'false'</c>
+<c>* 'greedy_prefetch_neighbors' --&gt; 'true'</c>
+<c>* 'greedy_timeout' --&gt; 'false'</c>
+<c>* 'greedy_suppress_timeout_error' --&gt; 'false'</c>
+<c>* 'information' --&gt; 'num_triangles'</c>
+<c>* </c>
+<l>create_pose (-49.9194, 43.0534, 1343.74, 199.373, 27.1203, 3.17326, 'Rp+T', 'gba', 'point', Pose0)</l>
+<l>read_object_model_3d ('mvtec_bunny.om3', 'mm', [], [], ObjectModel3D, Status)</l>
+<l>if (OpenGLSupported)</l>
+<l>    SamplingFactor := 0.003</l>
+<l>    MeshMorpologyParams := [4,3,30000]</l>
+<l>else</l>
+<l>    SamplingFactor := 0.0053</l>
+<l>    MeshMorpologyParams := [3,2,300]</l>
+<l>endif</l>
+<c>* The raw data contains a huge number of points. Although they can</c>
+<c>* be triangulated as well, we sample down their number. This has two</c>
+<c>* major advantages:</c>
+<c>* - both the triangulation and the visualization of the objects are</c>
+<c>*   much faster</c>
+<c>* - the sub-sampling results in a smoother point cloud and hence -</c>
+<c>*   a smoother triangulated surface</c>
+<l>get_object_model_3d_params (ObjectModel3D, 'diameter_axis_aligned_bounding_box', Diameter)</l>
+<l>sample_object_model_3d (ObjectModel3D, 'fast', SamplingFactor * Diameter, [], [], RawPointData3D)</l>
+<c>* </c>
+<c>* The original model is not needed anymore</c>
+<l>clear_object_model_3d (ObjectModel3D)</l>
+<c>* </c>
+<c>* Inspect the point cloud data</c>
+<l>visualize_object_model_3d (WindowHandle, RawPointData3D, [], Pose0, 'point_size', 1, 'Raw point data to be triangulated', [], Instructions, Pose)</l>
+<c>* </c>
+<c>* </c>
+<c>* Triangulation with default settings</c>
+<c>* </c>
+<c>* (Only 'information' is set to 'verbose', to give</c>
+<c>* additional informations about the triangulation</c>
+<c>* process.)</c>
+<c>* </c>
+<c>* Display status</c>
+<l>DescriptionText := []</l>
+<l>ParameterNames := 'information'</l>
+<l>ParameterValues := 'verbose'</l>
+<l>Status := 'Performing triangulation with default settings ...'</l>
+<l>disp_message (WindowHandle, [DescriptionText,Status], 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Perform triangulation</c>
+<l>count_seconds (Start)</l>
+<l>triangulate_object_model_3d (RawPointData3D, 'greedy', ParameterNames, ParameterValues, Surface3DDefault, Info)</l>
+<l>count_seconds (End)</l>
+<l>TimeDefault := End - Start</l>
+<l>force_pause (TimeDefault, ForcePause)</l>
+<c>* If 'information' is set to 'verbose', a lot of useful</c>
+<c>* information is returned by triangulate_object_model_3d</c>
+<l>* dev_inspect_ctrl (Info)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>VisParNames := ['disp_lines','color','line_color','alpha']</l>
+<l>VisParValues := ['true','white','green',0.5]</l>
+<l>Status := 'Execution time (default settings): ' + TimeDefault$'.2' + 's'</l>
+<l>set_system ('flush_graphic', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>if (OpenGLSupported)</l>
+<l>    KeyPoses := []</l>
+<l>    KeyPoses := [KeyPoses,-29.0731,38.9057,261.771,180.149,29.2463,0.42091,0]</l>
+<l>    KeyPoses := [KeyPoses,-29.0731,38.9057,261.771,180.149,29.2463,0.42091,0]</l>
+<l>    KeyPoses := [KeyPoses,22.1251,63.0441,427.428,73.4444,86.7452,174.49,0]</l>
+<l>    KeyPoses := [KeyPoses,22.1251,63.0441,427.428,73.4444,86.7452,174.49,0]</l>
+<l>    KeyPoses := [KeyPoses,58.9778,21.3299,299.749,47.4176,17.0851,206.948,0]</l>
+<l>    KeyPoses := [KeyPoses,58.9778,21.3299,299.749,47.4176,17.0851,206.948,0]</l>
+<l>    Durations := [3.0,0.5,1.5,0.5,2.0,0.5]</l>
+<l>    animate_object_model_3d (WindowHandle, Surface3DDefault, Pose, [Pose,KeyPoses,Pose0], [0.5,Durations,3.0], VisParNames, VisParValues, 'Resulting triangulation', Pose)</l>
+<l>endif</l>
+<l>delayed_clear_titled_window (WindowHandle, [], 12, 12, OpenGLSupported)</l>
+<l>visualize_object_model_3d (WindowHandle, Surface3DDefault, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, Pose)</l>
+<c>* </c>
+<c>* </c>
+<c>* Triangulation with mesh morphology</c>
+<c>* </c>
+<c>* Following parameters enable the mesh morphology, to</c>
+<c>* remove artifacts on the surface boundaries.</c>
+<l>ParameterNames := ['greedy_mesh_erosion','greedy_mesh_dilation']</l>
+<l>ParameterValues := MeshMorpologyParams[0:1]</l>
+<c>* </c>
+<c>* Display status</c>
+<l>DescriptionText := 'Mesh morphology is used to remove artifacts on the boundary'</l>
+<l>Status := 'Performing triangulation with mesh morphology ...'</l>
+<l>disp_message (WindowHandle, [DescriptionText,Status], 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Perform triangulation</c>
+<l>count_seconds (Start)</l>
+<l>triangulate_object_model_3d (RawPointData3D, 'greedy', [ParameterNames,'information'], [ParameterValues,'verbose'], Surface3DMorphology, Info)</l>
+<l>count_seconds (End)</l>
+<l>TimeMorphology := End - Start</l>
+<l>force_pause (TimeMorphology, ForcePause)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>VisParNames := ['color_0','color_1','alpha','disp_background']</l>
+<l>if (OpenGLSupported)</l>
+<l>    Objects3D := [Surface3DMorphology,Surface3DDefault]</l>
+<l>    VisParValues := ['green','red',0.5,'true']</l>
+<l>else</l>
+<l>    Objects3D := [Surface3DDefault,Surface3DMorphology]</l>
+<l>    VisParValues := ['red','green',0.5,'true']</l>
+<l>endif</l>
+<l>Status := 'Execution time (with mesh morphology): ' + TimeMorphology$'.2' + 's'</l>
+<l>Message := ['After mesh morphology (' + VisParValues[0] + ')','Default settings (' + VisParValues[1] + ')']</l>
+<l>delayed_clear_titled_window (WindowHandle, Message, 65, 12, OpenGLSupported)</l>
+<l>visualize_object_model_3d (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, Pose)</l>
+<c>* </c>
+<c>* </c>
+<c>* Triangulation with mesh morphology and surface removal</c>
+<c>* </c>
+<c>* Following parameters enable the mesh morphology, to</c>
+<c>* remove artifacts on the surface boundaries.</c>
+<l>ParameterNames := ['greedy_mesh_erosion','greedy_mesh_dilation','greedy_remove_small_surfaces']</l>
+<l>ParameterValues := MeshMorpologyParams</l>
+<c>* </c>
+<c>* </c>
+<c>* Display status</c>
+<l>DescriptionText := 'Additionaly you can remove undesired surface pieces.         '</l>
+<l>Status := 'Performing triangulation with mesh morphology ...'</l>
+<l>dev_clear_window ()</l>
+<l>disp_object_model_3d_safe (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues)</l>
+<l>disp_message (WindowHandle, [DescriptionText,Status], 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Perform triangulation</c>
+<l>count_seconds (Start)</l>
+<l>triangulate_object_model_3d (RawPointData3D, 'greedy', [ParameterNames,'information'], [ParameterValues,'verbose'], Surface3DErasure, Info)</l>
+<l>count_seconds (End)</l>
+<l>TimeSurfaceErasure := End - Start</l>
+<l>force_pause (TimeSurfaceErasure, ForcePause)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>VisParNames := ['color_0','color_1','alpha','disp_background']</l>
+<l>if (OpenGLSupported)</l>
+<l>    Objects3D := [Surface3DErasure,Surface3DMorphology]</l>
+<l>    VisParValues := ['green','red',0.5,'true']</l>
+<l>else</l>
+<l>    Objects3D := [Surface3DMorphology,Surface3DErasure]</l>
+<l>    VisParValues := ['red','green',0.5,'true']</l>
+<l>endif</l>
+<c>* </c>
+<l>Status := 'Execution time (with mesh erasure): ' + TimeSurfaceErasure$'.2' + 's'</l>
+<l>Message := ['After surface erasure (' + VisParValues[0] + ')','After mesh morphology (' + VisParValues[1] + ')']</l>
+<l>delayed_clear_titled_window (WindowHandle, Message, 65, 12, OpenGLSupported)</l>
+<l>visualize_object_model_3d (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, Pose)</l>
+<c>* </c>
+<c>* </c>
+<c>* Triangulate with reduced number of neighbors (k-NN = 10)</c>
+<c>* </c>
+<l>ParameterNames := [ParameterNames,'greedy_kNN']</l>
+<l>ParameterValues := [ParameterValues,10]</l>
+<c>* </c>
+<c>* Display status</c>
+<l>DescriptionText := 'The number of neighbors has a direct impact over the'</l>
+<l>DescriptionText[1] := 'triangulation speed. Reduce k-NN to 10 (default = 40)'</l>
+<l>DescriptionText[2] := 'and compare execution times.'</l>
+<l>Status := 'Performing triangulation with reduced number of neighbors ...'</l>
+<l>dev_clear_window ()</l>
+<l>disp_object_model_3d_safe (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues)</l>
+<l>disp_message (WindowHandle, [DescriptionText,Status], 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Perform triangulation</c>
+<l>count_seconds (Start)</l>
+<l>triangulate_object_model_3d (RawPointData3D, 'greedy', [ParameterNames,'information'], [ParameterValues,'verbose'], Surface3DkNN10, Info)</l>
+<l>count_seconds (End)</l>
+<l>TimeKNN10 := End - Start</l>
+<l>force_pause (TimeKNN10, ForcePause)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>VisParNames := 'color'</l>
+<l>VisParValues := 'green'</l>
+<l>Objects3D := Surface3DkNN10</l>
+<l>Status := 'Execution time k-NN = 10: ' + TimeKNN10$'.2' + 's (compared to ' + TimeDefault$'.2' + 's (default settings))'</l>
+<l>delayed_clear_titled_window (WindowHandle, [], 12, 12, OpenGLSupported)</l>
+<l>visualize_object_model_3d (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, Pose)</l>
+<l>if (OpenGLSupported)</l>
+<c>    * The sub-sampled 3d object used with OpenGL is big</c>
+<c>    * enough to demonstrate what happens with too few</c>
+<c>    * neighbors selected (KNN=5).</c>
+<c>    * </c>
+<c>    * </c>
+<c>    * Triangulation with insufficient number of neighbors</c>
+<c>    * </c>
+<l>    ParameterValues[find(ParameterNames,'greedy_kNN')] := 5</l>
+<c>    * </c>
+<c>    * Display status</c>
+<l>    DescriptionText := 'The number of neighbors must not be too small. An insufficient     '</l>
+<l>    DescriptionText[1] := 'number of neighbors leads to inconsistent triangulation and'</l>
+<l>    DescriptionText[2] := 'eventually increases the time of the triangulation as well.'</l>
+<l>    Status := 'Performing triangulation with too few neighbors ...'</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_object_model_3d_safe (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues)</l>
+<l>    disp_message (WindowHandle, [DescriptionText,Status], 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Perform triangulation</c>
+<l>    count_seconds (Start)</l>
+<l>    triangulate_object_model_3d (RawPointData3D, 'greedy', [ParameterNames,'information'], [ParameterValues,'verbose'], Surface3DkNN5, Info)</l>
+<l>    count_seconds (End)</l>
+<l>    TimeKNN5 := End - Start</l>
+<l>    force_pause (TimeKNN5, ForcePause)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    Objects3D := Surface3DkNN5</l>
+<l>    VisParNames := 'color_0'</l>
+<l>    VisParValues := 'red'</l>
+<l>    Status := 'Execution time k-NN = 5: ' + TimeKNN5$'.2' + 's (compared to ' + TimeKNN10$'.2' + 's with k-NN = 10)'</l>
+<l>    delayed_clear_titled_window (WindowHandle, [], 12, 12, OpenGLSupported)</l>
+<l>    visualize_object_model_3d (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, Pose)</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<c>* Cleanup memory</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_object_model_3d_safe (WindowHandle, Objects3D, [], Pose, VisParNames, VisParValues)</l>
+<l>disp_message (WindowHandle, 'End of program', 'window', 12, 12, 'black', 'true')</l>
+<l>clear_object_model_3d ([RawPointData3D,Surface3DDefault,Surface3DMorphology,Surface3DErasure,Surface3DkNN10])</l>
+<l>if (OpenGLSupported)</l>
+<l>    clear_object_model_3d (Surface3DkNN5)</l>
+<l>endif</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="animate_object_model_3d">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+<par name="PoseIn" base_type="ctrl" dimension="0"/>
+<par name="KeyPoses" base_type="ctrl" dimension="0"/>
+<par name="Duration" base_type="ctrl" dimension="0"/>
+<par name="GenParamNames" base_type="ctrl" dimension="0"/>
+<par name="GenParamValues" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PoseOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressException)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_font (WindowHandle, Font)</l>
+<l>open_window (0, 0, Width, Height, 0, 'buffer', '', WindowHandleBuffer)</l>
+<l>set_font (WindowHandleBuffer, Font)</l>
+<l>get_string_extents (WindowHandleBuffer, ' Cancel ', Ascent, Descent, TextWidth, TextHeight)</l>
+<l>for KeyFrame := 0 to |Duration| - 1 by 1</l>
+<l>    KeyPose := KeyPoses[7 * KeyFrame:7 * (KeyFrame + 1) - 1]</l>
+<l>    count_seconds (Start)</l>
+<l>    while (1)</l>
+<l>        count_seconds (Current)</l>
+<l>        Progress := min([Current - Start,Duration[KeyFrame]])</l>
+<l>        W := Progress / Duration[KeyFrame]</l>
+<l>        if (W == 1.0)</l>
+<l>            PoseOut := KeyPose</l>
+<l>        else</l>
+<l>            pose_average ([PoseIn,KeyPose], [1 - W,W], 'direct', 'auto', 'auto', PoseOut, Quality)</l>
+<l>        endif</l>
+<l>        dev_set_window (WindowHandleBuffer)</l>
+<l>        disp_object_model_3d_safe (WindowHandleBuffer, ObjectModel3D, [], PoseOut, GenParamNames, GenParamValues)</l>
+<l>        disp_continue_button (WindowHandleBuffer)</l>
+<l>        if (|Title| &gt; 0)</l>
+<l>            disp_message (WindowHandleBuffer, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>        endif</l>
+<l>        dump_window_image (Image, WindowHandleBuffer)</l>
+<l>        dev_set_window (WindowHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        if (Progress &gt;= Duration[KeyFrame])</l>
+<l>            break</l>
+<l>        endif</l>
+<l>        try</l>
+<l>            get_mposition_sub_pix (WindowHandle, GraphButtonRow, GraphButtonColumn, GraphButton)</l>
+<l>            if (GraphButton != 0)</l>
+<l>                if (GraphButtonRow &gt; Height - TextHeight - 13 and GraphButtonRow &lt; Height and GraphButtonColumn &gt; Width - TextWidth - 13 and GraphButtonColumn &lt; Width)</l>
+<l>                    close_window (WindowHandleBuffer)</l>
+<l>                    dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressException)</l>
+<l>                    return ()</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>    endwhile</l>
+<l>    PoseIn := KeyPose</l>
+<l>endfor</l>
+<l>close_window (WindowHandleBuffer)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressException)</l>
+<l>return ()</l>
+</body>
+<docu id="animate_object_model_3d">
+<parameters>
+<parameter id="Duration">
+<default_type>real</default_type>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="GenParamNames">
+<sem_type>attribute.name</sem_type>
+</parameter>
+<parameter id="GenParamValues">
+<sem_type>attribute.value</sem_type>
+</parameter>
+<parameter id="KeyPoses">
+<sem_type>pose</sem_type>
+</parameter>
+<parameter id="ObjectModel3D">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="PoseIn">
+<sem_type>pose</sem_type>
+</parameter>
+<parameter id="PoseOut">
+<default_type>real</default_type>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Title"/>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="force_pause">
+<interface>
+<ic>
+<par name="Time" base_type="ctrl" dimension="0"/>
+<par name="ForcePause" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (Time &lt; ForcePause)</l>
+<l>    wait_seconds (ForcePause - Time)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="force_pause">
+<parameters>
+<parameter id="ForcePause"/>
+<parameter id="Time"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="delayed_clear_titled_window">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="OpenGLSupported" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>set_system ('flush_graphic', 'false')</l>
+<c>* all graphical actions between [[ and ]]</c>
+<c>* will be applied with the next graphic operation</c>
+<c>* called after this procedure</c>
+<c>* </c>
+<c>* [[</c>
+<l>dev_clear_window ()</l>
+<l>if (|Title| &gt; 0)</l>
+<l>    disp_message (WindowHandle, Title, 'window', Row, Column, 'white', 'false')</l>
+<l>endif</l>
+<c>* ]]</c>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="delayed_clear_titled_window">
+<parameters>
+<parameter id="Column">
+<default_type>integer</default_type>
+<default_value>12</default_value>
+<sem_type>point.x</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="OpenGLSupported"/>
+<parameter id="Row">
+<default_type>integer</default_type>
+<default_value>12</default_value>
+<sem_type>point.y</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Title">
+<default_type>string</default_type>
+<default_value>[]</default_value>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_system_opengl_supported">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="OpenGLSupported" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>OpenGLSupported := true</l>
+<l>gen_object_model_3d_from_points (0, 0, 0, ObjectModel3D)</l>
+<l>get_system ('opengl_info', OpenGLInfo)</l>
+<l>if (OpenGLInfo == 'No OpenGL support included.')</l>
+<l>    OpenGLSupported := false</l>
+<l>else</l>
+<l>    try</l>
+<l>        disp_object_model_3d (WindowHandle, ObjectModel3D, [], [], [], [])</l>
+<l>    catch (Exception)</l>
+<l>        OpenGLSupported := false</l>
+<l>    endtry</l>
+<l>endif</l>
+<l>clear_object_model_3d (ObjectModel3D)</l>
+<l>return ()</l>
+</body>
+<docu id="get_system_opengl_supported">
+<parameters>
+<parameter id="OpenGLSupported"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

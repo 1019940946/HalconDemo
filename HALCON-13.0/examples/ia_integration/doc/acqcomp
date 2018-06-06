@@ -1,0 +1,105 @@
+#!/bin/sh
+
+###############################################################################
+#  acqcomp
+###############################################################################
+#
+# Project:     HALCON Image Acquisition Interfaces
+# Authors:     D.-W. Peters
+# Description: Process documentation / front-end
+# Version:     1.2
+#
+# (c) 2011-2013 by MVTec Software GmbH
+#              www.mvtec.com
+#
+###############################################################################
+
+if [ -r $HALCONROOT/Manuals/resources/text/halcon.db ]; then
+  . $HALCONROOT/Manuals/resources/text/halcon.db
+fi
+version=$HMajorVersion
+fullversion=$HVersion
+lang=en_US
+driver=html
+extension=html
+date=`date`
+template=false
+mode=doc
+
+usage() {
+  cat <<ENDUSAGE >&2
+acqcomp - process image acquisition interface documentation
+Usage:    acqcomp [OPTIONS] FILE ...
+  -c <config>     main configuration file
+  -d <date>       build date [$date]
+  -i <dir>        base directory (absolute)
+                  (if not specified, use input file directory)
+  -l <lang>       ISO language [$lang]
+  -s <css>        CSS (cascading style sheet) file
+  -t <driver>     output driver [$driver]
+  -T              generate overview
+  -v <version>    HALCON major version [$version]
+  -w <version>    HALCON version [$fullversion]
+
+ENDUSAGE
+}
+
+while getopts c:d:i:l:s:t:Tv:w: arg
+do
+  case "$arg" in
+    c)  customconfigpath="$OPTARG"
+        ;;
+    d)  date="$OPTARG"
+        ;;
+    i)  custombasepath="$OPTARG"
+        ;;
+    l)  lang=$OPTARG
+        ;;
+    s)  customcsspath="$OPTARG"
+        ;;
+    t)  driver=$OPTARG
+        if [ "$driver" = "troff" ]; then
+          extension="tr"
+        fi
+        if [ "$driver" = "latex" ]; then
+          extension="tex"
+        fi
+        ;;
+    T)  mode=toc
+        ;;
+    v)  version=$OPTARG
+        ;;
+    w)  fullversion=$OPTARG
+        ;;
+  esac
+done
+shift `expr $OPTIND - 1`
+
+if [ ! -r "$1" ]; then
+  usage
+  exit 1
+fi
+
+for i; do
+  sourcepath=`dirname $i`
+
+  if [ "$custombasepath" = "" ]; then
+    basepath="$sourcepath"
+  else
+    basepath="$custombasepath"
+  fi
+
+  if [ "$customcsspath" = "" ]; then
+    csspath="../resources/text/generic.css"
+  else
+    csspath="$customcsspath"
+  fi
+
+  if [ "$customconfigpath" = "" ]; then
+    configpath="$basepath/include/config.hdoc"
+  else
+    configpath="$customconfigpath"
+  fi
+
+  acqpre base="$basepath" css="$csspath" version=$version fullversion=$fullversion $configpath $i | acqdump driver=$driver lang=$lang date="$date" mode=$mode
+done

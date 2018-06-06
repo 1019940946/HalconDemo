@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of the operator symm_difference_closed_polygons_xld</c>
+<c>* </c>
+<c>* First, two closed polygons are created. They both enclose a circular region.</c>
+<c>* These two regions overlap each other.</c>
+<l>gen_ellipse_contour_xld (Contour1, 200, 200, 0, 100, 100, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_polygons_xld (Contour1, Polygon1, 'ramer', 10)</l>
+<l>gen_ellipse_contour_xld (Contour2, 200, 300, 0, 100, 100, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_polygons_xld (Contour2, Polygon2, 'ramer', 10)</l>
+<c>* </c>
+<c>* Now, the symmetric difference of the two regions is determined.</c>
+<l>symm_difference_closed_polygons_xld (Polygon1, Polygon2, PolygonsDifference)</l>
+<c>* </c>
+<c>* Visualization of the result</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Polygon1)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Polygon2)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (PolygonsDifference)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('white')</l>
+<c>* </c>
+<c>* Now, boundary sets that define regions with holes are created.</c>
+<l>gen_ellipse_contour_xld (Boundary1, 200, 200, 0, 100, 100, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_polygons_xld (Boundary1, Boundary1Poly, 'ramer', 10)</l>
+<l>gen_ellipse_contour_xld (Hole1, 200, 200, 0, 75, 75, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_polygons_xld (Hole1, Hole1Poly, 'ramer', 10)</l>
+<l>concat_obj (Boundary1Poly, Hole1Poly, BoundarySet1)</l>
+<l>gen_ellipse_contour_xld (Boundary2, 200, 300, 0, 100, 100, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_polygons_xld (Boundary2, Boundary2Poly, 'ramer', 10)</l>
+<l>gen_ellipse_contour_xld (Hole2, 200, 300, 0, 75, 75, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_polygons_xld (Hole2, Hole2Poly, 'ramer', 10)</l>
+<l>concat_obj (Boundary2Poly, Hole2Poly, BoundarySet2)</l>
+<c>* </c>
+<c>* Now, the symmetric difference of the two regions is determined.</c>
+<l>symm_difference_closed_polygons_xld (BoundarySet1, BoundarySet2, PolygonsDifference)</l>
+<c>* </c>
+<c>* Visualization of the result</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (BoundarySet1)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (BoundarySet2)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (PolygonsDifference)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

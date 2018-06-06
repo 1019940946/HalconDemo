@@ -1,0 +1,762 @@
+#!/usr/bin/awk -f
+
+###############################################################################
+#  acqdump
+###############################################################################
+#
+# Project:     HALCON Image Acquisition Interfaces
+# Authors:     D.-W. Peters
+# Description: Process documentation
+# Version:     1.3
+#
+# (c) 2011-2013 by MVTec Software GmbH
+#              www.mvtec.com
+#
+###############################################################################
+
+###############################################################################
+# command line overrides these default values, e.g., acqdump driver=... FILE...
+###############################################################################
+BEGIN {
+  acqdumpvers = "1.3"
+  lang        = "en_US"
+  driver      = "html"
+  id_pattern  = "[-0-9A-Z_a-z.:+]*"
+  id_line     = "^\\[" id_pattern "\\]$"
+  key_pattern = "[/0-9A-Za-z_.]*"
+  key_line    = "^" key_pattern "  *[+-]?= *"
+}
+
+/^#ENDCONFIG/ {
+  db["config.meta.configured"] = "on"
+  next
+}
+
+# strip carriage returns
+{
+  sub("\r", "")
+}
+
+# skip comments
+/^#/ {
+  next
+}
+
+# skip empty lines
+/^ *$/ {
+  next
+}
+
+# strip trailing spaces
+/  *$/ {
+  gsub("  *$", "")
+}
+
+# convert leading tabs to two spaces
+/^\t/ {
+  sub("^\t\t*", "  ")
+}
+
+function set_db(caller,   type) {
+  if (key["name"]) {
+    type = db["config.param.type." key["name"]]
+    if (type == "array") {
+      gsub("\n", "", key["collector"])
+    }
+    idx = full_id "." key["name"]
+    if (key["mode"] == "=") {
+      db[idx] = key["collector"]
+    } else
+    if (key["mode"] == "+=") {
+      if (type == "array") {
+        key["values"] = db[idx] "," key["collector"]
+        db[idx] = ""
+        for (arg=1; arg<=split(key["values"], array, " *, *"); arg++) {
+          if (length(array[arg])) {
+            db[idx] = db[idx] key["sep"] array[arg]
+            key["sep"] = ","
+          }
+        }
+      } else {
+        db[idx] = db[idx] key["collector"]
+      }
+    } else
+    if (key["mode"] == "-=") {
+      if (type == "array") {
+        key["values"] = db[idx]
+        db[idx] = ""
+        for (arg=1; arg<=split(key["values"], array, " *, *"); arg++) {
+          arg_remove = 0
+          for (argrm=1; argrm<=split(key["collector"], arrayrm, " *, *"); argrm++) {
+            if (length(array[arg]) && array[arg] == arrayrm[argrm]) {
+              arg_remove = 1
+            }
+          }
+          if (!arg_remove) {
+            db[idx] = db[idx] key["sep"] array[arg]
+            key["sep"] = ","
+          }
+        }
+      } else {
+        sub(key["collector"], "", db[idx])
+      }
+    }
+    delete key
+  }
+}
+
+function set_block(caller,   i, idx) {
+  idx = db[id "." minor_id ".parent"]
+  if (idx == "") {
+    idx = id
+  }
+  if (db["config.meta.configured"] == "on" && !collectionflag[full_id]) {
+    console("COLLECTION[" idx "]+=" minor_id)
+    collection[idx] = collection[idx] separator[idx] minor_id
+    console("   COLLECTION contains: " collection[idx])
+    collectionflag[id "." minor_id] = 1
+    separator[idx] = ","
+  }
+  if (id == "section" && db[id "." minor_id ".context"] == "") {
+    db[id "." minor_id ".context"] = "section"
+  }
+  if (db[id "." minor_id ".children"]) {
+    for (i=1; i<=split(db[id "." minor_id ".children"], child, " *, *"); i++) {
+      db[id "." child[i] ".parent"] = minor_id
+    }
+  }
+  delete block
+}
+
+###############################################################################
+# [<block>]
+###############################################################################
+$0 ~ id_line {
+  set_db("block")
+  set_block("block")
+  id = substr($0, 2, length($0)-2)
+  full_id = id
+  minor_id = ""
+  next
+}
+
+###############################################################################
+# <key> [+-]= <value>
+###############################################################################
+$0 ~ key_line {
+  set_db("key")
+  key["valid"] = 1
+  key["name"]  = $1
+  key["mode"]  = $2
+  key["value"] = $0
+  sub(key_line, "", key["value"])
+  gsub("<NL>", "\n", key["value"])
+}
+
+###############################################################################
+# id = <value>
+###############################################################################
+key["valid"] && key["name"] == "id" {
+  minor_id = key["value"]
+  if (!match(minor_id, "^" id_pattern "$")) {
+    console("ERROR: Illegal ID: " minor_id)
+  }
+
+  if (db["config.divert." id]) {
+    key["name"] = "context"
+    key["value"] = db["config.divert.context." id]
+    id = db["config.divert." id]
+    db[id "." minor_id ".id"] = minor_id
+  }
+
+  full_id  = id "." minor_id
+  console("BLOCK [" full_id "]")
+}
+
+###############################################################################
+# multi-line value
+###############################################################################
+/^  / {
+  key["valid"] = 1
+  key["value"] = $0
+  sub("^  ", "", key["value"])
+  if (length(key["collector"])) {
+    key["collector"] = key["collector"] " \n"
+  }
+}
+
+###############################################################################
+# add value to collector
+###############################################################################
+key["valid"] {
+  key["collector"] = key["collector"] key["value"]
+  next
+}
+
+{
+  console("WARNING: ignored line: " $0)
+}
+
+###############################################################################
+# dump page
+###############################################################################
+END {
+  set_db("end")
+  set_block("end")
+
+  if (acqdumpvers >= 1.3) {
+    if (acqdumpvers != db["config.meta.acqdumpvers"]) {
+      console("ERROR: VERSION MISMATCH: acqdump=" acqdumpvers " config=" db["config.meta.acqdumpvers"])
+      exit 1
+    }
+  }
+
+  console("DB: FINISHED POPULATING")
+
+  if (mode == "toc") {
+    if (lookup("version.legacy") != "yes") {
+      print "[param]"
+      print "id          = " lookup("interface.name")
+      print "context     = " lookup("interface.system")
+      print "revision    = " lookup("version.revision")
+      print "date        = " lookup("version.date")
+      print "name        = " lookup("interface.name")
+      print "descr       = " lookup("interface.title")
+    }
+    exit 0
+  }
+
+  o(h("prologue"))
+  o(h("header"))
+  if (lookup("version.legacy") == "yes") {
+    o(h("legacy"))
+  }
+
+  sections()
+
+  o(h("epilogue", acqdumpvers, date))
+  print page
+}
+
+###############################################################################
+# sections
+###############################################################################
+
+function sections(    toclevel,depth) {
+  seclist_no = sort_collection("section", "section", seclist)
+
+  # reorder sections: set should precede get
+  for (i=1; i<=seclist_no; i++) {
+    sec_id[seclist[i]] = i
+    if (match(seclist[i], "set_")) {
+      sec_get = seclist[i]
+      sec_set = seclist[i]
+      sub("set_", "get_", sec_get)
+      if (sec_id[sec_get]) {
+        seclist[sec_id[sec_get]] = sec_set
+        seclist[sec_id[sec_set]] = sec_get
+      }
+    }
+  }
+
+  # TOC
+  if (driver == "html") {
+    toclevel = 0
+    o(h("tocul"))
+    for (i=1; i<= seclist_no; i++) {
+      depth = db["section." seclist[i] ".depth"]
+      while (toclevel > depth) {
+        o(h("/tocul"))
+        toclevel -= 1
+      }
+      while (toclevel < depth) {
+        o(h("ul"))
+        toclevel += 1
+      }
+      if (lookup("section." seclist[i] ".title")) {
+        o(h("li", h("link", "#" toupper(seclist[i]), lookup("section." seclist[i] ".title"))))
+      }
+    }
+    while (toclevel > -1) {
+      o(h("/tocul"))
+      toclevel -= 1
+    }
+  }
+
+  o(d("sections_prologue"))
+  for (sec_idx=1; sec_idx<=seclist_no; sec_idx++) {
+    g_sec = seclist[sec_idx]
+    g_mode = db["config.mode." g_sec]
+    if (lookup("section." g_sec ".title")) {
+      o(h("h" db["section." g_sec ".depth"]+2 "id", toupper(g_sec), markdown(lookup("section." g_sec ".title"))))
+    }
+    if (lookup("section." g_sec ".signature")) {
+      o(h("pre",lookup("section." g_sec ".signature")))
+    }
+    o(h("div",markdown(lookup("section." g_sec ".descr"))))
+    if (g_mode) {
+      section_table()
+    }
+  }
+  o(d("sections_epilogue"))
+
+}
+
+function section_table(   column, column_no, i, colspec, layout, header, footer, context_list, lv, sorted_list) {
+
+  parlist_no = sort_collection("param", g_mode, parlist)
+
+  if (!parlist_no) {
+    return
+  }
+
+  # some output formats need a column specification header
+  column_no = split(db["config.columns." g_mode], column, " *, *")
+  for (i=1; i<= column_no; i++) {
+    colspec = colspec d("colspec." column[i])
+    head_macro[i] = "th"
+    cell_macro[i] = "td"
+  }
+  colspec = colspec ".\n"
+  head_macro[1]         = "th_first"
+  cell_macro[1]         = "td_first"
+  head_macro[column_no] = "th_last"
+  cell_macro[column_no] = "td_last"
+
+  layout = db["config.layout." driver "." g_mode]
+  if (layout == "") layout = "tabular"
+
+  o(h("layout_prologue_" layout, column_no, colspec, lookup("section." g_sec ".title")))
+
+  if (match(layout, "tabular")) {
+    header = h("tr_head")
+    for (i=1; i<=column_no; i++) {
+      header = header h(head_macro[i], lookup_mode("config.local." column[i]))
+    }
+    footer = header
+  }
+
+  o(h("layout_header_" layout, header))
+
+  # loop through all parameters
+  for (g_paridx=1; g_paridx<=parlist_no; g_paridx++) {
+    g_par = parlist[g_paridx]
+    delete lv
+    if (match(layout,"tabular")) {
+      modulo = d("layout_modulo_" layout)
+      if (modulo == "") {
+        console("ERROR: layout_modulo_" layout " not defined for " driver)
+        exit 1
+      }
+      lv[1] = h("layout_" (par_counter[g_mode] % modulo) "_" layout)
+      for (i=1; i<=column_no; i++) {
+        lv[1] = lv[1] h(cell_macro[i], tabular(column[i]))
+      }
+      lv[1] = lv[1] h("/tr")
+    } else {
+      for (i=1; i<=column_no; i++) {
+        lv[i] = formatted(column[i])
+      }
+    }
+    o(h("layout_" layout, lv[1], lv[2], lv[3], lv[4], lv[5], lv[6], lv[7], lv[8],lv[9]))
+    par_counter[g_mode] ++
+  }
+  o(h("layout_footer_" layout, footer))
+  o(h("layout_epilogue_" layout))
+}
+
+function tabular(str,   result) {
+  result = formatted(str)
+  if (match(db["config." driver ".colspec." str], "[0-9]")) {
+    result = d("tdpar") result d("/tdpar")
+  }
+  return result
+}
+
+function formatted(str,   result,i,indent) {
+  result = par_match(str)
+  if (str == "id")                  result = h("b", par_id("id"))
+  if (str == "parameter") {
+    for (i=0; i<par("depth"); i++) indent = indent "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                                    result = h("b", indent par_name())
+  }
+  if (str == "kind")                result = par_match("kind")
+  if (str == "type")                result = par_match("type")
+  if (str == "values")              result = par_values()
+  if (str == "default")             result = par_match("default")
+  if (str == "description")         result = par_description()
+  if (str == "interface")           result = h("link", db["config.file.prefix"] g_par ".html", par("name"))
+  if (str == "revision")            result = par("revision") " (" par("date") ")"
+  if (str == "release_revision")    result = par("id")
+  if (str == "date")                result = par("date")
+  if (str == "release_description") result = par("descr")
+  return markdown(result)
+}
+
+###############################################################################
+# parameter properties
+###############################################################################
+
+function sort_collection(root, context, sortedlist, node,        c, c_no, i, j, ic,  sort, array_no, sortkey, buffer) {
+  if (node == "") {
+    node = root
+    reclevel = 0
+    delete sortedlist
+    sortedlist_no = 0
+  }
+  console("SORT COLLECTION node=" node " context=" context " level=" reclevel)
+  sort["key"] = db["config.sort.node." node]
+  if (sort["key"] == "") {
+    sort["key"] = db["config.sort." context "." reclevel]
+  }
+  sort["on"] = length(sort["key"])
+
+  c_no = split(collection[node], c, ",")
+  # build sort array
+  delete array
+  array_no = 0
+  for (i=1; i<=c_no; i++) {
+    if (context) {
+      # check if entry is in given context
+      flag = 0
+      for (j=1; j<=split(db[root "." c[i] ".context"], ctx, " *, *"); j++) {
+        if (ctx[j] == context) flag = ctx[j]
+      }
+      if (!flag) continue
+    }
+    array_no++
+
+    db[root "." c[i] ".depth"] = reclevel
+    
+    if (sort["on"]) {
+      sort["value"] = db[root "." c[i] "." sort["key"]]
+      gsub("\n", "", sort["value"])
+      array[array_no] = sort["value"] " |" SUBSEP c[i]
+    } else {
+      array[array_no] = array_no " |" SUBSEP c[i]
+    }
+    console("SORT add(" array_no ")=" array[array_no] " ("array_no")")
+  }
+
+  if (sort["on"]) {
+    sort["method"] = db["config.sort." context "." reclevel ".method"]
+
+    ic = IGNORECASE;
+    if (db["config.sort." context "."reclevel ".case"] != "on") IGNORECASE = 1
+    asort(array, array_sorted, sort["method"])
+    duparray(array_sorted, array)
+    IGNORECASE = ic
+  }
+  
+  for (i=1; i<= array_no; i++) {
+    split(array[i], sortkey, SUBSEP)
+    sortedlist[++sortedlist_no] = sortkey[2]
+    console("SORT sorted id.context.level=" sortkey[2] "." context "." reclevel)
+    
+    if (collection[sortkey[2]]) {
+      reclevel++
+      buffer = flatten(array)
+      sort_collection(root, context, sortedlist, sortkey[2])
+      reclevel--
+      unflatten(buffer, array)
+    }
+  }
+
+  if (reclevel == 0) {
+    for (i=1; i<=sortedlist_no; i++) {
+      console("SORT RESULT " i "=" sortedlist[i])
+    }
+    return sortedlist_no
+  }
+}
+
+function duparray(u,v,i,j) {
+  for (i in u) {
+    v[i] = u[i]
+    j++
+  }
+  return j
+}
+
+function flatten(farray,   string, sep, i) {
+  PROCINFO["sorted_in"] = "@ind_num_asc"
+  for (i in farray) {
+    string = string sep farray[i]
+    sep = "\v\v"
+  }
+  PROCINFO["sorted_in"] = ""
+  delete farray
+  return string
+}
+
+function unflatten(string, farray,   sep, i) {
+  delete farray
+  i = split(string, farray, "\v\v")
+  return i
+}
+
+function par_id(   result) {
+  result = par_match("name")
+  if (result == "") {
+    result = g_par
+  }
+  return result
+}
+
+function par_name(   result) {
+  result = par_match("name")
+  if (result == "") {
+    result = quote(g_par)
+  }
+  return result
+}
+
+function par_values(   result, infinity, range, values, value_no, value_list, i, sep, tagstart, taglength, markup) {
+  result = par_match("values")
+  while(match(result, "<[^>]*>")) {
+    tagstart = RSTART
+    taglength = RLENGTH
+    if (++infinity > 256) {
+      console("ERROR: <..> in " buffer)
+      break
+    }
+    markup = markup substr(result, 1, tagstart-1) h("var", d("ent_lt") substr(result, tagstart+1, taglength-2) d("ent_gt"))
+    result = substr(result, tagstart + taglength)
+  }
+  result = markup result
+  sep = ", "
+  if (length(par("special_value")) && g_mode != "info") {
+    result = result sep h("var", par("special_value"))
+  }
+
+  if (length(par("range_min")) || length(par("range_max"))) {
+    range = " .. "
+    if (length(par("range_min"))) range = par("range_min") range
+    if (length(par("range_max"))) range = range par("range_max")
+    range = "[" range "]"
+    result = result " " range
+  }
+  return result
+}
+
+function par_description(   result) {
+  result = par_match("descr")
+  if (length(par("sdk_query"))) {
+    result = result " " par("sdk_query")
+  }
+  return result
+}
+
+function markdown(str) {
+  str =  hyperlink(simplelist(oplink((str))))
+  if (driver == "troff") {
+    gsub("<b>", h("bon"), str)
+    gsub("</b>", h("boff"), str)
+    gsub("<tt>", h("tton"), str)
+    gsub("</tt>", h("ttoff"), str)
+    gsub("<a[^>]+>", "", str)
+    gsub("</a>", "", str)
+    gsub("<br>", "\n.br\n", str)
+    gsub("<p>", "", str)
+    gsub("</p>", "", str)
+  }
+  return str
+}
+
+function simplelist(str,    line, result, stars, inlist, initem, newlevel, curlevel, line_no, line_list, i, sep) {
+  delete initem
+  delete inlist
+  line_no = split(str, line_list, "\n")
+  newlevel = 0
+  curlevel = 0
+  item = 0
+  for (i=1; i<=line_no; i++) {
+    line = line_list[i] sep
+    sep = "\n"
+
+    # new item
+    stars = 0
+    if (match(line, "^ *\\*")) {
+      while(sub("^ *\\* *", "", line)) stars++
+      newlevel = stars
+    }
+
+    # close list (marked by /*)
+    if (sub("^ */\\*", "", line)) {
+      newlevel = 0
+    }
+
+    # deeper level
+    while (newlevel > curlevel) {
+      result = result h("ul")
+      curlevel++
+      inlist[curlevel] = 1
+    }
+
+    while (newlevel < curlevel) {
+      if (initem[curlevel]) {
+        result = result h("/litag")
+        initem[curlevel] = 0
+      }
+      result = result h("/ul")
+      inlist[curlevel] = 0
+      curlevel--
+    }
+
+    # close current item
+    if (stars && initem[curlevel]) {
+      result = result h("/litag")
+      initem[curlevel] = 0
+    }
+
+    if (stars) {
+      result = result h("litag")
+      initem[curlevel] = 1
+    }
+
+    result = result line
+  }
+
+  newlevel = 0
+  while (newlevel < curlevel) {
+    if (initem[curlevel]) {
+      result = result h("/litag")
+      initem[curlevel] = 0
+    }
+    result = result h("/ul")
+    inlist[curlevel] = 0
+    curlevel--
+  }
+
+  return result
+}
+
+###############################################################################
+# auxiliary functions
+###############################################################################
+
+function console(str) {
+  if (match(str, "^ERROR") || (length(db["config.meta.debug"]) && match(str, db["config.meta.debug"]))) {
+    print str >"/dev/stderr"
+  }
+}
+
+function quote(str) {
+  return "'" str "'"
+}
+
+function lookup_mode(str,   result) {
+  result = lookup(str "." g_mode)
+  if (result == "") {
+    result = lookup(str)
+  }
+  return result
+}
+
+function lookup(str,   id, re, result) {
+  id = substr(str, 1, index(str, ".")-1)
+  re = db["config.mandatory." id]
+  if (length(db[str "." lang])) {
+    result = db[str "." lang]
+  } else if (length(db[str ".en_US"])) {
+    result = db[str ".en_US"]
+  } else if (length(db[str])) {
+    result = db[str]
+  } else if (re && match(str, re)) {
+    result = h("error", str)
+  }
+  return result
+}
+
+# link back to operators
+function oplink(str,   pattern, op_no, op_list, i, sep) {
+  op_no = split(db["config.operators.autolink"], op_list, " *\n *")
+  for (i=1; i<= op_no; i++) {
+    pattern = pattern sep "\\<" op_list[i] "\\>"
+    sep = "|"
+  }
+  gsub(pattern, "[[opref|&]]", str)
+  return str
+}
+
+function hyperlink(str,   result, infinity, mstart, mlength, link, sep, url, text) {
+  while(match(str, "\\[\\[[^|]+\\|[^]]+\\]\\]")) {
+    mstart = RSTART
+    mlength = RLENGTH
+    if (++infinity > 256) {
+      console("ERROR: possible recursion [[..|..]] in \n" str)
+      break
+    }
+    link = substr(str, mstart+2, mlength-4)
+    sep = index(link, "|")
+    url = substr(link,1,sep-1)
+    text = substr(link,sep+1)
+    if (db["url." url]) {
+      link = h("link", db["url." url], text)
+    } else if (url == "opref") {
+      link = h("operator", text)
+    } else {
+      link = h("link", url, text)
+    }
+    str = substr(str, 1, mstart-1) link substr(str, mstart+mlength)
+  }
+  return str
+}
+
+function par(str) {
+  return lookup("param." g_par "." str)
+}
+
+function par_match(str) {
+  if (length(par(str "_" g_mode))) {
+    return par(str "_" g_mode)
+  } else {
+    return par(str)
+  }
+}
+
+function o(str) {
+  page = page str
+}
+
+function d(str) {
+  return db["config." driver "." str]
+}
+
+function h(tag, p1, p2, p3, p4, p5, p6, p7, p8, p9,   buffer, mstart, mlength, infinity) {
+  buffer = d(tag)
+  # protect ampersand
+  gsub("&", "\\\\&", p1)
+  gsub("&", "\\\\&", p2)
+  gsub("&", "\\\\&", p3)
+  gsub("&", "\\\\&", p4)
+  gsub("&", "\\\\&", p5)
+  gsub("&", "\\\\&", p6)
+  gsub("&", "\\\\&", p7)
+  gsub("&", "\\\\&", p8)
+  gsub("&", "\\\\&", p9)
+  
+  if (p1) gsub("%%1%%", p1, buffer)
+  if (p2) gsub("%%2%%", p2, buffer)
+  if (p3) gsub("%%3%%", p3, buffer)
+  if (p4) gsub("%%4%%", p4, buffer)
+  if (p5) gsub("%%5%%", p5, buffer)
+  if (p6) gsub("%%6%%", p6, buffer)
+  if (p7) gsub("%%7%%", p7, buffer)
+  if (p8) gsub("%%8%%", p8, buffer)
+  if (p9) gsub("%%9%%", p9, buffer)
+
+  while(match(buffer, "%%" key_pattern "%%")) {
+    mstart = RSTART
+    mlength = RLENGTH
+    if (++infinity > 256) {
+      console("ERROR: possible recursion %%..%% in \n" buffer)
+      break
+    }
+    replacement = markdown(lookup(substr(buffer, mstart+2, mlength-4)))
+    newbuffer = substr(buffer, 1, mstart-1) replacement substr(buffer, mstart+mlength)
+    buffer = newbuffer
+  }
+
+  return buffer
+}

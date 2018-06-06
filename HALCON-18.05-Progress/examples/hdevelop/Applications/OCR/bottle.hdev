@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* bottle.hdev: Segment and read numbers on a beer bottle</c>
+<c>* </c>
+<c>* Step 0: Preparations</c>
+<c>* Specify the name of the font to use for reading the date on the bottle.</c>
+<c>* It is easiest to use the pre-trained font Universal_0-9_NoRej. If you</c>
+<c>* have run the program bottlet.hdev in this directory, you can activate</c>
+<c>* the second line to use the font trained with this program.</c>
+<l>FontName := 'Universal_0-9_NoRej'</l>
+<l>* FontName := 'bottle'</l>
+<c>* </c>
+<c>* Step 1: Segmentation</c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Bottle, 'bottle2')</l>
+<l>get_image_size (Bottle, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 2 * Width, 2 * Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Bottle)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create Automatic Text Reader and set some parameters</c>
+<l>create_text_model_reader ('auto', FontName, TextModel)</l>
+<c>* The printed date has a significantly higher stroke width</c>
+<l>set_text_model_param (TextModel, 'min_stroke_width', 6)</l>
+<c>* The "best before" date has a particular and known structure</c>
+<l>set_text_model_param (TextModel, 'text_line_structure', '2 2 2')</l>
+<c>* </c>
+<c>* Read the "best before" date</c>
+<l>find_text (Bottle, TextModel, TextResultID)</l>
+<c>* </c>
+<c>* Display the segmentation results</c>
+<l>get_text_object (Characters, TextResultID, 'all_lines')</l>
+<l>dev_display (Bottle)</l>
+<l>dev_display (Characters)</l>
+<l>stop ()</l>
+<c>* Display the reading results</c>
+<l>get_text_result (TextResultID, 'class', Classes)</l>
+<l>area_center (Characters, Area, Row, Column)</l>
+<l>disp_message (WindowID, Classes, 'image', 80, Column - 3, 'green', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

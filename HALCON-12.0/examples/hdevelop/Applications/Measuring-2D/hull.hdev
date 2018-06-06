@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Hull, 'hull')</l>
+<l>get_image_size (Hull, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Hull)</l>
+<c>* </c>
+<c>* Hull (RegionHull) + complement</c>
+<c>* </c>
+<l>threshold (Hull, Dark, 0, 80)</l>
+<l>difference (Hull, Dark, Light)</l>
+<l>connection (Light, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, NoHullCand, 'area', 'and', 50000, 9999999)</l>
+<l>closing_circle (NoHullCand, NoHull, 13.5)</l>
+<l>difference (Hull, NoHull, Region)</l>
+<l>opening_circle (Region, RegionOpening, 2.5)</l>
+<l>connection (RegionOpening, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, RegionHull, 'area', 'and', 5000, 9999999)</l>
+<c>* </c>
+<c>* deviation from convex hull</c>
+<c>* </c>
+<l>shape_trans (RegionHull, ConvexHull, 'convex')</l>
+<l>difference (ConvexHull, RegionHull, Region)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, LargeHoles, 'area', 'and', 2000, 99999)</l>
+<l>select_shape (LargeHoles, Holes, 'convexity', 'and', 0, 0.85)</l>
+<l>dev_display (Hull)</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Holes)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

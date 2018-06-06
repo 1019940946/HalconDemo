@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'mreut')</l>
+<l>threshold (Image, Region, 190, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 1000000)</l>
+<l>fill_up (SelectedRegions, RegionFillUp)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionFillUp)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

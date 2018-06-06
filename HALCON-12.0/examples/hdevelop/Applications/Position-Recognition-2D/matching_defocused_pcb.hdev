@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the use of the operator find_shape_model</c>
+<c>* with the increased tolerance mode that allows to find matches even in</c>
+<c>* defocused images or images that show deformed objects.</c>
+<c>* </c>
+<c>* In this example, the position of a PCB must be determined.</c>
+<c>* Unfortunately, the PCB cannot always be imaged in focus.</c>
+<c>* If find_shape_model is used in standard mode, it will not find</c>
+<c>* each instance of the PCB, because of the enormous blur.</c>
+<c>* If, instead, the last pyramid level is specified negatively,</c>
+<c>* find_shape_model will return the match on the lowest pyramid level</c>
+<c>* on which a match was found. In this mode, more blur</c>
+<c>* is tolerated as if the match must be found on the lowest</c>
+<c>* level of the image pyramid.</c>
+<c>* </c>
+<l>read_image (Image, 'pcb_focus/pcb_focus_telecentric_060')</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 640, 640, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Create the shape model</c>
+<l>gen_rectangle1 (Rectangle, 50, 120, 400, 600)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>create_shape_model (ImageReduced, 'auto', -0.39, 0.78, 'auto', 'auto', 'use_polarity', 'auto', 'auto', ModelID)</l>
+<l>area_center (Rectangle, Area, Row, Column)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, 0.0, 1.0, 1.0, 0)</l>
+<l>disp_message (WindowHandle, 'The model edges used for the matching', 'window', -1, -1, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for Index := 1 to 121 by 1</l>
+<l>    read_image (Image, 'pcb_focus/pcb_focus_telecentric_' + Index$'03d')</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model (Image, ModelID, -0.39, 0.78, 0.7, 1, 0.5, 'least_squares', [0,-1], 0.9, Row, Column, Angle, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display_shape_matching_results (ModelID, 'lime green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>    disp_message (WindowHandle, |Row| + ' Match found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', -1, -1, 'lime green', 'false')</l>
+<l>    if (Index &lt; 5 or Index == 121)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>clear_shape_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

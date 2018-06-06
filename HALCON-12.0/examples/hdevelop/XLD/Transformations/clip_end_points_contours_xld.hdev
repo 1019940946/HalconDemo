@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the difference between the two modes of</c>
+<c>* clip_end_points_contours_xld by using an XLD contour of an ellipse that</c>
+<c>* has a contour point spacing that is significantly different from 1.</c>
+<c>* This is a somewhat contrived example to show the effect of the two</c>
+<c>* different modes more clearly.  Nevertheless, the difference is also</c>
+<c>* important for contours that have been extracted from real images because</c>
+<c>* XLD contours typically have a spacing that is different from 1 locally.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 500, 500, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 499, 499)</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Create an ellipse with a contour point distance much larger than 1.</c>
+<l>gen_ellipse_contour_xld (EllipseContour, 250, 250, 0, 200, 100, 0, rad(180), 'positive', 3)</l>
+<c>* Clip off contour points for a total length of 20 pixels at both ends.</c>
+<l>clip_end_points_contours_xld (EllipseContour, ClippedContoursLength, 'length', 20)</l>
+<c>* Clip off 20 contour points at both ends.</c>
+<l>clip_end_points_contours_xld (EllipseContour, ClippedContoursNumPoints, 'num_points', 20)</l>
+<c>* Visualize the difference between the original and clipped contours.</c>
+<l>dev_clear_window ()</l>
+<l>Colors := ['blue','red','green']</l>
+<l>dev_set_color (Colors[0])</l>
+<l>dev_display (EllipseContour)</l>
+<l>dev_set_color (Colors[1])</l>
+<l>dev_display (ClippedContoursLength)</l>
+<l>dev_set_color (Colors[2])</l>
+<l>dev_display (ClippedContoursNumPoints)</l>
+<l>String := ['Original','Clipped (length 20)','Clipped (20 points)']</l>
+<l>disp_message (WindowHandle, String, 'window', 12, 12, Colors, 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

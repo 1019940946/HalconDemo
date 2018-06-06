@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images with the GigEVision interface</c>
+<c>* (software and hardware image cropping)</c>
+<c>* </c>
+<c>* </c>
+<c>* Adapt the following settings according to your configuration!</c>
+<l>info_framegrabber ('GigEVision', 'device', DeviceInfo, DeviceList)</l>
+<l>MyDevice := DeviceList[0]</l>
+<l>open_framegrabber ('GigEVision', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', MyDevice, -1, -1, AcqHandle)</l>
+<l>* set_framegrabber_param (AcqHandle, 'TriggerMode', 'Off')</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, MaxWidth / 2, MaxHeight / 2, 'black', WindowHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* "zoom" into the image:</c>
+<c>* </c>
+<l>for i := 0 to MaxHeight / 32 - 1 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'image_width', MaxWidth - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'image_height', MaxHeight - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'start_column', 16 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'start_row', 16 * i)</l>
+<l>    get_framegrabber_param (AcqHandle, ['start_column','start_row','image_width','image_height'], ImagePart)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* reset full image size:</c>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'start_column', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'start_row', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'image_width', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'image_height', 0)</l>
+<l>get_framegrabber_param (AcqHandle, ['start_column','start_row','image_width','image_height'], ImagePart)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* hardware cropping:</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'Width_range', Width_range)</l>
+<l>get_framegrabber_param (AcqHandle, 'Height_range', Height_range)</l>
+<c>* Not all devices implement OffsetX and OffsetY</c>
+<l>* get_framegrabber_param (AcqHandle, 'OffsetX_range', OffsetX_range)</l>
+<l>* get_framegrabber_param (AcqHandle, 'OffsetY_range', OffsetY_range)</l>
+<c>* </c>
+<c>* "zoom" into the image:</c>
+<c>* </c>
+<l>for i := 0 to MaxHeight / 32 - 1 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'Width', MaxWidth - Width_range[2] * i * 4)</l>
+<l>    set_framegrabber_param (AcqHandle, 'Height', MaxHeight - Height_range[2] * i * 4)</l>
+<l>*     set_framegrabber_param (AcqHandle, 'OffsetX', OffsetX_range[2] * i)</l>
+<l>*     set_framegrabber_param (AcqHandle, 'OffsetY', OffsetY_range[2] * i)</l>
+<l>*     get_framegrabber_param (AcqHandle, ['OffsetX','OffsetY','Width','Height','OffsetX_range','OffsetY_range'], ImagePart)</l>
+<l>    get_framegrabber_param (AcqHandle, ['Width','Height'], ImagePart)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* reset full image size:</c>
+<c>* </c>
+<l>* get_framegrabber_param (AcqHandle, 'OffsetX_range', OffsetX_range)</l>
+<l>* get_framegrabber_param (AcqHandle, 'OffsetY_range', OffsetY_range)</l>
+<l>* set_framegrabber_param (AcqHandle, 'OffsetX', OffsetX_range[0])</l>
+<l>* set_framegrabber_param (AcqHandle, 'OffsetY', OffsetY_range[0])</l>
+<l>get_framegrabber_param (AcqHandle, 'Width_range', Width_range)</l>
+<l>get_framegrabber_param (AcqHandle, 'Height_range', Height_range)</l>
+<l>set_framegrabber_param (AcqHandle, 'Width', Width_range[1])</l>
+<l>set_framegrabber_param (AcqHandle, 'Height', Height_range[1])</l>
+<l>* get_framegrabber_param (AcqHandle, ['OffsetX','OffsetY','Width','Height'], ImagePart)</l>
+<l>get_framegrabber_param (AcqHandle, ['Width','Height'], ImagePart)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

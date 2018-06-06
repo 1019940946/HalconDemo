@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to detect the position of SMDs on a</c>
+<c>* back illuminated plate very fast.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'smd/smd_backlight_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Locate SMDs in the shortest amount of time', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read and process the images</c>
+<l>NumImages := 16</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'smd/smd_backlight_' + Index$'02')</l>
+<c>    * Detect the position and the orientation of the SMD</c>
+<l>    count_seconds (S1)</l>
+<l>    fast_threshold (Image, Region, 0, 100, 100)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape_std (ConnectedRegions, SelectedRegions, 'max_area', 0)</l>
+<l>    smallest_rectangle2 (SelectedRegions, Row, Column, Phi, Length1, Length2)</l>
+<l>    count_seconds (S2)</l>
+<c>    * Display the result</c>
+<l>    Time := (S2 - S1) * 1000.0</l>
+<l>    gen_rectangle2_contour_xld (Rectangle2, Row, Column, Phi, Length1, Length2)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'SMD detected in: ' + Time$'.2f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 15, Phi + rad(45))</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Rectangle2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Cross)</l>
+<l>    if (Index &lt; 4)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

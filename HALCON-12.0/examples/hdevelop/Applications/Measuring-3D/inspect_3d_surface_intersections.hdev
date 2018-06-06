@@ -1,0 +1,681 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the inspection of planar intersections of</c>
+<c>* 3D objects.  The intersections are derived by intersecting the</c>
+<c>* reconstructed 3D object models with suitable planes, using the</c>
+<c>* operator intersect_plane_object_model_3d.</c>
+<c>* </c>
+<c>* The objects, which are metal parts in this example, are</c>
+<c>* scanned with an uncalibrated sheet of light setup that returns</c>
+<c>* disparities for each scan line. The disparities are</c>
+<c>* transformed into a 3D object model. In this example, the</c>
+<c>* transformation is based on simple scalings of the three</c>
+<c>* dimensions that were chosen such that the reconstructed 3D</c>
+<c>* object model is given approximately in mm.</c>
+<c>* </c>
+<c>* The nominal dimensions and the tolerance limits are derived</c>
+<c>* from a reference sample of the metal part. For this,</c>
+<c>* intersections derived at predefined positions are analysed.</c>
+<c>* Note that if the nominal dimension and tolerance limits should</c>
+<c>* be specified numerically, the reconstruction must be done with</c>
+<c>* a fully calibrated setup to ensure that the specified values</c>
+<c>* are meaningfull with respect to the reconstructed 3D object</c>
+<c>* model.</c>
+<c>* </c>
+<c>* For the inspection, 3D object models of the metal parts are</c>
+<c>* reconstructed in the same way as described for the reference</c>
+<c>* sample.  With the help of surface based matching, the</c>
+<c>* intersection planes, which are defined with respect to the</c>
+<c>* reference sample, are aligned with the parts to be inspected.</c>
+<c>* The resulting intersections are then analysed to check whether</c>
+<c>* the dimensions of the objects to be inspected are within the</c>
+<c>* allowed tolerance limits.</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Part 1: Reconstruction of the reference sample and derivation</c>
+<c>*         of nominal dimensions and tolerance limits</c>
+<c>* </c>
+<c>* Set up the sheet of light model</c>
+<l>NumDisparityProfiles := 441</l>
+<l>read_image (DisparityProfile, 'sheet_of_light/metal_part_1_disparity_line_000')</l>
+<l>create_sheet_of_light_model (DisparityProfile, 'calibration', 'offset_scale', SheetOfLightModelID)</l>
+<c>* Set the scaling factors for the calibration method 'offset_scale'</c>
+<c>* such that the reconstructed 3D object model is given approximately</c>
+<c>* in mm</c>
+<l>ScaleX := 1</l>
+<l>ScaleY := 4</l>
+<l>ScaleZ := 0.5</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale_x', ScaleX)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale_y', ScaleY)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale_z', ScaleZ)</l>
+<c>* </c>
+<c>* Define the z coordinate at which the object can be separated from</c>
+<c>* the background</c>
+<l>MinZ := 220</l>
+<c>* </c>
+<c>* Initialize display</c>
+<l>dev_update_off ()</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (DisparityProfile, DisparityProfileWidth, DisparityProfileHeight)</l>
+<l>WindowEnlargement := 350</l>
+<l>WindowWidth := DisparityProfileWidth + WindowEnlargement</l>
+<l>WindowHeight := NumDisparityProfiles</l>
+<l>dev_open_window (0, 0, WindowWidth, WindowHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, WindowHeight - 1, WindowWidth - 1)</l>
+<l>get_part (WindowHandle, PartRow1, PartColumn1, PartRow2, PartColumn2)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('fill')</l>
+<c>* </c>
+<c>* Define some visualization parameters</c>
+<l>VisualizationPlaneSize := 150</l>
+<l>VisualizationCamParam := [0.01,0,6e-6,6e-6,WindowWidth / 2,WindowHeight / 2,WindowWidth,WindowHeight]</l>
+<l>VisualizationPose := [-1550,680,5390,122,1,357,0]</l>
+<l>VisualizationColors := ['magenta','blue','orange']</l>
+<c>* </c>
+<c>* Create the reference sample by collecting the measured</c>
+<c>* disparity profiles in a sheet-of-light model and</c>
+<c>* transforming them to a 3D object model</c>
+<l>gen_image_const (DisparityImageVis, 'uint2', DisparityProfileWidth, NumDisparityProfiles)</l>
+<l>for Index := 0 to NumDisparityProfiles - 1 by 1</l>
+<c>    * Add the next disparity profile to the sheet of light model</c>
+<l>    read_image (ImageModel, 'sheet_of_light/metal_part_1_disparity_line_' + Index$'03d')</l>
+<l>    set_profile_sheet_of_light (ImageModel, SheetOfLightModelID, [])</l>
+<c>    * Accumulated profiles for visualization</c>
+<l>    get_grayval (ImageModel, gen_tuple_const(DisparityProfileWidth,0), [0:DisparityProfileWidth - 1], Disparities)</l>
+<l>    set_grayval (DisparityImageVis, gen_tuple_const(DisparityProfileWidth,Index), [0:DisparityProfileWidth - 1], Disparities)</l>
+<l>    if (Index % 5 == 4)</l>
+<l>        dev_display (DisparityImageVis)</l>
+<l>        Message := 'Disparity image of the reference sample'</l>
+<l>        Message[1] := 'Adding disparity profile ' + (Index + 1) + '/' + NumDisparityProfiles</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Display the disparity image of the reference sample</c>
+<l>dev_display (DisparityImageVis)</l>
+<l>disp_message (WindowHandle, 'Disparity image of the reference sample', 'window', 12, 12, 'black', 'true')</l>
+<c>* Get the 3D reconstruction of the reference sample and eliminate</c>
+<c>* the background from the respective 3D object model</c>
+<l>get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, Model3DFull)</l>
+<l>get_object_model_3d_params (Model3DFull, 'bounding_box1', BoundingBox1)</l>
+<l>MaxZ := BoundingBox1[5]</l>
+<l>select_points_object_model_3d (Model3DFull, 'point_coord_z', MinZ, MaxZ, Model3D)</l>
+<l>clear_object_model_3d (Model3DFull)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Prepare the 3D object model for the intersection with</c>
+<c>* the planes and to allow the alignment of the intersection</c>
+<c>* planes to the objects to be inspected</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (PartRow1, PartColumn1, PartRow2, PartColumn2)</l>
+<l>disp_object_model_3d (WindowHandle, Model3D, VisualizationCamParam, VisualizationPose, [], [])</l>
+<l>Message := 'Prepare the reference model'</l>
+<l>Message[1] := ' - triangulate 3D object model and'</l>
+<l>Message[2] := ' - create surface model for alignment'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* Triangulate the 3D object model</c>
+<l>surface_normals_object_model_3d (Model3D, 'mls', 'mls_force_inwards', 'true', ObjectModel3DNormals)</l>
+<l>triangulate_object_model_3d (ObjectModel3DNormals, 'greedy', 'greedy_remove_small_surfaces', 200, ObjectModel3DReference, Information)</l>
+<l>clear_object_model_3d (Model3D)</l>
+<l>clear_object_model_3d (ObjectModel3DNormals)</l>
+<c>* Create a surface model for alignment</c>
+<l>create_surface_model (ObjectModel3DReference, 0.03, 'model_invert_normals', 'true', SurfaceModelID)</l>
+<c>* </c>
+<c>* Define the intersection planes relative to the reference sample,</c>
+<c>* calculate the intersections and derive nominal dimensions and</c>
+<c>* tolerance limits from these intersections</c>
+<c>* </c>
+<c>* Define the intersection planes</c>
+<l>create_pose (300, 230, 250, -90, 0, 0, 'Rp+T', 'gba', 'point', PoseIntersectionPlane1)</l>
+<l>create_pose (300, 900, 250, -90, 0, 0, 'Rp+T', 'gba', 'point', PoseIntersectionPlane2)</l>
+<l>create_pose (300, 1570, 250, -90, 0, 0, 'Rp+T', 'gba', 'point', PoseIntersectionPlane3)</l>
+<l>gen_plane_object_model_3d (PoseIntersectionPlane1, [-1,-1,1,1] * VisualizationPlaneSize, [-1,1,1,-1] * VisualizationPlaneSize, IntersectionPlane1)</l>
+<l>gen_plane_object_model_3d (PoseIntersectionPlane2, [-1,-1,1,1] * VisualizationPlaneSize, [-1,1,1,-1] * VisualizationPlaneSize, IntersectionPlane2)</l>
+<l>gen_plane_object_model_3d (PoseIntersectionPlane3, [-1,-1,1,1] * VisualizationPlaneSize, [-1,1,1,-1] * VisualizationPlaneSize, IntersectionPlane3)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (PartRow1, PartColumn1, PartRow2, PartColumn2)</l>
+<l>disp_object_model_3d (WindowHandle, [ObjectModel3DReference,IntersectionPlane1,IntersectionPlane2,IntersectionPlane3], VisualizationCamParam, VisualizationPose, ['color_1','color_2','color_3','alpha','alpha_0'], [VisualizationColors,0.75,1])</l>
+<l>Message := 'Reference sample with predefined intersection planes'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,25})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandle, MessageWrapped, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Calculate the intersections of the reference sample with the above</c>
+<c>* defined planes</c>
+<l>intersect_plane_object_model_3d (ObjectModel3DReference, PoseIntersectionPlane1, ObjectModel3DIntersection1)</l>
+<l>intersect_plane_object_model_3d (ObjectModel3DReference, PoseIntersectionPlane2, ObjectModel3DIntersection2)</l>
+<l>intersect_plane_object_model_3d (ObjectModel3DReference, PoseIntersectionPlane3, ObjectModel3DIntersection3)</l>
+<c>* </c>
+<c>* Determine the intersections and convert them into XLD contours</c>
+<l>project_object_model_3d_lines_to_contour_xld (Intersection1, PoseIntersectionPlane1, ObjectModel3DIntersection1)</l>
+<l>project_object_model_3d_lines_to_contour_xld (Intersection2, PoseIntersectionPlane2, ObjectModel3DIntersection2)</l>
+<l>project_object_model_3d_lines_to_contour_xld (Intersection3, PoseIntersectionPlane3, ObjectModel3DIntersection3)</l>
+<c>* </c>
+<c>* Clean up memory</c>
+<l>clear_object_model_3d ([ObjectModel3DIntersection1,ObjectModel3DIntersection2,ObjectModel3DIntersection3])</l>
+<c>* </c>
+<c>* Determine the nominal dimensions and the tolerance limits by</c>
+<c>* analysing the measurements from the reference sample</c>
+<l>OrientationRef := 20</l>
+<l>OrientationTolerance := 15</l>
+<l>analyze_intersection (Intersection1, FittedLines1, OrientationRef, OrientationTolerance, MinDistance1, MaxDistance1, Angle1)</l>
+<l>analyze_intersection (Intersection2, FittedLines2, OrientationRef, OrientationTolerance, MinDistance2, MaxDistance2, Angle2)</l>
+<l>analyze_intersection (Intersection3, FittedLines3, OrientationRef, OrientationTolerance, MinDistance3, MaxDistance3, Angle3)</l>
+<c>* </c>
+<c>* Visualize the object with the intersection planes and the respective</c>
+<c>* intersections and measurement results</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<c>* Display explanations</c>
+<l>Message := 'Intersections with measurement lines'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,20})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandle, MessageWrapped, 'window', 12, 330, 'black', 'true')</l>
+<l>Message := 'Measurement results'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,20})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandle, MessageWrapped, 'window', 12, 590, 'black', 'true')</l>
+<c>* Display first intersection</c>
+<l>hom_mat2d_translate (HomMat2DIdentity, 350, 390, HomMat2DTranslate1)</l>
+<l>affine_trans_contour_xld (Intersection1, Intersection1Vis, HomMat2DTranslate1)</l>
+<l>affine_trans_contour_xld (FittedLines1, FittedLines1Vis, HomMat2DTranslate1)</l>
+<l>dev_set_color (VisualizationColors[0])</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_display (Intersection1Vis)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (FittedLines1Vis)</l>
+<l>Message := 'Angle        = ' + Angle1$'.1f' + ' deg'</l>
+<l>Message[1] := 'Min Distance = ' + MinDistance1$'.1f' + ' mm'</l>
+<l>Message[2] := 'Max Distance = ' + MaxDistance1$'.1f' + ' mm'</l>
+<l>disp_message (WindowHandle, Message, 'window', 310, 600, VisualizationColors[0], 'false')</l>
+<c>* Display second intersection</c>
+<l>hom_mat2d_translate (HomMat2DIdentity, 250, 410, HomMat2DTranslate2)</l>
+<l>affine_trans_contour_xld (Intersection2, Intersection2Vis, HomMat2DTranslate2)</l>
+<l>affine_trans_contour_xld (FittedLines2, FittedLines2Vis, HomMat2DTranslate2)</l>
+<l>dev_set_color (VisualizationColors[1])</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_display (Intersection2Vis)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (FittedLines2Vis)</l>
+<l>Message := 'Angle        = ' + Angle2$'.1f' + ' deg'</l>
+<l>Message[1] := 'Min Distance = ' + MinDistance2$'.1f' + ' mm'</l>
+<l>Message[2] := 'Max Distance = ' + MaxDistance2$'.1f' + ' mm'</l>
+<l>disp_message (WindowHandle, Message, 'window', 210, 600, VisualizationColors[1], 'false')</l>
+<c>* Display third intersection</c>
+<l>hom_mat2d_translate (HomMat2DIdentity, 150, 430, HomMat2DTranslate3)</l>
+<l>affine_trans_contour_xld (Intersection3, Intersection3Vis, HomMat2DTranslate3)</l>
+<l>affine_trans_contour_xld (FittedLines3, FittedLines3Vis, HomMat2DTranslate3)</l>
+<l>dev_set_color (VisualizationColors[2])</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_display (Intersection3Vis)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (FittedLines3Vis)</l>
+<l>Message := 'Angle        = ' + Angle3$'.1f' + ' deg'</l>
+<l>Message[1] := 'Min Distance = ' + MinDistance3$'.1f' + ' mm'</l>
+<l>Message[2] := 'Max Distance = ' + MaxDistance3$'.1f' + ' mm'</l>
+<l>disp_message (WindowHandle, Message, 'window', 110, 600, VisualizationColors[2], 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Define the nominal dimensions and the tolerance limits based</c>
+<c>* on the measurements of the reference sample</c>
+<l>AngleRef := mean([Angle1,Angle2,Angle3])</l>
+<l>MaxAngleDev := 2</l>
+<l>MinAngle := AngleRef - MaxAngleDev</l>
+<l>MaxAngle := AngleRef + MaxAngleDev</l>
+<l>MinDistance := 0.95 * mean([MinDistance1,MinDistance2,MinDistance3])</l>
+<l>MaxDistance := 1.05 * mean([MaxDistance1,MaxDistance2,MaxDistance3])</l>
+<c>* Display the nominal dimensions and the tolerance limits</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Tolerance limits for the angle and the distance of the mounting tabs, derived from the three measurements on the reference sample:'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,75})\\s','replace_all'],'$1\n')</l>
+<l>Message := MessageWrapped</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'Min Angle    = ' + MinAngle$'.1f' + ' deg'</l>
+<l>Message[3] := 'Max Angle    = ' + MaxAngle$'.1f' + ' deg'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'Min Distance = ' + MinDistance$'.1f' + ' mm'</l>
+<l>Message[6] := 'Max Distance = ' + MaxDistance$'.1f' + ' mm'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Part 2: Reconstruction of test objects and</c>
+<c>*            checking of the respective dimensions</c>
+<c>* </c>
+<c>* Inspection loop</c>
+<l>NumScenes := 4</l>
+<l>for SceneIndex := 1 to NumScenes by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_part (PartRow1, PartColumn1, PartRow2, PartColumn2)</l>
+<c>    * Reset the dispartities in the sheet of light model; all other settings can be reused</c>
+<l>    reset_sheet_of_light_model (SheetOfLightModelID)</l>
+<c>    * </c>
+<c>    * Create the test object by collecting the measured</c>
+<c>    * disparity profiles in a sheet-of-light model and</c>
+<c>    * transforming them to a 3D object model</c>
+<l>    gen_image_const (DisparityImageVis, 'uint2', DisparityProfileWidth, NumDisparityProfiles)</l>
+<l>    for Index := 0 to NumDisparityProfiles - 1 by 1</l>
+<c>        * Add the next disparity profile to the sheet of light model</c>
+<l>        read_image (ImageSearch, 'sheet_of_light/metal_part_' + (SceneIndex + 1) + '_disparity_line_' + Index$'03d')</l>
+<l>        set_profile_sheet_of_light (ImageSearch, SheetOfLightModelID, [])</l>
+<c>        * Accumulated profiles for visualization</c>
+<l>        get_grayval (ImageSearch, gen_tuple_const(DisparityProfileWidth,0), [0:DisparityProfileWidth - 1], Disparities)</l>
+<l>        set_grayval (DisparityImageVis, gen_tuple_const(DisparityProfileWidth,Index), [0:DisparityProfileWidth - 1], Disparities)</l>
+<l>        if (Index % 5 == 4 or Index == (NumDisparityProfiles - 1))</l>
+<l>            dev_display (DisparityImageVis)</l>
+<l>            Message := 'Disparity image of test object ' + SceneIndex</l>
+<l>            Message[1] := 'Adding disparity profile ' + (Index + 1) + '/' + NumDisparityProfiles</l>
+<l>            disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Get the 3D reconstruction of the test object and eliminate</c>
+<c>    * the background from the respective 3D object model</c>
+<l>    get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, Scene3DFull)</l>
+<l>    get_object_model_3d_params (Scene3DFull, 'bounding_box1', BoundingBox1)</l>
+<l>    MaxZ := BoundingBox1[5]</l>
+<l>    select_points_object_model_3d (Scene3DFull, 'point_coord_z', MinZ, MaxZ, Scene3D)</l>
+<l>    clear_object_model_3d (Scene3DFull)</l>
+<c>    * </c>
+<c>    * Align the intersection planes to the actual position and orientation</c>
+<c>    * of the test object and prepare the test object for the intersection</c>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_part (PartRow1, PartColumn1, PartRow2, PartColumn2)</l>
+<l>    disp_object_model_3d (WindowHandle, Scene3D, VisualizationCamParam, VisualizationPose, [], [])</l>
+<l>    Message := 'Prepare the 3D object model of the test object'</l>
+<l>    Message[1] := ' - perform surface based matching for alignment'</l>
+<l>    Message[2] := ' - triangulate 3D object model'</l>
+<l>    disp_message (WindowHandle, Message[0], 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Match the test object with the reference sample.</c>
+<c>    * Note that the RelSamplingDistance has been set fairly small.</c>
+<c>    * This is necessary because the object has only little 3D variations</c>
+<c>    * that can be used by the matching process.</c>
+<l>    disp_message (WindowHandle, Message[0:1], 'window', 12, 12, 'black', 'true')</l>
+<l>    find_surface_model (SurfaceModelID, Scene3D, 0.005, 0.2, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<c>    * Align the intersection planes to the test object</c>
+<l>    rigid_trans_object_model_3d (IntersectionPlane1, Pose, IntersectionPlane1Aligned)</l>
+<l>    rigid_trans_object_model_3d (IntersectionPlane2, Pose, IntersectionPlane2Aligned)</l>
+<l>    rigid_trans_object_model_3d (IntersectionPlane3, Pose, IntersectionPlane3Aligned)</l>
+<l>    get_object_model_3d_params (IntersectionPlane1Aligned, 'primitive_parameter_pose', IntersectionPlane1AlignedPose)</l>
+<l>    get_object_model_3d_params (IntersectionPlane2Aligned, 'primitive_parameter_pose', IntersectionPlane2AlignedPose)</l>
+<l>    get_object_model_3d_params (IntersectionPlane3Aligned, 'primitive_parameter_pose', IntersectionPlane3AlignedPose)</l>
+<c>    * Triangulate the 3D object model</c>
+<l>    disp_message (WindowHandle, Message[0:2], 'window', 12, 12, 'black', 'true')</l>
+<l>    triangulate_object_model_3d (Scene3D, 'greedy', [], [], Scene3DTest, Information)</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_object_model_3d (WindowHandle, [Scene3DTest,IntersectionPlane1Aligned,IntersectionPlane2Aligned,IntersectionPlane3Aligned], VisualizationCamParam, VisualizationPose, ['color_1','color_2','color_3','alpha','alpha_0'], [VisualizationColors,0.75,1])</l>
+<l>    Message := 'Test object ' + SceneIndex + ' with aligned intersection planes'</l>
+<l>    MessageWrapped := regexp_replace(Message + ' ',['(.{0,25})\\s','replace_all'],'$1\n')</l>
+<l>    disp_message (WindowHandle, MessageWrapped, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Calculate the intersections of the test object with the respectively</c>
+<c>    * aligned planes</c>
+<l>    intersect_plane_object_model_3d (Scene3DTest, IntersectionPlane1AlignedPose, ObjectModel3DIntersection1)</l>
+<l>    intersect_plane_object_model_3d (Scene3DTest, IntersectionPlane2AlignedPose, ObjectModel3DIntersection2)</l>
+<l>    intersect_plane_object_model_3d (Scene3DTest, IntersectionPlane3AlignedPose, ObjectModel3DIntersection3)</l>
+<c>    * </c>
+<c>    * Determine the intersections and convert them into XLD contours</c>
+<l>    project_object_model_3d_lines_to_contour_xld (Intersection1, IntersectionPlane1AlignedPose, ObjectModel3DIntersection1)</l>
+<l>    project_object_model_3d_lines_to_contour_xld (Intersection2, IntersectionPlane2AlignedPose, ObjectModel3DIntersection2)</l>
+<l>    project_object_model_3d_lines_to_contour_xld (Intersection3, IntersectionPlane3AlignedPose, ObjectModel3DIntersection3)</l>
+<c>    * </c>
+<c>    * Clean up memory</c>
+<l>    clear_object_model_3d ([ObjectModel3DIntersection1,ObjectModel3DIntersection2,ObjectModel3DIntersection3])</l>
+<l>    clear_object_model_3d ([IntersectionPlane1Aligned,IntersectionPlane2Aligned,IntersectionPlane3Aligned])</l>
+<l>    clear_object_model_3d ([Scene3D,Scene3DTest])</l>
+<c>    * </c>
+<c>    * Determine the actual dimensions by analysing the measurements</c>
+<c>    * from the test object</c>
+<l>    analyze_intersection (Intersection1, FittedLines1, OrientationRef, OrientationTolerance, MinDistance1, MaxDistance1, Angle1)</l>
+<l>    analyze_intersection (Intersection2, FittedLines2, OrientationRef, OrientationTolerance, MinDistance2, MaxDistance2, Angle2)</l>
+<l>    analyze_intersection (Intersection3, FittedLines3, OrientationRef, OrientationTolerance, MinDistance3, MaxDistance3, Angle3)</l>
+<c>    * </c>
+<c>    * Visualize the object with the intersection planes and the respective</c>
+<c>    * intersections and measurement results</c>
+<c>    * Display headings</c>
+<l>    OverallCheckPassed := true</l>
+<l>    Message := 'Intersections with measurement lines'</l>
+<l>    MessageWrapped := regexp_replace(Message + ' ',['(.{0,20})\\s','replace_all'],'$1\n')</l>
+<l>    disp_message (WindowHandle, MessageWrapped, 'window', 12, 310, 'black', 'true')</l>
+<l>    Message := 'Measurement results'</l>
+<l>    MessageWrapped := regexp_replace(Message + ' ',['(.{0,20})\\s','replace_all'],'$1\n')</l>
+<l>    disp_message (WindowHandle, MessageWrapped, 'window', 12, 590, 'black', 'true')</l>
+<c>    * Display first intersection</c>
+<l>    affine_trans_contour_xld (Intersection1, Intersection1Vis, HomMat2DTranslate1)</l>
+<l>    affine_trans_contour_xld (FittedLines1, FittedLines1Vis, HomMat2DTranslate1)</l>
+<l>    dev_set_color (VisualizationColors[0])</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_display (Intersection1Vis)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (FittedLines1Vis)</l>
+<l>    Message := 'Angle        = ' + Angle1$'.1f' + ' deg'</l>
+<l>    Message[1] := 'Min Distance = ' + MinDistance1$'.1f' + ' mm'</l>
+<l>    Message[2] := 'Max Distance = ' + MaxDistance1$'.1f' + ' mm'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 310, 600, VisualizationColors[0], 'false')</l>
+<l>    ErrorIndicator := gen_tuple_const(3,'OK')</l>
+<l>    ErrorIndicatorColor := gen_tuple_const(3,'dim gray')</l>
+<l>    if (Angle1 [&lt;] MinAngle or Angle1 [&gt;] MaxAngle)</l>
+<l>        ErrorIndicator[0] := 'NOK'</l>
+<l>        ErrorIndicatorColor[0] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    if (MinDistance1 [&lt;] MinDistance)</l>
+<l>        ErrorIndicator[1] := 'NOK'</l>
+<l>        ErrorIndicatorColor[1] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    if (MaxDistance1 [&gt;] MaxDistance)</l>
+<l>        ErrorIndicator[2] := 'NOK'</l>
+<l>        ErrorIndicatorColor[2] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, ErrorIndicator, 'window', 310, 880, ErrorIndicatorColor, 'false')</l>
+<c>    * Display second intersection</c>
+<l>    affine_trans_contour_xld (Intersection2, Intersection2Vis, HomMat2DTranslate2)</l>
+<l>    affine_trans_contour_xld (FittedLines2, FittedLines2Vis, HomMat2DTranslate2)</l>
+<l>    dev_set_color (VisualizationColors[1])</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_display (Intersection2Vis)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (FittedLines2Vis)</l>
+<l>    Message := 'Angle        = ' + Angle2$'.1f' + ' deg'</l>
+<l>    Message[1] := 'Min Distance = ' + MinDistance2$'.1f' + ' mm'</l>
+<l>    Message[2] := 'Max Distance = ' + MaxDistance2$'.1f' + ' mm'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 210, 600, VisualizationColors[1], 'false')</l>
+<l>    ErrorIndicator := gen_tuple_const(3,'OK')</l>
+<l>    ErrorIndicatorColor := gen_tuple_const(3,'dim gray')</l>
+<l>    if (Angle2 [&lt;] MinAngle or Angle2 [&gt;] MaxAngle)</l>
+<l>        ErrorIndicator[0] := 'NOK'</l>
+<l>        ErrorIndicatorColor[0] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    if (MinDistance2 [&lt;] MinDistance)</l>
+<l>        ErrorIndicator[1] := 'NOK'</l>
+<l>        ErrorIndicatorColor[1] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    if (MaxDistance2 [&gt;] MaxDistance)</l>
+<l>        ErrorIndicator[2] := 'NOK'</l>
+<l>        ErrorIndicatorColor[2] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, ErrorIndicator, 'window', 210, 880, ErrorIndicatorColor, 'false')</l>
+<c>    * Display third intersection</c>
+<l>    affine_trans_contour_xld (Intersection3, Intersection3Vis, HomMat2DTranslate3)</l>
+<l>    affine_trans_contour_xld (FittedLines3, FittedLines3Vis, HomMat2DTranslate3)</l>
+<l>    dev_set_color (VisualizationColors[2])</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_display (Intersection3Vis)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (FittedLines3Vis)</l>
+<l>    Message := 'Angle        = ' + Angle3$'.1f' + ' deg'</l>
+<l>    Message[1] := 'Min Distance = ' + MinDistance3$'.1f' + ' mm'</l>
+<l>    Message[2] := 'Max Distance = ' + MaxDistance3$'.1f' + ' mm'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 110, 600, VisualizationColors[2], 'false')</l>
+<l>    ErrorIndicator := gen_tuple_const(3,'OK')</l>
+<l>    ErrorIndicatorColor := gen_tuple_const(3,'dim gray')</l>
+<l>    if (Angle3 [&lt;] MinAngle or Angle3 [&gt;] MaxAngle)</l>
+<l>        ErrorIndicator[0] := 'NOK'</l>
+<l>        ErrorIndicatorColor[0] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    if (MinDistance3 [&lt;] MinDistance)</l>
+<l>        ErrorIndicator[1] := 'NOK'</l>
+<l>        ErrorIndicatorColor[1] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    if (MaxDistance3 [&gt;] MaxDistance)</l>
+<l>        ErrorIndicator[2] := 'NOK'</l>
+<l>        ErrorIndicatorColor[2] := 'red'</l>
+<l>        OverallCheckPassed := false</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, ErrorIndicator, 'window', 110, 880, ErrorIndicatorColor, 'false')</l>
+<c>    * Display overall check result</c>
+<l>    if (OverallCheckPassed)</l>
+<l>        dev_set_color ('green')</l>
+<l>        gen_rectangle1 (Rectangle, 0, WindowWidth - 120, 80, WindowWidth)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        disp_message (WindowHandle, 'OK', 'window', 30, 900, 'black', 'false')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        gen_rectangle1 (Rectangle, 0, WindowWidth - 120, 80, WindowWidth)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        disp_message (WindowHandle, 'NOK', 'window', 30, 900, 'white', 'false')</l>
+<l>    endif</l>
+<l>    if (SceneIndex &lt; NumScenes)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Clean up memory</c>
+<l>clear_object_model_3d ([ObjectModel3DReference,IntersectionPlane1,IntersectionPlane2,IntersectionPlane3])</l>
+<l>clear_sheet_of_light_model (SheetOfLightModelID)</l>
+<l>clear_surface_model (SurfaceModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="analyze_intersection">
+<interface>
+<io>
+<par name="Intersection" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="FittedLines" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="OrientationRef" base_type="ctrl" dimension="0"/>
+<par name="OrientationTolerance" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MinDistance" base_type="ctrl" dimension="0"/>
+<par name="MaxDistance" base_type="ctrl" dimension="0"/>
+<par name="Angle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* In this procedure, the opening width and the angle of the</c>
+<c>* mounting tabs are determined based on the given intersection</c>
+<c>* profile. For this, suitable segments of the profile are</c>
+<c>* selected and grouped.</c>
+<c>* </c>
+<c>* Cut the contour into segments</c>
+<l>segment_contours_xld (Intersection, ContoursSplit, 'lines_circles', 7, 3, 2)</l>
+<c>* Select the segments that have approximately the expected orientation</c>
+<l>select_shape_xld (ContoursSplit, SelectedXLD, ['orientation_points','orientation_points'], 'or', rad([OrientationRef,OrientationRef - 180]) - rad(OrientationTolerance), rad([OrientationRef,OrientationRef - 180]) + rad(OrientationTolerance))</l>
+<c>* Select the three longest segments</c>
+<l>length_xld (SelectedXLD, Length)</l>
+<l>SelectedId := sort_index(-Length)[0:2] + 1</l>
+<l>select_obj (SelectedXLD, ObjectSelected1, SelectedId[0])</l>
+<l>select_obj (SelectedXLD, ObjectSelected2, SelectedId[1])</l>
+<l>select_obj (SelectedXLD, ObjectSelected3, SelectedId[2])</l>
+<c>* Calculate the distance between these three segments</c>
+<c>* to decide, which of them represents the mounting tab</c>
+<l>distance_cc_min (ObjectSelected1, ObjectSelected2, 'fast_point_to_segment', DistanceMin12)</l>
+<l>distance_cc_min (ObjectSelected1, ObjectSelected3, 'fast_point_to_segment', DistanceMin13)</l>
+<l>distance_cc_min (ObjectSelected2, ObjectSelected3, 'fast_point_to_segment', DistanceMin23)</l>
+<c>* The two segments that have the largest distance between</c>
+<c>* another represent the ground plane, while the remaining</c>
+<c>* segment represents the mounting tab</c>
+<l>LargestDistId := sort_index(-[DistanceMin12,DistanceMin13,DistanceMin23])[0]</l>
+<l>switch (LargestDistId)</l>
+<l>case 0:</l>
+<c>    * Contours 1 and 2</c>
+<l>    concat_obj (ObjectSelected1, ObjectSelected2, GroundPlane)</l>
+<l>    copy_obj (ObjectSelected3, MountingTab, 1, 1)</l>
+<l>    break</l>
+<l>case 1:</l>
+<c>    * Contours 1 and 3</c>
+<l>    concat_obj (ObjectSelected1, ObjectSelected3, GroundPlane)</l>
+<l>    copy_obj (ObjectSelected2, MountingTab, 1, 1)</l>
+<l>    break</l>
+<l>case 2:</l>
+<c>    * Contours 2 and 3</c>
+<l>    concat_obj (ObjectSelected2, ObjectSelected3, GroundPlane)</l>
+<l>    copy_obj (ObjectSelected1, MountingTab, 1, 1)</l>
+<l>    break</l>
+<l>endswitch</l>
+<c>* </c>
+<c>* Approximate the ground plane and the mounting tab by straight lines</c>
+<l>union_adjacent_contours_xld (GroundPlane, GroundPlaneUnion, 1000, 50, 'attr_keep')</l>
+<l>fit_line_contour_xld (GroundPlaneUnion, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>if (ColEnd &lt; ColBegin)</l>
+<c>    * Reverse the orientation of the line</c>
+<l>    T := ColEnd</l>
+<l>    ColEnd := ColBegin</l>
+<l>    ColBegin := T</l>
+<l>    T := RowEnd</l>
+<l>    RowEnd := RowBegin</l>
+<l>    RowBegin := T</l>
+<l>    Nr := -Nr</l>
+<l>    Nc := -Nc</l>
+<l>endif</l>
+<l>gen_contour_polygon_xld (Contour, [RowBegin,RowEnd], [ColBegin,ColEnd])</l>
+<l>fit_line_contour_xld (MountingTab, 'tukey', -1, 0, 5, 2, RowBeginMT, ColBeginMT, RowEndMT, ColEndMT, NrMT, NcMT, DistMT)</l>
+<l>if (ColEndMT &lt; ColBeginMT)</l>
+<c>    * Reverse the orientation of the line</c>
+<l>    T := ColEndMT</l>
+<l>    ColEndMT := ColBeginMT</l>
+<l>    ColBeginMT := T</l>
+<l>    T := RowEndMT</l>
+<l>    RowEndMT := RowBeginMT</l>
+<l>    RowBeginMT := T</l>
+<l>    NrMT := -NrMT</l>
+<l>    NcMT := -NcMT</l>
+<l>endif</l>
+<l>gen_contour_polygon_xld (ContourMT, [RowBeginMT,RowEndMT], [ColBeginMT,ColEndMT])</l>
+<l>concat_obj (ContourMT, Contour, FittedLines)</l>
+<c>* </c>
+<c>* Calculate the opening width and the angle</c>
+<l>distance_pl ([RowBeginMT,RowEndMT], [ColBeginMT,ColEndMT], RowBegin, ColBegin, RowEnd, ColEnd, Distances)</l>
+<l>MinDistance := min(Distances)</l>
+<l>MaxDistance := max(Distances)</l>
+<l>angle_ll (0, 0, NrMT, NcMT, 0, 0, Nr, Nc, AngleRad)</l>
+<l>Angle := deg(AngleRad)</l>
+<c>* Wrap the absolute angle to 90 deg or less</c>
+<l>if (Angle &lt; -90)</l>
+<l>    Angle := Angle + 180</l>
+<l>elseif (Angle &gt; 90)</l>
+<l>    Angle := Angle - 180</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="analyze_intersection">
+<parameters>
+<parameter id="Angle">
+<default_type>real</default_type>
+<multivalue>false</multivalue>
+<sem_type>angle.deg</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="FittedLines">
+<multivalue>true</multivalue>
+<sem_type>xld_cont</sem_type>
+</parameter>
+<parameter id="Intersection">
+<multivalue>optional</multivalue>
+<sem_type>xld_cont</sem_type>
+</parameter>
+<parameter id="MaxDistance">
+<default_type>real</default_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MinDistance">
+<default_type>real</default_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="OrientationRef">
+<default_type>real</default_type>
+<multivalue>false</multivalue>
+<sem_type>angle.deg</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="OrientationTolerance">
+<default_type>real</default_type>
+<multivalue>false</multivalue>
+<sem_type>angle.deg</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="project_object_model_3d_lines_to_contour_xld">
+<interface>
+<oo>
+<par name="Intersection" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="PoseIntersectionPlane" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3DIntersection" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Determine the intersections and convert them into XLD contours</c>
+<c>* </c>
+<c>* The inverted intersection plane pose is our projection pose</c>
+<l>pose_invert (PoseIntersectionPlane, PoseInvert)</l>
+<c>* Make sure, the projection plane lies in front of the camera</c>
+<l>get_object_model_3d_params (ObjectModel3DIntersection, 'diameter_axis_aligned_bounding_box', Diameter)</l>
+<l>PoseInvert[2] := PoseInvert[2] + Diameter</l>
+<c>* Use a parallel projection to achieve the desired scaling (default 1:1)</c>
+<l>Scale := 1</l>
+<l>CamParam := [0,0,1.0 / Scale,1.0 / Scale,0,0,512,512]</l>
+<l>project_object_model_3d (Intersection, ObjectModel3DIntersection, CamParam, PoseInvert, 'data', 'lines')</l>
+<l>return ()</l>
+</body>
+<docu id="project_object_model_3d_lines_to_contour_xld">
+<parameters>
+<parameter id="Intersection">
+<multivalue>optional</multivalue>
+<sem_type>xld_cont</sem_type>
+</parameter>
+<parameter id="ObjectModel3DIntersection">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="PoseIntersectionPlane">
+<default_type>real</default_type>
+<mixed_type>optional</mixed_type>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

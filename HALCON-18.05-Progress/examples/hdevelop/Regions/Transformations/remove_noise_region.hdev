@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Remove noise from a region</c>
+<c>* </c>
+<c></c>
+<c>* Create noisy image.</c>
+<l>read_image (Image, 'printer_chip/printer_chip_01')</l>
+<l>dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>sp_distribution (0.05, 0, Distribution)</l>
+<l>add_noise_distribution (Image, ImageNoise, Distribution)</l>
+<l>dev_display (ImageNoise)</l>
+<l>stop ()</l>
+<c></c>
+<c>* Create region from image</c>
+<l>threshold (ImageNoise, Region, 128, 255)</l>
+<l>stop ()</l>
+<c></c>
+<c>* Remove noise from region</c>
+<l>remove_noise_region (Region, OutputRegion, 'n_4')</l>
+<c></c>
+<l>dev_display (Image)</l>
+<l>dev_display (OutputRegion)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the ABS interface</c>
+<c>* (query current parameter settings)</c>
+<c>* </c>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* </c>
+<l>info_framegrabber ('ABS', 'info_boards', InfoBoardsInfo, InfoBoardsValues)</l>
+<l>info_framegrabber ('ABS', 'defaults', DefaultsInfo, DefaultsValues)</l>
+<l>info_framegrabber ('ABS', 'general', GeneralInfo, GeneralValues)</l>
+<l>info_framegrabber ('ABS', 'parameters', ParametersInfo, ParametersValues)</l>
+<l>info_framegrabber ('ABS', 'revision', RevisionInfo, RevisionValues)</l>
+<c>* </c>
+<l>info_framegrabber ('ABS', 'bits_per_channel', BitsPerChannelInfo, BitsPerChannelValues)</l>
+<l>info_framegrabber ('ABS', 'camera_type', CameraTypesInfo, CameraTypesValues)</l>
+<l>info_framegrabber ('ABS', 'color_space', ColorSpaceInfo, ColorSpaceValues)</l>
+<l>info_framegrabber ('ABS', 'device', DeviceInfo, DeviceValues)</l>
+<l>info_framegrabber ('ABS', 'external_trigger', ExternalTriggerInfo, ExternalTriggerValues)</l>
+<l>info_framegrabber ('ABS', 'port', PortInfo, PortValues)</l>
+<c>* </c>
+<l>MyCameraType := 'default'</l>
+<l>MyDevice := 'default'</l>
+<l>open_framegrabber ('ABS', 2, 2, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', '1', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>info_framegrabber ('ABS', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 400, 12 + ImageHeight / 2, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, (12 + ImageHeight / 2) - 1, 399)</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    if (i == |ParameterInfoValues| / 2)</l>
+<l>        dev_open_window (0, 408, 400, 12 + ImageHeight / 2, 'black', WindowHandle2)</l>
+<l>    endif</l>
+<l>    if (i &gt; |ParameterInfoValues| / 2)</l>
+<l>        set_tposition (WindowHandle2, (12 * (i - 1 - |ParameterInfoValues| / 2)) + 2, 10)</l>
+<l>        write_string (WindowHandle2, ParameterInfoValues[i] + ': ')</l>
+<l>        get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>        ShowValue := true</l>
+<l>        if (strlen(ParameterInfoValues[i]) &gt; 2)</l>
+<l>            if (ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>                write_string (WindowHandle, '&lt;action parameter&gt;')</l>
+<l>                ShowValue := false</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>        if ((ShowValue == true) and (HalconError == H_MSG_TRUE))</l>
+<l>            dev_set_color ('green')</l>
+<l>            if (|ParameterValue| &gt; 1)</l>
+<l>                for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                    write_string (WindowHandle2, ParameterValue[j] + ',')</l>
+<l>                endfor</l>
+<l>                write_string (WindowHandle2, ParameterValue[j + 1])</l>
+<l>            else</l>
+<l>                if (|ParameterValue| == 1)</l>
+<l>                    write_string (WindowHandle2, ParameterValue)</l>
+<l>                else</l>
+<l>                    dev_set_color ('red')</l>
+<l>                    write_string (WindowHandle2, '&lt;not supported&gt;')</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        else</l>
+<l>            if (ShowValue == true)</l>
+<l>                dev_set_color ('red')</l>
+<l>                write_string (WindowHandle2, '&lt;not supported&gt;')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>        write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>        get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>        ShowValue := true</l>
+<l>        if (strlen(ParameterInfoValues[i]) &gt; 2)</l>
+<l>            if (ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>                write_string (WindowHandle, '&lt;action parameter&gt;')</l>
+<l>                ShowValue := false</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>        if ((ShowValue == true) and (HalconError == H_MSG_TRUE))</l>
+<l>            dev_set_color ('green')</l>
+<l>            if (|ParameterValue| &gt; 1)</l>
+<l>                for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                    write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>                endfor</l>
+<l>                write_string (WindowHandle, ParameterValue[j + 1])</l>
+<l>            else</l>
+<l>                if (|ParameterValue| == 1)</l>
+<l>                    write_string (WindowHandle, ParameterValue)</l>
+<l>                else</l>
+<l>                    dev_set_color ('red')</l>
+<l>                    write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        else</l>
+<l>            if (ShowValue == true)</l>
+<l>                dev_set_color ('red')</l>
+<l>                write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

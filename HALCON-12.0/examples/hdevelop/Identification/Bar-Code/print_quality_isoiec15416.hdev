@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* print_quality_isoiec15416.hdev demonstrates how to check</c>
+<c>* the print quality of bar codes. Additionally, it</c>
+<c>* demonstrates the influence of different defects on the</c>
+<c>* bar code's quality values.</c>
+<c>* </c>
+<c>* Constants for quality grade access</c>
+<l>GRADE_DECODE := 1</l>
+<l>GRADE_CONTRAST := 2</l>
+<l>GRADE_MINIMAL_REFLECTANCE := 3</l>
+<l>GRADE_MINIMAL_EDGE_CONTRAST := 4</l>
+<l>GRADE_MODULATION := 5</l>
+<l>GRADE_DEFECTS := 6</l>
+<l>GRADE_DECODABILITY := 7</l>
+<l>GRADE_ADDITIONAL_REQS := 8</l>
+<c>* </c>
+<l>Wait := 0.8</l>
+<c>* </c>
+<c>* Read image and setup environment</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_update_off ()</l>
+<l>dev_update_var ('on')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>read_image (Image, 'barcode/ean13/ean1315')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Setup bar code reader</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'persistence', 1)</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_min', 2)</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_max', 16)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_labels', Labels)</l>
+<l>tuple_gen_const (9, 0, Quality)</l>
+<l>dev_inspect_ctrl ([Labels,Quality,QualityValues])</l>
+<c>* </c>
+<c>* Example:  Contrast</c>
+<c>* </c>
+<l>Params1 := [0.925,0.775,0.475,0.325,0.175]</l>
+<l>Params2 := [10,30,70,90,110]</l>
+<l>for Index := 0 to 4 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    scale_image (Image, ImageDefect, Params1[Index], Params2[Index])</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    min_max_gray (SymbolRegions, ImageDefect, 0, Min, Max, Range)</l>
+<l>    Contrast := Range / 255</l>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_CONTRAST, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 10, -1, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example:  Minimal Reflectance</c>
+<c>* </c>
+<l>Params1 := [100,125]</l>
+<l>for Index := 0 to 1 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    scale_image (Image, ImageDefect, 1 - Params1[Index] / 255.0, Params1[Index])</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_MINIMAL_REFLECTANCE, Message)</l>
+<l>    Message := [Message,'(can be either 0 or 4)']</l>
+<l>    disp_message (WindowHandle, Message, 'window', 10, -1, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example:  Modulation</c>
+<c>* </c>
+<l>gen_rectangle1 (Defect, 91, 353, 464, 406)</l>
+<l>reduce_domain (Image, Defect, ImageReduced)</l>
+<l>Params1 := [0.775,0.7,0.55,0.475,0.4]</l>
+<l>Params2 := [30,40,60,70,80]</l>
+<l>for Index := 0 to 4 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    scale_image (ImageReduced, ImageScaled, Params1[Index], Params2[Index])</l>
+<l>    paint_gray (ImageScaled, Image, ImageDefect)</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_MODULATION, Message)</l>
+<l>    visualize_grade (ImageDefect, Defect, SymbolRegions, WindowHandle, Message)</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example:  Minimal Edge Contrast</c>
+<c>* </c>
+<l>scale_image (Image, ImageLowContrast, 0.25, 190)</l>
+<l>gen_rectangle1 (Defect, 91, 385, 464, 395)</l>
+<l>Params1 := [250,245,240,235,230]</l>
+<l>for Index := 0 to 4 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    paint_region (Defect, ImageLowContrast, ImageDefect, Params1[Index], 'fill')</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_MINIMAL_EDGE_CONTRAST, Message)</l>
+<l>    Message := [Message,'(sometimes less than Modulation: ' + Quality[GRADE_MODULATION] + ')']</l>
+<l>    visualize_grade (ImageDefect, Defect, SymbolRegions, WindowHandle, Message)</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example:  Defects</c>
+<c>* </c>
+<c>* Note, that we decrease dramatically the reader's sensibility against noise</c>
+<c>* otherwise the artificial defect we add in the image will be detected as a</c>
+<c>* bar, and the bar code detection will fail</c>
+<l>get_bar_code_param (BarCodeHandle, 'meas_thresh', MeasThresh)</l>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.6)</l>
+<l>gen_rectangle1 (Defect, 91, 454, 464, 454)</l>
+<l>dilation_rectangle1 (Defect, DefectSurround, 11, 11)</l>
+<l>Params1 := [165,135,105,75,45]</l>
+<l>for Index := 0 to 4 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    paint_region (Defect, Image, ImageDefect, Params1[Index], 'fill')</l>
+<l>    reduce_domain (ImageDefect, DefectSurround, ImageReduced)</l>
+<l>    gauss_filter (ImageReduced, ImageGauss, 3)</l>
+<l>    paint_gray (ImageGauss, ImageDefect, ImageDefect)</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_DEFECTS, Message)</l>
+<l>    visualize_grade (ImageDefect, Defect, SymbolRegions, WindowHandle, Message)</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', MeasThresh)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example:  Decodability</c>
+<c>* </c>
+<l>gen_rectangle1 (Defect, 91, 443, 464, 443)</l>
+<l>Params1 := [2.5,2.85,3.0,3.5,4.0]</l>
+<l>for Index := 0 to 4 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    paint_dec_defect (Defect, Image, ImageDefect, WholeDefect, Params1[Index], 255 - 52, 1)</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_DECODABILITY, Message)</l>
+<l>    visualize_grade (ImageDefect, WholeDefect, SymbolRegions, WindowHandle, Message)</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Example:  Additional Requirements</c>
+<c>* </c>
+<l>Params1 := [160,230,300,370,440]</l>
+<l>for Index := 0 to 4 by 1</l>
+<c>    * </c>
+<c>    * Create a defect image for demonstration purposes</c>
+<l>    gen_rectangle1 (Defect, 91, 698, Params1[Index], 702)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 52, 'fill')</l>
+<c>    * </c>
+<c>    * Evaluate its quality</c>
+<l>    find_bar_code (ImageDefect, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416', Quality)</l>
+<l>    get_bar_code_result (BarCodeHandle, 0, 'quality_isoiec15416_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_ADDITIONAL_REQS, Message)</l>
+<l>    Message := [Message,'(bar code type specific)']</l>
+<l>    visualize_grade (ImageDefect, Defect, SymbolRegions, WindowHandle, Message)</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>ContinueMessage := 'Click \'Run\' to end the program'</l>
+<l>get_window_extents (WindowHandle, Row, Column, WinWidth, WinHeight)</l>
+<l>get_string_extents (WindowHandle, ' ' + ContinueMessage + ' ', Ascent, Descent, TextWidth, TextHeight)</l>
+<l>disp_message (WindowHandle, ContinueMessage, 'window', WinHeight - TextHeight - 10, WinWidth - TextWidth - 10, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_close_inspect_ctrl ([Labels,Quality,QualityValues])</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="paint_dec_defect">
+<interface>
+<io>
+<par name="Slice" base_type="iconic" dimension="0"/>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageDefect" base_type="iconic" dimension="0"/>
+<par name="Defect" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="DefectWidth" base_type="ctrl" dimension="0"/>
+<par name="ElementColor" base_type="ctrl" dimension="0"/>
+<par name="Dir" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>copy_image (Image, ImageDefect)</l>
+<l>InverseColor := 255 - ElementColor</l>
+<l>gen_empty_obj (Defect)</l>
+<l>union2 (Defect, Slice, Defect)</l>
+<l>for I := 1 to floor(DefectWidth) by 1</l>
+<l>    paint_region (Slice, ImageDefect, ImageDefect, InverseColor, 'fill')</l>
+<l>    affine_trans_region (Slice, Slice, [1,0,0,0,1,Dir], 'nearest_neighbor')</l>
+<l>    union2 (Defect, Slice, Defect)</l>
+<l>endfor</l>
+<l>InverseLevel := DefectWidth - floor(DefectWidth)</l>
+<l>paint_region (Slice, ImageDefect, ImageDefect, (1 - InverseLevel) * ElementColor + InverseLevel * InverseColor, 'fill')</l>
+<l>return ()</l>
+</body>
+<docu id="paint_dec_defect">
+<short lang="en_US">paints a decodability defect to an edge</short>
+<parameters>
+<parameter id="Defect"/>
+<parameter id="DefectWidth"/>
+<parameter id="Dir"/>
+<parameter id="ElementColor"/>
+<parameter id="Image"/>
+<parameter id="ImageDefect"/>
+<parameter id="Slice"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="visualize_grade">
+<interface>
+<io>
+<par name="ImageDefect" base_type="iconic" dimension="0"/>
+<par name="Defect" base_type="iconic" dimension="0"/>
+<par name="SymbolRegions" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ImageDefect)</l>
+<l>dev_display (Defect)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>wait_seconds (0.1)</l>
+<l>dev_display (ImageDefect)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>disp_message (WindowHandle, Message, 'window', 10, -1, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="visualize_grade">
+<parameters>
+<parameter id="Defect"/>
+<parameter id="ImageDefect"/>
+<parameter id="Message"/>
+<parameter id="SymbolRegions"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="grade_message_text">
+<interface>
+<ic>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="Quality" base_type="ctrl" dimension="0"/>
+<par name="QualityValues" base_type="ctrl" dimension="0"/>
+<par name="GradeEnum" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := Labels[GradeEnum] + ': ' + Quality[GradeEnum]</l>
+<l>Value := QualityValues[GradeEnum]</l>
+<l>if (is_number(Value))</l>
+<l>    Message := Message + ' (' + (100 * Value)$'.2f' + '%)'</l>
+<l>else</l>
+<l>    Message := Message + ' (' + Value + ')'</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="grade_message_text">
+<parameters>
+<parameter id="GradeEnum"/>
+<parameter id="Labels"/>
+<parameter id="Message"/>
+<parameter id="Quality"/>
+<parameter id="QualityValues"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

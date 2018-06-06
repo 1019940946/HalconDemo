@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Smooth an image using the median filter</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>median_image (Image, ImageMedian, 'circle', 3, 'mirrored')</l>
+<c>* View part of image</c>
+<l>dev_set_part (111, 205, 111 + 70, 205 + 70)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<c>* Continue to view filtered image (part)</c>
+<l>dev_display (ImageMedian)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

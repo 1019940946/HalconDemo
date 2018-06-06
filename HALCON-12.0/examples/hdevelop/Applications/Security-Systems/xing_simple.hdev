@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* xing_simple.hdev: Traffic monitoring (by Kalman filtering)</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'xing/init')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>read_region (XingRegion, 'xing/xing_region')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>create_bg_esti (Image, 0.7, 0.7, 'fixed', 0.001, 0.03, 'on', 8.0, 10, 3.25, 15, BgEstiHandle)</l>
+<l>for I := 0 to 587 by 1</l>
+<l>    read_image (ActualImage, 'xing/xing' + (I$'03'))</l>
+<l>    run_bg_esti (ActualImage, ForegroundRegion, BgEstiHandle)</l>
+<l>    connection (ForegroundRegion, ConnectedRegions)</l>
+<l>    intersection (ConnectedRegions, XingRegion, RegionIntersection)</l>
+<l>    select_shape (RegionIntersection, SelectedRegions, 'area', 'and', 20, 99999)</l>
+<l>    shape_trans (SelectedRegions, RegionTrans, 'rectangle1')</l>
+<l>    dev_display (ActualImage)</l>
+<l>    dev_display (RegionTrans)</l>
+<l>endfor</l>
+<l>give_bg_esti (BackgroundImage, BgEstiHandle)</l>
+<l>dev_display (BackgroundImage)</l>
+<l>close_bg_esti (BgEstiHandle)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

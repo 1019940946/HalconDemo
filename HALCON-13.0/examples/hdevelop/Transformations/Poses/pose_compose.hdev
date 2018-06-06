@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows how the operator 'pose_compose' is used.</c>
+<c>* 'pose_compose' composes a new 3D pose from two input poses.</c>
+<c>* Additionally it is shown that 2 poses can be composed by</c>
+<c>* multiplying the corresponding homogeneous matrices.</c>
+<c>* Depending on whether mainly poses or mainly homogenous matrices</c>
+<c>* are used, the first or the second alternative is chosen.</c>
+<c>* </c>
+<c>* The several poses to be composed are created</c>
+<l>create_pose (0.1, 0.1, 0.1, 77, 0, 0, 'Rp+T', 'gba', 'point', PoseLeft)</l>
+<l>create_pose (0.1, 0.5, 0.1, 7, 14, 27, 'Rp+T', 'gba', 'point', PoseLeft2)</l>
+<l>create_pose (0.2, 0.2, 0.2, 0, 90, 0, 'Rp+T', 'gba', 'point', PoseRight)</l>
+<l>create_pose (0.2, 0.7, 0.5, 44, 70, 30, 'Rp+T', 'gba', 'point', PoseRight2)</l>
+<c>* </c>
+<c>* Composition of two poses using pose_compose</c>
+<l>pose_compose (PoseLeft, PoseRight, PoseCompose)</l>
+<c>* Composition of the two poses in the first parameter with PoseRight</c>
+<l>pose_compose ([PoseLeft,PoseLeft2], PoseRight, PoseCompose1)</l>
+<c>* Composition of PoseLeft with the two poses given as the second parameter</c>
+<l>pose_compose (PoseLeft, [PoseRight,PoseRight2], PoseCompose2)</l>
+<c>* Composition of PoseLeft with PoseRight and PoseLeft2 with PoseRight2</c>
+<l>pose_compose ([PoseLeft,PoseLeft2], [PoseRight,PoseRight2], PoseCompose3)</l>
+<c>* </c>
+<c>* Composition of two poses using homogenous matrices.</c>
+<c>* The poses are converted into homogenous matrices.</c>
+<c>* These are multiplied and the result is converted into a pose.</c>
+<l>pose_to_hom_mat3d (PoseLeft, HomMat3DLeft)</l>
+<l>pose_to_hom_mat3d (PoseRight, HomMat3DRight)</l>
+<l>hom_mat3d_compose (HomMat3DLeft, HomMat3DRight, HomMat3DCompose)</l>
+<l>hom_mat3d_to_pose (HomMat3DCompose, PoseComposeAlternative)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

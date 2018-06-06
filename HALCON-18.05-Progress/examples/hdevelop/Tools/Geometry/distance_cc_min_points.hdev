@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operator distance_cc_min_points.</c>
+<c>* This operator calculates the minimum distance between two contours</c>
+<c>* and returns the points used for the calculation.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Generate two contours.</c>
+<l>gen_ellipse_contour_xld (ContEllipse1, 200.5, 200.5, -rad(45), 100, 15, 0, 6.28318, 'positive', 1.5)</l>
+<l>gen_ellipse_contour_xld (ContEllipse2, 342, 342.5, -rad(45), 100, 15, 0, 6.28318, 'positive', 1.5)</l>
+<c>* </c>
+<c>* Calculate the distance and the points.</c>
+<l>distance_cc_min_points (ContEllipse1, ContEllipse2, 'fast_point_to_segment', DistanceMin, Row1Min, Col1Min, Row2Min, Col2Min)</l>
+<c>* </c>
+<c>* Visualize the results.</c>
+<l>get_contour_xld (ContEllipse1, Row1, Col1)</l>
+<l>get_contour_xld (ContEllipse2, Row2, Col2)</l>
+<l>concat_obj (ContEllipse1, ContEllipse2, ObjectsConcat)</l>
+<l>gen_cross_contour_xld (Cross1, Row1, Col1, 0.2, 0.785398)</l>
+<l>gen_cross_contour_xld (Cross2, Row2, Col2, 0.2, 0.785398)</l>
+<l>gen_cross_contour_xld (Cross1Min, Row1Min, Col1Min, 0.6, 0)</l>
+<l>gen_cross_contour_xld (Cross2Min, Row2Min, Col2Min, 0.6, 0)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (Row1Min - 5, Col1Min - 5, Row1Min + 6, Col1Min + 6)</l>
+<l>dev_display (ObjectsConcat)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Cross1)</l>
+<l>dev_display (Cross2)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Cross1Min)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cross2Min)</l>
+<l>dev_disp_text ('DistanceMin: ' + DistanceMin, 'image', Row2Min + 0.3, Col2Min + 0.3, 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

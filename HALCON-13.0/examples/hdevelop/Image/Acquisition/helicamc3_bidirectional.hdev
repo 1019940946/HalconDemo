@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *********************************************************************</c>
+<c>* HALCON Example: Scan bidirectional -&gt; fast measurement!</c>
+<c>* *********************************************************************</c>
+<c>* Close all image window</c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* *********************************************************************</c>
+<c>* ToDo: Set motor configuration for heliCam. Please be careful with the optics!!</c>
+<c>* *********************************************************************</c>
+<l>IP := '192.168.2.100'</l>
+<l>Port := 10001</l>
+<l>CntPerMM := 1000</l>
+<l>home_position_mm := 89.2</l>
+<l>start_position_mm := 89.2</l>
+<l>end_position_mm := 90.3</l>
+<l>tgu_position := 89.5</l>
+<l>tgd_position := 90.0</l>
+<l>measurement_speed := 5.0</l>
+<c>* Pending on the system configuration, the result must be rotated for 0, 90, 180 or 270 degree</c>
+<l>rotate_image := 270</l>
+<l>genericParam := ['axis_ip=' + IP + '','axis_port=' + Port + '','axis_cnt_per_mm=' + CntPerMM + '']</l>
+<c>* </c>
+<c>* Open heliCam1 and configure heliCam</c>
+<l>open_framegrabber ('heliCamC3', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', genericParam, 'true', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensTqp', 539)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensDeltaExp', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNavM2', 3)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNFrames', 140)</l>
+<l>set_framegrabber_param (AcqHandle, 'BSEnable', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'DdsGain', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'FWHMnFrame', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'IterMaxFrac', 2)</l>
+<l>set_framegrabber_param (AcqHandle, 'MinEnergWin', 16)</l>
+<l>set_framegrabber_param (AcqHandle, 'OffsetMethod', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'UseLastFrame', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'NFrmAvg', 3)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutEnDrv', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'use_ztags', 'true')</l>
+<c>* Configurate measurement position</c>
+<l>set_framegrabber_param (AcqHandle, 'start_position_mm', start_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'end_position_mm', end_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'home_position_mm', home_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'tgu_position', tgu_position)</l>
+<l>set_framegrabber_param (AcqHandle, 'tgd_position', tgd_position)</l>
+<l>set_framegrabber_param (AcqHandle, 'measurement_speed', measurement_speed)</l>
+<c>* Reset all camera buffers (not really needed in this case)</c>
+<l>set_framegrabber_param (AcqHandle, 'do_clear_buffer', 1)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 281, 293, 'black', SurfaceHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<l>dev_open_window (0, 0, 281, 293, 'black', AmplitudeHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<c>* </c>
+<l>while (true)</l>
+<l>    dev_update_off ()</l>
+<l>    count_seconds (Time1)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    count_seconds (Time2)</l>
+<l>    MeasurementTime := Time2 - Time1</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<l>    access_channel (Image, Surface, 1)</l>
+<l>    access_channel (Image, Amplitude, 2)</l>
+<c>    * </c>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (SurfaceHandle)</l>
+<l>    dev_display (Surface)</l>
+<l>    dev_set_window (AmplitudeHandle)</l>
+<l>    dev_display (Amplitude)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Close heliCam</c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

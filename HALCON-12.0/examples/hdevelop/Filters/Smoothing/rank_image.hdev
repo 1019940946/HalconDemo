@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Smooth an image with an arbitrary rank mask.</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>gen_circle (StructEl, 200, 200, 10.5)</l>
+<l>area_center (StructEl, Area, Row, Column)</l>
+<l>rank_image (Image, StructEl, Dilation, Area, 'mirrored')</l>
+<l>rank_image (Dilation, StructEl, Closing, 1, 'mirrored')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

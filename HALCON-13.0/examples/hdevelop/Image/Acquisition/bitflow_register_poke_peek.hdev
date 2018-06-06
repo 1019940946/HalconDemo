@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Shows reading and writing registers of a BitFlow CL frame grabber board</c>
+<c>* </c>
+<c>* Note, that you have to configure your board (via the tools of the BitFlow SDK) appropriately.</c>
+<c>* Please see also the HTML documentation of the HALCON BitFlow interface!</c>
+<c>* </c>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, 1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c></c>
+<c>* Here we peek and poke some register</c>
+<l>set_framegrabber_param (AcqHandle, 'register_poke:SW_TRIG', 1)</l>
+<l>get_framegrabber_param (AcqHandle, 'register_peek:SW_TRIG', Exposure1)</l>
+<l>wait_seconds (1)</l>
+<l>set_framegrabber_param (AcqHandle, 'register_poke:SW_TRIG', 0)</l>
+<l>get_framegrabber_param (AcqHandle, 'register_peek:SW_TRIG', Exposure0)</l>
+<c></c>
+<c>* Here is the slow way to poke registers (fine for non-time critical loops)</c>
+<l>for Index := 1 to 1000 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'register_poke:SW_TRIG', 1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'register_poke:SW_TRIG', 0)</l>
+<l>endfor</l>
+<c></c>
+<c>* Here is the fast way</c>
+<l>get_framegrabber_param (AcqHandle, 'register_index_get:SW_TRIG', IndexSW_TRIG)</l>
+<c></c>
+<l>for Index := 1 to 1000 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'register_index_poke:' + IndexSW_TRIG, 1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'register_index_poke:' + IndexSW_TRIG, 0)</l>
+<l>endfor</l>
+<c></c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

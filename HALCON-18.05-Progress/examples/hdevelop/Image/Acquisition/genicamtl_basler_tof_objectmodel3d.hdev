@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a Basler TOF sensor in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire images and data from the sensor.</c>
+<c>* A HALCON ObjectModel3D is automatically created by the interface.</c>
+<c>* </c>
+<c>* Please note that you first need to install the matching Basler</c>
+<c>* GenTL Producer which comes with the sensor. After this you can</c>
+<c>* access the sensor with the HALCON GenICamTL interface.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>WinWidth := 800</l>
+<l>WinHeight := 600</l>
+<l>dev_open_window (WinHeight + 100, 0, WinWidth, WinHeight, 'black', Window2D)</l>
+<l>dev_open_window (0, 0, WinWidth, WinHeight, 'blue', Window3DM)</l>
+<c>* </c>
+<c>* Open and initialize the sensor</c>
+<c>* </c>
+<c>* Open the sensor</c>
+<l>open_framegrabber ('GenICamTL', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', 'default', 0, 0, AcqHandle)</l>
+<c>* </c>
+<c>* Enable all image components, except the Confidence image</c>
+<l>get_framegrabber_param (AcqHandle, 'ImageComponentSelector_values', AllComponents)</l>
+<l>for i := 0 to |AllComponents| - 1 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'ImageComponentSelector', AllComponents[i])</l>
+<l>    if (AllComponents[i] == 'Confidence')</l>
+<l>        set_framegrabber_param (AcqHandle, 'ImageComponentEnable', false)</l>
+<l>    else</l>
+<l>        set_framegrabber_param (AcqHandle, 'ImageComponentEnable', true)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Configure the pixel format for the range image</c>
+<l>set_framegrabber_param (AcqHandle, 'ImageComponentSelector', 'Range')</l>
+<l>set_framegrabber_param (AcqHandle, 'PixelFormat', 'Coord3D_ABC32f')</l>
+<c>* Configure the 3D-settings</c>
+<l>set_framegrabber_param (AcqHandle, 'create_objectmodel3d', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'add_objectmodel3d_overlay_attrib', 'enable')</l>
+<c>* Set the timeout</c>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 500)</l>
+<c>* Set additional parameters</c>
+<l>set_framegrabber_param (AcqHandle, 'FilterStrength', 190)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutlierTolerance', 500)</l>
+<l>set_framegrabber_param (AcqHandle, 'ProcessingMode', 'Standard')</l>
+<l>set_framegrabber_param (AcqHandle, 'ExposureAuto', 'Continuous')</l>
+<c>* </c>
+<l>while (1)</l>
+<c>    * </c>
+<c>    * Grab an image</c>
+<l>    grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<c>    * </c>
+<c>    * Extract the intensity image and the HALCON ObjectModel3D</c>
+<l>    select_obj (Image, Intensity, 4)</l>
+<l>    ObjMod3D := Data[0]</l>
+<c>    * </c>
+<c>    * Display the intensity image</c>
+<l>    dev_set_window (Window2D)</l>
+<l>    dev_display (Intensity)</l>
+<c>    * </c>
+<c>    * Set the pose for visualizing the HALCON ObjectModel3D. When</c>
+<c>    * changing the condition of the if statement to 1 the pose</c>
+<c>    * is determined automatically</c>
+<l>    if (0)</l>
+<l>        get_object_models_center (ObjMod3D, Center)</l>
+<l>        create_pose (-Center[0], -Center[1], -Center[2], 0, 0, 0, 'Rp+T', 'gba', 'point', PoseIn)</l>
+<l>        CamParam := [0.06,0,8.5e-6,8.5e-6,WinWidth / 2,WinHeight / 2,WinWidth,WinHeight]</l>
+<l>        determine_optimum_pose_distance (ObjMod3D, CamParam, 0.9, PoseIn, PoseVis)</l>
+<l>    else</l>
+<l>        PoseVis := [-0.00033321,0.000138788,0.0356454,0.0,0.0,0.0,0]</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Display the HALCON ObjectModel3D</c>
+<l>    disp_object_model_3d (Window3DM, ObjMod3D, [], PoseVis, 'intensity', '&amp;overlay_gray')</l>
+<l>endwhile</l>
+<c>* </c>
+<l>dev_set_window (Window2D)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (Window3DM)</l>
+<l>dev_close_window ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

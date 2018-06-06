@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This program demonstrates visualization of bar code scanlines.</c>
+<c>* This visualization can be used to inspect the quality of images, where</c>
+<c>* occlusions or print defects might prevent the bar code reader from</c>
+<c>* successfully decoding the underlying bar code.</c>
+<c>* </c>
+<c>* With 'scanlines_all' all scanlines that the bar code reader would</c>
+<c>* eventually use to decode a  candidate bar code (here, colored in red).</c>
+<c>* With 'scanlines_valid' are visualized all scanlines that can be decoded</c>
+<c>* as well (here, colored in green)</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<l>Files := ['ean1314','ean1313','ean13_defect_05']</l>
+<l>Color := ['magenta','red','green','yellow']</l>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'persistence', 1)</l>
+<c>* </c>
+<l>for I := 0 to |Files| - 1 by 1</l>
+<l>    Filename := 'barcode/ean13/' + Files[I]</l>
+<c>    * </c>
+<l>    read_image (Image, Filename)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (0, 0, Width, Height)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<c>    * Display only scanlines of the decoded candidate region.</c>
+<l>    if (|DecodedDataStrings|)</l>
+<l>        CandidateIds := [0:|DecodedDataStrings| - 1]</l>
+<l>    else</l>
+<l>        CandidateIds := 'all'</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    get_bar_code_object (Candidates, BarCodeHandle, CandidateIds, 'candidate_regions')</l>
+<l>    dev_set_line_width (4)</l>
+<l>    dev_set_color (Color[0])</l>
+<l>    dev_display (Candidates)</l>
+<c>    * </c>
+<l>    get_bar_code_object (AllScanlines, BarCodeHandle, CandidateIds, 'scanlines_all')</l>
+<l>    dev_set_color (Color[1])</l>
+<l>    dev_display (AllScanlines)</l>
+<c>    * </c>
+<l>    get_bar_code_object (ValidScanlines, BarCodeHandle, CandidateIds, 'scanlines_valid')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color (Color[2])</l>
+<l>    dev_display (ValidScanlines)</l>
+<c>    * </c>
+<l>    get_bar_code_object (MergedScanlines, BarCodeHandle, CandidateIds, 'scanlines_merged_edges')</l>
+<l>    dev_set_color (Color[3])</l>
+<l>    dev_display (MergedScanlines)</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, 'Decoded data string: ' + DecodedDataStrings, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, ['Candidate region','Extracted scanlines','Valid scanlines','Edges used for merging'], 'window', 42, 12, Color, ['black','false'])</l>
+<l>    if (I &lt; |Files| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

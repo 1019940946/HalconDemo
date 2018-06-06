@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This is a simple HDevelop script demonstrating how a</c>
+<c>* multiway branch is implemented using switch/case statements</c>
+<c>* </c>
+<l>Results := []</l>
+<l>for Index := 1 to 6 by 1</l>
+<l>    TestStr := 'Executed case blocks for Index = ' + Index + ': '</l>
+<l>    switch (Index)</l>
+<l>    case 1:</l>
+<l>        TestStr := TestStr + ' case 1'</l>
+<c>        * Leave switch/case block using 'break'</c>
+<l>        break</l>
+<l>    case 2:</l>
+<l>        TestStr := TestStr + ' case 2'</l>
+<c>        * If no 'break' is used, continue to next case block</c>
+<l>    case 20:</l>
+<l>        TestStr := TestStr + ' case 20'</l>
+<c>        * Again, continue to next case block</c>
+<l>    case 200:</l>
+<l>        TestStr := TestStr + ' case 200'</l>
+<l>        break</l>
+<l>    case 3:</l>
+<l>    case 5:</l>
+<c>        * Common break for case 3 and 5</c>
+<l>        TestStr := TestStr + ' case 5'</l>
+<l>        break</l>
+<l>    default:</l>
+<c>        * The optional default block is executed</c>
+<c>        * if no other case is matched</c>
+<l>        TestStr := TestStr + ' default'</l>
+<l>        break</l>
+<l>    endswitch</l>
+<l>    Results := [Results,TestStr]</l>
+<l>endfor</l>
+<l>dev_inspect_ctrl (Results)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how find_text can be used to find and read</c>
+<c>* expiration dates from medication packages. In general, the</c>
+<c>* expiration dates of medication packages from different manufacturers</c>
+<c>* are located on different sides of the package. The following example</c>
+<c>* reads the text of each side of different medication packages</c>
+<c>* and searches for an expiry date. As soon as an expiration date is</c>
+<c>* found, the next package is processed.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Initialize window handle</c>
+<l>dev_open_window_fit_size (0, 0, 960, 768, 600, 600, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create the text model using the pre-trained 'Industrial_Rej' font</c>
+<l>create_text_model_reader ('auto', 'Industrial_Rej', TextModel)</l>
+<c>* </c>
+<c>* Determine the order with which to search for the expiration date</c>
+<c>* in the medical packages:</c>
+<l>Order := ['front','left','back','right','bottom','top']</l>
+<c>* </c>
+<l>disp_message (WindowHandle, 'This example shows how find_text can be used to \nfind and read expiration dates from medication \npackages. \nIn general, the expiration dates of medication \npackages from different manufacturers are \nlocated on different sides of the package. \nHence, the following approach reads the text of \neach side of different medication packages and \nsearches for an expiration date. As soon as an \nexpiration date is found, the next package is \nprocessed. ', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Initialize window handle to help display the package side</c>
+<l>dev_open_window (0, 605, 400, 400, 'black', WindowHandleBox)</l>
+<l>set_display_font (WindowHandleBox, 16, 'mono', 'true', 'false')</l>
+<l>for BoxIdx := 0 to 2 by 1</l>
+<c>    * Search for the date on each side of the medicine package</c>
+<l>    Dates := ''</l>
+<l>    Finished := 0</l>
+<l>    for ImageIdx := 0 to 5 by 1</l>
+<l>        ImageString := 'ocr/medication_package_' + (BoxIdx + 1)$'0.2d' + '_' + Order[ImageIdx]</l>
+<l>        read_image (Image, ImageString)</l>
+<c>        * </c>
+<l>        find_text (Image, TextModel, TextResult)</l>
+<c>        * </c>
+<c>        * Read all text lines from TextResult</c>
+<l>        get_text_object (TextLines, TextResult, 'all_lines')</l>
+<l>        get_text_result (TextResult, 'num_lines', NumLines)</l>
+<c>        * </c>
+<c>        * Read the text lines one after the other and check for dates</c>
+<l>        select_expiry_date (Date, NumLines, TextResult, Dates, ImageIdx, DateIdx, Dates)</l>
+<l>        clear_text_result (TextResult)</l>
+<c>        * </c>
+<c>        * Display results</c>
+<l>        dev_set_window (WindowHandle)</l>
+<l>        set_system ('flush_graphic', 'false')</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_display (Image)</l>
+<l>        set_system ('flush_graphic', 'true')</l>
+<l>        dev_display (TextLines)</l>
+<c>        * </c>
+<c>        * Show what is happening step by step</c>
+<l>        disp_steps (Date, BoxIdx, WindowHandle, Dates, Finished)</l>
+<c>        * </c>
+<c>        * Display cube current side</c>
+<l>        display_side (WindowHandleBox, Order[ImageIdx], Finished)</l>
+<c>        * </c>
+<c>        * For the first iteration, show what is happening in each step</c>
+<l>        if (BoxIdx == 0)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>        if (Finished)</l>
+<l>            break</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    if (BoxIdx &lt; 2 and BoxIdx &gt; 0)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>clear_text_model (TextModel)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="select_expiry_date">
+<interface>
+<oo>
+<par name="Date" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="NumLines" base_type="ctrl" dimension="0"/>
+<par name="TextResult" base_type="ctrl" dimension="0"/>
+<par name="Dates" base_type="ctrl" dimension="0"/>
+<par name="ImageIdx" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DateIdx" base_type="ctrl" dimension="0"/>
+<par name="DatesOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure searches for date-like structures in the found text.</c>
+<c>* Dates of the form MM/YYYY are extracted. Different forms of expiry</c>
+<c>* dates could also be set. As an alternative, text_line_structures and</c>
+<c>* the corresponding text_line_separators could also be set.</c>
+<l>DatesOut := Dates</l>
+<l>gen_empty_obj (Date)</l>
+<l>for LineIdx := 0 to NumLines - 1 by 1</l>
+<c>    * Read text line jdx</c>
+<l>    get_text_result (TextResult, ['class_line',LineIdx], Characters)</l>
+<c>    * The similarity of 0's and O's leads to the fact, that they are</c>
+<c>    * occasionaliy misclassified. Ergo, we convert all O's to 0's,</c>
+<c>    * just to be sure</c>
+<l>    tuple_regexp_replace (Characters, 'O', '0', TextLineChars)</l>
+<l>    tuple_sum (TextLineChars, SelectedDigits)</l>
+<c>    * The dates on the medical packages have the form MM/YYYY</c>
+<l>    tuple_regexp_match (SelectedDigits, '\\d\\d/\\d\\d\\d\\d', Match)</l>
+<c>    * Do we have a match?</c>
+<l>    tuple_strlen (Match, Length)</l>
+<l>    if (Length == 7)</l>
+<l>        DatesOut := DatesOut + Match</l>
+<l>        DateIdx := ImageIdx</l>
+<c>        * Get the corresponding text line from TextResultID</c>
+<l>        get_text_object (TextLine, TextResult, ['line',LineIdx])</l>
+<c>        * Find the exact position of the date within the text line</c>
+<l>        tuple_strstr (SelectedDigits, Match, Pos)</l>
+<l>        select_obj (TextLine, Date, Pos + [1:7])</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="select_expiry_date">
+<parameters>
+<parameter id="Date"/>
+<parameter id="DateIdx"/>
+<parameter id="Dates"/>
+<parameter id="DatesOut"/>
+<parameter id="ImageIdx"/>
+<parameter id="NumLines"/>
+<parameter id="TextResult"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_side">
+<interface>
+<ic>
+<par name="WindowHandleDisp" base_type="ctrl" dimension="0"/>
+<par name="SideString" base_type="ctrl" dimension="0"/>
+<par name="Finished" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displayes a regular cube with the Side (Input control parameter)</c>
+<c>* highlighted. If Finished is true, then the corresponding side is highlighted</c>
+<c>* in green, otherwise in red. The cube consists of 6 single planar object</c>
+<c>* model 3D.</c>
+<l>Pose := [-0.595188,-0.424915,28.466,8.36578,10.6173,358.628,0]</l>
+<l>Alpha := 0.2</l>
+<c>* </c>
+<l>Color := 'red'</l>
+<c>* </c>
+<l>DisplayColor := [Color,Color,Color,Color,Color,Color,'yellow']</l>
+<l>DisplayAlpha := [Alpha,Alpha,Alpha,Alpha,Alpha,Alpha,1.0]</l>
+<l>DisplayLines := ['1.0 1.0 1.0','0.0 0.0 0.0','0.5 0.5 0.5 0.0','true','black',6.0]</l>
+<c>* </c>
+<l>Side := find(['front','left','back','right','bottom','top'],SideString)</l>
+<l>SideStringCapital := ['Front','Left','Back','Right','Bottom','Top']</l>
+<c>* </c>
+<l>if (Finished)</l>
+<l>    DisplayColor[Side] := 'green'</l>
+<l>endif</l>
+<c>* </c>
+<l>DisplayAlpha[Side] := 1.0</l>
+<c>* </c>
+<l>DisplayValues := [DisplayColor,DisplayAlpha,DisplayLines]</l>
+<c>* </c>
+<c>* Generate cube points</c>
+<l>X := [0,0,1,1,0,0,1,1]</l>
+<l>Y := [0,1,1,0,0,1,0,1]</l>
+<l>Z := [0,0,0,0,1,1,1,1]</l>
+<c>* </c>
+<c>* Generate the side planes of the cube</c>
+<l>gen_plane_object_model_3d ([0,0,0,0,0,0,0], X[0:3], Y[0:3], OM3DFront)</l>
+<l>gen_plane_object_model_3d ([0,0,1,0,0,0,0], X[0:3], Y[0:3], OM3DBack)</l>
+<l>gen_plane_object_model_3d ([0,0,0,0,-90,0,0], X[0:3], Y[0:3], OM3DLeft)</l>
+<l>gen_plane_object_model_3d ([0,1,0,90,0,0,0], X[0:3], Y[0:3], OM3DBottom)</l>
+<l>gen_plane_object_model_3d ([1,0,0,0,-90,0,0], X[0:3], Y[0:3], OM3DRight)</l>
+<l>gen_plane_object_model_3d ([1,0,0,90,0,90,0], X[0:3], Y[0:3], OM3DTop)</l>
+<c>* </c>
+<c>* Switch off the front and the right side to optimize the display</c>
+<l>if (Side != 0)</l>
+<l>    gen_empty_object_model_3d (OM3DFront)</l>
+<l>endif</l>
+<l>if (Side != 3)</l>
+<l>    gen_empty_object_model_3d (OM3DRight)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Generate 3D model of the corners and their connecting lines</c>
+<l>gen_object_model_3d_from_points (X, Y, Z, OM3DCorners)</l>
+<l>set_object_model_3d_attrib (OM3DCorners, 'lines', [], [2,0,1,2,1,2,2,2,3,2,3,0,2,0,4,2,4,5,2,5,1,2,6,3,2,7,2,2,4,5,2,5,7,2,7,6,2,6,4], OM3DLines)</l>
+<c>* </c>
+<c>* Display object models 3D</c>
+<l>DisplayOptions := ['color_0','color_1','color_2','color_3','color_4','color_5','color_6','alpha_0','alpha_1','alpha_2','alpha_3','alpha_4','alpha_5','alpha_6','light_ambient','light_diffuse','light_position','disp_lines','line_color','point_size']</l>
+<l>disp_object_model_3d (WindowHandleDisp, [OM3DFront,OM3DLeft,OM3DBack,OM3DRight,OM3DBottom,OM3DTop,OM3DCorners,OM3DLines], [], Pose, DisplayOptions, DisplayValues)</l>
+<c>* </c>
+<l>clear_object_model_3d (OM3DFront)</l>
+<l>clear_object_model_3d (OM3DBack)</l>
+<l>clear_object_model_3d (OM3DLeft)</l>
+<l>clear_object_model_3d (OM3DBottom)</l>
+<l>clear_object_model_3d (OM3DRight)</l>
+<l>clear_object_model_3d (OM3DTop)</l>
+<l>clear_object_model_3d (OM3DCorners)</l>
+<l>clear_object_model_3d (OM3DLines)</l>
+<c>* </c>
+<l>disp_message (WindowHandleDisp, SideStringCapital[Side], 'window', 12, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_side">
+<parameters>
+<parameter id="Finished"/>
+<parameter id="SideString"/>
+<parameter id="WindowHandleDisp"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_steps">
+<interface>
+<io>
+<par name="Date" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="BoxIdx" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Dates" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Finished" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure helps display the current text segmentation results.</c>
+<l>count_obj (Date, Number)</l>
+<l>if (Number == 0)</l>
+<l>    disp_message (WindowHandle, 'No Date found', 'window', 12, 12, 'red', 'true')</l>
+<l>    Finished := 0</l>
+<l>else</l>
+<l>    union1 (Date, RegionUnion)</l>
+<l>    smallest_rectangle1 (RegionUnion, Row1, Column1, Row2, Column2)</l>
+<l>    gen_rectangle1 (Rectangle, Row1 - 10, Column1 - 10, Row2 + 10, Column2 + 10)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (Rectangle)</l>
+<l>    disp_message (WindowHandle, 'Date found: ' + Dates, 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_color ('black')</l>
+<l>    Finished := 1</l>
+<l>endif</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('fill')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_steps">
+<parameters>
+<parameter id="BoxIdx"/>
+<parameter id="Date"/>
+<parameter id="Dates"/>
+<parameter id="Finished"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

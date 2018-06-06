@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of a Euresys MultiCam board</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* You can get the actual values with 'info_framegrabber(...,'info_boards',...)'.</c>
+<c>* </c>
+<c>*     Example for Alpha</c>
+<l>MyConfigurationFile := 'Alpha_Y:CS8530_P30SM'</l>
+<l>MyDeviceId := '0'</l>
+<c>*     Example for Iota</c>
+<l>* MyConfigurationFile := 'Iota:KP-F3_P30SA'</l>
+<c>*     Example for Value</c>
+<l>* MyConfigurationFile := 'Value:SVS204MFCL_P42SC'</l>
+<l>* MyDeviceId := '1'</l>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'info_boards', Information, ValueList)</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

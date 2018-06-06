@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use make_dir and remove_dir</c>
+<c>* in combination with other file operators</c>
+<c>* </c>
+<c>* First create a directory, subdirectories and files in the</c>
+<c>* current working directory</c>
+<c>* </c>
+<c>* Attention: You need write permission in the current working dir!</c>
+<l>ExampleDir := 'testdir1'</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<c>* </c>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>try</l>
+<l>    make_dir (ExampleDir)</l>
+<l>    for Index := 1 to 5 by 1</l>
+<l>        open_file (ExampleDir + '/file_' + Index + '.txt', 'output', FileHandle)</l>
+<l>        close_file (FileHandle)</l>
+<l>    endfor</l>
+<l>    make_dir (ExampleDir + '/subtestdir1')</l>
+<l>    for Index := 1 to 2 by 1</l>
+<l>        open_file (ExampleDir + '/subtestdir1/file_' + Index + '.txt', 'output', FileHandle)</l>
+<l>        close_file (FileHandle)</l>
+<l>    endfor</l>
+<l>    make_dir (ExampleDir + '/subtestdir2')</l>
+<l>    for Index := 1 to 3 by 1</l>
+<l>        open_file (ExampleDir + '/subtestdir2/file_' + Index + '.txt', 'output', FileHandle)</l>
+<l>        close_file (FileHandle)</l>
+<l>    endfor</l>
+<l>catch (Exception)</l>
+<c>    * Presumably, the directories already exist.</c>
+<c>    * This might easily happen, if this program</c>
+<c>    * has been run partly before.</c>
+<c>    * In this case, do nothing.</c>
+<l>endtry</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<c>* </c>
+<c>* </c>
+<c>* Now all files are listed</c>
+<c>* </c>
+<l>list_files (ExampleDir, ['files','recursive'], ExampleFiles)</l>
+<l>dev_inspect_ctrl (ExampleFiles)</l>
+<c>* Press F5 to continue</c>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove all files from back to top</c>
+<c>* </c>
+<l>for Index := |ExampleFiles| to 1 by -1</l>
+<l>    delete_file (ExampleFiles[Index - 1])</l>
+<l>endfor</l>
+<c>* </c>
+<c>* List all directories</c>
+<c>* </c>
+<l>list_files (ExampleDir, ['directories','recursive'], ExampleDirs)</l>
+<l>dev_inspect_ctrl (ExampleDirs)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove all dirs</c>
+<c>* </c>
+<l>for Index := |ExampleDirs| to 1 by -1</l>
+<l>    remove_dir (ExampleDirs[Index - 1])</l>
+<l>endfor</l>
+<l>remove_dir (ExampleDir)</l>
+<c>* </c>
+<c>* Now all should be removed</c>
+<c>* </c>
+<l>file_exists (ExampleDir, FileExists)</l>
+<c>* FileExists-flag must be 0</c>
+<l>dev_close_inspect_ctrl (ExampleDirs)</l>
+<l>dev_close_inspect_ctrl (ExampleFiles)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

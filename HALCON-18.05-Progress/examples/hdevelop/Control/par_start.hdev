@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This is a simple example program that demonstrates the</c>
+<c>* option to call several HALCON operators or procedures in parallel.</c>
+<c>* In general, owing to the overhead of thread creation,</c>
+<c>* not in all cases a speedup can be expected,</c>
+<c>* especially, if the used operators are already parallelized</c>
+<c>* internally using the automatic operator parallelization.</c>
+<c>* </c>
+<c>* Number of loops to get a more robust time measurement</c>
+<l>Loops := 3</l>
+<c>* </c>
+<c>* Initialize visualization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/mixed/barcodes_datacodes_mixed_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Read codes sequentially and multithreaded (multiple times)', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Part A</c>
+<c>* </c>
+<c>* Show thread creation overhead</c>
+<c>* </c>
+<c>* Thread creation causes a significant overhead.</c>
+<c>* Therefore, it is not advisable to create threads for fast tasks.</c>
+<c>* </c>
+<l>count_seconds (T1)</l>
+<l>for L := 1 to Loops * 10 by 1</l>
+<l>    par_start&lt;Thread1&gt; : do_nothing ()</l>
+<l>    par_start&lt;Thread2&gt; : do_nothing ()</l>
+<l>    par_start&lt;Thread3&gt; : do_nothing ()</l>
+<c>    * par_join basically takes as long as the slowest thread (plus overhead).</c>
+<c>    * Use the profiler to check execution times.</c>
+<l>    par_join ([Thread1,Thread2,Thread3])</l>
+<l>endfor</l>
+<l>count_seconds (T2)</l>
+<c>* Time needed to create and join the three threads in milliseconds</c>
+<l>TimeOverhead := 1000.0 * (T2 - T1) / (Loops * 10)</l>
+<c>* </c>
+<c>* Part B</c>
+<c>* </c>
+<c>* Show perfect parallelization</c>
+<c>* </c>
+<c>* The best speedup can be achieved for long running tasks</c>
+<c>* that are not parallelized internally.</c>
+<c>* </c>
+<l>count_seconds (T1)</l>
+<l>for L := 1 to Loops by 1</l>
+<l>    par_start&lt;Thread1&gt; : wait_seconds (1)</l>
+<l>    par_start&lt;Thread2&gt; : wait_seconds (1)</l>
+<l>    par_start&lt;Thread3&gt; : wait_seconds (1)</l>
+<c>    * par_join basically takes as long as the slowest thread (plus overhead).</c>
+<c>    * Use the profiler to check execution times.</c>
+<l>    par_join ([Thread1,Thread2,Thread3])</l>
+<l>endfor</l>
+<l>count_seconds (T2)</l>
+<c>* This should be about 1000 milliseconds</c>
+<l>TimeWaitSeconds := 1000.0 * (T2 - T1) / Loops</l>
+<c>* </c>
+<c>* Part C</c>
+<c>* </c>
+<c>* Read bar codes and data codes in parallel</c>
+<c>* </c>
+<c>* </c>
+<c>* Create the bar code and data code models</c>
+<l>create_data_code_2d_model ('QR Code', [], [], QrCodeModel)</l>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', 'default_parameters', 'maximum_recognition', Ecc200Model)</l>
+<l>create_bar_code_model ([], [], BarCodeModel)</l>
+<c>* </c>
+<c>* Training</c>
+<l>find_data_code_2d (Image, QrCodeXldsSeq, QrCodeModel, ['stop_after_result_num','train'], [2,'all'], QrCodeHandlesSeq, QrCodeStringsSeq)</l>
+<l>find_data_code_2d (Image, Ecc200XldsSeq, Ecc200Model, ['stop_after_result_num','train'], [2,'all'], Ecc200HandlesSeq, Ecc200StringsSeq)</l>
+<l>find_bar_code (Image, BarCodeRegionsSeq, BarCodeModel, ['EAN-13','Code 128'], BarCodeStringsSeq)</l>
+<c>* </c>
+<c>* Execute once to fill cache</c>
+<l>find_qr_codes (Image, QrCodeXldsSeq, QrCodeModel, QrCodeHandlesSeq, QrCodeStringsSeq)</l>
+<l>find_ecc200_codes (Image, Ecc200Xlds, Ecc200Model, Ecc200Handles, Ecc200Strings)</l>
+<l>find_bar_codes (Image, BarCodeRegions, BarCodeModel, BarCodeStrings)</l>
+<c>* </c>
+<c>* Read codes sequentially</c>
+<l>count_seconds (T1)</l>
+<l>for L := 1 to Loops by 1</l>
+<l>    find_qr_codes (Image, QrCodeXldsSeq, QrCodeModel, QrCodeHandlesSeq, QrCodeStringsSeq)</l>
+<l>    find_ecc200_codes (Image, Ecc200Xlds, Ecc200Model, Ecc200Handles, Ecc200Strings)</l>
+<l>    find_bar_codes (Image, BarCodeRegions, BarCodeModel, BarCodeStrings)</l>
+<l>endfor</l>
+<l>count_seconds (T2)</l>
+<c>* </c>
+<l>TimeSeq := 1000.0 * (T2 - T1) / Loops</l>
+<c>* </c>
+<c>* Read codes in parallel</c>
+<l>count_seconds (T1)</l>
+<l>for L := 1 to Loops by 1</l>
+<l>    par_start&lt;ThreadQRCode&gt; : find_qr_codes (Image, QrCodeXlds, QrCodeModel, QrCodeHandlesSeq, QrCodeStringsSeq)</l>
+<l>    par_start&lt;ThreadECC200&gt; : find_ecc200_codes (Image, Ecc200Xlds, Ecc200Model, Ecc200Handles, Ecc200Strings)</l>
+<l>    par_start&lt;ThreadBarcode&gt; : find_bar_codes (Image, BarCodeRegions, BarCodeModel, BarCodeStrings)</l>
+<c>    * par_join basically takes as long as the slowest thread (plus overhead).</c>
+<l>    par_join ([ThreadQRCode,ThreadECC200,ThreadBarcode])</l>
+<l>endfor</l>
+<l>count_seconds (T2)</l>
+<l>TimePar := 1000.0 * (T2 - T1) / Loops</l>
+<c>* </c>
+<c>* Calculate speedup</c>
+<l>Speedup := 100 * ((TimeSeq / TimePar) - 1)</l>
+<c>* </c>
+<c>* Display result</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (QrCodeXlds)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Ecc200Xlds)</l>
+<l>dev_set_color ('cyan')</l>
+<l>dev_display (BarCodeRegions)</l>
+<l>Color := ['forest green','red']</l>
+<l>disp_message (WindowHandle, 'Multithreading speedup: ' + Speedup$'.2f' + '%', 'window', 42, 12, Color[Speedup &lt; 1], 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_qr_codes">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="QrCodeXldsSeq" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="QrCodeModel" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="QrCodeHandlesSeq" base_type="ctrl" dimension="0"/>
+<par name="QrCodeStringsSeq" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Read code multiple times to simulate longer execution times</c>
+<l>Loops := 10</l>
+<l>for L := 1 to Loops by 1</l>
+<l>    find_data_code_2d (Image, QrCodeXldsSeq, QrCodeModel, 'stop_after_result_num', 2, QrCodeHandlesSeq, QrCodeStringsSeq)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="find_qr_codes">
+<parameters>
+<parameter id="Image"/>
+<parameter id="QrCodeHandlesSeq"/>
+<parameter id="QrCodeModel"/>
+<parameter id="QrCodeStringsSeq"/>
+<parameter id="QrCodeXldsSeq"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="find_ecc200_codes">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Ecc200Xlds" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Ecc200Model" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Ecc200Handles" base_type="ctrl" dimension="0"/>
+<par name="Ecc200Strings" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Read code multiple times to simulate longer execution times</c>
+<l>Loops := 2</l>
+<l>for L := 1 to Loops by 1</l>
+<l>    find_data_code_2d (Image, Ecc200Xlds, Ecc200Model, 'stop_after_result_num', 2, Ecc200Handles, Ecc200Strings)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="find_ecc200_codes">
+<parameters>
+<parameter id="Ecc200Handles"/>
+<parameter id="Ecc200Model"/>
+<parameter id="Ecc200Strings"/>
+<parameter id="Ecc200Xlds"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="find_bar_codes">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="BarCodeRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="BarCodeModel" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="BarCodeStrings" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Read code multiple times to simulate longer execution times</c>
+<l>Loops := 10</l>
+<l>for L := 1 to Loops by 1</l>
+<l>    find_bar_code (Image, BarCodeRegions, BarCodeModel, ['EAN-13','Code 128'], BarCodeStrings)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="find_bar_codes">
+<parameters>
+<parameter id="BarCodeModel"/>
+<parameter id="BarCodeRegions"/>
+<parameter id="BarCodeStrings"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="do_nothing">
+<interface/>
+<body>
+<c>* Do nothing.</c>
+<c>* </c>
+<c>* This procedure only exists to show the overhead</c>
+<c>* of thread creation.</c>
+<l>return ()</l>
+</body>
+<docu id="do_nothing">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

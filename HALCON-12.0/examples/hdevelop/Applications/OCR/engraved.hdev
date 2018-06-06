@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example program for using the OCR</c>
+<c>* </c>
+<c>* </c>
+<c>* Step0: Preparation</c>
+<c>* Specify the name of the font to use for reading the serial number.</c>
+<c>* It is easiest to use the pre-trained font Industrial_0-9A-Z_NoRej.</c>
+<c>* If you have run the program engravedt.hdev in this directory, you</c>
+<c>* can activate the second line to use the font trained with this program.</c>
+<l>FontName := 'Industrial_0-9A-Z_NoRej'</l>
+<l>* FontName := 'engraved'</l>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<c>* Step1: Segmentation</c>
+<l>read_image (Image, 'engraved')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 20, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>gray_range_rect (Image, ImageResult, 7, 7)</l>
+<l>invert_image (ImageResult, ImageInvert)</l>
+<l>threshold (ImageResult, Region, 128, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 1000, 99999)</l>
+<l>sort_region (SelectedRegions, SortedRegions, 'first_point', 'true', 'column')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_shape ('original')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (ImageResult)</l>
+<l>dev_display (SortedRegions)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step2: Reading</c>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SortedRegions)</l>
+<l>shape_trans (SortedRegions, RegionTrans, 'rectangle1')</l>
+<l>area_center (RegionTrans, Area, Row, Column)</l>
+<l>MeanRow := mean(Row)</l>
+<l>count_obj (SortedRegions, Number)</l>
+<l>read_ocr_class_mlp (FontName, OCRHandle)</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (SortedRegions, ObjectSelected, i)</l>
+<l>    do_ocr_single_class_mlp (ObjectSelected, ImageInvert, OCRHandle, 1, Class, Confidence)</l>
+<l>    disp_message (WindowHandle, Class, 'image', MeanRow - 80, Column[i - 1] - 10, 'yellow', 'false')</l>
+<l>endfor</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

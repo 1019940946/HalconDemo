@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the creation of a planar uncalibrated</c>
+<c>* deformable model from a dxf file.</c>
+<c>* </c>
+<c>* First, a planar uncalibrated deformable model is created from a dxf</c>
+<c>* file. The dxf file has no polarity information, hence the metric</c>
+<c>* 'ignore_local_polarity' is used.</c>
+<c>* Then, an instance of the model is found in a search image. With this</c>
+<c>* image and the corresponding location of the model contour the operator</c>
+<c>* set_planar_uncalib_deformable_model_metric extracts the missing</c>
+<c>* polarity information. This polarity information allows to use the</c>
+<c>* metric 'use_polarity', which is more discriminative than</c>
+<c>* 'ignore_local_polarity'. Finally, the new model is searched and</c>
+<c>* found in images with high speed.</c>
+<c>* </c>
+<c>* Read the image of the brake disc</c>
+<l>read_image (Image, 'brake_disk/brake_disk_bike_01.png')</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 640, 640, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 18, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Read the dxf file and generate the corresponding contour.</c>
+<l>read_contour_xld_dxf (Contours, 'brake_disk_bike.dxf', [], [], DxfStatus)</l>
+<l>dev_display (Contours)</l>
+<l>disp_message (WindowHandle, 'DXF file of the inner part of a brake disk', 'window', 12, 12, 'lime green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Create the deformable model from the XLD contour</c>
+<l>create_planar_uncalib_deformable_model_xld (Contours, 'auto', [], [], 'auto', 1.0, [], 'auto', 1.0, [], 'auto', 'point_reduction_high', 'ignore_part_polarity', 5, [], [], ModelID)</l>
+<l>get_deformable_model_params (ModelID, 'num_levels', GenParamValue)</l>
+<l>get_deformable_model_contours (ModelContours, ModelID, 1)</l>
+<c>* </c>
+<c>* Try to find the model of the brake disc in search images.</c>
+<l>for I := 1 to 11 by 1</l>
+<l>    read_image (Image, 'brake_disk/brake_disk_bike_' + I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_planar_uncalib_deformable_model (Image, ModelID, 0, 0.78, 1, 1, 1, 1, 0.6, 1, 0.5, 0, 0.9, 'subpixel', 'least_squares', HomMat2D, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    for J := 0 to |Score| - 1 by 1</l>
+<l>        tuple_select_range (HomMat2D, J * 9, ((J + 1) * 9) - 1, HomMatSelected)</l>
+<l>        projective_trans_contour_xld (ModelContours, ContoursProjTrans, HomMatSelected)</l>
+<l>        dev_display (ContoursProjTrans)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, |Score| + ' Matches found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', 12, 12, 'lime green', 'false')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* Extract the polarity information of the model using the last match.</c>
+<l>dev_display (Image)</l>
+<l>dev_display (ContoursProjTrans)</l>
+<l>disp_message (WindowHandle, 'Use polarity of an image to update the model', 'window', 12, 12, 'lime green', 'false')</l>
+<l>set_planar_uncalib_deformable_model_metric (Image, ModelID, HomMatSelected, 'use_polarity')</l>
+<c>* Note that the model contours are not affected by the changes, i.e.,</c>
+<c>* ModelContoursMetric corresponds to ModelContours</c>
+<l>get_deformable_model_contours (ModelContoursMetric, ModelID, 1)</l>
+<l>get_deformable_model_params (ModelID, 'metric', Metric)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Locate the model in search images using the adapted polarity setting</c>
+<l>for I := 1 to 11 by 1</l>
+<l>    read_image (Image, 'brake_disk/brake_disk_bike_' + I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_planar_uncalib_deformable_model (Image, ModelID, -0.2, 0.78, 1, 1, 1, 1, 0.5, 1, 1, 0, 0.9, 'subpixel', 'least_squares', HomMat2D, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    for J := 0 to |Score| - 1 by 1</l>
+<l>        tuple_select_range (HomMat2D, J * 9, ((J + 1) * 9) - 1, HomMatSelected)</l>
+<l>        projective_trans_contour_xld (ModelContours, ContoursProjTrans, HomMatSelected)</l>
+<l>        dev_display (ContoursProjTrans)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, |Score| + ' Matches found in ' + ((Seconds2 - Seconds1) * 1000.0)$'.1f' + ' ms', 'window', 12, 12, 'lime green', 'false')</l>
+<l>    if (I &lt; 9)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>clear_deformable_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

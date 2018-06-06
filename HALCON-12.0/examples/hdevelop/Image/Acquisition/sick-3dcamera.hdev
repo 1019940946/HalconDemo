@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-3DCamera interface</c>
+<c>* (performance evaluation to show the difference between grab_image and grab_image_async)</c>
+<c>* </c>
+<c>* Please adapt the following settings to your specific configuration:</c>
+<l>configuration := 'measurement'</l>
+<l>info_framegrabber ('SICK-3DCamera', 'device', DeviceInfo, DeviceValues)</l>
+<l>device := DeviceValues[0]</l>
+<c>* </c>
+<c>* If a prm file with color channels is used, the next values have to be adapted:</c>
+<l>ColorChannelsUsed := 0</l>
+<l>ShiftRed := 0.0</l>
+<l>ShiftBlue := 0.0</l>
+<l>ShiftGreen := 0.0</l>
+<c>* </c>
+<l>open_framegrabber ('SICK-3Dcamera', 1, 1, 0, 0, 0, 0, 'default', -1, configuration, -1, 'false', 'default', device, -1, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<c>* </c>
+<l>GrabAsync := true</l>
+<l>NumImages := 25</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageSize[0] / 2, ImageSize[1] / 2, 'black', WindowID)</l>
+<l>if (ColorChannelsUsed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_red', ShiftRed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_blue', ShiftBlue)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_green', ShiftGreen)</l>
+<l>endif</l>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* </c>
+<c>* Starting the time measurements</c>
+<l>if (GrabAsync)</l>
+<l>    grab_image_start (AcqHandle, -1)</l>
+<l>endif</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    access_channel (Image, ImageChannel1, 1)</l>
+<l>    sobel_amp (ImageChannel1, EdgeAmplitude, 'sum_abs', 7)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds3)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>    access_channel (Image, ImageChannel1, 1)</l>
+<l>    sobel_amp (ImageChannel1, EdgeAmplitude, 'sum_abs', 7)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds4)</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<c>* </c>
+<l>TimeGrab := (Seconds2 - Seconds1) / NumImages</l>
+<l>TimeSobel := (Seconds3 - Seconds2) / NumImages</l>
+<l>TimeAll := (Seconds4 - Seconds3) / NumImages</l>
+<l>Overhead := TimeAll - TimeSobel</l>
+<l>stop ()</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

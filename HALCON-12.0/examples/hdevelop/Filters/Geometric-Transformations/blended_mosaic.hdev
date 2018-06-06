@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how 72 images of the interior of a church can be</c>
+<c>* combined into a mosaic that covers a 360x140 degree view.  The mosaic</c>
+<c>* image is created in two ways: as a spherical and as a cube map mosaic.</c>
+<c>* In both cases, blending is used to hide the transitions between the individual</c>
+<c>* images that make up the mosaic.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 978, 324, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 647, 1955)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Reading images...')</l>
+<c>* Read the 72 images that make up the mosaic.</c>
+<l>gen_empty_obj (Images)</l>
+<l>for J := 1 to 72 by 1</l>
+<l>    read_image (Image, 'panorama/sankt_martin_manual_' + J$'03d')</l>
+<l>    concat_obj (Images, Image, Images)</l>
+<l>endfor</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* Construct the tuples that determine which images should be matched.  The</c>
+<c>* mosaic images were acquired as 12 vertical strips of 6 images each.</c>
+<c>* For each image, we match the image below the current image in the same</c>
+<c>* strip and the image to the left of the current image in the adjacent strip.</c>
+<l>FF := [1,1,2,2,3,3,4,4,5,5,6]</l>
+<l>TT := [2,7,3,8,4,9,5,10,6,11,12]</l>
+<l>From := []</l>
+<l>To := []</l>
+<l>for J := 0 to 11 by 1</l>
+<l>    From := [From,(FF - 1 + 6 * J) % 72 + 1]</l>
+<l>    To := [To,(TT - 1 + 6 * J) % 72 + 1]</l>
+<l>endfor</l>
+<c>* Initialize the data that is required for the self-calibration.</c>
+<l>HomMatrices2D := []</l>
+<l>Rows1 := []</l>
+<l>Cols1 := []</l>
+<l>Rows2 := []</l>
+<l>Cols2 := []</l>
+<l>NumMatches := []</l>
+<l>for J := 0 to |From| - 1 by 1</l>
+<c>    * Select the images to match.</c>
+<l>    select_obj (Images, ImageF, From[J])</l>
+<l>    select_obj (Images, ImageT, To[J])</l>
+<c>    * Perform the point extraction of the images.</c>
+<l>    points_foerstner (ImageF, 1, 2, 3, 50, 0.1, 'gauss', 'true', RowsF, ColsF, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>    points_foerstner (ImageT, 1, 2, 3, 50, 0.1, 'gauss', 'true', RowsT, ColsT, CoRRJunctions1, CoRCJunctions1, CoCCJunctions1, RowArea1, ColumnArea1, CoRRArea1, CoRCArea1, CoCCArea1)</l>
+<l>    concat_obj (ImageT, ImageF, ImageTF)</l>
+<l>    tile_images_offset (ImageTF, TiledImage, [0,0], [0,Width + 20], [-1,-1], [-1,-1], [-1,-1], [-1,-1], 2 * Width + 20, Height)</l>
+<l>    gen_cross_contour_xld (PointsF, RowsF, ColsF + Width + 20, 6, rad(45))</l>
+<l>    gen_cross_contour_xld (PointsT, RowsT, ColsT, 6, rad(0))</l>
+<c>    * Convert the images to gray value images.</c>
+<l>    rgb1_to_gray (ImageF, ImageFG)</l>
+<l>    rgb1_to_gray (ImageT, ImageTG)</l>
+<c>    * Determine the projective transformation between the images.</c>
+<l>    proj_match_points_ransac (ImageFG, ImageTG, RowsF, ColsF, RowsT, ColsT, 'sad', 10, 0, 0, 648, 968, [rad(-10),rad(40)], 30, 'gold_standard', 10, 42, HomMat2D, Points1, Points2)</l>
+<c>    * After this, we accumulate the required data.</c>
+<l>    HomMatrices2D := [HomMatrices2D,HomMat2D]</l>
+<l>    Rows1 := [Rows1,subset(RowsF,Points1)]</l>
+<l>    Cols1 := [Cols1,subset(ColsF,Points1)]</l>
+<l>    Rows2 := [Rows2,subset(RowsT,Points2)]</l>
+<l>    Cols2 := [Cols2,subset(ColsT,Points2)]</l>
+<l>    NumMatches := [NumMatches,|Points1|]</l>
+<c>    * The rest of the code within the loop visualizes the point matches.</c>
+<l>    RF := subset(RowsF,Points1)</l>
+<l>    CF := subset(ColsF,Points1) + Width + 20</l>
+<l>    RT := subset(RowsT,Points2)</l>
+<l>    CT := subset(ColsT,Points2)</l>
+<l>    gen_empty_obj (Matches)</l>
+<l>    for K := 0 to |RF| - 1 by 1</l>
+<l>        gen_contour_polygon_xld (Match, [RF[K],RT[K]], [CF[K],CT[K]])</l>
+<l>        concat_obj (Matches, Match, Matches)</l>
+<l>    endfor</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (TiledImage)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Matches)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (PointsF)</l>
+<l>    dev_display (PointsT)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Matches between images ' + From[J]$'d' + ' and ' + To[J]$'d')</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window_extents (-1, -1, 856, 428)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Performing self-calibration...')</l>
+<c>* Perform the self-calibration.</c>
+<l>stationary_camera_self_calibration (72, 968, 648, 5, From, To, HomMatrices2D, Rows1, Cols1, Rows2, Cols2, NumMatches, 'gold_standard', ['focus','principal_point','kappa'], 'true', CameraMatrix, Kappa, RotationMatrices, X, Y, Z, Error)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Removing radial distortions...')</l>
+<c>* Remove the radial distortions from the images.</c>
+<l>cam_mat_to_cam_par (CameraMatrix, Kappa, 968, 648, CamParam)</l>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, 0, CamParOut)</l>
+<l>gen_radial_distortion_map (Map, CamParam, CamParOut, 'bilinear')</l>
+<l>map_image (Images, Map, Images)</l>
+<c>* Since the reference image was not aligned perfectly horizontally, we modify the</c>
+<c>* calibrated rotation matrices by rotating them by 6 degrees around the x axis.</c>
+<l>hom_mat3d_identity (HomMat3D)</l>
+<l>hom_mat3d_rotate (HomMat3D, rad(6), 'x', 0, 0, 0, HomMat3D)</l>
+<l>RotMat := [HomMat3D[0:2],HomMat3D[4:6],HomMat3D[8:10]]</l>
+<l>RotMats := []</l>
+<l>for J := 0 to 71 by 1</l>
+<l>    RotMatCalib := RotationMatrices[J * 9:J * 9 + 8]</l>
+<l>    hom_mat2d_compose (RotMatCalib, RotMat, RotMatRot)</l>
+<l>    RotMats := [RotMats,RotMatRot]</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>write_string (WindowHandle, 'Creating blended spherical mosaic...')</l>
+<c>* Create the blended spherical mosaic.</c>
+<l>gen_spherical_mosaic (Images, SphericalMosaic, CameraMatrix, RotMats, -90, 90, -180, 180, 0, 'blend', 'bilinear')</l>
+<l>get_image_size (SphericalMosaic, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (SphericalMosaic)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 300, 20)</l>
+<l>write_string (WindowHandle, 'Blended spherical mosaic image')</l>
+<l>set_tposition (WindowHandle, Height - 150, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window_extents (-1, -1, 409, 409)</l>
+<l>dev_set_part (0, 0, 1633, 1633)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 40, 40)</l>
+<l>write_string (WindowHandle, 'Creating blended cube map mosaic...')</l>
+<c>* Create the blended cube map mosaic.</c>
+<l>gen_cube_map_mosaic (Images, Front, Rear, Left, Right, Top, Bottom, CameraMatrix, RotMats, 0, 'blend', 'bilinear')</l>
+<l>get_image_size (Front, Width, Height)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Front)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 200, 20)</l>
+<l>write_string (WindowHandle, 'Front cube map image')</l>
+<l>set_tposition (WindowHandle, Height - 100, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Left)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 200, 20)</l>
+<l>write_string (WindowHandle, 'Left cube map image')</l>
+<l>set_tposition (WindowHandle, Height - 100, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Rear)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 200, 20)</l>
+<l>write_string (WindowHandle, 'Rear cube map image')</l>
+<l>set_tposition (WindowHandle, Height - 100, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Right)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 200, 20)</l>
+<l>write_string (WindowHandle, 'Right cube map image')</l>
+<l>set_tposition (WindowHandle, Height - 100, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Top)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 200, 20)</l>
+<l>write_string (WindowHandle, 'Top cube map image')</l>
+<l>set_tposition (WindowHandle, Height - 100, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Bottom)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, Height - 200, 20)</l>
+<l>write_string (WindowHandle, 'Bottom cube map image')</l>
+<l>set_tposition (WindowHandle, Height - 100, 20)</l>
+<l>write_string (WindowHandle, 'Press \'Run\' to continue')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window_extents (-1, -1, Width / 2, 3 * Height / 8)</l>
+<l>dev_set_part (0, 0, 3 * Height - 1, 4 * Width - 1)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 100, 100)</l>
+<l>write_string (WindowHandle, 'Creating tiled cube map mosaic...')</l>
+<c>* Create a tiled version of the cube map mosaic in which the horizontal looking</c>
+<c>* images (front, left, rear, and right) are aligned in a strip and the top and bottom</c>
+<c>* images are aligned above and below the front image.</c>
+<l>concat_obj (Top, Left, CubeMaps)</l>
+<l>concat_obj (CubeMaps, Front, CubeMaps)</l>
+<l>concat_obj (CubeMaps, Right, CubeMaps)</l>
+<l>concat_obj (CubeMaps, Rear, CubeMaps)</l>
+<l>concat_obj (CubeMaps, Bottom, CubeMaps)</l>
+<l>tile_images_offset (CubeMaps, CubeMapTiled, [0,Height,Height,Height,Height,2 * Height], [Width,0,Width,2 * Width,3 * Width,Width], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], 4 * Width, 3 * Height)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (CubeMapTiled)</l>
+<l>dev_set_color ('yellow')</l>
+<l>set_tposition (WindowHandle, 3 * Height - 200, 2 * Width + 200)</l>
+<l>write_string (WindowHandle, 'Tiled cube map image')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

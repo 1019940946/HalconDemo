@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of the SICK-ScanningRuler interface</c>
+<c>* </c>
+<c>* Specify the IP address of the desired camera or use 'default' to</c>
+<c>* open the first camera found. Notice that the 'default' option is</c>
+<c>* quite slow, so please indicate the IP address if known.</c>
+<l>* Device := '192.168.0.11'</l>
+<l>Device := 'default'</l>
+<c>* Open the device</c>
+<l>open_framegrabber ('SICK-ScanningRuler', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', Device, -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Grab 10 images using software trigger</c>
+<l>for i := 1 to 10 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_software_trigger', -1)</l>
+<c>    * grab_image returns only the Cir 1 (Z) sub-component</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    threshold (Image, Region, 0, 2000.0)</l>
+<l>    reduce_domain (Image, Region, Image)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simultaneous grabbing with multiple cameras of a LinX GINGA++ frame grabber board</c>
+<c>* (use of two cameras)</c>
+<c>* </c>
+<l>MyCameraType := 'nec/TI324A2_IL_NORM'</l>
+<l>* MyCameraType := 'sony/XC55_NI_NORM'</l>
+<l>MyBoardType := 'GINGA++M2'</l>
+<l>* MyBoardType := 'GINGA++M4'</l>
+<c>* </c>
+<l>open_framegrabber ('Ginga++', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyBoardType, 0, -1, AcqHandle)</l>
+<l>open_framegrabber ('Ginga++', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyBoardType, 1, -1, AcqHandle2)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'external_drive', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle2, 'start_async_after_grab_async', 'disable')</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 320, 240, 'black', WindowHandle)</l>
+<l>dev_open_window (0, 320 + 10, 320, 240, 'black', WindowHandle2)</l>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    grab_image_start (AcqHandle2, -1)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    grab_image_async (Image2, AcqHandle2, -1)</l>
+<l>    grab_image_start (AcqHandle, -1)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Image2)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

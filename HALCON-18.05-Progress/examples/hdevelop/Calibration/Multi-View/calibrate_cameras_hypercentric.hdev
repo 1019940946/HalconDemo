@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates how to calibrate a camera</c>
+<c>* with a hypercentric lens and how to unroll the label of a bottle,</c>
+<c>* which can be used to perform various 360 degree inspection tasks.</c>
+<c>* </c>
+<c>* Prepare window.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 700, 700, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* 1. Calibrate the camera (offline).</c>
+<c>* </c>
+<c>* Specify the calibration object.</c>
+<l>CalTabName := 'calplate_40mm.cpd'</l>
+<c>* Specify the initial camera parameters.</c>
+<l>ImageWidth := 1970</l>
+<l>ImageHeight := 1970</l>
+<l>gen_cam_par_area_scan_hypercentric_polynomial (0.008, 0, 0, 0, 0, 0, 3.1e-006, 3.1e-006, ImageWidth / 2, ImageHeight / 2, ImageWidth, ImageHeight, CameraParamStart)</l>
+<c>* Create a calibration data model.</c>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], CameraParamStart)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalTabName)</l>
+<c>* </c>
+<l>get_window_param (WindowHandle, 'flush', Flush)</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>for J := 1 to 25 by 1</l>
+<c>    * Read the calibration image.</c>
+<l>    read_image (Image, 'calib/calib_hypercentric_' + J$'02')</l>
+<c>    * Find the calibration object in the image.</c>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, J, [], [])</l>
+<c>    * Visualize the extracted marks.</c>
+<l>    get_calib_data_observ_contours (Ellipses, CalibDataID, 'marks', 0, 0, J)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Ellipses)</l>
+<l>    dev_disp_text ('Calibration image ' + J + ' (of 25) and extracted marks', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>endfor</l>
+<l>set_window_param (WindowHandle, 'flush', Flush)</l>
+<c>* Perform the camera calibration.</c>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<c>* Query the calibrated camera parameters.</c>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params_labels', CameraParamLabels)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CameraParam)</l>
+<c>* Display the camera parameters.</c>
+<l>display_camera_parameters (CameraParamStart, CameraParam, Error, CameraParamLabels$'-5', WindowHandle)</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 2. Generate a map that can be used to unroll the surface</c>
+<c>*    of a cylindrical object (offline).</c>
+<c>* </c>
+<l>read_image (Image, 'bottle_label/eye_drops_vial_hypercentric')</l>
+<l>dev_display (Image)</l>
+<l>dev_disp_text ('Top view of a vial with eye drops\nacquired with a hypercentric lens.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* Specify the radius of the cylindrical vial at its base</c>
+<c>* and at its circular screw cap on top.</c>
+<l>VialRadiusBase := 0.0112</l>
+<l>VialRadiusTop := 0.0034</l>
+<c>* Determine the pose of the vial.</c>
+<l>get_vial_pose (Image, CameraParam, VialRadiusBase, VialRadiusTop, WindowHandle, VialBase, VialAxis)</l>
+<l>stop ()</l>
+<c>* Create a map that unrolls the labeled surface of the vial.</c>
+<c>* Specify the range along the cylinder axis that should be unrolled.</c>
+<c>* CylinderZStart = 0 and CylinderZEnd = 0.026</c>
+<c>* means that the vial is unrolled from its circular bottom</c>
+<c>* up to a height of 2.6 centimeters.</c>
+<l>CylinderZStart := 0.0</l>
+<l>CylinderZEnd := 0.026</l>
+<l>CylinderUnrollAngleStart := rad(40)</l>
+<l>MapWidth := 1500</l>
+<l>MapHeight := 500</l>
+<l>gen_cylinder_unrolling_map (Map, CameraParam, VialBase, VialAxis, VialRadiusBase, CylinderZStart, CylinderZEnd, CylinderUnrollAngleStart, ImageWidth, ImageHeight, MapWidth, MapHeight)</l>
+<c>* </c>
+<c>* 3. Unroll the surface (online)</c>
+<c>* </c>
+<c>* Resize the window according to the size</c>
+<c>* of the unrolled image.</c>
+<l>dev_resize_window_fit_size (0, 0, MapWidth, MapHeight, -1, -1)</l>
+<c>* If it can be ensured that the vial always appears</c>
+<c>* at the same position, the map can be used in runtime images</c>
+<c>* to efficiently unwrap the surface of the vial.</c>
+<l>map_image (Image, Map, ImageMapped)</l>
+<l>dev_display (ImageMapped)</l>
+<l>dev_disp_text ('Unrolled label', 'window', 'top', 'left', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_cylinder_unrolling_map">
+<interface>
+<oo>
+<par name="Map" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CameraParam" base_type="ctrl" dimension="0"/>
+<par name="CylinderBase" base_type="ctrl" dimension="0"/>
+<par name="CylinderZAxis" base_type="ctrl" dimension="0"/>
+<par name="CylinderRadius" base_type="ctrl" dimension="0"/>
+<par name="CylinderStart" base_type="ctrl" dimension="0"/>
+<par name="CylinderEnd" base_type="ctrl" dimension="0"/>
+<par name="CylinderUnrollAngleStart" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="MapWidth" base_type="ctrl" dimension="0"/>
+<par name="MapHeight" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Compute the cylinder coordinate system. The z axis is defined</c>
+<c>* by the cylinder axis. The x and y axes must be perpendicular</c>
+<c>* to the z axis. In general, the orientation</c>
+<c>* of the coordinate system around the z axis can be arbitrarily chosen.</c>
+<c>* We define the x axis to be the projection of the x axis</c>
+<c>* of the camera coordinate system into the plane that is perpendicular</c>
+<c>* to the z axis. The y axis is the vector product</c>
+<c>* of the z and the x axis. Finally, a map is computed that can be used</c>
+<c>* to unroll the cylinder surface.</c>
+<c>* </c>
+<c>* Compute the projection of the x axis of the camera coordinate system</c>
+<c>* into the xy plane of the cylinder.</c>
+<l>CamXAxisProjX := 1 - CylinderZAxis[0] * CylinderZAxis[0]</l>
+<l>CamXAxisProjY := -CylinderZAxis[0] * CylinderZAxis[1]</l>
+<l>CamXAxisProjZ := -CylinderZAxis[0] * CylinderZAxis[2]</l>
+<l>L := sqrt(sum(CamXAxisProjX * CamXAxisProjX + CamXAxisProjY * CamXAxisProjY + CamXAxisProjZ * CamXAxisProjZ))</l>
+<l>CylinderXAxis := [CamXAxisProjX / L,CamXAxisProjY / L,CamXAxisProjZ / L]</l>
+<l>tuple_cross_product (CylinderZAxis, CylinderXAxis, CylinderYAxis)</l>
+<c>* </c>
+<c>* Compute the map using bilinar interpolation.</c>
+<c>* See the documentation of map_image for details about</c>
+<c>* creating maps that can be used for general image transformations.</c>
+<c>* Note that the type of MapL should be 'int8' instead of 'int4'</c>
+<c>* for HALCON XL when using large images.</c>
+<l>gen_image_const (MapL, 'int4', MapWidth, MapHeight)</l>
+<l>gen_image_const (MapW1, 'uint2', MapWidth, MapHeight)</l>
+<l>gen_image_const (MapW2, 'uint2', MapWidth, MapHeight)</l>
+<l>gen_image_const (MapW3, 'uint2', MapWidth, MapHeight)</l>
+<l>gen_image_const (MapW4, 'uint2', MapWidth, MapHeight)</l>
+<l>CAxisStep := (CylinderEnd - CylinderStart) / (MapHeight - 1)</l>
+<l>CPhiStep := 360.0 / MapWidth</l>
+<l>MapRow := 0</l>
+<l>ScalingFactor := 65535</l>
+<l>for CAxisI := CylinderEnd to CylinderStart by -CAxisStep</l>
+<l>    CPhi := [0:CPhiStep:360 - CPhiStep]</l>
+<l>    MapColumn := [0:MapWidth - 1]</l>
+<l>    SP := sin(rad(CPhi) + CylinderUnrollAngleStart)</l>
+<l>    CP := cos(rad(CPhi) + CylinderUnrollAngleStart)</l>
+<l>    X := CylinderBase[0] + CylinderZAxis[0] * CAxisI + CylinderRadius * (CylinderXAxis[0] * CP + CylinderYAxis[0] * SP)</l>
+<l>    Y := CylinderBase[1] + CylinderZAxis[1] * CAxisI + CylinderRadius * (CylinderXAxis[1] * CP + CylinderYAxis[1] * SP)</l>
+<l>    Z := CylinderBase[2] + CylinderZAxis[2] * CAxisI + CylinderRadius * (CylinderXAxis[2] * CP + CylinderYAxis[2] * SP)</l>
+<l>    project_3d_point (X, Y, Z, CameraParam, ImageRow, ImageColumn)</l>
+<l>    ValidPixels := ImageRow [&gt;=] -0.5 and ImageRow [&lt;=] ImageHeight - 1.5 and ImageColumn [&gt;=] -0.5 and ImageColumn [&lt;=] ImageWidth - 1.5</l>
+<l>    ValidPixelsMask := find(ValidPixels,1)</l>
+<l>    if (ValidPixelsMask == -1)</l>
+<l>        continue</l>
+<l>    endif</l>
+<l>    ImageRowValid := ImageRow[ValidPixelsMask]</l>
+<l>    ImageColumnValid := ImageColumn[ValidPixelsMask]</l>
+<l>    MapColumnValid := MapColumn[ValidPixelsMask]</l>
+<l>    MapRowValid := gen_tuple_const(|ValidPixelsMask|,MapRow)</l>
+<c>    * Compute the linearized coordinate.</c>
+<l>    L := int(ImageRowValid) * ImageWidth + int(ImageColumnValid)</l>
+<l>    set_grayval (MapL, MapRowValid, MapColumnValid, L)</l>
+<c>    * Compute the weights for bilinear interpolation.</c>
+<l>    Dx := ImageColumnValid - int(ImageColumnValid)</l>
+<l>    Dy := ImageRowValid - int(ImageRowValid)</l>
+<l>    DxCompl := 1.0 - Dx</l>
+<l>    DyCompl := 1.0 - Dy</l>
+<l>    W1 := int(DxCompl * DyCompl * ScalingFactor)</l>
+<l>    W2 := int(Dx * DyCompl * ScalingFactor)</l>
+<l>    W3 := int(DxCompl * Dy * ScalingFactor)</l>
+<l>    W4 := int(Dx * Dy * ScalingFactor)</l>
+<l>    set_grayval (MapW1, MapRowValid, MapColumnValid, W1)</l>
+<l>    set_grayval (MapW2, MapRowValid, MapColumnValid, W2)</l>
+<l>    set_grayval (MapW3, MapRowValid, MapColumnValid, W3)</l>
+<l>    set_grayval (MapW4, MapRowValid, MapColumnValid, W4)</l>
+<l>    MapRow := MapRow + 1</l>
+<l>endfor</l>
+<l>compose5 (MapL, MapW1, MapW2, MapW3, MapW4, Map)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_cylinder_unrolling_map">
+<abstract lang="en_US">Compute the cylinder coordinate system. The z axis is defined by the cylinder axis. The x and y axes must be perpendicular to the z axis. In general, the orientation of the coordinate system around the z axis can be arbitrarily chosen. We define the x axis to be the projection of the x axis of the camera coordinate system into the plane that is perpendicular to the z axis. The y axis is the vector product of the z and the x axis. Finally, a map is computed that can be used to unroll the cylinder surface.</abstract>
+<short lang="en_US">Generate a map that unrolls the surface of a cylinder.</short>
+<parameters>
+<parameter id="CameraParam">
+<default_type>real</default_type>
+<description lang="en_US">Camera parameters.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>campar</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="CylinderBase">
+<default_type>real</default_type>
+<description lang="en_US">Base of the cylinder in the camera coordinate system, i.e., the 3D point that represents the intersection of the cylinder axis with the base plane of the cylinder.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CylinderEnd">
+<default_type>real</default_type>
+<description lang="en_US">Height on the cylinder axis above the cylinder base that marks the end of the cylinder surface that should be unrolled.</description>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CylinderRadius">
+<default_type>real</default_type>
+<description lang="en_US">Radius of the cylinder in meters.</description>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CylinderStart">
+<default_type>real</default_type>
+<description lang="en_US">Height on the cylinder axis above the cylinder base that marks the start of the cylinder surface that should be unrolled.</description>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CylinderUnrollAngleStart">
+<default_type>real</default_type>
+<default_value>0</default_value>
+<description lang="en_US">Angle in the xy-plane of the cylinder at which the unrolling of the cylinder starts. By modifying this parameter, the resulting unrolled image is shifted in column direction.</description>
+<multivalue>false</multivalue>
+<sem_type>angle.rad</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CylinderZAxis">
+<default_type>real</default_type>
+<description lang="en_US">Axis of the cylinder in the camera coordinate system.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="ImageHeight">
+<default_type>integer</default_type>
+<description lang="en_US">Height of the original image of the cylinder.</description>
+<multivalue>false</multivalue>
+<sem_type>extent.y</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="ImageWidth">
+<default_type>integer</default_type>
+<description lang="en_US">Width of the original image of the cylinder.</description>
+<multivalue>false</multivalue>
+<sem_type>extent.x</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Map">
+<description lang="en_US">Image map that unrolls the cylinder surface.</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>int2</item>
+<item>int4</item>
+<item>int8</item>
+</type_list>
+</parameter>
+<parameter id="MapHeight">
+<default_type>integer</default_type>
+<description lang="en_US">Height of the resulting map.</description>
+<multivalue>false</multivalue>
+<sem_type>extent.y</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="MapWidth">
+<default_type>integer</default_type>
+<description lang="en_US">Width of the resulting map.</description>
+<multivalue>false</multivalue>
+<sem_type>extent.x</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_vial_pose">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="CameraParam" base_type="ctrl" dimension="0"/>
+<par name="VialRadiusBase" base_type="ctrl" dimension="0"/>
+<par name="VialRadiusTop" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="VialBase" base_type="ctrl" dimension="0"/>
+<par name="VialAxis" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Get the pose of a vial in the camera coordinate system</c>
+<c>* by using a two-step-approach. In the first step, the contour</c>
+<c>* of its circular ground plane is extracted sub-pixel precisely</c>
+<c>* and its 3D pose is determined by using get_circle_pose.</c>
+<c>* To improve the accuracy of the vial pose, the pose</c>
+<c>* of a second circle is computed. For the second circle,</c>
+<c>* we use the circular screw cap of the vial that is</c>
+<c>* approximately 5.5 centimeters above the ground plane of the vial.</c>
+<c>* The two circle poses are merged to obtain the final pose of the vial.</c>
+<c>* </c>
+<c>* Reduce the image domain to the outer object contour.</c>
+<l>threshold (Image, Region, 20, 255)</l>
+<l>fill_up (Region, RegionFillUp)</l>
+<l>connection (RegionFillUp, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 1e6, 1e20)</l>
+<l>boundary (SelectedRegions, RegionBorder, 'inner')</l>
+<l>dilation_rectangle1 (RegionBorder, RegionEdgeExtraction, 31, 31)</l>
+<l>reduce_domain (Image, RegionEdgeExtraction, ImageReduced)</l>
+<c>* Extract sub-pixel precise edges.</c>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 2.5, 10, 20)</l>
+<c>* Segment the edges into circles and lines. Actually,</c>
+<c>* we would have to extract ellipses. However, because the viewing axis</c>
+<c>* of the camera is approximately parallel to the symmetry axis of the</c>
+<c>* vial, the outer object contour is nearly circular.</c>
+<l>segment_contours_xld (Edges, Edges, 'lines_circles', 5, 4, 2)</l>
+<c>* Compute the union of cocircular contours.</c>
+<l>union_cocircular_contours_xld (Edges, UnionContours, 0.5, 0.1, 0.2, 30, 300, 300, 'true', 1)</l>
+<c>* Select the longest contour that represents</c>
+<c>* the circular ground plane of the bottle.</c>
+<l>length_xld (UnionContours, Length)</l>
+<l>tuple_sort_index (Length, Indices)</l>
+<l>select_obj (UnionContours, LongestContourA, Indices[|Indices| - 1] + 1)</l>
+<c>* Compute two possible poses of the circle.</c>
+<l>get_circle_pose (LongestContourA, CameraParam, VialRadiusBase, 'center_normal', CenterNormalA1, CenterNormalA2)</l>
+<l>CircleACenter1 := CenterNormalA1[0:2]</l>
+<l>CircleANormal1 := -CenterNormalA1[3:5]</l>
+<l>CircleACenter2 := CenterNormalA2[0:2]</l>
+<l>CircleANormal2 := -CenterNormalA2[3:5]</l>
+<c>* Because get_circle_pose returns two possible solutions,</c>
+<c>* we have to determine the correct one: Because the camera</c>
+<c>* was mounted such that its optical axis was approximately parallel</c>
+<c>* to the symmetry axis of the vial, we can select the circle</c>
+<c>* with the normal that has a smaller angle with the z axis (0,0,1)</c>
+<c>* of the camera.</c>
+<l>Angle1 := abs(acos(-CircleANormal1[2]))</l>
+<l>Angle2 := abs(acos(-CircleANormal2[2]))</l>
+<l>if (Angle1 &lt; Angle2)</l>
+<l>    CircleACenter := CircleACenter1</l>
+<l>    CircleANormal := CircleANormal1</l>
+<l>else</l>
+<l>    CircleACenter := CircleACenter2</l>
+<l>    CircleANormal := CircleANormal2</l>
+<l>endif</l>
+<c>* </c>
+<c>* To improve the accuracy of the pose, we also measure</c>
+<c>* the edge of the screw cap and determine its pose.</c>
+<l>ApproxHeightTop := 0.055</l>
+<l>Phi := rad([0:5:359])</l>
+<l>X := VialRadiusTop * cos(Phi)</l>
+<l>Y := VialRadiusTop * sin(Phi)</l>
+<l>Z := gen_tuple_const(|Phi|,ApproxHeightTop)</l>
+<l>AxZ := CircleANormal</l>
+<l>tuple_cross_product (AxZ, [1.0,0.0,0.0], AxY)</l>
+<l>tuple_cross_product (AxY, AxZ, AxX)</l>
+<l>HomMat3D := [AxX[0],AxY[0],AxZ[0],CircleACenter[0],AxX[1],AxY[1],AxZ[1],CircleACenter[1],AxX[2],AxY[2],AxZ[2],CircleACenter[2],0,0,0,1.0]</l>
+<l>affine_trans_point_3d (HomMat3D, X, Y, Z, XC, YC, ZC)</l>
+<l>project_3d_point (XC, YC, ZC, CameraParam, Row, Column)</l>
+<l>gen_contour_polygon_xld (Contour, Row, Column)</l>
+<l>gen_region_contour_xld (Contour, Region, 'margin')</l>
+<l>dilation_rectangle1 (Region, RegionDilation, 101, 101)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 4.0, 1, 3)</l>
+<c>* Segment the edges into circles and lines (see above).</c>
+<l>segment_contours_xld (Edges, Edges, 'lines_circles', 5, 4, 2)</l>
+<c>* Compute the union of cocircular contours (see above)</c>
+<l>union_cocircular_contours_xld (Edges, UnionContours, 0.5, 0.1, 0.2, 30, 300, 300, 'true', 1)</l>
+<c>* Select the longest contour that represents the edge</c>
+<c>* of the circular screw cap.</c>
+<l>length_xld (UnionContours, Length)</l>
+<l>tuple_sort_index (Length, Indices)</l>
+<l>select_obj (UnionContours, LongestContourB, Indices[|Indices| - 1] + 1)</l>
+<c>* Compute the two possible poses of the circle.</c>
+<l>get_circle_pose (LongestContourB, CameraParam, VialRadiusTop, 'center_normal', CenterNormalB1, CenterNormalB2)</l>
+<l>CircleBCenter1 := CenterNormalB1[0:2]</l>
+<l>CircleBNormal1 := -CenterNormalB1[3:5]</l>
+<l>CircleBCenter2 := CenterNormalB2[0:2]</l>
+<l>CircleBNormal2 := -CenterNormalB2[3:5]</l>
+<l>Angle1 := abs(acos(-CircleBNormal1[2]))</l>
+<l>Angle2 := abs(acos(-CircleBNormal2[2]))</l>
+<c>* Select the correct pose (see above).</c>
+<l>if (Angle1 &lt; Angle2)</l>
+<l>    CircleBCenter := CircleBCenter1</l>
+<l>    CircleBNormal := CircleBNormal1</l>
+<l>else</l>
+<l>    CircleBCenter := CircleBCenter2</l>
+<l>    CircleBNormal := CircleBNormal2</l>
+<l>endif</l>
+<c>* Finally, merge the two selected circle poses</c>
+<c>* to one pose of the vial.</c>
+<l>VialAxis := CircleBCenter - CircleACenter</l>
+<l>L := sqrt(sum(VialAxis * VialAxis))</l>
+<l>VialAxis := VialAxis / L</l>
+<l>VialBase := CircleACenter</l>
+<c>* Display the two extracted circles.</c>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (LongestContourA)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (LongestContourB)</l>
+<l>Text := 'Circles that are used to determine the vial pose. '</l>
+<l>Text := [Text,'The vial pose is used to create a map that']</l>
+<l>Text := [Text,'unrolls the label on the vial.']</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="get_vial_pose">
+<abstract lang="en_US">Get the pose of a vial in the camera coordinate system by using a two-step-approach. In the first step, the contour of its circular ground plane is extracted sub-pixel precisely and its 3D pose is determined by using get_circle_pose. To improve the accuracy of the vial pose, the pose of a second circle is computed. For the second circle, we use the circular screw cap of the vial that is approximately 5.5 centimeters above the ground plane of the vial. The two circle poses are merged to obtain the final
+pose of the vial.</abstract>
+<short lang="en_US">Determine the pose of a vial based on two circles in the image.</short>
+<parameters>
+<parameter id="CameraParam">
+<default_type>real</default_type>
+<description lang="en_US">Camera parameters.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>campar</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="en_US">Image of the cylinder.</description>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="VialAxis">
+<default_type>real</default_type>
+<description lang="en_US">Axis of the vial in the camera coordinate system.</description>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VialBase">
+<default_type>real</default_type>
+<description lang="en_US">Base of the vial in the camera coordinate system, i.e., the 3D point that represents the intersection of the vial axis with the base plane of the vial.</description>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VialRadiusBase">
+<default_type>real</default_type>
+<description lang="en_US">Radius of the circular ground plane of the vial.</description>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VialRadiusTop">
+<default_type>real</default_type>
+<description lang="en_US">Radius of the circular screw cap of the vial.</description>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">Window handle.</description>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="tuple_cross_product">
+<interface>
+<ic>
+<par name="Vector1" base_type="ctrl" dimension="0"/>
+<par name="Vector2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="CrossProduct" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Compute the vector product (or cross product) of the two</c>
+<c>* vectors Vector1 and Vector2, which both must be represented</c>
+<c>* by tuples with three elements.</c>
+<l>CrossProduct := Vector1[1] * Vector2[2] - Vector1[2] * Vector2[1]</l>
+<l>CrossProduct := [CrossProduct,Vector1[2] * Vector2[0] - Vector1[0] * Vector2[2]]</l>
+<l>CrossProduct := [CrossProduct,Vector1[0] * Vector2[1] - Vector1[1] * Vector2[0]]</l>
+<l>return ()</l>
+</body>
+<docu id="tuple_cross_product">
+<abstract lang="en_US">Compute the vector product (or cross product) of the two vectors Vector1 and Vector2, which both must be represented by tuples with three elements.</abstract>
+<chapters lang="en_US">
+<item>Tuple</item>
+<item>Arithmetic</item>
+</chapters>
+<short lang="en_US">Compute the vector (or cross) product</short>
+<parameters>
+<parameter id="CrossProduct">
+<default_type>real</default_type>
+<description lang="en_US">Resulting cross (or vector) product.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Vector1">
+<default_type>integer</default_type>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Vector2">
+<default_type>real</default_type>
+<description lang="en_US">Second vector.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_camera_parameters">
+<interface>
+<ic>
+<par name="StartCamParam" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Error" base_type="ctrl" dimension="0"/>
+<par name="ParLabels" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display the initial and optimized camera parameters.</c>
+<l>dev_clear_window ()</l>
+<l>Text := 'Compare initial and calibrated camera parameters'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<l>dev_disp_text ('Residual calibration error = ' + Error$'.3f' + ' px', 'window', 72, 22, 'white', 'box', 'false')</l>
+<l>Text := ['Initial parameters:',' ']</l>
+<l>Style := ['.4f','.4e','.4e','.4e','.4f','.4f','.3e','.3e','.2f','.2f']</l>
+<c>* Display the initial camera paramters.</c>
+<l>Unit := [' m','','','','','',' m',' m',' px',' px']</l>
+<l>for Index := 1 to |StartCamParam| - 3 by 1</l>
+<l>    Text := [Text,ParLabels[Index] + ' = ' + StartCamParam[Index]$Style[Index - 1] + Unit[Index - 1]]</l>
+<l>endfor</l>
+<l>dev_disp_text (Text, 'window', 102, 22, 'white', 'box', 'false')</l>
+<c>* Display the optimized camera parameters.</c>
+<l>Text := ['Calibrated parameters:',' ']</l>
+<l>for Index := 1 to |CamParam| - 3 by 1</l>
+<l>    Text := [Text,ParLabels[Index] + ' = ' + CamParam[Index]$Style[Index - 1] + Unit[Index - 1]]</l>
+<l>endfor</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>dev_disp_text (Text, 'window', 102, Width / 2, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="display_camera_parameters">
+<abstract lang="en_US">Display the initial and optimized camera parameters.</abstract>
+<short lang="en_US">Display initial and optimized camera parameters.</short>
+<parameters>
+<parameter id="CamParam">
+<default_type>real</default_type>
+<description lang="en_US">Tuple with optimized camera paramters.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>campar</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="Error">
+<default_type>real</default_type>
+<description lang="en_US">Error returned by the camera calibration.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="ParLabels">
+<default_type>string</default_type>
+<description lang="en_US">Labels of the camera parameters.</description>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="StartCamParam">
+<default_type>real</default_type>
+<description lang="en_US">Tuple with initial camera paramters.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>campar</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">Window handle.</description>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

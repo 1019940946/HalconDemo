@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* This example program shows how to use the serialization of HALCON</c>
+<c>* objects and tuples in HALCON.  In this example, a socket that accepts</c>
+<c>* connection requests from another HALCON process is opened.  A trained</c>
+<c>* shape model is received over the socket connection.  Consequently, to</c>
+<c>* see how this program works, please open a second HDevelop and start</c>
+<c>* the example program 'send_serialized_item.hdev' to connect the</c>
+<c>* processes.</c>
+<c>* ***********************************************************************</c>
+<c>* Initialize program</c>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_open_window (0, 524, 400, 512, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>Message := 'Please open a second HDevelop and'</l>
+<l>Message[1] := 'start the example program'</l>
+<l>Message[2] := 'send_serialized_item.hdev'</l>
+<l>Message[3] := 'to establish a connection.'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Open a socket that accepts connection requests</c>
+<l>open_socket_accept (3000, 'protocol', 'HALCON4', AcceptingSocket)</l>
+<c>* </c>
+<c>* Busy wait for an incoming connection</c>
+<l>OpenStatus := 5</l>
+<l>while (OpenStatus[0] != 2)</l>
+<l>    OpenStatus := 2</l>
+<l>    try</l>
+<l>        socket_accept_connect (AcceptingSocket, 'false', Socket)</l>
+<l>    catch (OpenStatus)</l>
+<l>    endtry</l>
+<l>    wait_seconds (0.2)</l>
+<l>endwhile</l>
+<l>disp_message (WindowHandle2, 'Connected ...', 'window', 12, 12, 'green', 'false')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Connection established, receive names of coins and shape based model</c>
+<l>receive_serialized_item (Socket, SerializedItemHandle)</l>
+<l>deserialize_tuple (SerializedItemHandle, Names)</l>
+<l>Models := []</l>
+<l>for I := 0 to 3 by 1</l>
+<l>    receive_serialized_item (Socket, SerializedItemHandle)</l>
+<l>    deserialize_shape_model (SerializedItemHandle, ModelID)</l>
+<l>    Models := [Models,ModelID]</l>
+<l>    disp_message (WindowHandle2, 'Model ' + (I + 1) + ' received', 'window', 30 + I * 20, 12, 'white', 'false')</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle2, 'Find shape models ...', 'window', 120, 12, 'green', 'false')</l>
+<c>* </c>
+<c>* Find shape based model using the models received over the socket</c>
+<l>for I := 1 to 13 by 1</l>
+<c>    * Find shape based model</c>
+<l>    read_image (Image, 'coins/20cent_' + I$'.2' + '.png')</l>
+<l>    find_coin (Image, Models, Row, Column, Angle, Score, Model)</l>
+<c>    * Display the result</c>
+<l>    crop_part (Image, ImagePart, Row - 460 / 2, Column - 460 / 2, 460, 460)</l>
+<l>    get_shape_model_contours (ModelContours, Models[Model], 1)</l>
+<l>    vector_angle_to_rigid (0, 0, 0, 460 / 2, 460 / 2, Angle, HomMat2D)</l>
+<l>    affine_trans_contour_xld (ModelContours, ContoursAffineTrans, HomMat2D)</l>
+<l>    dev_display (ImagePart)</l>
+<l>    dev_display (ContoursAffineTrans)</l>
+<l>    Message := '#' + I + ': Found ' + Names[Model] + ' coin'</l>
+<l>    disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * Send name of the recognized coin over the socket</c>
+<l>    serialize_tuple (Names[Model], SerializedItemHandle)</l>
+<l>    send_serialized_item (Socket, SerializedItemHandle)</l>
+<l>    disp_message (WindowHandle2, '#' + I + ': Send tuple', 'window', 120 + I * 20, 12, 'white', 'false')</l>
+<c>    * Send part of the image and the contours over the socket</c>
+<l>    concat_obj (ImagePart, ContoursAffineTrans, Objects)</l>
+<l>    serialize_object (Objects, SerializedItemHandle)</l>
+<l>    send_serialized_item (Socket, SerializedItemHandle)</l>
+<l>    disp_message (WindowHandle2, '#' + I + ': Send tuple, image, and contours', 'window', 120 + I * 20, 12, 'white', 'false')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Continue to close a socket</c>
+<l>close_socket (Socket)</l>
+<l>close_socket (AcceptingSocket)</l>
+<l>disp_message (WindowHandle2, 'Connection closed.', 'window', 410, 12, 'green', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_coin">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Models" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Angle" base_type="ctrl" dimension="0"/>
+<par name="Score" base_type="ctrl" dimension="0"/>
+<par name="Model" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>threshold (Image, Region, 70, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape_std (ConnectedRegions, SelectedRegions, 'max_area', 0)</l>
+<l>shape_trans (SelectedRegions, RegionTrans, 'convex')</l>
+<l>area_center (RegionTrans, Area, Row, Column)</l>
+<l>gen_circle (Coin, Row, Column, 120)</l>
+<l>area_center (Coin, Area, Row, Column)</l>
+<l>gen_circle (Circle, Row, Column, 35)</l>
+<l>reduce_domain (Image, Circle, ImageReduced)</l>
+<l>find_shape_models (ImageReduced, Models, 0, rad(360), 0.6, 1, 0, 'interpolation', 0, 0.9, Row, Column, Angle, Score, Model)</l>
+<l>return ()</l>
+</body>
+<docu id="find_coin">
+<parameters>
+<parameter id="Angle"/>
+<parameter id="Column"/>
+<parameter id="Image"/>
+<parameter id="Model"/>
+<parameter id="Models"/>
+<parameter id="Row"/>
+<parameter id="Score"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

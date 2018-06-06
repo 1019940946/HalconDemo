@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to minimize large</c>
+<c>* gaps between the modules by gray value morphology</c>
+<c>* so that 2d data code symbols can be found and decoded.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Get the image and display it</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_to_preprocess_003')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>Message := 'This program demonstrates how to'</l>
+<l>Message[1] := 'preprocess data code symbols with'</l>
+<l>Message[2] := 'large gaps between the modules using'</l>
+<l>Message[3] := 'gray value morphology.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the data code model and adapt the parameters to the</c>
+<c>* biggest allowed module gap ’big’ before reading the code</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', ['module_gap_min','module_gap_max'], ['no','big'], DataCodeHandle)</l>
+<l>find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>* </c>
+<c>* Now preprocess and then search for the data code and read it</c>
+<l>if (|ResultHandles| == 0)</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Search was carried out with adapted'</l>
+<l>    Message[1] := 'parameters in the data code model,'</l>
+<l>    Message[2] := 'but still no data code could be found!'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>    Message := 'Now adapt the image instead of the model.'</l>
+<l>    Message[1] := 'Therefor preprocess the image using'</l>
+<l>    Message[2] := 'gray-value erosion and then search again'</l>
+<l>    Message[3] := 'for the data code symbol.'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 100, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Preprocessing with gray value erosion</c>
+<l>    gray_erosion_shape (Image, ImageMin, 15, 15, 'rectangle')</l>
+<l>    find_data_code_2d (ImageMin, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    dev_display (ImageMin)</l>
+<c>    * Display message about the preprocessing</c>
+<l>    Message := 'Data code found after adapting the image'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Preprocessing: Gray value erosion', 'window', 60, 12, 'black', 'true')</l>
+<l>endif</l>
+<c>* </c>
+<c>* Display the decoded data string</c>
+<l>disp_message (WindowHandle, 'Decoded string: ' + DecodedDataStrings, 'window', 80, 12, 'black', 'true')</l>
+<l>dev_display (SymbolXLDs)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

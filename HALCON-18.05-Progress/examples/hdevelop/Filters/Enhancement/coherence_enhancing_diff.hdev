@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how coherence_enhancing_diff can be used</c>
+<c>* to enhance a fingerprint image by joining disconnected parts of the</c>
+<c>* fingerprint lines.</c>
+<l>read_image (Image, 'fingerprint')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>coherence_enhancing_diff (Image, ImageCED, 0.5, 4, 0.5, 50)</l>
+<l>dev_display (ImageCED)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

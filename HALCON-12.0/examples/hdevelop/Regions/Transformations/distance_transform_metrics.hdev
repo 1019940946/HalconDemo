@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Size := 100</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Size * 5, Size * 5, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Size - 1, Size - 1)</l>
+<l>gen_region_points (Region, 50, 50)</l>
+<l>distance_transform (Region, DTCircleCityBlock, 'city-block', 'false', Size, Size)</l>
+<l>distance_transform (Region, DTCircleChessboard, 'chessboard', 'false', Size, Size)</l>
+<l>distance_transform (Region, DTCircleOctagonal, 'octagonal', 'false', Size, Size)</l>
+<l>distance_transform (Region, DTCircleChamfer, 'chamfer-3-4', 'false', Size, Size)</l>
+<l>distance_transform (Region, DTCircleEuclidean, 'euclidean', 'false', Size, Size)</l>
+<l>threshold (DTCircleCityBlock, CircleCityBlock, 0, 45)</l>
+<l>threshold (DTCircleChessboard, CircleChessboard, 0, 45)</l>
+<l>threshold (DTCircleOctagonal, CircleOctagonal, 0, 45)</l>
+<l>threshold (DTCircleChamfer, CircleChamfer, 0, 45)</l>
+<l>threshold (DTCircleEuclidean, CircleEuclidean, 0, 45)</l>
+<l>gen_circle (Circle, 50, 50, 45.5)</l>
+<l>boundary (Circle, CircleBorder, 'inner')</l>
+<l>intensity (CircleBorder, DTCircleCityBlock, MeanCityBlock, DevCityBlock)</l>
+<l>intensity (CircleBorder, DTCircleChessboard, MeanChessboard, DevChessboard)</l>
+<l>intensity (CircleBorder, DTCircleOctagonal, MeanOctagonal, DevOctagonal)</l>
+<l>intensity (CircleBorder, DTCircleChamfer, MeanChamfer, DevChamfer)</l>
+<l>intensity (CircleBorder, DTCircleEuclidean, MeanEuclidean, DevEuclidean)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (DTCircleCityBlock)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Circle)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (CircleCityBlock)</l>
+<l>disp_message (WindowHandle, 'City Block Metric', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mean radius at true circle: ' + MeanCityBlock$'4.1f' + '\nDeviation: ' + DevCityBlock$'5.2f', 'image', 40, 15, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (DTCircleChessboard)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Circle)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (CircleChessboard)</l>
+<l>disp_message (WindowHandle, 'Chessboard Metric', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mean radius at true circle: ' + MeanChessboard$'4.1f' + '\nDeviation: ' + DevChessboard$'5.2f', 'image', 40, 15, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (DTCircleOctagonal)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Circle)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (CircleOctagonal)</l>
+<l>disp_message (WindowHandle, 'Octagonal Metric', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mean radius at true circle: ' + MeanOctagonal$'4.1f' + '\nDeviation: ' + DevOctagonal$'5.2f', 'image', 40, 15, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (DTCircleChamfer)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Circle)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (CircleChamfer)</l>
+<l>disp_message (WindowHandle, 'Chamfer Metric', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mean radius at true circle: ' + MeanChamfer$'4.1f' + '\nDeviation: ' + DevChamfer$'5.2f', 'image', 40, 15, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (DTCircleEuclidean)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Circle)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (CircleEuclidean)</l>
+<l>disp_message (WindowHandle, 'Eucledian Metric', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mean radius at true circle: ' + MeanEuclidean$'4.1f' + '\nDeviation: ' + DevEuclidean$'5.2f', 'image', 40, 15, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

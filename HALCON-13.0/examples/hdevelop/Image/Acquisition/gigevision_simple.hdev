@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images via the GigEVision interface</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* check interface revision:</c>
+<l>info_framegrabber ('GigEVision', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed cameras for device:</c>
+<l>info_framegrabber ('GigEVision', 'device', DeviceInfo, DeviceInfoValues)</l>
+<c>* </c>
+<c>* open camera with default settings and first device:</c>
+<l>open_framegrabber ('GigEVision', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', DeviceInfoValues[0], 0, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     cfa_to_rgb (Image, RGBImage, 'bayer_gb', 'bilinear')</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

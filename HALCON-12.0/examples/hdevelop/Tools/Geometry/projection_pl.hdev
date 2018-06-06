@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the projection of a point onto a line</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>dev_set_color ('black')</l>
+<l>RowLine1 := 400</l>
+<l>ColLine1 := 200</l>
+<l>RowLine2 := 240</l>
+<l>ColLine2 := 400</l>
+<l>Rows := 300</l>
+<l>Columns := 50</l>
+<l>disp_line (WindowID, RowLine1, ColLine1, RowLine2, ColLine2)</l>
+<l>n := 0</l>
+<l>for Rows := 40 to 200 by 4</l>
+<l>    dev_set_color ('red')</l>
+<l>    disp_circle (WindowID, Rows + n, Columns, 2)</l>
+<l>    projection_pl (Rows + n, Columns, RowLine1, ColLine1, RowLine2, ColLine2, RowProj, ColProj)</l>
+<l>    dev_set_color ('blue')</l>
+<c>    * Display the projection on the line</c>
+<l>    disp_line (WindowID, RowProj - 2, ColProj, RowProj + 2, ColProj)</l>
+<l>    disp_line (WindowID, RowProj, ColProj - 2, RowProj, ColProj + 2)</l>
+<l>    distance_ss (Rows, Columns, Rows + n, Columns + n, RowLine1, ColLine1, RowLine2, ColLine2, DistanceMin, DistanceMax)</l>
+<l>    n := n + 8</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

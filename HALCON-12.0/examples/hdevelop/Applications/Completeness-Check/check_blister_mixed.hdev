@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates an application from the pharmaceutical</c>
+<c>* industry. The task is to check the content of manually filled</c>
+<c>* blisters. The first image (reference) shows the combination, that</c>
+<c>* is requested. The subsequent images are then checked for this</c>
+<c>* setup drawn from the reference image. To perform this task we use</c>
+<c>* the gmm classifier, which will be trained with the reference image</c>
+<c>* in the beginning and is then used to classify the different pill</c>
+<c>* types in subsequent blister images.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'blister/blister_mixed_reference')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* First, we extract the content of the blister and pass</c>
+<c>* this information on to the gmm classifier</c>
+<l>disp_message (WindowHandle, 'Train gmm classifier on pill types', 'window', -1, -1, 'black', 'true')</l>
+<l>extract_pill_types (Image, Chambers, ChambersUnion, Classes, PhiRef, RowRef, ColumnRef, PillTypeCount)</l>
+<l>NumClasses := |PillTypeCount|</l>
+<l>create_class_gmm (3, 3, [1,5], 'spherical', 'normalization', 10, 42, GMMHandle)</l>
+<l>add_samples_image_class_gmm (Image, Classes, GMMHandle, 0)</l>
+<l>train_class_gmm (GMMHandle, 100, 0.001, 'training', 0.0001, Centers, Iter)</l>
+<c>* </c>
+<c>* </c>
+<c>* Then, the subsequent blisters are tested for their right combination</c>
+<l>Count := 12</l>
+<l>for FileIndex := 1 to Count by 1</l>
+<c>    * </c>
+<c>    * Align image read</c>
+<l>    read_image (Image, 'blister/blister_mixed_' + FileIndex$'02')</l>
+<l>    threshold (Image, Region, 90, 255)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 9999999)</l>
+<l>    shape_trans (SelectedRegions, RegionTrans, 'convex')</l>
+<l>    orientation_region (RegionTrans, Phi)</l>
+<l>    if (abs(Phi) &gt; rad(90))</l>
+<l>        Phi := rad(180) + Phi</l>
+<l>    endif</l>
+<l>    area_center (RegionTrans, Area1, Row, Column)</l>
+<l>    vector_angle_to_rigid (Row, Column, Phi, RowRef, ColumnRef, PhiRef, HomMat2D)</l>
+<l>    affine_trans_image (Image, ImageAffinTrans, HomMat2D, 'constant', 'false')</l>
+<l>    reduce_domain (ImageAffinTrans, ChambersUnion, ImageReduced)</l>
+<l>    decompose3 (ImageAffinTrans, ImageR, ImageG, ImageB)</l>
+<c>    * </c>
+<c>    * Classify pill type for each chamber</c>
+<l>    classify_image_class_gmm (ImageReduced, ClassRegions, GMMHandle, 0.005)</l>
+<c>    * </c>
+<l>    count_obj (ClassRegions, Number)</l>
+<l>    gen_empty_obj (FinalClasses)</l>
+<l>    connection (Chambers, ChambersRemaining)</l>
+<l>    for Index := Number to 1 by -1</l>
+<l>        dev_clear_window ()</l>
+<l>        select_obj (ClassRegions, Region, Index)</l>
+<l>        intersection (ChambersRemaining, Region, Region)</l>
+<l>        select_shape (Region, PillsOfOneType, ['area','width'], 'and', [200,40], [3000,68])</l>
+<l>        difference (ChambersUnion, PillsOfOneType, RegionDifference)</l>
+<l>        connection (RegionDifference, ConnectedRegions)</l>
+<l>        select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 0, 7868)</l>
+<l>        shape_trans (SelectedRegions, SelectedRegions, 'convex')</l>
+<l>        union1 (SelectedRegions, SelectedRegions)</l>
+<l>        difference (ChambersRemaining, SelectedRegions, ChambersRemaining)</l>
+<l>        concat_obj (SelectedRegions, FinalClasses, FinalClasses)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Check for right combination</c>
+<l>    gen_empty_obj (MissingPills)</l>
+<l>    gen_empty_obj (WrongPills)</l>
+<l>    gen_empty_obj (WrongNumberOfPills)</l>
+<l>    difference (ChambersUnion, FinalClasses, LeftOvers)</l>
+<l>    area_center (LeftOvers, Area, Row1, Column1)</l>
+<l>    if (Area &gt; 0)</l>
+<l>        connection (LeftOvers, LeftOvers)</l>
+<l>        count_obj (LeftOvers, Number)</l>
+<l>        for Index := 1 to Number by 1</l>
+<l>            select_obj (LeftOvers, ObjectSelected, Index)</l>
+<l>            intensity (ObjectSelected, ImageB, Mean, Deviation)</l>
+<l>            if (Deviation &gt; 40)</l>
+<l>                concat_obj (WrongPills, ObjectSelected, WrongPills)</l>
+<l>            else</l>
+<l>                concat_obj (MissingPills, ObjectSelected, MissingPills)</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Compute histogram</c>
+<l>    CountFinalClass := []</l>
+<l>    for Index := 1 to NumClasses by 1</l>
+<l>        select_obj (FinalClasses, ObjectSelected, Index)</l>
+<l>        connection (ObjectSelected, ObjectSelected)</l>
+<l>        count_obj (ObjectSelected, Size)</l>
+<l>        CountFinalClass := [CountFinalClass,Size]</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Display classification results and output allover statistic</c>
+<l>    display_results (ImageAffinTrans, LeftOvers, FinalClasses, WrongPills, CountFinalClass, PillTypeCount, WindowHandle)</l>
+<l>    if (FileIndex &lt; Count)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<c>* Clear classifier handle</c>
+<l>clear_class_gmm (GMMHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="extract_pill_types">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Chambers" base_type="iconic" dimension="0"/>
+<par name="ChambersUnion" base_type="iconic" dimension="0"/>
+<par name="Classes" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="PhiRef" base_type="ctrl" dimension="0"/>
+<par name="RowRef" base_type="ctrl" dimension="0"/>
+<par name="ColumnRef" base_type="ctrl" dimension="0"/>
+<par name="PillTypeCount" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>threshold (Image, Region, 90, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 999999)</l>
+<l>shape_trans (SelectedRegions, Blister, 'convex')</l>
+<l>gen_empty_region (Chambers)</l>
+<l>for I := 0 to 4 by 1</l>
+<l>    Row := 107 + I * 70</l>
+<l>    for J := 0 to 2 by 1</l>
+<l>        Column := 177 + J * 150</l>
+<l>        gen_rectangle2 (Rectangle, Row, Column, 0, 64, 30)</l>
+<l>        concat_obj (Chambers, Rectangle, Chambers)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>difference (Blister, Chambers, Pattern)</l>
+<l>union1 (Chambers, ChambersUnion)</l>
+<l>orientation_region (Blister, PhiRef)</l>
+<l>PhiRef := rad(180) + PhiRef</l>
+<l>area_center (Blister, Area, RowRef, ColumnRef)</l>
+<c>* </c>
+<c>* </c>
+<c>*  +++ Extract pattern for classification +++</c>
+<l>select_shape (Chambers, PillType1, 'row', 'and', 1, 145)</l>
+<l>union1 (PillType1, PillType1)</l>
+<l>select_shape (Chambers, PillType2, 'row', 'and', 145, 270)</l>
+<l>union1 (PillType2, PillType2)</l>
+<l>select_shape (Chambers, PillType3, 'row', 'and', 270, 390)</l>
+<l>union1 (PillType3, PillType3)</l>
+<c>* </c>
+<c>* </c>
+<c>* Extract color space of yellow pills</c>
+<l>reduce_domain (Image, PillType1, ImageReduced)</l>
+<l>decompose3 (ImageReduced, ImageR, ImageG, ImageB)</l>
+<l>threshold (ImageB, Region, 60, 95)</l>
+<c>* </c>
+<c>* Extract color space of red pills</c>
+<l>reduce_domain (Image, PillType2, ImageReduced)</l>
+<l>decompose3 (ImageReduced, ImageR, ImageG, ImageB)</l>
+<l>invert_image (ImageB, ImageInvert)</l>
+<l>hysteresis_threshold (ImageInvert, RegionHysteresis2, 190, 200, 5)</l>
+<c>* </c>
+<c>* Extract color space of green pills</c>
+<l>reduce_domain (Image, PillType3, ImageReduced)</l>
+<l>decompose3 (ImageReduced, ImageR, ImageG, ImageB)</l>
+<l>invert_image (ImageB, ImageInvert)</l>
+<l>hysteresis_threshold (ImageInvert, RegionHysteresis3, 180, 200, 10)</l>
+<c>* </c>
+<l>intersection (Region, PillType1, PillType1)</l>
+<l>intersection (RegionHysteresis2, PillType2, PillType2)</l>
+<l>PillTypeCount := [3,6,6]</l>
+<l>intersection (RegionHysteresis3, PillType3, PillType3)</l>
+<l>concat_obj (PillType1, PillType2, Classes)</l>
+<l>concat_obj (Classes, PillType3, Classes)</l>
+<l>return ()</l>
+</body>
+<docu id="extract_pill_types">
+<parameters>
+<parameter id="Chambers"/>
+<parameter id="ChambersUnion"/>
+<parameter id="Classes"/>
+<parameter id="ColumnRef"/>
+<parameter id="Image"/>
+<parameter id="PhiRef"/>
+<parameter id="PillTypeCount"/>
+<parameter id="RowRef"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_results">
+<interface>
+<io>
+<par name="ImageAffinTrans" base_type="iconic" dimension="0"/>
+<par name="LeftOvers" base_type="iconic" dimension="0"/>
+<par name="FinalClasses" base_type="iconic" dimension="0"/>
+<par name="WrongPills" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="CountFinalClass" base_type="ctrl" dimension="0"/>
+<par name="PillTypeCount" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>ThereWereErrors := false</l>
+<l>dev_display (ImageAffinTrans)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('red')</l>
+<l>dilation_circle (LeftOvers, RedLeftOvers, 2.5)</l>
+<l>dev_display (RedLeftOvers)</l>
+<c>* </c>
+<l>dev_set_line_width (3)</l>
+<l>select_obj (FinalClasses, ObjectSelected, 1)</l>
+<l>dev_set_color ('goldenrod')</l>
+<l>dev_display (ObjectSelected)</l>
+<l>select_obj (FinalClasses, ObjectSelected, 3)</l>
+<l>dev_set_color ('medium forest green')</l>
+<l>dev_display (ObjectSelected)</l>
+<l>select_obj (FinalClasses, ObjectSelected, 2)</l>
+<l>dev_set_color ('firebrick')</l>
+<l>dev_display (ObjectSelected)</l>
+<c>* </c>
+<l>PillType := ['"yellow"','"red"','"green"']$'-8'</l>
+<l>Numbers := '# Pill type ' + PillType + ': ' + CountFinalClass</l>
+<l>Message := '# Pill type ' + PillType + ': '</l>
+<l>Errors := (CountFinalClass [!=] PillTypeCount)$'1'</l>
+<l>Colors := regexp_replace(Errors,'0','black')</l>
+<l>Colors := regexp_replace(Colors,'1','red')</l>
+<c>* </c>
+<l>disp_message (WindowHandle, Numbers, 'window', 10, 10, Colors, 'true')</l>
+<c>* </c>
+<l>count_obj (WrongPills, NumWrong)</l>
+<l>if (NumWrong &gt; 0)</l>
+<l>    disp_message (WindowHandle, '# Wrong pill type   : ' + NumWrong, 'window', 10 + 60, 10, 'red', 'true')</l>
+<l>endif</l>
+<l>if (find(Errors,'1') != -1)</l>
+<l>    disp_message (WindowHandle, 'Not OK', 'window', 10, 600, 'red', 'true')</l>
+<l>else</l>
+<l>    disp_message (WindowHandle, 'OK', 'window', 10, 600, 'forest green', 'true')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_results">
+<parameters>
+<parameter id="CountFinalClass"/>
+<parameter id="FinalClasses"/>
+<parameter id="ImageAffinTrans"/>
+<parameter id="LeftOvers"/>
+<parameter id="PillTypeCount"/>
+<parameter id="WindowHandle"/>
+<parameter id="WrongPills"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

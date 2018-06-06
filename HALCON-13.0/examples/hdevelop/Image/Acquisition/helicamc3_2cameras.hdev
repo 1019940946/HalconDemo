@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *********************************************************************</c>
+<c>* HALCON Example: Use two heliCam on the same system and in two</c>
+<c>*                 different modes. For example in camMode 7 and 3</c>
+<c>* *********************************************************************</c>
+<c>* close all image window</c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* *********************************************************************</c>
+<c>* ToDo: Set motor configuration for heliCam1</c>
+<c>* *********************************************************************</c>
+<l>IP1 := '192.168.2.100'</l>
+<l>Port1 := 10001</l>
+<l>CntPerMM1 := 1000</l>
+<l>start_position_mm1 := 89.2</l>
+<l>end_position_mm1 := 91.7</l>
+<l>home_position_mm1 := 89.2</l>
+<l>tgu_position1 := 89.7</l>
+<l>tgd_position1 := 0.0</l>
+<l>drive_speed1 := 20.0</l>
+<l>measurement_speed1 := 7.0</l>
+<c>* Pending on the system configuration, the result must be rotated for 0, 90, 180 or 270 degree</c>
+<l>rotate_image := 270</l>
+<c>* *********************************************************************</c>
+<l>genericParam1 := ['axis_ip=' + IP1 + '','axis_port=' + Port1 + '','axis_cnt_per_mm=' + CntPerMM1 + '']</l>
+<c>* </c>
+<c>* Request device name with serial number to identify the connected camera</c>
+<l>info_framegrabber ('heliCamC3', 'device', Information, DeviceName)</l>
+<c>* </c>
+<l>tuple_sort (DeviceName, DeviceName)</l>
+<c>* Use this one for minimize energy, camMode = 7 (default) and with axis</c>
+<l>myHeliCam1 := DeviceName[0]</l>
+<c>* Use this one for intensity, camMode = 3 and without axis</c>
+<l>myHeliCam2 := DeviceName[1]</l>
+<l>tuple_str_last_n (myHeliCam1, 7, myHeliCam1)</l>
+<l>tuple_str_last_n (myHeliCam2, 7, myHeliCam2)</l>
+<c>* </c>
+<c>* Open heliCam1 and configure heliCam1</c>
+<l>open_framegrabber ('heliCamC3', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', genericParam1, 'true', 'default', myHeliCam1, -1, -1, AcqHandle1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'SensNavM2', 2)</l>
+<l>set_framegrabber_param (AcqHandle1, 'SensNFrames', 400)</l>
+<l>set_framegrabber_param (AcqHandle1, 'SensTqp', 370)</l>
+<l>set_framegrabber_param (AcqHandle1, 'OutEnDrv', 1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'use_zTags', 'true')</l>
+<l>set_framegrabber_param (AcqHandle1, 'InvEncCnt', 0)</l>
+<c>* Configure measurement position</c>
+<c>* ToDo: Set measurement range in mm. Please be careful with the optics!!</c>
+<l>set_framegrabber_param (AcqHandle1, 'start_position_mm', start_position_mm1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'end_position_mm', end_position_mm1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'home_position_mm', home_position_mm1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'tgu_position', tgu_position1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'tgd_position', tgd_position1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'drive_speed', drive_speed1)</l>
+<l>set_framegrabber_param (AcqHandle1, 'measurement_speed', measurement_speed1)</l>
+<c>* Reset all camera buffers (not really needed in this case)</c>
+<l>set_framegrabber_param (AcqHandle1, 'do_reset_heliCamBuffer', 1)</l>
+<c>* </c>
+<c>* </c>
+<c>* Open heliCam2 and configure heliCam2</c>
+<l>open_framegrabber ('heliCamC3', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'true', 'default', myHeliCam2, -1, -1, AcqHandle2)</l>
+<c>* Intensity parameter:</c>
+<l>set_framegrabber_param (AcqHandle2, 'CamMode', 3)</l>
+<l>set_framegrabber_param (AcqHandle2, 'BSEnable', 0)</l>
+<l>set_framegrabber_param (AcqHandle2, 'SensNFrames', 11)</l>
+<l>set_framegrabber_param (AcqHandle2, 'SensNDarkFrames', 7)</l>
+<l>set_framegrabber_param (AcqHandle2, 'SensExpTime', 1023)</l>
+<l>set_framegrabber_param (AcqHandle2, 'SensExpTimeMult', 0)</l>
+<l>set_framegrabber_param (AcqHandle2, 'SensExpRatio', 0)</l>
+<c>* Enable free trig</c>
+<l>set_framegrabber_param (AcqHandle2, 'TrigFreeExtN', 1)</l>
+<c>* </c>
+<c>* </c>
+<c>* Open different image windows for demonstration of the result</c>
+<l>dev_open_window (0, 0, 281, 293, 'black', SurfaceHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<l>dev_open_window (0, 0, 281, 293, 'black', AmplitudeHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<l>dev_open_window (0, 0, 300, 300, 'black', IntensityHandle)</l>
+<l>dev_set_lut ('default')</l>
+<c>* </c>
+<l>while (true)</l>
+<l>    dev_update_off ()</l>
+<c>    * grab image from heliCam1</c>
+<l>    grab_image (Image1, AcqHandle1)</l>
+<l>    rotate_image (Image1, Image1, rotate_image, 'constant')</l>
+<l>    access_channel (Image1, Surface0, 1)</l>
+<l>    access_channel (Image1, Amplitude0, 2)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (SurfaceHandle)</l>
+<l>    dev_display (Surface0)</l>
+<l>    dev_set_window (AmplitudeHandle)</l>
+<l>    dev_display (Amplitude0)</l>
+<c>    * </c>
+<l>    dev_update_off ()</l>
+<c>    * grab image from heliCam2</c>
+<l>    grab_image (Image2, AcqHandle2)</l>
+<l>    rotate_image (Image2, Image2, rotate_image, 'constant')</l>
+<l>    access_channel (Image2, HDR0, 3)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (IntensityHandle)</l>
+<l>    dev_display (HDR0)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Close heliCam1</c>
+<l>close_framegrabber (AcqHandle1)</l>
+<c>* Close heliCam2</c>
+<l>close_framegrabber (AcqHandle2)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

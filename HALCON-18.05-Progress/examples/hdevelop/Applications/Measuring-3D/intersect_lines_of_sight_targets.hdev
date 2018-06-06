@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the measurement of the height of a</c>
+<c>* workpiece by using targets and a stereo setup.</c>
+<c>* First, the targets are detected in both the left</c>
+<c>* and right images. Then, the 3D coordinates of</c>
+<c>* the points are computed by the operator intersect_line_of_sight.</c>
+<c>* Finally, the height of the workpiece is determined using</c>
+<c>* these 3D coordinates.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>Scale := .7</l>
+<c>* </c>
+<c>* Set the camera parameter and the relative pose</c>
+<l>gen_cam_par_area_scan_division (0.0128583, -533.075, 7.40044e-006, 7.4e-006, 310.243, 243.807, 640, 480, CamParamLeft)</l>
+<l>gen_cam_par_area_scan_division (0.0130659, -512.699, 7.41508e-006, 7.4e-006, 333.347, 237.374, 640, 480, CamParamRight)</l>
+<l>create_pose (0.154132, -0.00585068, 0.0429294, 359.932, 336.422, 359.901, 'Rp+T', 'gba', 'point', RelPose)</l>
+<c>* </c>
+<c>* Read and display images</c>
+<l>read_image (ImageLeft, 'stereo/targets/targets_l')</l>
+<l>read_image (ImageRight, 'stereo/targets/targets_r')</l>
+<l>get_image_size (ImageLeft, Width, Height)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, Width * Scale, Height * Scale, 'black', WindowHandleLeft)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandleLeft, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageLeft)</l>
+<l>disp_message (WindowHandleLeft, 'Left camera', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>dev_open_window (0, Width * Scale + 12, Width * Scale, Height * Scale, 'black', WindowHandleRight)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandleRight, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageRight)</l>
+<l>disp_message (WindowHandleRight, 'Right camera', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Detect the targets</c>
+<c>* </c>
+<c>* Left image</c>
+<l>critical_points_sub_pix (ImageLeft, 'facet', 2.0, 5, RowMin, ColMin, RowMax, ColMax, RowPointLeft, ColumnPointLeft)</l>
+<l>gen_cross_contour_xld (CrossLeft, RowPointLeft, ColumnPointLeft, 20, rad(45))</l>
+<l>dev_set_window (WindowHandleLeft)</l>
+<l>dev_display (CrossLeft)</l>
+<c>* </c>
+<c>* Right image</c>
+<l>critical_points_sub_pix (ImageRight, 'facet', 2.0, 5, RowMin, ColMin, RowMax, ColMax, RowPointRight, ColumnPointRight)</l>
+<l>gen_cross_contour_xld (CrossRight, RowPointRight, ColumnPointRight, 20, rad(45))</l>
+<l>dev_set_window (WindowHandleRight)</l>
+<l>dev_display (CrossRight)</l>
+<l>disp_continue_message (WindowHandleLeft, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the 3D coordinates of the</c>
+<c>* targets and convert them into [mm]</c>
+<l>intersect_lines_of_sight (CamParamLeft, CamParamRight, RelPose, RowPointLeft, ColumnPointLeft, RowPointRight, ColumnPointRight, X, Y, Z, Dist)</l>
+<l>X := X * 1000</l>
+<l>Y := Y * 1000</l>
+<l>Z := Z * 1000</l>
+<c>* </c>
+<c>* Determine the height of the workpiece</c>
+<c>* First, define a new (non orthogonal) coordinate system</c>
+<c>* whose plane z=0 is defined by the vectors NX=P2P0 and NY=P2P3</c>
+<l>NX := [X[3] - X[2],Y[3] - Y[2],Z[3] - Z[2]]</l>
+<l>NY := [X[0] - X[2],Y[0] - Y[2],Z[0] - Z[2]]</l>
+<c>* Determine a normal vector NZ on this plane by computing</c>
+<c>* the cross product of NX and NX</c>
+<l>NZ := [NX[1] * NY[2] - NX[2] * NY[1],NX[2] * NY[0] - NY[2] * NX[0],NX[0] * NY[1] - NY[0] * NX[1]]</l>
+<l>NZ := NZ / sqrt(sum(NZ * NZ))</l>
+<c>* The height of the workpiece is obtained by computing the</c>
+<c>* projection of the vector P2P1 onto the vector NZ. This is</c>
+<c>* done by computing the dot product P2P1.NZ</c>
+<l>P2P1 := [X[1] - X[2],Y[1] - Y[2],Z[1] - Z[2]]</l>
+<l>WorkpieceHeight := sum(NZ * P2P1)</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>gen_arrow_contour_xld (ArrowNXRight, RowPointRight[2], ColumnPointRight[2], RowPointRight[0], ColumnPointRight[0], 20, 20)</l>
+<l>gen_arrow_contour_xld (ArrowNYRight, RowPointRight[2], ColumnPointRight[2], RowPointRight[3], ColumnPointRight[3], 20, 20)</l>
+<l>gen_arrow_contour_xld (ArrowRight1, 225.5, 322.5, 225.5, 365.5, 15, 15)</l>
+<l>gen_arrow_contour_xld (ArrowRight2, 225.5, 365.5, 225.5, 322.5, 15, 15)</l>
+<l>dev_set_window (WindowHandleLeft)</l>
+<l>dev_display (ImageLeft)</l>
+<l>dev_display (CrossLeft)</l>
+<l>disp_message (WindowHandleLeft, 'Left camera', 'window', 12, 12, 'black', 'true')</l>
+<l>for I := 0 to 3 by 1</l>
+<l>    String := 'x = ' + X[I]$'5.1f' + ' mm'</l>
+<l>    String[1] := 'y = ' + Y[I]$'5.1f' + ' mm'</l>
+<l>    String[2] := 'z = ' + Z[I]$'5.1f' + ' mm'</l>
+<l>    disp_message (WindowHandleLeft, String, 'image', RowPointLeft[I] + 20, ColumnPointLeft[I] - 100, 'black', 'true')</l>
+<l>    disp_message (WindowHandleLeft, 'P' + I, 'image', RowPointLeft[I] - 30, ColumnPointLeft[I] - 30, 'yellow', 'false')</l>
+<l>    disp_message (WindowHandleRight, 'P' + I, 'image', RowPointRight[I] - 30, ColumnPointRight[I] - 30, 'yellow', 'false')</l>
+<l>endfor</l>
+<l>dev_set_window (WindowHandleRight)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (ArrowNXRight)</l>
+<l>dev_display (ArrowNYRight)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (CrossRight)</l>
+<l>dev_display (ArrowRight1)</l>
+<l>dev_display (ArrowRight2)</l>
+<l>disp_message (WindowHandleRight, 'Height = ' + WorkpieceHeight$'2.1f' + ' mm', 'image', 213, 389, 'yellow', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

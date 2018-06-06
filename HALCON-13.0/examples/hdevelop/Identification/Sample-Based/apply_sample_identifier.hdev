@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to use the sample-based identification</c>
+<c>* to identify different objects.</c>
+<c>* First, the sample identifier is created, prepared, trained,</c>
+<c>* and written to disk. In later runs, the trained sample</c>
+<c>* identifier is read from disk to avoid the time-consuming</c>
+<c>* preparation step. In the run-time phase, the trained sample</c>
+<c>* identifier is used to identify new images of vegetables.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Set DoTraining to true to force a new training</c>
+<l>DoTraining := false</l>
+<c>* </c>
+<c>* Get the image file names, the object names and IDs</c>
+<l>ImageDirectory := 'food/wine_label'</l>
+<l>IdentifierFileName := 'wine_label.sid'</l>
+<l>get_object_images (ImageDirectory, ObjectNames, ObjectIDs, ImageFileNames, TrainingObjectNames, TrainingObjectIDs, TrainingImageFileNames)</l>
+<c>* </c>
+<l>read_image (Image, TrainingImageFileNames[0])</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>file_exists (IdentifierFileName, FileExists)</l>
+<l>if (FileExists and not DoTraining)</l>
+<l>    disp_message (WindowHandle, 'Read the trained sample identifier ...', 'window', 12, 12, 'black', 'true')</l>
+<l>    read_sample_identifier (IdentifierFileName, SampleIdentifier)</l>
+<l>else</l>
+<l>    disp_message (WindowHandle, 'Create, prepare and train a new sample identifier', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * If the trained sample identifier is not available yet we create</c>
+<c>    * a new sample identifier. Because we have color images available</c>
+<c>    * we want to use the color in addition to the texture information</c>
+<c>    * for identification.</c>
+<l>    create_sample_identifier ('add_color_info', 'true', SampleIdentifier)</l>
+<c>    * In order to speed up this special application, we can reduce the</c>
+<c>    * internal image size from the default (0.5 megapixels) to 0.1</c>
+<c>    * megapixels without a decrease of the identification rate. Note</c>
+<c>    * that for other applications, the optimum value for the internal</c>
+<c>    * image size must be determined individually.</c>
+<l>    set_sample_identifier_param (SampleIdentifier, 'image_resize_value', 0.1)</l>
+<c>    * Prepare the sample identifier by adding some representive sample</c>
+<c>    * images that show the different types of objects. For this,</c>
+<c>    * we simply use the training images.</c>
+<l>    for Index := 0 to |TrainingImageFileNames| - 1 by 1</l>
+<l>        read_image (Image, TrainingImageFileNames[Index])</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, 'Add a sample of ' + TrainingObjectNames[Index], 'window', 12, 12, 'black', 'true')</l>
+<c>        * Add the current image as preparation data. Because we know</c>
+<c>        * the object ID, we can use it in order to label the preparation</c>
+<c>        * data. Thus, we can later reuse it for training and do not need to</c>
+<c>        * add additional training data.</c>
+<l>        add_sample_identifier_preparation_data (Image, SampleIdentifier, TrainingObjectIDs[Index], [], [], ObjectSampleIdx)</l>
+<c>        * Optionally add the object name to the sample identifier for</c>
+<c>        * convinience reasons.</c>
+<l>        set_sample_identifier_object_info (SampleIdentifier, TrainingObjectIDs[Index], 'preparation_object_name', TrainingObjectNames[Index])</l>
+<l>    endfor</l>
+<c>    * Now, we can prepare the identifier</c>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, ['Prepare and train the sample identifier','(this might take some seconds)'], 'window', 12, 12, 'black', 'true')</l>
+<l>    prepare_sample_identifier (SampleIdentifier, 'true', [], [])</l>
+<c>    * Use the preparation data to train the identifier</c>
+<l>    train_sample_identifier (SampleIdentifier, [], [])</l>
+<c>    * Write the trained identifier to disk</c>
+<l>    write_sample_identifier (SampleIdentifier, IdentifierFileName)</l>
+<l>endif</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Identify new objects</c>
+<l>Errors := 0</l>
+<l>RandomIndices := sort_index(rand(|ImageFileNames|))</l>
+<c>* Choose how many images should be tested</c>
+<l>NumTests := 50</l>
+<c>* Use the following line to test all images</c>
+<l>* NumTests := |RandomIndices|</l>
+<l>for I := 1 to min([NumTests,|RandomIndices|]) by 1</l>
+<c>    * Randomly select a run-time image</c>
+<l>    Index := RandomIndices[I - 1]</l>
+<l>    ImageFileName := ImageFileNames[Index]</l>
+<l>    ObjectID := ObjectIDs[Index]</l>
+<l>    ObjectName := ObjectNames[Index]</l>
+<l>    read_image (Image, ImageFileName)</l>
+<c>    * Apply the sample identifier to identify the new objects</c>
+<l>    apply_sample_identifier (Image, SampleIdentifier, 1, 0, [], [], ObjectIdx, Rating)</l>
+<c>    * Get the name of the identified object for visualization purposes</c>
+<l>    get_sample_identifier_object_info (SampleIdentifier, ObjectIdx, 'training_object_name', ResultObjectName)</l>
+<l>    if (ObjectIdx != ObjectID)</l>
+<c>        * Use red color for incorrect identifications</c>
+<l>        Color := 'red'</l>
+<l>        Errors := Errors + 1</l>
+<l>    else</l>
+<l>        Color := 'forest green'</l>
+<l>    endif</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Current object: ' + ObjectName, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Identified as:  ' + ResultObjectName, 'window', 30, 12, Color, 'true')</l>
+<l>    disp_message (WindowHandle, 'Error rate: (' + Errors + '/' + I + ') = ' + (100.0 * Errors / I)$'.1f' + '%', 'window', 50, 12, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clear the sample identifier</c>
+<l>clear_sample_identifier (SampleIdentifier)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_object_images">
+<interface>
+<ic>
+<par name="Directory" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ObjectNames" base_type="ctrl" dimension="0"/>
+<par name="ObjectIDs" base_type="ctrl" dimension="0"/>
+<par name="ImageFileNames" base_type="ctrl" dimension="0"/>
+<par name="TrainingObjectNames" base_type="ctrl" dimension="0"/>
+<par name="TrainingObjectIDs" base_type="ctrl" dimension="0"/>
+<par name="TrainingImageFileNames" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Get all images in the directory</c>
+<l>list_image_files (Directory, 'default', [], ImageFileNames)</l>
+<l>ImageFileNames := sort(ImageFileNames)</l>
+<l>tuple_regexp_match (ImageFileNames, '.*/(.*)\\..{3}$', Matches)</l>
+<l>tuple_regexp_replace (Matches, '_[0-9]+', '', ObjectNames)</l>
+<l>tuple_uniq (ObjectNames, UniqObjectNames)</l>
+<l>ObjectIDs := []</l>
+<l>for Index := 0 to |ObjectNames| - 1 by 1</l>
+<l>    tuple_find (UniqObjectNames, ObjectNames[Index], Indices)</l>
+<l>    ObjectIDs := [ObjectIDs,Indices]</l>
+<l>endfor</l>
+<c>* Extract the training images</c>
+<l>TrainingObjectNames := []</l>
+<l>TrainingObjectIDs := []</l>
+<l>TrainingImageFileNames := []</l>
+<l>tuple_uniq (ObjectIDs, ObjectIDsUniq)</l>
+<l>for Index := 0 to |ObjectIDsUniq| - 1 by 1</l>
+<l>    ObjectID := ObjectIDsUniq[Index]</l>
+<l>    tuple_find (ObjectIDs, ObjectID, Indices)</l>
+<c>    * Arbitrarily chose the first image of the same ID</c>
+<c>    * as the training image</c>
+<l>    I := Indices[0]</l>
+<l>    TrainingObjectNames := [TrainingObjectNames,ObjectNames[I]]</l>
+<l>    TrainingObjectIDs := [TrainingObjectIDs,ObjectIDs[I]]</l>
+<l>    TrainingImageFileNames := [TrainingImageFileNames,ImageFileNames[I]]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="get_object_images">
+<parameters>
+<parameter id="Directory"/>
+<parameter id="ImageFileNames"/>
+<parameter id="ObjectIDs"/>
+<parameter id="ObjectNames"/>
+<parameter id="TrainingImageFileNames"/>
+<parameter id="TrainingObjectIDs"/>
+<parameter id="TrainingObjectNames"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

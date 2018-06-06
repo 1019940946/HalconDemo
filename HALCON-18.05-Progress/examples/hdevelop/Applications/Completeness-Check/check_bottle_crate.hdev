@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example counts bottles in bottle crates of returned empties.</c>
+<c>* With diffuse front light, correctly inserted bottles can</c>
+<c>* be segmented relatively easy with a simple thresholding operation,</c>
+<c>* followed by some basic morphology operations.</c>
+<c>* Bottles inserted upside-down are also detected and displayed</c>
+<c>* in orange, while across lying bottles or big objects are</c>
+<c>* marked as clutter and produce a warning.</c>
+<c>* </c>
+<c>* init</c>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('store_empty_region', 'false')</l>
+<l>read_image (Image, 'bottles/bottle_crate_01')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<c>* main loop</c>
+<l>for Index := 1 to 24 by 1</l>
+<l>    read_image (Image, 'bottles/bottle_crate_' + Index$'.02')</l>
+<c>    * extract background</c>
+<l>    threshold (Image, BackgroundRegion, 50, 130)</l>
+<l>    opening_circle (BackgroundRegion, BackgroundRegion, 3.5)</l>
+<c>    * extract bottle reflections</c>
+<l>    threshold (Image, Region, 85, 255)</l>
+<l>    difference (Region, BackgroundRegion, Region)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<c>    * large reflections are judged as clutter</c>
+<l>    select_shape (ConnectedRegions, Clutter, ['width','height'], 'or', [100,100], [500,400])</l>
+<l>    opening_circle (Clutter, Clutter, 8.5)</l>
+<l>    difference (ConnectedRegions, Clutter, Region)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<c>    * ignore noise regions</c>
+<l>    select_shape (ConnectedRegions, Candidates, ['width','height'], 'and', [25,25], [100,100])</l>
+<l>    fill_up (Candidates, FilledCandidates)</l>
+<l>    opening_circle (FilledCandidates, FilledCandidates, 15.5)</l>
+<c>    * only 'round' reflections are from bottles</c>
+<l>    select_shape (FilledCandidates, RoundCandidates, 'circularity', 'and', 0.87, 1)</l>
+<l>    select_shape (RoundCandidates, BigBottles, 'max_diameter', 'and', 75, 99999)</l>
+<c>    * display results</c>
+<l>    dev_set_shape ('ellipse')</l>
+<l>    count_obj (RoundCandidates, NumBottles)</l>
+<l>    count_obj (Clutter, NumClutter)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_set_color ('lime green')</l>
+<l>    dev_display (RoundCandidates)</l>
+<l>    dev_set_color ('goldenrod')</l>
+<l>    dev_display (BigBottles)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Clutter)</l>
+<l>    dev_set_shape ('original')</l>
+<l>    disp_message (WindowHandle, NumBottles + ' bottles found.', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (NumClutter &gt; 0)</l>
+<l>        disp_message (WindowHandle, 'Warning! Clutter detected!', 'window', 40, 12, 'red', 'true')</l>
+<l>    endif</l>
+<l>    if (Index &lt; 24)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* restore original system settings</c>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

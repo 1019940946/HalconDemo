@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images from IEEE 1394 cameras via 1394IIDC interface</c>
+<c>* </c>
+<c>* Query actually installed cameras</c>
+<l>info_framegrabber ('1394IIDC', 'info_boards', Information, BoardInfo)</l>
+<c>* </c>
+<c>* Use default settings of first camera:</c>
+<c>* NOTE: When using 'default' settings the frame rate is set to the lowest available frame rate of the camera!</c>
+<l>MyCameraType := 'default'</l>
+<l>MyDevice := 'default'</l>
+<l>open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>if (MyCameraType == 'default')</l>
+<c>    * Search for highest available frame rate for 'default' camera type:</c>
+<l>    get_framegrabber_param (AcqHandle, 'camera_type_values', CameraTypeValues)</l>
+<l>    get_framegrabber_param (AcqHandle, 'camera_type', CameraTypeDefault)</l>
+<l>    NewCameraTypeDefault := CameraTypeDefault</l>
+<l>    CameraTypeDefaultPrefix := CameraTypeDefault{0:2}</l>
+<l>    for i := 0 to |CameraTypeValues| - 1 by 1</l>
+<l>        CameraTypeI := CameraTypeValues[i]</l>
+<l>        CameraTypePrefix := CameraTypeI{0:2}</l>
+<l>        if (CameraTypePrefix == CameraTypeDefaultPrefix)</l>
+<l>            NewCameraTypeDefault := CameraTypeValues[i]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    set_framegrabber_param (AcqHandle, 'camera_type', NewCameraTypeDefault)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Open window with half the size</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Grab some images</c>
+<l>get_framegrabber_param (AcqHandle, 'camera_type', CameraType)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

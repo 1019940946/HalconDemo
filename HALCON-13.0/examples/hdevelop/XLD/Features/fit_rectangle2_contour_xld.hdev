@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how fit_rectangle2_contour_xld can be used to</c>
+<c>* detect manufacturing errors of punched holes in a metal part.  The errors</c>
+<c>* show up as small protrusions of the metal into the hole.  They can be detected</c>
+<c>* by fitting rectangles to the edges of the hole robustly (i.e., with outlier</c>
+<c>* suppression) and the calculating the distances of the edges to the rectangle</c>
+<c>* sides using dist_rectangle2_contour_points_xld.  Since the corners of the</c>
+<c>* holes are slightly rounded, some extra processing must be performed to</c>
+<c>* disregard the corners in the check for errors.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'punched_holes')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* Since the metal part is backlit, the processing speed can be increased</c>
+<c>* significantly by constructing a ROI for the subpixel-precise edge extraction</c>
+<c>* that is as small as possible.  This can easily be achieved by thresholding and</c>
+<c>* morphology.</c>
+<l>fast_threshold (Image, Region, 128, 255, 10)</l>
+<l>boundary (Region, Border, 'inner')</l>
+<l>dilation_rectangle1 (Border, EdgeROI, 7, 7)</l>
+<l>reduce_domain (Image, EdgeROI, ImageReduced)</l>
+<c>* Perform the edge extraction.</c>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 1.7, 40, 120)</l>
+<c>* Remove edge fragments that are too short.</c>
+<l>select_shape_xld (Edges, RectangleEdges, 'contlength', 'and', 500, 100000)</l>
+<c>* Fit rectangles to the holes' edges using the outlier suppression of Tukey.</c>
+<l>fit_rectangle2_contour_xld (RectangleEdges, 'tukey', -1, 0, 0, 3, 2, Row, Column, Phi, Length1, Length2, PointOrder)</l>
+<c>* Create rectangles with the fitted parameters for visualization purposes.</c>
+<l>gen_rectangle2_contour_xld (Rectangles, Row, Column, Phi, Length1, Length2)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Rectangles)</l>
+<c>* Check whether the holes are OK.</c>
+<l>count_obj (RectangleEdges, Number)</l>
+<l>for I := 0 to Number - 1 by 1</l>
+<l>    select_obj (RectangleEdges, RectangleEdge, I + 1)</l>
+<c>    * Get the contour's coordinates.</c>
+<l>    get_contour_xld (RectangleEdge, Rows, Cols)</l>
+<c>    * Create a rectangle with the appropriate rectangle parameters.</c>
+<l>    gen_rectangle2_contour_xld (Rect, Row[I], Column[I], Phi[I], Length1[I], Length2[I])</l>
+<c>    * Get the coordinates of the rectangle's corners.</c>
+<l>    get_contour_xld (Rect, RowC, ColC)</l>
+<c>    * Calculate the distances of all the contour points to the four corners of the</c>
+<c>    * rectangle.</c>
+<l>    D1 := sqrt((Rows - RowC[0]) * (Rows - RowC[0]) + (Cols - ColC[0]) * (Cols - ColC[0]))</l>
+<l>    D2 := sqrt((Rows - RowC[1]) * (Rows - RowC[1]) + (Cols - ColC[1]) * (Cols - ColC[1]))</l>
+<l>    D3 := sqrt((Rows - RowC[2]) * (Rows - RowC[2]) + (Cols - ColC[2]) * (Cols - ColC[2]))</l>
+<l>    D4 := sqrt((Rows - RowC[3]) * (Rows - RowC[3]) + (Cols - ColC[3]) * (Cols - ColC[3]))</l>
+<c>    * The distance of the contour points to the corners of the rectangle is given</c>
+<c>    * by the minimum of the four distances.  This distance is used to exclude</c>
+<c>    * contour points that are too close to the corners from the check for errors.</c>
+<l>    DistCorner := min2(min2(D1,D2),min2(D3,D4))</l>
+<c>    * Calculate the distances of the contour points of the rectangle.</c>
+<l>    dist_rectangle2_contour_points_xld (RectangleEdge, 0, Row[I], Column[I], Phi[I], Length1[I], Length2[I], Dist)</l>
+<c>    * Check whether the hole is OK by examining the distances of the contour</c>
+<c>    * points to the rectangle.  A hole is OK if all points that lie more than seven</c>
+<c>    * pixels from the corners have a distance of less than one pixel to the fitted</c>
+<c>    * rectangle.  To do so, we could use the following code:</c>
+<l>*     RectangleOK := true</l>
+<l>*     for J := 0 to |Dist| - 1 by 1</l>
+<l>*         if (DistCorner[J] &gt; 7.0 and Dist[J] &gt; 1.0)</l>
+<l>*             RectangleOK := false</l>
+<l>*             break</l>
+<l>*         endif</l>
+<l>*     endfor</l>
+<c>    * A much faster way to do this in HDevelop is to generate a mask that</c>
+<c>    * contains 0 for all points that should not be taken into account and 1</c>
+<c>    * otherwise.  To do so, we subtract the minimum distance of 7.0 from the</c>
+<c>    * distances to the corners and take the maximum of 0.0 and the resulting</c>
+<c>    * values.  This sets all the distances that are too close to the corners to 0.</c>
+<c>    * To set all other values to 1, we can simply take the sign of the values.</c>
+<l>    Mask := sgn(max2(DistCorner - 7.0,0.0))</l>
+<c>    * We can now multiply the distances to the rectangle with the mask and</c>
+<c>    * check whether the maximum distance is smaller than the maximum allowed</c>
+<c>    * distance of 1.0.</c>
+<l>    RectangleOK := max(Dist * Mask) &lt;= 1.0</l>
+<c>    * Display whether the hole is OK.</c>
+<l>    if (RectangleOK)</l>
+<l>        dev_set_color ('green')</l>
+<l>        get_string_extents (WindowHandle, 'OK', Ascent, Descent, Width, Height)</l>
+<l>        set_tposition (WindowHandle, Row[I] - Height / 2, Column[I] - Width / 2)</l>
+<l>        write_string (WindowHandle, 'OK')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        get_string_extents (WindowHandle, 'Not OK', Ascent, Descent, Width, Height)</l>
+<l>        set_tposition (WindowHandle, Row[I] - Height / 2, Column[I] - Width / 2)</l>
+<l>        write_string (WindowHandle, 'Not OK')</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

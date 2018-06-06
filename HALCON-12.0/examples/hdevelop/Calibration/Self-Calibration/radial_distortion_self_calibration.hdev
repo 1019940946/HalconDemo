@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how radial_distortion_self_calibration can be used to</c>
+<c>* calibrate the radial distortion coefficient and the center of</c>
+<c>* distortions.  In the first part of the program, the edges extracted from</c>
+<c>* a single image are used for the calibration.  The results show that the</c>
+<c>* radial distortions are extracted fairly accurately from the single</c>
+<c>* image.  To increase the accuracy, the second part of the program shows</c>
+<c>* how the edges extracted from 20 images can be used to perform the</c>
+<c>* calibration.  Since the edges occur in many different orientations in</c>
+<c>* the 20 images, the principal point can be determined significantly more</c>
+<c>* accurately.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'board/board-01')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Image with radial distortions', 'window', 0, 0, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Extract subpixel-precise edges using the Canny filter.</c>
+<l>edges_sub_pix (Image, Edges, 'canny', 1, 10, 40)</l>
+<c>* Segment the edges into lines and circular arcs.</c>
+<l>segment_contours_xld (Edges, SplitEdges, 'lines_circles', 5, 4, 2)</l>
+<c>* Select edges that are long enough to be useful for the calibration.</c>
+<l>select_shape_xld (SplitEdges, SelectedEdges, 'contlength', 'and', 30, 100000)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (SelectedEdges)</l>
+<l>disp_message (WindowHandle, 'Extracted edges', 'window', 0, 0, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Performing self-calibration...', 'window', 0, 0, 'black', 'true')</l>
+<c>* Perform the self-calibration of the radial distortions.</c>
+<l>radial_distortion_self_calibration (SelectedEdges, CalibrationEdges, 646, 492, 0.08, 42, 'division', 'variable', 0, CamParSingleImage)</l>
+<c>* Rectify the image, i.e., remove the radial distortions.</c>
+<l>get_domain (Image, Domain)</l>
+<l>change_radial_distortion_cam_par ('fixed', CamParSingleImage, 0, CamParSingleImageRect)</l>
+<l>change_radial_distortion_image (Image, Domain, ImageRectified, CamParSingleImage, CamParSingleImageRect)</l>
+<c>* Display the distorted and undistorted image five times to visualize the</c>
+<c>* differences between the images.</c>
+<l>dev_display (Image)</l>
+<l>dev_display (CalibrationEdges)</l>
+<l>disp_message (WindowHandle, 'Edges used for calibration', 'window', 0, 0, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageRectified)</l>
+<l>disp_message (WindowHandle, 'Image without radial distortions', 'window', 0, 0, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now perform the self-calibration using edges extracted from 20 images.</c>
+<c>* The variable Edges will accumulate the edges extracted from the images.</c>
+<l>gen_empty_obj (Edges)</l>
+<l>for J := 1 to 20 by 1</l>
+<l>    read_image (Image, 'board/board-' + J$'02d')</l>
+<c>    * Extract subpixel-precise edges using the Canny filter.</c>
+<l>    edges_sub_pix (Image, ImageEdges, 'canny', 1, 10, 40)</l>
+<c>    * Segment the edges into lines and circular arcs.</c>
+<l>    segment_contours_xld (ImageEdges, SplitEdges, 'lines_circles', 5, 4, 2)</l>
+<c>    * Select edges that are long enough to be useful for the calibration.</c>
+<l>    select_shape_xld (SplitEdges, SelectedEdges, 'contlength', 'and', 30, 100000)</l>
+<c>    * Accumulate the edges.</c>
+<l>    concat_obj (Edges, SelectedEdges, Edges)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (SelectedEdges)</l>
+<l>    disp_message (WindowHandle, 'Edges extracted from image ' + J$'d', 'window', 0, 0, 'black', 'true')</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Edges)</l>
+<l>disp_message (WindowHandle, 'Collected edges from multiple images', 'window', 0, 0, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Performing self-calibration...', 'window', 0, 0, 'black', 'true')</l>
+<c>* Perform the self-calibration of the radial distortions.</c>
+<l>radial_distortion_self_calibration (Edges, CalibrationEdges, 646, 492, 0.08, 42, 'division', 'variable', 0, CamParMultiImage)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (CalibrationEdges)</l>
+<l>disp_message (WindowHandle, 'Edges used for calibration', 'window', 0, 0, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Compute the camera parameters of the undistorted image.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParMultiImage, 0, CamParMultiImageRect)</l>
+<l>for J := 1 to 20 by 1</l>
+<l>    read_image (Image, 'board/board-' + J$'02d')</l>
+<l>    get_domain (Image, Domain)</l>
+<c>    * Rectify the image, i.e., remove the radial distortions.</c>
+<l>    change_radial_distortion_image (Image, Domain, ImageRectified, CamParMultiImage, CamParMultiImageRect)</l>
+<c>    * Display the distorted and undistorted image to visualize the</c>
+<c>    * differences between the images.</c>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Image with radial distortions', 'window', 0, 0, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>    dev_display (ImageRectified)</l>
+<l>    disp_message (WindowHandle, 'Image without radial distortions', 'window', 0, 0, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use the operator</c>
+<c>* union_cotangential_contours_xld.</c>
+<c>* Therefore, the operator is applied to a set of synthetic</c>
+<c>* contours with different parameter sets.</c>
+<c>* </c>
+<c>* Part I</c>
+<c>* </c>
+<c>* Test the following parameters:</c>
+<c>* - FitClippingLength</c>
+<c>* - FitLength</c>
+<c>* - MaxTangAngle</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>get_system ('flush_graphic', FlushGraphic)</l>
+<c>* </c>
+<c>* Default parameters</c>
+<l>FitClippingLength := 0</l>
+<l>FitLength := 30</l>
+<l>MaxTangAngle := rad(45)</l>
+<l>MaxDist := 25</l>
+<l>MaxDistPerp := 10</l>
+<l>MaxOverlap := 2</l>
+<c>* </c>
+<l>RowOffsets := [25,25,240,240]</l>
+<l>ColumnOffsets := [0,256,0,256]</l>
+<c>* </c>
+<l>gen_test_contour (ContourConcat1, RowOffsets[0], ColumnOffsets[0])</l>
+<l>gen_test_contour (ContourConcat2, RowOffsets[1], ColumnOffsets[1])</l>
+<l>gen_test_contour (ContourConcat3, RowOffsets[2], ColumnOffsets[2])</l>
+<l>gen_test_contour (ContourConcat4, RowOffsets[3], ColumnOffsets[3])</l>
+<c>* </c>
+<c>* Display original contours</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (ContourConcat1)</l>
+<l>dev_display (ContourConcat2)</l>
+<l>dev_display (ContourConcat3)</l>
+<l>dev_display (ContourConcat4)</l>
+<l>Message := 'This example shows the effect of'</l>
+<l>Message[1] := 'union_cotangential_contours_xld'</l>
+<l>Message[2] := 'with different parameter sets'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Before', 'window', 12, 420, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Test values</c>
+<l>TestFitClippingLength := 10</l>
+<l>TestFitLength := 5</l>
+<l>TestMaxTangAngle := rad(135)</l>
+<c>* </c>
+<c>* Apply different parameter configurations</c>
+<l>union_cotangential_contours_xld (ContourConcat1, UnionContours1, FitClippingLength, FitLength, MaxTangAngle, MaxDist, MaxDistPerp, MaxOverlap, 'attr_forget')</l>
+<l>union_cotangential_contours_xld (ContourConcat2, UnionContours2, TestFitClippingLength, FitLength, MaxTangAngle, MaxDist, MaxDistPerp, MaxOverlap, 'attr_forget')</l>
+<l>union_cotangential_contours_xld (ContourConcat3, UnionContours3, FitClippingLength, TestFitLength, MaxTangAngle, MaxDist, MaxDistPerp, MaxOverlap, 'attr_forget')</l>
+<l>union_cotangential_contours_xld (ContourConcat4, UnionContours4, FitClippingLength, FitLength, TestMaxTangAngle, MaxDist, MaxDistPerp, MaxOverlap, 'attr_forget')</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_display (UnionContours1)</l>
+<l>dev_display (UnionContours2)</l>
+<l>dev_display (UnionContours3)</l>
+<l>dev_display (UnionContours4)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (ContourConcat1)</l>
+<l>dev_display (ContourConcat2)</l>
+<l>dev_display (ContourConcat3)</l>
+<l>dev_display (ContourConcat4)</l>
+<l>Message[0] := 'Results of'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'After', 'window', 12, 420, 'white', 'false')</l>
+<l>Text := 'Default parameters:\nFitClippingLength = 0\nFitLength = 30\nMaxTangAngle = rad(45)'</l>
+<l>Text[1] := 'Clip endpoints\nFitClippingLength = 10'</l>
+<l>Text[2] := 'Fit small end pieces\nFitLength = 5'</l>
+<l>Text[3] := 'Allow large angles\nMaxTangAngle = rad(135)'</l>
+<l>disp_message (WindowHandle, Text[0], 'window', 200 + RowOffsets[0], 20 + ColumnOffsets[0], 'white', 'false')</l>
+<l>disp_message (WindowHandle, Text[1], 'window', 200 + RowOffsets[1], 20 + ColumnOffsets[1], 'white', 'false')</l>
+<l>disp_message (WindowHandle, Text[2], 'window', 200 + RowOffsets[2], 20 + ColumnOffsets[2], 'white', 'false')</l>
+<l>disp_message (WindowHandle, Text[3], 'window', 200 + RowOffsets[3], 20 + ColumnOffsets[3], 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part II</c>
+<c>* </c>
+<c>* Test the following parameters:</c>
+<c>* - MaxDist</c>
+<c>* - MaxDistPerp</c>
+<c>* - MaxOverlap</c>
+<c>* - MaxTangAngle</c>
+<c>* </c>
+<c>* Test values</c>
+<l>TestMaxDist := 10</l>
+<l>TestMaxDistPerp := 10</l>
+<l>TestMaxOverlap := 10</l>
+<l>TestMaxTangAngle := rad(60)</l>
+<c>* </c>
+<c>* Create and display test contours</c>
+<l>Row := [200,200,200]</l>
+<l>Column := [100,250,400]</l>
+<l>Delay := 0.1</l>
+<l>gen_empty_obj (FixedContours)</l>
+<l>for I := 0 to |Row| - 1 by 1</l>
+<l>    gen_ellipse_contour_xld (ContEllipse, Row[I], Column[I], rad(90), 100, 50, 0, rad(90), 'positive', 1.5)</l>
+<l>    concat_obj (FixedContours, ContEllipse, FixedContours)</l>
+<l>endfor</l>
+<l>gen_ellipse_contour_xld (Contour1, Row[0] - 125, Column[0] + 10, rad(270), 25, 35, 0, rad(90), 'positive', 1.5)</l>
+<l>gen_ellipse_contour_xld (Contour2, Row[1] - 75, Column[1] + 10, rad(0), 35, 25, 0, rad(90), 'positive', 1.5)</l>
+<l>gen_contour_nurbs_xld (Contour3, [100,100,100,100], Column[2] + [0,10,20,30] + 10, 'auto', 'auto', 3, 1, 5)</l>
+<l>concat_obj (Contour1, Contour2, ContoursConcat)</l>
+<l>concat_obj (ContoursConcat, Contour3, ContoursConcat)</l>
+<l>concat_obj (ContoursConcat, FixedContours, ContoursConcat)</l>
+<l>Title := 'Test different parameters of\nunion_cotangential_contours_xld'</l>
+<l>Text := ''</l>
+<l>dev_display_results (ContoursConcat, ContoursConcat, WindowHandle, Title, Text)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Test setting for MaxDist</c>
+<l>Title := 'Test influence of MaxDist'</l>
+<l>DistY := 0</l>
+<l>for DistX := 20 to -10 by -1</l>
+<c>    * Modify test contours</c>
+<l>    gen_ellipse_contour_xld (Contour1, Row[0] - 125 + DistY, Column[0] + DistX, rad(270), 25, 35, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_ellipse_contour_xld (Contour2, Row[1] - 75 + DistY, Column[1] + DistX, rad(0), 35, 25, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_contour_nurbs_xld (Contour3, [100,100,100,100] + DistY, Column[2] + [0,10,20,30] + DistX, 'auto', 'auto', 3, 1, 5)</l>
+<l>    concat_obj (Contour1, Contour2, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, Contour3, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, FixedContours, ContoursConcat)</l>
+<c>    * Try to unify contours</c>
+<l>    union_cotangential_contours_xld (ContoursConcat, UnionContours, FitClippingLength, FitLength, MaxTangAngle, TestMaxDist, MaxDistPerp, MaxOverlap, 'attr_forget')</l>
+<c>    * Display results</c>
+<l>    Text := 'MaxDist = ' + TestMaxDist</l>
+<l>    dev_display_results (UnionContours, ContoursConcat, WindowHandle, Title, Text)</l>
+<l>    wait_seconds (Delay)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Test setting for MaxDistPerp</c>
+<l>Title := 'Test influence of MaxDistPerp'</l>
+<l>DistX := 5</l>
+<l>for DistY := -20 to 20 by 1</l>
+<c>    * Modify test contours</c>
+<l>    gen_ellipse_contour_xld (Contour1, Row[0] - 125 + DistY, Column[0] + DistX, rad(270), 25, 35, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_ellipse_contour_xld (Contour2, Row[1] - 75 + DistY, Column[1] + DistX, rad(0), 35, 25, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_contour_nurbs_xld (Contour3, [100,100,100,100] + DistY, Column[2] + [0,10,20,30] + DistX, 'auto', 'auto', 3, 1, 5)</l>
+<l>    concat_obj (Contour1, Contour2, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, Contour3, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, FixedContours, ContoursConcat)</l>
+<c>    * Try to unify contours</c>
+<l>    union_cotangential_contours_xld (ContoursConcat, UnionContours, FitClippingLength, FitLength, MaxTangAngle, MaxDist, TestMaxDistPerp, MaxOverlap, 'attr_forget')</l>
+<c>    * Display results</c>
+<l>    Text := 'MaxDistPerp = ' + TestMaxDistPerp</l>
+<l>    dev_display_results (UnionContours, ContoursConcat, WindowHandle, Title, Text)</l>
+<l>    wait_seconds (Delay)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Test positive overlap</c>
+<l>Title := 'Test influence of positive MaxOverlap'</l>
+<l>DistY := -5</l>
+<l>for DistX := -15 to 15 by 1</l>
+<c>    * Modify test contours</c>
+<l>    gen_ellipse_contour_xld (Contour1, Row[0] - 125 + DistY, Column[0] + DistX, rad(270), 25, 35, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_ellipse_contour_xld (Contour2, Row[1] - 75 + DistY, Column[1] + DistX, rad(0), 35, 25, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_contour_nurbs_xld (Contour3, [100,100,100,100] + DistY, Column[2] + [0,10,20,30] + DistX, 'auto', 'auto', 3, 1, 5)</l>
+<l>    concat_obj (Contour1, Contour2, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, Contour3, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, FixedContours, ContoursConcat)</l>
+<c>    * Try to unify contours</c>
+<l>    union_cotangential_contours_xld (ContoursConcat, UnionContours, FitClippingLength, FitLength, MaxTangAngle, MaxDist, MaxDistPerp, abs(TestMaxOverlap), 'attr_forget')</l>
+<c>    * Display results</c>
+<l>    Text := 'MaxOverlap = ' + abs(TestMaxOverlap)</l>
+<l>    dev_display_results (UnionContours, ContoursConcat, WindowHandle, Title, Text)</l>
+<l>    wait_seconds (Delay)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Test for negative overlap</c>
+<l>Title := 'Test influence of negative MaxOverlap'</l>
+<l>DistY := -5</l>
+<l>for DistX := -15 to 15 by 1</l>
+<c>    * Modify test contours</c>
+<l>    gen_ellipse_contour_xld (Contour1, Row[0] - 125 + DistY, Column[0] + DistX, rad(270), 25, 35, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_ellipse_contour_xld (Contour2, Row[1] - 75 + DistY, Column[1] + DistX, rad(0), 35, 25, 0, rad(90), 'positive', 1.5)</l>
+<l>    gen_contour_nurbs_xld (Contour3, [100,100,100,100] + DistY, Column[2] + [0,10,20,30] + DistX, 'auto', 'auto', 3, 1, 5)</l>
+<l>    concat_obj (Contour1, Contour2, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, Contour3, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, FixedContours, ContoursConcat)</l>
+<c>    * Try to unify contours</c>
+<l>    union_cotangential_contours_xld (ContoursConcat, UnionContours, FitClippingLength, FitLength, MaxTangAngle, MaxDist, MaxDistPerp, -abs(TestMaxOverlap), 'attr_forget')</l>
+<c>    * Display results</c>
+<l>    Text := 'MaxOverlap = -' + abs(TestMaxOverlap)</l>
+<l>    dev_display_results (UnionContours, ContoursConcat, WindowHandle, Title, Text)</l>
+<l>    wait_seconds (Delay)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Test settings for the angle between two contours</c>
+<l>Title := 'Test influence of MaxTangAngle'</l>
+<l>DistX := 10</l>
+<l>DistY := 0</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>for Phi := 90 to -90 by -1</l>
+<c>    * Modify test contours</c>
+<l>    gen_ellipse_contour_xld (Contour1, Row[0] - 125 + DistY, Column[0] + DistX, rad(270), 25, 35, 0, rad(90), 'positive', 1.5)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Phi), Row[0] - 100 + DistY, Column[0] + DistX, HomMat2DRotate)</l>
+<l>    affine_trans_contour_xld (Contour1, Contour1, HomMat2DRotate)</l>
+<l>    gen_ellipse_contour_xld (Contour2, Row[1] - 75 + DistY, Column[1] + DistX, rad(0), 35, 25, 0, rad(90), 'positive', 1.5)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Phi), Row[1] - 100 + DistY, Column[1] + DistX, HomMat2DRotate)</l>
+<l>    affine_trans_contour_xld (Contour2, Contour2, HomMat2DRotate)</l>
+<l>    gen_contour_nurbs_xld (Contour3, [100,100,100,100] + DistY, Column[2] + [0,10,20,30] + DistX, 'auto', 'auto', 3, 1, 5)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Phi), Row[2] - 100 + DistY, Column[2] + DistX, HomMat2DRotate)</l>
+<l>    affine_trans_contour_xld (Contour3, Contour3, HomMat2DRotate)</l>
+<l>    concat_obj (Contour1, Contour2, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, Contour3, ContoursConcat)</l>
+<l>    concat_obj (ContoursConcat, FixedContours, ContoursConcat)</l>
+<c>    * Try to unify contours</c>
+<l>    union_cotangential_contours_xld (ContoursConcat, UnionContours, FitClippingLength, FitLength, TestMaxTangAngle, MaxDist, MaxDistPerp, TestMaxOverlap, 'attr_forget')</l>
+<c>    * Display results</c>
+<l>    Text := 'MaxTangAngle = rad(' + deg(TestMaxTangAngle) + ')'</l>
+<l>    dev_display_results (UnionContours, ContoursConcat, WindowHandle, Title, Text)</l>
+<l>    wait_seconds (Delay / 2)</l>
+<l>endfor</l>
+<l>set_system ('flush_graphic', FlushGraphic)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_test_contour">
+<interface>
+<oo>
+<par name="ContourConcat" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="RowOffset" base_type="ctrl" dimension="0"/>
+<par name="ColumnOffset" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Rows1 := [131.5,117.5,132,100.5] + RowOffset</l>
+<l>Columns1 := [117.5,118.5,150.5,175.5] + ColumnOffset</l>
+<l>Rows2 := [120.5,121,131.5,122.5] + RowOffset</l>
+<l>Columns2 := [39.5,76,114.5,112.5] + ColumnOffset</l>
+<l>Rows3 := [64.5,88,88,111.5] + RowOffset</l>
+<l>Columns3 := [119.5,117.5,115.5,115.5] + ColumnOffset</l>
+<l>Rows4 := [136.5,173.5,229.5,103.5] + RowOffset</l>
+<l>Columns4 := [117.5,106.5,272.5,185.5] + ColumnOffset</l>
+<l>gen_contour_nurbs_xld (Contour1, Rows1, Columns1, [0,0,0,0,1,1,1,1], 'auto', 3, 1, 5)</l>
+<l>gen_contour_nurbs_xld (Contour2, Rows2, Columns2, [0,0,0,0,1,1,1,1], 'auto', 3, 1, 5)</l>
+<l>gen_contour_nurbs_xld (Contour3, Rows3, Columns3, [0,0,0,0,1,1,1,1], 'auto', 3, 1, 5)</l>
+<l>gen_contour_nurbs_xld (Contour4, Rows4, Columns4, [0,0,0,0,1,1,1,1], 'auto', 3, 1, 5)</l>
+<l>concat_obj (Contour1, Contour2, ContourConcat)</l>
+<l>concat_obj (ContourConcat, Contour3, ContourConcat)</l>
+<l>concat_obj (ContourConcat, Contour4, ContourConcat)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_test_contour">
+<parameters>
+<parameter id="ColumnOffset"/>
+<parameter id="ContourConcat"/>
+<parameter id="RowOffset"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_results">
+<interface>
+<io>
+<par name="UnionContours" base_type="iconic" dimension="0"/>
+<par name="ContoursConcat" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="Text" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays the results of* union_cotangential_contours_xld</c>
+<c>* </c>
+<l>set_system ('flush_graphic', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, Text, 'window', 220, 12, 'white', 'false')</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (UnionContours)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('white')</l>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>dev_display (ContoursConcat)</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_results">
+<parameters>
+<parameter id="ContoursConcat"/>
+<parameter id="Text"/>
+<parameter id="Title"/>
+<parameter id="UnionContours"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the usage of var_threshold to threshold an image</c>
+<c>* by local mean and standard deviation analysis.</c>
+<c>* </c>
+<c>* With var_threshold, it's possible to select the pixels of the input Image which</c>
+<c>* have a high local standard deviation (for a positive StdDevScale),</c>
+<c>* or a low local standard deviation (for a negative StdDevScale)</c>
+<c>* and are locally bright or dark, according to LightDark.</c>
+<c>* Thus, it is possible to segment regions on inhomogeneous, noisy,</c>
+<c>* or unevenly illuminated backgrounds.</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Read all images in the directory 'label'</c>
+<c>* and select all images that end with 'label_', three arbitrary characters,</c>
+<c>* and then the string 'png'.</c>
+<l>list_image_files ('label', 'default', [], ImageFiles)</l>
+<l>ImageFiles1 := regexp_select(ImageFiles,'label_...png$')</l>
+<c>* </c>
+<c>* Open a window to display the results.</c>
+<l>read_image (Image, ImageFiles1[0])</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Loop over all images.</c>
+<l>for Index := 0 to |ImageFiles1| - 1 by 1</l>
+<l>    read_image (Image, ImageFiles1[Index])</l>
+<c>    * Threshold the image.</c>
+<l>    var_threshold (Image, Region, 15, 15, 1.01, 40, 'dark')</l>
+<c>    * Select regions of particular height and size.</c>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, ['height','area'], 'and', [20,100], [100,400])</l>
+<c>    * Display the results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SelectedRegions)</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

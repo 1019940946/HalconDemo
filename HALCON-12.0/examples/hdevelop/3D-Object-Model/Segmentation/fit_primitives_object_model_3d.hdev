@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* This example program shows how to use the operator</c>
+<c>* fit_object_model_3d in HALCON. First, the 2.5D input image is</c>
+<c>* segmented with a simple segmentation.  Then, a fitting is applied</c>
+<c>* using a least squares adjustment.  Finally, the radius of the fitted</c>
+<c>* cylinder is shown.</c>
+<c>* ***********************************************************************</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Input: 2.5D image</c>
+<l>read_image (XYZ, '3d_machine_vision/segmentation/3d_primitives_xyz_02.tif')</l>
+<l>dev_open_window_fit_image (XYZ, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Access to (x-, y-, z-)coordinates</c>
+<l>access_channel (XYZ, X, 1)</l>
+<l>access_channel (XYZ, Y, 2)</l>
+<l>access_channel (XYZ, Z, 3)</l>
+<c>* Segment cylinder manually</c>
+<l>threshold (Z, Region, 0.0, 0.83)</l>
+<l>reduce_domain (X, Region, XTmp)</l>
+<l>dev_display (Z)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region)</l>
+<l>disp_message (WindowHandle, 'Segment cylinder with a simple threshold', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Create an object model 3d from the segmented region</c>
+<l>xyz_to_object_model_3d (XTmp, Y, Z, ObjectModel3DID)</l>
+<l>ParFitting := ['primitive_type','fitting_algorithm','output_xyz_mapping']</l>
+<l>ValFitting := ['cylinder','least_squares_huber','true']</l>
+<c>* Apply the fitting</c>
+<l>fit_primitives_object_model_3d (ObjectModel3DID, ParFitting, ValFitting, ObjectModel3DOutID)</l>
+<c>* Clear the object model that is no longer used</c>
+<l>clear_object_model_3d (ObjectModel3DID)</l>
+<c>* Display the result of the fitting</c>
+<l>dev_display (Z)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display_fitting_results (RegionCylinder, RegionSphere, RegionPlane, RegionNone, ObjectModel3DOutID, WindowHandle, [])</l>
+<l>dev_update_on ()</l>
+<l>clear_object_model_3d (ObjectModel3DOutID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_display_fitting_results">
+<interface>
+<oo>
+<par name="RegionCylinder" base_type="iconic" dimension="0"/>
+<par name="RegionSphere" base_type="iconic" dimension="0"/>
+<par name="RegionPlane" base_type="iconic" dimension="0"/>
+<par name="RegionNone" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ObjectModel3DOutID" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Colors" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays the results of a fitting operation.</c>
+<c>* Additionally to the primitive regions, the radius of</c>
+<c>* cylinders and spheres is displayed.</c>
+<c>* The colors can be specified with the parameter Colors</c>
+<c>* in the following manner:</c>
+<c>* Color[0] is used for objects which could not be fitted</c>
+<c>* Color[1] is used for cylinders</c>
+<c>* Color[2] is used for spheres</c>
+<c>* Color[3] is used for planes</c>
+<c>* </c>
+<l>if (Colors == [])</l>
+<l>    Colors := ['dim gray','forest green','red','slate blue']</l>
+<l>endif</l>
+<l>NumNone := 0</l>
+<l>NumCylinders := 0</l>
+<l>NumSpheres := 0</l>
+<l>NumPlanes := 0</l>
+<l>for Index := 0 to |ObjectModel3DOutID| - 1 by 1</l>
+<l>    object_model_3d_to_xyz (XTmp, YTmp, ZTmp, ObjectModel3DOutID[Index], 'from_xyz_map', [], [])</l>
+<l>    get_domain (XTmp, DomainTmp)</l>
+<l>    get_object_model_3d_params (ObjectModel3DOutID[Index], 'has_primitive_data', ParamValue)</l>
+<l>    if (ParamValue == 'true')</l>
+<l>        get_object_model_3d_params (ObjectModel3DOutID[Index], 'primitive_parameter', GenParamValuesP)</l>
+<l>        get_object_model_3d_params (ObjectModel3DOutID[Index], 'primitive_type', ParamValue)</l>
+<l>        if (ParamValue == 'cylinder')</l>
+<l>            if (NumCylinders == 0)</l>
+<l>                copy_obj (DomainTmp, RegionCylinder, 1, -1)</l>
+<l>                RadiusCylinder := GenParamValuesP[6]</l>
+<l>            else</l>
+<l>                concat_obj (RegionCylinder, DomainTmp, RegionCylinder)</l>
+<l>                RadiusCylinder := [RadiusCylinder,GenParamValuesP[6]]</l>
+<l>            endif</l>
+<l>            NumCylinders := NumCylinders + 1</l>
+<l>        elseif (ParamValue == 'sphere')</l>
+<l>            if (NumSpheres == 0)</l>
+<l>                copy_obj (DomainTmp, RegionSphere, 1, -1)</l>
+<l>                RadiusSphere := GenParamValuesP[3]</l>
+<l>            else</l>
+<l>                concat_obj (RegionSphere, DomainTmp, RegionSphere)</l>
+<l>                RadiusSphere := [RadiusSphere,GenParamValuesP[3]]</l>
+<l>            endif</l>
+<l>            NumSpheres := NumSpheres + 1</l>
+<l>        else</l>
+<l>            if (NumPlanes == 0)</l>
+<l>                copy_obj (DomainTmp, RegionPlane, 1, -1)</l>
+<l>            else</l>
+<l>                concat_obj (RegionPlane, DomainTmp, RegionPlane)</l>
+<l>            endif</l>
+<l>            NumPlanes := NumPlanes + 1</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        if (NumNone == 0)</l>
+<l>            copy_obj (DomainTmp, RegionNone, 1, -1)</l>
+<l>        else</l>
+<l>            concat_obj (RegionNone, DomainTmp, RegionNone)</l>
+<l>        endif</l>
+<l>        NumNone := NumNone + 1</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>NumColors := |Colors|</l>
+<l>if (NumNone &gt; 0)</l>
+<l>    dev_set_color (Colors[0 % NumColors])</l>
+<l>    dev_display (RegionNone)</l>
+<l>endif</l>
+<l>if (NumCylinders &gt; 0)</l>
+<l>    dev_set_color (Colors[1 % NumColors])</l>
+<l>    dev_display (RegionCylinder)</l>
+<l>endif</l>
+<l>if (NumSpheres &gt; 0)</l>
+<l>    dev_set_color (Colors[2 % NumColors])</l>
+<l>    dev_display (RegionSphere)</l>
+<l>endif</l>
+<l>if (NumPlanes &gt; 0)</l>
+<l>    dev_set_color (Colors[3 % NumColors])</l>
+<l>    dev_display (RegionPlane)</l>
+<l>endif</l>
+<l>disp_message (WindowHandle, '3D Fitting', 'window', -1, -1, 'black', 'true')</l>
+<l>Message := 'Cylinders: ' + NumCylinders</l>
+<l>Message[1] := 'Spheres: ' + NumSpheres</l>
+<l>Message[2] := 'Planes: ' + NumPlanes</l>
+<l>Message[3] := 'Undefined: ' + NumNone</l>
+<l>disp_message (WindowHandle, Message, 'window', 40, 12, 'black', 'true')</l>
+<l>if (NumCylinders &gt; 0)</l>
+<c>    * Display radius for each cylinder</c>
+<l>    area_center (RegionCylinder, Area, Row, Column)</l>
+<l>    for Index := 0 to NumCylinders - 1 by 1</l>
+<l>        Radius := int(RadiusCylinder[Index] * 1000)</l>
+<l>        disp_message (WindowHandle, 'Cylinder\nr = ' + Radius + ' mm', 'image', Row[Index], Column[Index], 'white', 'false')</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>if (NumSpheres &gt; 0)</l>
+<c>    * Display radius for each cylinder sphere</c>
+<l>    area_center (RegionSphere, Area, Row, Column)</l>
+<l>    for Index := 0 to NumSpheres - 1 by 1</l>
+<l>        Radius := int(RadiusSphere[Index] * 1000)</l>
+<l>        disp_message (WindowHandle, 'Sphere\nr = ' + Radius + ' mm', 'image', Row[Index], Column[Index], 'white', 'false')</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_fitting_results">
+<parameters>
+<parameter id="Colors"/>
+<parameter id="ObjectModel3DOutID"/>
+<parameter id="RegionCylinder"/>
+<parameter id="RegionNone"/>
+<parameter id="RegionPlane"/>
+<parameter id="RegionSphere"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

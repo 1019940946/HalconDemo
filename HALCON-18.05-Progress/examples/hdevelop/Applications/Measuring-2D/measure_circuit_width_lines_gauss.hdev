@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to measure the width of pcb tracks.</c>
+<c>* First, we use the operator lines_gauss to determine the</c>
+<c>* width of the tracks. Afterwards, the width is checked at</c>
+<c>* every point along the tracks. Finally, the regions where</c>
+<c>* the tracks are too narrow or too broad, are extracted.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'pcb_color')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('yellow')</l>
+<c>* </c>
+<c>* Define the minimum and maximum width of the pcb tracks</c>
+<l>MaxTrackWidth := 6.0</l>
+<l>MinTrackWidth := 4.0</l>
+<c>* </c>
+<c>* Select a sub-region of the image</c>
+<l>Rectangle := [271,285,528,718]</l>
+<l>gen_rectangle1 (PcbPart, Rectangle[0], Rectangle[1], Rectangle[2], Rectangle[3])</l>
+<l>dev_display (Image)</l>
+<l>dev_display (PcbPart)</l>
+<l>disp_message (WindowHandle, 'Measure the width of tracks using lines_gauss', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_part (Rectangle[0] - 15, Rectangle[1] - 15, Rectangle[2] + 15, Rectangle[3] + 15)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (PcbPart)</l>
+<l>disp_message (WindowHandle, 'Exemplarily shown here for a part of the circuit board', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract the tracks</c>
+<l>decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<l>reduce_domain (ImageG, PcbPart, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 90, 255)</l>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<l>opening_rectangle1 (Region, RegionOpening, 8, 8)</l>
+<l>dilation_circle (RegionOpening, RegionDilation1, 3.5)</l>
+<l>difference (Region, RegionDilation1, RegionDifference)</l>
+<l>difference (RegionDilation, RegionDilation1, RegionDifference)</l>
+<l>connection (RegionDifference, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, RegionSelected, 'area', 'and', 260, 4595)</l>
+<l>union1 (RegionSelected, RegionTracks)</l>
+<l>reduce_domain (ImageReduced, RegionTracks, ImageReducedTracks)</l>
+<c>* </c>
+<c>* Measure the position and the width of the tracks</c>
+<l>lines_gauss (ImageReducedTracks, Lines, 1.5, 1, 8, 'light', 'true', 'bar-shaped', 'true')</l>
+<l>select_shape_xld (Lines, SelectedXLD, 'contlength', 'and', 20, 99999)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (PcbPart)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Lines)</l>
+<l>disp_message (WindowHandle, 'Extracted tracks', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the width of the tracks</c>
+<l>count_obj (SelectedXLD, NumberL)</l>
+<l>RowLine := []</l>
+<l>ColLine := []</l>
+<l>LineWidth := []</l>
+<l>for IndexL := 1 to NumberL by 1</l>
+<l>    select_obj (SelectedXLD, Line, IndexL)</l>
+<l>    get_contour_xld (Line, Row, Column)</l>
+<l>    get_contour_attrib_xld (Line, 'width_left', WidthL)</l>
+<l>    get_contour_attrib_xld (Line, 'width_right', WidthR)</l>
+<l>    RowLine := [RowLine,Row]</l>
+<l>    ColLine := [ColLine,Column]</l>
+<l>    LineWidth := [LineWidth,WidthR + WidthL]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Detect the tracks with a wrong width</c>
+<l>tuple_find (min2(LineWidth,MaxTrackWidth), MaxTrackWidth, IndicesTooBroad)</l>
+<l>tuple_find (max2(LineWidth,MinTrackWidth), MinTrackWidth, IndicesTooNarrow)</l>
+<l>if (IndicesTooBroad == -1)</l>
+<l>    IndicesTooBroad := []</l>
+<l>endif</l>
+<l>if (IndicesTooNarrow == -1)</l>
+<l>    IndicesTooNarrow := []</l>
+<l>endif</l>
+<l>gen_region_points (RegionTooBroad, subset(RowLine,IndicesTooBroad), subset(ColLine,IndicesTooBroad))</l>
+<l>gen_region_points (RegionTooNarrow, subset(RowLine,IndicesTooNarrow), subset(ColLine,IndicesTooNarrow))</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>connection (RegionTooBroad, RegionTooBroad)</l>
+<l>gen_contours_skeleton_xld (RegionTooBroad, TracksTooBroad, 1, 'filter')</l>
+<l>smallest_circle (RegionTooBroad, RowTooBroad, ColumnTooBroad, RadiusTooBroad)</l>
+<l>gen_circle_contour_xld (CircleTooBroad, RowTooBroad, ColumnTooBroad, min2(RadiusTooBroad + 10,20), 0, 6.28318, 'positive', 1)</l>
+<l>connection (RegionTooNarrow, RegionTooNarrow)</l>
+<l>gen_contours_skeleton_xld (RegionTooNarrow, TracksTooNarrow, 1, 'filter')</l>
+<l>smallest_circle (RegionTooNarrow, RowTooNarrow, ColumnTooNarrow, RadiusTooNarrow)</l>
+<l>gen_circle_contour_xld (CircleTooNarrow, RowTooNarrow, ColumnTooNarrow, min2(RadiusTooNarrow + 10,20), 0, 6.28318, 'positive', 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ImageReduced)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Lines)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (TracksTooBroad)</l>
+<l>dev_display (CircleTooBroad)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (CircleTooNarrow)</l>
+<l>dev_display (TracksTooNarrow)</l>
+<l>disp_message (WindowHandle, ['Extracted tracks',' - Too broad',' - Too narrow'], 'window', 12, 12, ['black','red','magenta'], 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Searching the best match of a template in an image (with rotation).</c>
+<c>* (search the leading part of every paperclip)</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Clip, 'clip')</l>
+<l>zoom_image_factor (Clip, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>get_image_size (ImageZoomed, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>Rot := 2.26</l>
+<l>Row := 33</l>
+<l>Column := 127</l>
+<l>dev_set_draw ('margin')</l>
+<l>gen_rectangle2 (Rectangle, Row, Column, Rot, 18, 15)</l>
+<l>disp_arrow (WindowID, Row, Column, Row + cos(Rot) * 50, Column + sin(Rot) * 50, 1)</l>
+<c>* Reduce the definition domain of image</c>
+<l>reduce_domain (ImageZoomed, Rectangle, ImageReduced)</l>
+<l>pi := acos(0.0) * 2</l>
+<c>* Prepare a pattern for template matching with rotation</c>
+<l>create_template_rot (ImageReduced, 4, -pi, 2 * pi, pi / 90, 'sort', 'original', TemplateID)</l>
+<l>dev_set_color ('red')</l>
+<l>threshold (ImageZoomed, Region, 120, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, Holes, 'area', 'and', 100, 500)</l>
+<l>union1 (Holes, Union)</l>
+<l>dilation_circle (Union, ROI, 3.5)</l>
+<l>dev_display (ImageZoomed)</l>
+<l>reduce_domain (ImageZoomed, ROI, ImageZoomed)</l>
+<l>dev_display (ROI)</l>
+<l>Error := 0.0</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<c>* Search for best match of the template</c>
+<l>while (Error &lt; 255)</l>
+<l>    best_match_rot_mg (ImageZoomed, TemplateID, -pi, 2 * pi, 40, 'false', 3, Row, Column, Angle, Error)</l>
+<l>    gen_rectangle2 (Rectangle, Row, Column, Rot + Angle, 18 + 3, 15 + 12)</l>
+<l>    if (Error &lt; 25)</l>
+<l>        disp_arrow (WindowID, Row, Column, Row + cos(Angle + Rot) * 50, Column + sin(Angle + Rot) * 50, 1)</l>
+<l>        dev_display (Rectangle)</l>
+<l>    endif</l>
+<l>    if (Error &lt; 255)</l>
+<l>        get_domain (ImageZoomed, Domain)</l>
+<l>        difference (Domain, Rectangle, Difference)</l>
+<l>        reduce_domain (ImageZoomed, Difference, ImageZoomed)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>dev_update_window ('on')</l>
+<l>stop ()</l>
+<c>* Continue in order to give free the memory of the template</c>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

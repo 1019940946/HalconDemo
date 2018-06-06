@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to find pads in an image and how to</c>
+<c>* determine their position, rotation, and size robustly and accurately using</c>
+<c>* fit_rectangle2_contour_xld.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'die_pads')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* Find the pads in the image using blob analysis.</c>
+<l>fast_threshold (Image, Region, 180, 255, 20)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['area','anisometry'], 'and', [200,1], [1200,2])</l>
+<c>* Construct a ROI for subpixel-accurate edge detection.</c>
+<l>fill_up (SelectedRegions, RegionFillUp)</l>
+<l>shape_trans (RegionFillUp, RegionTrans, 'convex')</l>
+<l>boundary (RegionTrans, RegionBorder, 'inner')</l>
+<l>dilation_circle (RegionBorder, RegionDilation, 2.5)</l>
+<l>union1 (RegionDilation, RegionUnion)</l>
+<c>* Perform the subpixel-accurate edge detection.</c>
+<l>reduce_domain (Image, RegionUnion, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'sobel_fast', 0.5, 20, 40)</l>
+<c>* Select the edge fragments that belong to the pads.</c>
+<l>select_shape_xld (Edges, SelectedContours, 'contlength', 'and', 10, 200)</l>
+<c>* Merge adjacent edge fragments to obtain one contour per pad.</c>
+<l>union_adjacent_contours_xld (SelectedContours, UnionContours, 2, 1, 'attr_keep')</l>
+<c>* Fit rectangles robustly to the pads' edges.</c>
+<l>fit_rectangle2_contour_xld (UnionContours, 'tukey', -1, 0, 0, 3, 2, Row, Column, Phi, Length1, Length2, PointOrder)</l>
+<c>* Generate rectangles from the fitting result for visualization purposes.</c>
+<l>gen_rectangle2_contour_xld (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Rectangle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates the usage of the exception handling</c>
+<c>* in HDevelop.</c>
+<c>* </c>
+<c>* Whether an error message box is displayed before the exception is</c>
+<c>* thrown or not, is controlled by the HDevelop preference</c>
+<c>* 'Suppress error messages (throw directly an HDevelop Exception)' that can</c>
+<c>* be reached via 'Edit'-&gt;'Preferences'-&gt;'General Options'-&gt;'Experienced User'</c>
+<c>* or can be set directly with dev_set_preferences:</c>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Define an array of valid and invalid image names.</c>
+<l>ImageNames := ['mreut','the_mreut_image','rings_and_nuts']</l>
+<c>* </c>
+<c>* Use exception handling to ensure that all operators work correctly.</c>
+<l>for Index := 0 to |ImageNames| - 1 by 1</l>
+<l>    try</l>
+<l>        read_image (Image, ImageNames[Index])</l>
+<c>        * Do anything with the image, e.g., thresholding.</c>
+<l>        threshold (Image, Region, 128, 255)</l>
+<l>        disp_message (WindowHandle, 'Image name: ' + ImageNames[Index], 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    catch (Exception)</l>
+<l>        dev_clear_window ()</l>
+<l>        disp_message (WindowHandle, 'Image name: ' + ImageNames[Index], 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_message (WindowHandle, Exception, 'window', 50, 12, 'red', 'true')</l>
+<c>        * Access specific items of the exception.</c>
+<l>        dev_get_exception_data (Exception, 'error_msg', ErrorMsg)</l>
+<l>        disp_message (WindowHandle, 'Error message: ' + ErrorMsg, 'window', 250, 12, 'red', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endtry</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Use exception handling to ignore HALCON exceptions.</c>
+<l>for Index := 0 to |ImageNames| - 1 by 1</l>
+<l>    try</l>
+<l>        read_image (Image, ImageNames[Index])</l>
+<c>        * Do anything with the image, e.g., thresholding.</c>
+<l>        threshold (Image, Region, 128, 255)</l>
+<l>        disp_message (WindowHandle, 'Image name: ' + ImageNames[Index], 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    catch (Exception)</l>
+<c>        * Skip this image because it could not be read correctly.</c>
+<l>        continue</l>
+<l>    endtry</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Throw a HALCON exception with additional user data from within a procedure.</c>
+<l>try</l>
+<l>    throw_exception_add_user_data (ImageNames)</l>
+<l>    stop ()</l>
+<l>catch (Exception)</l>
+<l>    dev_clear_window ()</l>
+<c>    * Access specific items of the exception.</c>
+<l>    dev_get_exception_data (Exception, 'error_msg', ErrorMsg)</l>
+<c>    * Access the user data of the exception.</c>
+<l>    dev_get_exception_data (Exception, 'user_data', UserData)</l>
+<l>    disp_message (WindowHandle, ['Error message: ' + ErrorMsg,'Image name:    ' + UserData], 'window', 12, 12, 'red', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Throw a user defined exception from within a procedure.</c>
+<l>try</l>
+<l>    throw_user_defined_exception (ImageNames)</l>
+<l>    stop ()</l>
+<l>catch (Exception)</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, Exception, 'window', 12, 12, 'red', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="throw_exception_add_user_data">
+<interface>
+<ic>
+<par name="ImageNames" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>for Index := 0 to |ImageNames| - 1 by 1</l>
+<l>    try</l>
+<l>        read_image (Image, ImageNames[Index])</l>
+<l>    catch (Exception)</l>
+<l>        dev_get_exception_data (Exception, 'error_code', ErrorCode)</l>
+<l>        if (ErrorCode == 5200)</l>
+<l>            throw ([Exception,ImageNames[Index]])</l>
+<l>        endif</l>
+<l>        throw (Exception)</l>
+<l>    endtry</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="throw_exception_add_user_data">
+<abstract lang="en_US">The procedure throw_exception_add_user_data tries to read all images given in ImageNames and throws an exception as soon as one image cannot be read. If the error 5200 (File not found) occurs, the name of the image file that could not be read is appended to the exception data.</abstract>
+<short lang="de_DE">Try to read all images given in ImageNames and throw an exception if an image cannot be read.</short>
+<short lang="en_US">Try to read all images given in ImageNames and throw an exception if an image cannot be read.</short>
+<parameters>
+<parameter id="ImageNames">
+<default_type>string</default_type>
+<description lang="en_US">Image names</description>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="throw_user_defined_exception">
+<interface>
+<ic>
+<par name="ImageNames" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>for Index := 0 to |ImageNames| - 1 by 1</l>
+<l>    try</l>
+<l>        read_image (Image, ImageNames[Index])</l>
+<l>    catch (Exception)</l>
+<l>        dev_get_exception_data (Exception, 'error_code', ErrorCode)</l>
+<l>        throw ([ErrorCode + 30000,'The image ' + ImageNames[Index] + ' could not be read.'])</l>
+<l>    endtry</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="throw_user_defined_exception">
+<abstract lang="en_US">The procedure throw_user_defined_exception tries to read all images given in ImageNames and throws an exception as soon as one image cannot be read. The exception consists of an error code and of the textual description of the error.</abstract>
+<short lang="de_DE">Try to read all images given in ImageNames and throw an exception if an image cannot be read.</short>
+<short lang="en_US">Try to read all images given in ImageNames and throw an exception if an image cannot be read.</short>
+<parameters>
+<parameter id="ImageNames">
+<default_type>string</default_type>
+<description lang="en_US">Image names</description>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

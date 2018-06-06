@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the method 'adapted_std_deviation' of local_threshold</c>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Letters, 'letters')</l>
+<l>dev_open_window_fit_image (Letters, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Add varying background to the next image to show</c>
+<c>* the strength of the adapted_std_deviation method more clearly.</c>
+<l>get_image_size (Letters, Width, Height)</l>
+<l>gen_image_surface_first_order (ImageSurface, 'byte', 0.5, 0.5, 0.5, Width / 2, Height / 2, Width, Height)</l>
+<l>add_image (Letters, ImageSurface, ImageCombined, 0.5, 0)</l>
+<c>* </c>
+<c>* Show that it is impossible to segment the characters</c>
+<c>* with one global threshold from this image</c>
+<l>GlobalThreshold := 128</l>
+<l>threshold (ImageCombined, RegionGlobal, 0, GlobalThreshold)</l>
+<l>dev_display (ImageCombined)</l>
+<l>dev_display (RegionGlobal)</l>
+<l>Message := 'In images with inhomogeneous background'</l>
+<l>Message[1] := 'it is impossible to segment the characters'</l>
+<l>Message[2] := 'with a global threshold.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 'adapted_std_deviation'</c>
+<c>* </c>
+<c>* This method implements locally adaptive thresholding and</c>
+<c>* is suited to segment objects with varying background</c>
+<c>* </c>
+<l>local_threshold (ImageCombined, Region, 'adapted_std_deviation', 'dark', [], [])</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_display (ImageCombined)</l>
+<l>dev_display (Region)</l>
+<l>Message := 'With a local threshold, the characters'</l>
+<l>Message[1] := 'can be segmented successfully.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

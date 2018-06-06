@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'claudia')</l>
+<l>concat_obj (Image, Image, Images)</l>
+<l>tile_images (Images, TiledImage1, 1, 'vertical')</l>
+<l>tile_images (Images, TiledImage2, 2, 'horizontal')</l>
+<l>scale_image (Image, ImageInverted, -1, 256)</l>
+<l>concat_obj (ImageInverted, ImageInverted, ImagesInverted)</l>
+<l>concat_obj (Images, ImagesInverted, Images4)</l>
+<l>tile_images (Images4, TiledImage3, 2, 'horizontal')</l>
+<l>tile_images (Images4, TiledImage4, 2, 'vertical')</l>
+<l>mirror_image (Image, ImageMirror, 'row')</l>
+<l>concat_obj (Images4, ImageMirror, Images5)</l>
+<l>tile_images (Images5, TiledImage5, 3, 'horizontal')</l>
+<l>tile_images (Images5, TiledImage6, 3, 'vertical')</l>
+<l>mirror_image (Image, ImageMirror2, 'column')</l>
+<l>concat_obj (ImageMirror2, ImageMirror2, ImagesMirror)</l>
+<l>concat_obj (Images5, ImagesMirror, Images7)</l>
+<l>tile_images (Images7, TiledImage7, 5, 'horizontal')</l>
+<l>tile_images (Images7, TiledImage8, 5, 'vertical')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows that rank filtering with a rank different from 1 and</c>
+<c>* the area of the mask can be used to implement a kind of gray value</c>
+<c>* morphology that is less rigorous than the regular gray value morphology.</c>
+<c>* In this particular example, the goal is to fill the small holes in the</c>
+<c>* pads of the PCB mask.  With the regular gray value morphology, a gray</c>
+<c>* value opening with a mask size of 7×7 is required to fill the holes</c>
+<c>* completely.  However, this also merges some of the tracks on the PCB.</c>
+<c>* The regular gray value morphology corresponds to a rank filtering with</c>
+<c>* ranks equal to 1 and the area of the mask, respectively.  Similar</c>
+<c>* operations can be achieved with ranks larger than 1 and smaller than</c>
+<c>* the area of the mask.  In this example, this kind of less rigorous gray</c>
+<c>* value morphology allows to fill the holes completely and to keep the</c>
+<c>* tracks separate.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'pcb_layout')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>MaskSize := 7</l>
+<l>RankErosion := 20</l>
+<l>RankDilation := MaskSize * MaskSize + 1 - RankErosion</l>
+<l>gray_opening_rect (Image, ImageOpening, MaskSize, MaskSize)</l>
+<l>rank_rect (Image, ImageErosionRank, MaskSize, MaskSize, RankErosion)</l>
+<l>rank_rect (ImageErosionRank, ImageOpeningRank, MaskSize, MaskSize, RankDilation)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageOpening)</l>
+<l>disp_message (WindowHandle, 'Gray value opening', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageOpeningRank)</l>
+<l>disp_message (WindowHandle, 'Rank-based opening', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_part (350, 445, 481, 526)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageOpening)</l>
+<l>disp_message (WindowHandle, 'Gray value opening', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageOpeningRank)</l>
+<l>disp_message (WindowHandle, 'Rank-based opening', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

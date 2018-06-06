@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program illustrates how to use the Harris Binomial point detector.</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, [500,800], [400,800], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>MaskSizeGrd := 5</l>
+<l>MaskSizeSmooth := 15</l>
+<l>Alpha := 0.04</l>
+<l>Threshold := 1000</l>
+<l>Subpix := 'on'</l>
+<c>* </c>
+<l>count_seconds (S1)</l>
+<l>points_harris_binomial (Image, MaskSizeGrd, MaskSizeSmooth, Alpha, Threshold, Subpix, Row, Column)</l>
+<l>count_seconds (S2)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 6, rad(45))</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, |Row| + ' points found in ' + (1000 * (S2 - S1))$'.3' + ' ms', 'window', -1, -1, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

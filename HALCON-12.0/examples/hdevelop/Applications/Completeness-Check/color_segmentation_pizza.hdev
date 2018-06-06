@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the color space transformation.</c>
+<c>* The salami pieces on the pizza are segmented by transforming</c>
+<c>* the RGB image into the CIELab color space. In the b-channel</c>
+<c>* of the transformed image the salami pieces can be</c>
+<c>* segmented reliably.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>read_image (Image, 'color/pizza_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* </c>
+<l>for I := 1 to 3 by 1</l>
+<l>    read_image (Image, 'color/pizza_' + I$'.2')</l>
+<l>    decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<c>    * Color transformation</c>
+<l>    trans_from_rgb (ImageR, ImageG, ImageB, Image_L, Image_A, Image_B, 'cielab')</l>
+<c>    * Segment pizza</c>
+<l>    threshold (Image_B, PizzaRaw, 148, 255)</l>
+<l>    connection (PizzaRaw, ConnectedRegions1)</l>
+<l>    select_shape_std (ConnectedRegions1, Pizza, 'max_area', 0)</l>
+<l>    shape_trans (Pizza, PizzaFilled, 'convex')</l>
+<c>    * Segment salami regions</c>
+<l>    reduce_domain (Image_B, PizzaFilled, ImageReduced)</l>
+<l>    threshold (ImageReduced, Region, 140, 146)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 30000, 1000000)</l>
+<l>    closing_circle (SelectedRegions, RegionClosing, 20.5)</l>
+<l>    opening_circle (RegionClosing, RegionOpening, 85.5)</l>
+<c>    * Display results</c>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (RegionOpening)</l>
+<l>    if (I &lt; 3)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

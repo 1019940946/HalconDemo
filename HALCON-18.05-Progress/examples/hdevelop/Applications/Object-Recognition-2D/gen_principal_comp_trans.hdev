@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program which demonstrates</c>
+<c>*       The principal component analysis</c>
+<c>*       Data reduction based on the principal component analysis</c>
+<c>*       Classification by using a 2-dimensional histogram</c>
+<c>* The data used is an ETM+ image with one thermal channel</c>
+<l>read_image (BavariaNorth7Channels, 'bavaria_north_7_channels.jp2')</l>
+<l>get_image_size (BavariaNorth7Channels, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Principal component analysis</c>
+<l>gen_principal_comp_trans (BavariaNorth7Channels, Trans, TransInv, Mean, Cov, InfoPerComp)</l>
+<l>linear_trans_color (BavariaNorth7Channels, ImageTrans, Trans)</l>
+<l>decompose7 (ImageTrans, Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7)</l>
+<l>scale_image (Channel1, ImageScaled1, 1, 100)</l>
+<l>scale_image (Channel2, ImageScaled2, 1, 100)</l>
+<l>convert_image_type (ImageScaled1, Channel1Byte, 'byte')</l>
+<l>convert_image_type (ImageScaled2, Channel2Byte, 'byte')</l>
+<c>* Training</c>
+<l>gen_rectangle1 (Water, 970, 598, 998, 624)</l>
+<l>gen_rectangle1 (Forest, 38, 428, 95, 488)</l>
+<l>gen_rectangle1 (Field, 300, 462, 320, 483)</l>
+<l>gen_cluster (Water, Channel1Byte, Channel2Byte, ClusterWater)</l>
+<l>gen_cluster (Forest, Channel1Byte, Channel2Byte, ClusterForest)</l>
+<l>gen_cluster (Field, Channel1Byte, Channel2Byte, ClusterField)</l>
+<c>* Classification</c>
+<l>class_2dim_sup (Channel1Byte, Channel2Byte, ClusterWater, Water)</l>
+<l>class_2dim_sup (Channel1Byte, Channel2Byte, ClusterForest, Forest)</l>
+<l>class_2dim_sup (Channel1Byte, Channel2Byte, ClusterField, Field)</l>
+<c>* Result visualization</c>
+<l>dev_display (Channel1Byte)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (Water)</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_display (Field)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Forest)</l>
+<l>disp_message (WindowHandle, 'Forest', 'window', 10, 10, 'forest green', 'true')</l>
+<l>disp_message (WindowHandle, 'Water', 'window', 50, 10, 'blue', 'true')</l>
+<l>disp_message (WindowHandle, 'Field', 'window', 90, 10, 'lime green', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_cluster">
+<interface>
+<io>
+<par name="ROI" base_type="iconic" dimension="0"/>
+<par name="Channel1Byte" base_type="iconic" dimension="0"/>
+<par name="Channel2Byte" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Cluster" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>histo_2dim (ROI, Channel1Byte, Channel2Byte, Histo2Dim)</l>
+<l>threshold (Histo2Dim, ClusterRaw, 1, 1000000)</l>
+<l>closing_circle (ClusterRaw, RegionClosing, 3.5)</l>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<l>select_shape_std (ConnectedRegions, ClusterMax, 'max_area', 0)</l>
+<l>dilation_circle (ClusterMax, Cluster, 5.5)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_cluster">
+<parameters>
+<parameter id="Channel1Byte"/>
+<parameter id="Channel2Byte"/>
+<parameter id="Cluster"/>
+<parameter id="ROI"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

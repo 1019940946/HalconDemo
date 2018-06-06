@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the co-occurrence matrices of two regions in an image</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<c>* Create two rectangles parallel to the coordinate axes</c>
+<l>gen_rectangle1 (Rectangle1, 350, 100, 450, 200)</l>
+<l>gen_rectangle1 (Rectangle2, 100, 200, 200, 300)</l>
+<c>* set look-up-table of the output window</c>
+<l>dev_set_lut ('temperature')</l>
+<l>gen_cooc_matrix (Rectangle1, Image, Matrix1, 6, 0)</l>
+<l>gen_cooc_matrix (Rectangle2, Image, Matrix2, 6, 0)</l>
+<l>dev_set_lut ('default')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

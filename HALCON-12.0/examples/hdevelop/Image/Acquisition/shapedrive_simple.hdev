@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from the Shape Drive 3D sensor</c>
+<c>* </c>
+<l>MyCameraType := 'default'</l>
+<l>info_framegrabber ('ShapeDrive', 'device', Information, Device)</l>
+<c>* </c>
+<c>* If needed, please adapt the index of Device to open the required Shape Drive 3D sensor</c>
+<l>MyDevice := Device[0]</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('ShapeDrive', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', MyCameraType, MyDevice, 0, 0, AcqHandle)</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>NumImages := 0</l>
+<l>XPos := 0</l>
+<l>YPos := 0</l>
+<l>WindowHandle := []</l>
+<l>grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>count_channels (Image, Channels)</l>
+<l>tuple_length (Channels, NumImages)</l>
+<l>for Index := 0 to NumImages - 1 by 1</l>
+<l>    dev_open_window (YPos, XPos, 320, 240, 'black', NewWindowHandle)</l>
+<l>    tuple_concat (WindowHandle, NewWindowHandle, WindowHandle)</l>
+<l>    XPos := XPos + 330</l>
+<l>    if (Index == 1)</l>
+<l>        XPos := 0</l>
+<l>        YPos := XPos + 335</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Define a description for the different image types</c>
+<l>ImageTypeDescription := ['image (uint2)','mask (byte)','calibrated x image (real)','calibrated y image (real)','calibrated z image (real)']</l>
+<l>while (1)</l>
+<l>    grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>    for Index := 1 to NumImages by 1</l>
+<l>        tuple_select (WindowHandle, Index - 1, Selected)</l>
+<l>        dev_set_window (Selected)</l>
+<l>        select_obj (Image, ImageObj, Index)</l>
+<l>        dev_display (ImageObj)</l>
+<c>        * </c>
+<l>        dev_set_window (Selected)</l>
+<l>        dev_display (ImageObj)</l>
+<l>        disp_message (Selected, 'grab_data[_async]: ' + ImageTypeDescription[Index - 1], 'window', 10, 10, 'black', 'true')</l>
+<l>    endfor</l>
+<l>endwhile</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of simultaneous grabbing with a LinX frame grabber board</c>
+<c>* </c>
+<c>* </c>
+<c>* Note, that you have to configure your board (via the tools of the LinX SDK) appropriately.</c>
+<c>* Please see also the HTML documentation of the HALCON LinX interface!</c>
+<c>* </c>
+<l>open_framegrabber ('LinX', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, 1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>set_framegrabber_param (AcqHandle, 'volatile', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'num_simultaneous_cameras', 2)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID1)</l>
+<l>dev_open_window (Height, 0, Width, Height, 'black', WindowID2)</l>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    access_channel (Image, Image1, 1)</l>
+<l>    access_channel (Image, Image2, 2)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_display (Image1)</l>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_display (Image2)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>dev_close_window ()</l>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

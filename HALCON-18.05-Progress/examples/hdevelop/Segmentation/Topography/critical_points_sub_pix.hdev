@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use critical_points_sub_pix.</c>
+<c>* </c>
+<c>* critical_points_sub_pix is used in combination with a filter</c>
+<c>* that is sensitive to certain features of an image. In this example</c>
+<c>* the input image is convolved with the Kitchen Rosenfeld filter,</c>
+<c>* a filter that responds to gray value corners. Unlike corner_response,</c>
+<c>* the Kitchen Rosenfeld filter returns both large positive AND negative</c>
+<c>* values, depending whether the interior of the gray value corner is</c>
+<c>* darker or brighter than the background. Therefore both local</c>
+<c>* maxima and minima of the filter response have to be extracted</c>
+<c>* to determine the gray value corners in the input image. This</c>
+<c>* could be done by two consecutive calls to local_max_sub_pix</c>
+<c>* and local_min_sub_pix. But it is much more efficient</c>
+<c>* to extract all types of critical points in one single call to</c>
+<c>* critical_points_sub_pix and then omit the saddle points.</c>
+<c>* </c>
+<l>CornerRow := 307</l>
+<l>CornerCol := 291</l>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 512, 512)</l>
+<c>* </c>
+<c>* Calculate the response of the Kitchen Rosenfeld filter on the input image</c>
+<c>* and extract the critical points of the filter response.</c>
+<c>* </c>
+<l>derivate_gauss (Image, FilterResponse, 1, 'kitchen_rosenfeld')</l>
+<l>critical_points_sub_pix (FilterResponse, 'facet', 1.5, 0.7, RowMin, ColMin, RowMax, ColMax, RowSaddle, ColSaddle)</l>
+<l>tuple_concat (RowMax, RowMin, Row)</l>
+<l>tuple_concat (ColMax, ColMin, Col)</l>
+<l>gen_cross_contour_xld (Crosses, Row, Col, 6, 0.785398)</l>
+<c>* </c>
+<c>* Display the extracted local extrema in the filter response image.</c>
+<c>* </c>
+<l>dev_display (FilterResponse)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Crosses)</l>
+<c>* </c>
+<c>* Open a new window and display the part of the filter response</c>
+<c>* around the lower left corner of the bright rectangle.</c>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_rectangle1 (WindowHandle, CornerRow - 4, CornerCol - 4, CornerRow + 4, CornerCol + 4)</l>
+<l>disp_arrow (WindowHandle, CornerRow, CornerCol + 5, 128, 512, 1)</l>
+<c>* </c>
+<l>dev_open_window (0, 520, 256, 256, 'black', WindowSection)</l>
+<l>dev_set_part (CornerRow - 4, CornerCol - 4, CornerRow + 4, CornerCol + 4)</l>
+<l>dev_display (FilterResponse)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Crosses)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Clean up zoom window and display extracted extrema in the original image.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_set_part (0, 0, 512, 512)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Crosses)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

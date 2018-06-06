@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's correlation-based</c>
+<c>* matching.  In particular it demonstrates the robustness of this method against</c>
+<c>* varying texture and defocus.  The training is applied in a focused image.  The</c>
+<c>* matching is performed in images where the distance of the object to the</c>
+<c>* camera varies so that the object is out of focus.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'smd/smd_on_chip_05')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>gen_rectangle1 (Rectangle, 175, 156, 440, 460)</l>
+<l>area_center (Rectangle, Area, RowRef, ColumnRef)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>create_ncc_model (ImageReduced, 'auto', 0, 0, 'auto', 'use_polarity', ModelID)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Rectangle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>for J := 1 to 11 by 1</l>
+<l>    read_image (Image, 'smd/smd_on_chip_' + J$'02')</l>
+<l>    find_ncc_model (Image, ModelID, 0, 0, 0.5, 1, 0.5, 'true', 0, Row, Column, Angle, Score)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display_ncc_matching_results (ModelID, 'green', Row, Column, Angle, 0)</l>
+<l>    if (J &lt; 11)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>clear_ncc_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

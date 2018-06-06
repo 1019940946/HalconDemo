@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program simulates a printed circuit board</c>
+<c>* and inspects it for defects.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 400, 400, 'black', WindowHandle)</l>
+<l>gen_region_polygon (Line1, [300,300,200,0], [0,200,300,300])</l>
+<l>gen_region_polygon (Line2, [350,350,250,0], [0,250,350,350])</l>
+<l>union2 (Line1, Line2, Lines)</l>
+<l>dilation_circle (Lines, ThickLines, 7.5)</l>
+<l>gen_circle (Error1, 120, 347, 7.5)</l>
+<l>gen_circle (Error2, 90, 287, 7.5)</l>
+<l>gen_circle (Error3, 302, 202, 7.5)</l>
+<l>gen_circle (Error4, 242, 337, 7.5)</l>
+<l>gen_circle (Error5, 346, 248, 7.5)</l>
+<l>gen_circle (Error6, 204, 312, 7.5)</l>
+<l>union2 (Error1, Error3, Errors1)</l>
+<l>union2 (Errors1, Error5, ErrorsAdd)</l>
+<l>union2 (Error2, Error4, Errors2)</l>
+<l>union2 (Errors2, Error6, ErrorsRem)</l>
+<l>union2 (ThickLines, ErrorsAdd, ThichLinesAdd)</l>
+<l>union2 (ThickLines, ErrorsAdd, ThichLinesAdd)</l>
+<l>difference (ThichLinesAdd, ErrorsRem, ThickLinesError)</l>
+<l>distance_transform (ThickLines, LinesDistance, 'chamfer-3-4', 'true', 400, 400)</l>
+<l>skeleton (ThickLines, Skeleton)</l>
+<l>reduce_domain (LinesDistance, Skeleton, LinesDistanceReduced)</l>
+<l>threshold (LinesDistanceReduced, NoErrors, [0,9], [6,20])</l>
+<l>distance_transform (ThickLinesError, LinesDistanceError, 'chamfer-3-4', 'true', 400, 400)</l>
+<l>skeleton (ThickLinesError, SkeletonError)</l>
+<l>reduce_domain (LinesDistanceError, SkeletonError, LinesDistanceErrorReduced)</l>
+<l>threshold (LinesDistanceErrorReduced, Errors, [0,9], [6,20])</l>
+<l>dilation_circle (Errors, ErrorsDilation, 5.5)</l>
+<l>connection (ErrorsDilation, ConnectedRegions)</l>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (ThickLinesError)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (3)</l>
+<l>disp_circle (WindowHandle, Row, Column, gen_tuple_const(|Row|,15.5))</l>
+<l>dev_set_draw ('fill')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

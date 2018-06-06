@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows how to use obj_diff.</c>
+<l>read_image (Image, 'particle')</l>
+<l>threshold (Image, Region, 57, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<c>* </c>
+<c>* Initialization of the graphics window.</c>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, Width, Height, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (6)</l>
+<c>* </c>
+<c>* obj_diff calculates the difference of two object tuples,</c>
+<c>* e.g., to extract those objects from an input tuple</c>
+<c>* that have not yet been processed.</c>
+<l>select_shape (ConnectedRegions, LeftRegions, 'column', 'and', 0.0, 256.0)</l>
+<l>obj_diff (ConnectedRegions, LeftRegions, RightRegions)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RightRegions)</l>
+<l>disp_message (WindowHandle, 'Difference of all regions and\nleft hand side regions:\nRight hand side regions', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* An object tuple minus an empty object stays unaltered.</c>
+<l>gen_empty_obj (EmptyObject)</l>
+<l>obj_diff (ConnectedRegions, EmptyObject, ObjectsDiff)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ObjectsDiff)</l>
+<l>disp_message (WindowHandle, 'Difference of all regions and\nan empty object:\nAll regions', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* An empty object minus any object returns an empty object.</c>
+<l>obj_diff (EmptyObject, LeftRegions, ObjectsDiff)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ObjectsDiff)</l>
+<l>disp_message (WindowHandle, 'Difference of an empty object\nand any other object:\nAn empty object', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Note that images are only compared by their position in</c>
+<c>* the memory but not by their actual contents! Therefore,</c>
+<c>* the following images are considered as being different</c>
+<c>* and, as a consequence, the result is not empty.</c>
+<c>* The same applies to XLDs.</c>
+<l>read_image (SameImage, 'particle')</l>
+<l>obj_diff (Image, SameImage, ObjectsDiff)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ObjectsDiff)</l>
+<l>disp_message (WindowHandle, 'Difference of an image and\nthe same image reloaded:\nThe original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* obj_diff also works for object tuples of mixed type.</c>
+<l>gen_contour_polygon_xld (Contour, [50,150,250,250,250], [50,50,50,150,250])</l>
+<l>concat_obj (Region, Contour, RegionAndXLD)</l>
+<l>concat_obj (Region, Image, ImageAndRegion)</l>
+<l>obj_diff (RegionAndXLD, ImageAndRegion, ObjectsDiff)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ObjectsDiff)</l>
+<l>disp_message (WindowHandle, 'Difference of mixed type objects', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

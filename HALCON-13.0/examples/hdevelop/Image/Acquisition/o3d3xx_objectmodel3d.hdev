@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of ifm 3D time of flight cameras (O3D3xx)</c>
+<c>* in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note: the 3D object model is represented with the HALCON</c>
+<c>*       camera 3D coordinate system in meters</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* Connect to the O3D3xx device</c>
+<l>Name := 'O3D3xx'</l>
+<l>Device := 'default'</l>
+<l>open_framegrabber (Name, 0, 0, 0, 0, 0, 0, 'default', 0, 'default', -1, 'false', 'default', Device, -1, 0, AcqHandle)</l>
+<c>* Get image dimensions</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<c>* Configuration to return real images in meters. Notice that the</c>
+<c>* the confidence image is still returned as byte image.</c>
+<l>set_framegrabber_param (AcqHandle, 'pixel_format', 'Mono32F')</l>
+<l>set_framegrabber_param (AcqHandle, 'distance_unit', 'meter')</l>
+<l>while (true)</l>
+<c>    * Prepare graphics windows using image dimensions</c>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, Width, Height, 'black', WindowID1)</l>
+<l>    dev_open_window (0, Width + 10, Width, Height, 'black', WindowID2)</l>
+<l>    dev_open_window (0, Width * 2 + 20, Width, Height, 'black', WindowID3)</l>
+<l>    dev_open_window (Height + 55, 0, Width, Height, 'black', WindowID4)</l>
+<l>    dev_open_window (Height + 55, Width + 10, Width, Height, 'black', WindowID5)</l>
+<l>    dev_open_window (Height + 55, Width * 2 + 20, Width, Height, 'black', WindowID6)</l>
+<c>    * </c>
+<c>    * Use grab_data[_async] to acquire all images</c>
+<l>    grab_data (ImageData, Region, Contours, AcqHandle, Data)</l>
+<l>    count_obj (ImageData, NumImageData)</l>
+<c>    * Extract the images:</c>
+<c>    *   1. Calibrated x image as real</c>
+<l>    select_obj (ImageData, ImageX, 1)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (ImageX)</l>
+<l>    disp_message (WindowID1, 'X image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    *   2. Calibrated y image as real</c>
+<l>    select_obj (ImageData, ImageY, 2)</l>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (ImageY)</l>
+<l>    disp_message (WindowID2, 'Y image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    *   3. Calibrated z image as real</c>
+<l>    select_obj (ImageData, ImageZ, 3)</l>
+<l>    dev_set_window (WindowID3)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (ImageZ)</l>
+<l>    disp_message (WindowID3, 'Z image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    *   4. Amplitude image as real (scaled version for displaying)</c>
+<l>    select_obj (ImageData, AmplitudeImage, 4)</l>
+<l>    scale_image_max (AmplitudeImage, AmplitudeImageScaled)</l>
+<l>    dev_set_window (WindowID4)</l>
+<l>    dev_set_lut ('default')</l>
+<l>    dev_display (AmplitudeImageScaled)</l>
+<l>    disp_message (WindowID4, 'Scaled amplitude image', 'window', 10, 10, 'black', 'true')</l>
+<c>    *   5. Distance image as real (scaled version for displaying)</c>
+<l>    select_obj (ImageData, DistanceImage, 5)</l>
+<l>    scale_image_max (DistanceImage, DistanceImageScaled)</l>
+<l>    dev_set_window (WindowID5)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (DistanceImageScaled)</l>
+<l>    disp_message (WindowID5, 'Scaled distance image', 'window', 10, 10, 'black', 'true')</l>
+<c>    *   6. Confidence image as byte</c>
+<l>    select_obj (ImageData, ConfidenceImage, 6)</l>
+<l>    dev_set_window (WindowID6)</l>
+<l>    dev_set_lut ('default')</l>
+<l>    dev_display (ConfidenceImage)</l>
+<l>    disp_message (WindowID6, 'Confidence image (byte)', 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowID6, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<c>    * </c>
+<c>    * Generate an ObjectModel3D and visualize it, press button</c>
+<c>    * to continue</c>
+<l>    xyz_to_object_model_3d (ImageX, ImageY, ImageZ, ObjectModel3D)</l>
+<l>    dev_open_window (0, 0, 800, 600, 'black', WindowID)</l>
+<l>    dev_set_lut ('default')</l>
+<l>    set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        VisPose := []</l>
+<l>        Instructions[0] := 'Rotate: Left button'</l>
+<l>        Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>        Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>        visualize_object_model_3d (WindowID, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['coord_z','rainbow'], 'ObjectModel3D', [], Instructions, VisPose)</l>
+<c>        * </c>
+<c>        * Visualize using the amplitude data</c>
+<l>        get_region_points (ImageZ, Rows, Columns)</l>
+<l>        get_grayval (AmplitudeImage, Rows, Columns, Grayval)</l>
+<l>        set_object_model_3d_attrib_mod (ObjectModel3D, '&amp;amplitude', 'points', Grayval)</l>
+<l>        visualize_object_model_3d (WindowID, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['&amp;amplitude','sqrt'], 'ObjectModel3D with Amplitude', [], Instructions, VisPose)</l>
+<c>        * </c>
+<c>        * In order to create a surface triangulation from the</c>
+<c>        * ObjectModel3D, please see the following examples:</c>
+<c>        *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>        *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>        * </c>
+<l>    else</l>
+<l>        disp_message (WindowID, 'No 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<c>    * </c>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

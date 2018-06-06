@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* dump_window_data.hdev: save all graphics in an image</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image, 'clip')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>threshold (Image, Regions, 0, 110)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 4000, 99999)</l>
+<l>gen_contour_region_xld (SelectedRegions, Contours, 'border_holes')</l>
+<l>dev_clear_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Contours)</l>
+<l>dev_set_color ('white')</l>
+<l>area_center_xld (Contours, Area, Row, Column, PointOrder)</l>
+<l>count_obj (Contours, Number1)</l>
+<l>for i := 0 to Number1 - 1 by 1</l>
+<l>    set_tposition (WindowHandle, Row[i], Column[i])</l>
+<l>    write_string (WindowHandle, i)</l>
+<l>endfor</l>
+<c>* --&gt; all in DumpImage</c>
+<l>dump_window_image (DumpImage, WindowHandle)</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<l>dev_display (DumpImage)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

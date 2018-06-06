@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use saddle_points_sub_pix.</c>
+<c>* </c>
+<l>read_image (Image, 'landmarks')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* saddle_points_sub_pix works only on single channel images. Thus we have</c>
+<c>* to convert the input image into a gray value image before using the operator.</c>
+<c>* </c>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<c>* </c>
+<l>Sigma := 1.5</l>
+<l>Threshold := 12</l>
+<l>saddle_points_sub_pix (GrayImage, 'facet', Sigma, Threshold, Row, Col)</l>
+<l>gen_cross_contour_xld (Crosses, Row, Col, 12, 0.785398)</l>
+<c>* </c>
+<l>dev_display (GrayImage)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Crosses)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

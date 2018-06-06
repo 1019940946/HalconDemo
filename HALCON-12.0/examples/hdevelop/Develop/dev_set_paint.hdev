@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_set_paint ('default')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_paint (['histogram',255,255,1])</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_paint (['histogram',128,128,2])</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_set_paint ('default')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_paint (['line',100,150])</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_paint (['column',250,100])</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_lut ('color3')</l>
+<l>dev_set_paint (['contourline',30,1])</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_paint (['3D-plot_hidden',10,1,110,160,250,0,0])</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_paint (['3D-plot_hidden',10,1,110,160,350,0,0])</l>
+<l>dev_set_part (329, 269, 374, 308)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>dev_set_paint ('default')</l>
+<l>dev_set_lut ('default')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

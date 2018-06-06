@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example that shows how to combine OCR and the postprocessing of the resulting string</c>
+<c>* with regular expression operators to select the correct sequence from a set of symbols</c>
+<c>* Using regular expressions has several advantages:</c>
+<c>* 1. they allow the user to check the integrity of the results</c>
+<c>* 2. even if some areas are wrongly interpreted as characters,</c>
+<c>*    the regular expression operator is able to extract the relevant information</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>get_system ('clip_region', ClipRegion)</l>
+<l>set_system ('clip_region', 'true')</l>
+<c>* </c>
+<l>read_image (Image, 'ocr/dongle_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>read_ocr_class_mlp ('DotPrint_NoRej', OCRHandle)</l>
+<l>for Number := 1 to 9 by 1</l>
+<l>    read_image (Image, 'ocr/dongle_' + Number$'.2')</l>
+<c>    * </c>
+<c>    * Segmentation of characters</c>
+<c>    * The median operator removes small scratches</c>
+<l>    median_image (Image, ImageMedian, 'square', 2, 'mirrored')</l>
+<l>    mean_image (ImageMedian, ImageMean, 11, 5)</l>
+<l>    dyn_threshold (Image, ImageMean, RegionDynThresh, 5, 'dark')</l>
+<l>    gen_rectangle2 (Rectangle, 0, 0, rad(60), 2, 1)</l>
+<l>    dilation1 (RegionDynThresh, Rectangle, RegionDilation, 1)</l>
+<c>    * Separate characters from neighbored clusters</c>
+<l>    erosion_rectangle1 (RegionDilation, RegionErosion1, 1, 2)</l>
+<c>    * Merge broken parts of characters</c>
+<l>    dilation_rectangle1 (RegionErosion1, RegionDilation1, 2, 1)</l>
+<c>    * Suppress cluster near the characters</c>
+<l>    opening_circle (RegionDilation1, RegionOpening, 2)</l>
+<c>    * Erode regions in order to avoid merging of neighboring characters</c>
+<l>    erosion_circle (RegionOpening, RegionErosion, 1.5)</l>
+<c>    * The following operators combine over-segmented parts of characters</c>
+<l>    gen_rectangle2 (Rectangle2, 0, 0, rad(70), 2, 1)</l>
+<l>    dilation1 (RegionErosion, Rectangle2, RegionDilation2, 1)</l>
+<l>    erosion_rectangle1 (RegionDilation2, RegionErosion3, 2, 1)</l>
+<l>    gen_rectangle2 (Rectangle1, 0, 0, rad(-45), 2, 1)</l>
+<l>    dilation1 (RegionErosion3, Rectangle1, RegionDilation3, 1)</l>
+<l>    connection (RegionDilation3, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, Chars, ['height','width'], 'and', [32,16.5], [40,30.5])</l>
+<c>    * </c>
+<l>    sort_region (Chars, SortedChars, 'character', 'true', 'row')</l>
+<l>    shape_trans (SortedChars, CharsArea, 'rectangle1')</l>
+<l>    dilation_rectangle1 (CharsArea, CharsAreaBig, 5, 5)</l>
+<c>    * </c>
+<c>    * Reads out the dongle ID and checks for integrity</c>
+<l>    do_ocr_multi_class_mlp (SortedChars, Image, OCRHandle, Class, Confidence)</l>
+<l>    chartuple2str (Class, Str)</l>
+<l>    tuple_regexp_match (Str, ['[flexid]{2,6}(\\d\\w{8})','ignore_case'], Matches)</l>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (Chars)</l>
+<l>    disp_message (WindowHandle, 'All regions: ' + Str, 'window', 5, 10, 'black', 'true')</l>
+<l>    if ((Matches =~ ['[sr]$','ignore_case']) or (Matches == ''))</l>
+<l>        disp_message (WindowHandle, 'Wrong ID', 'window', 40, 10, 'black', 'true')</l>
+<l>    else</l>
+<l>        tuple_strlen (Matches, Length)</l>
+<l>        Matches := Matches{0} + '-' + Matches{1:Length - 1}</l>
+<l>        disp_message (WindowHandle, 'Correct dongle ID: ' + Matches, 'window', 40, 10, 'black', 'true')</l>
+<l>    endif</l>
+<l>    if (Number &lt; 9)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>set_system ('clip_region', ClipRegion)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="chartuple2str">
+<interface>
+<ic>
+<par name="Class" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Str" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Str := ''</l>
+<l>for i := 0 to |Class| - 1 by 1</l>
+<l>    Str := Str + Class[i]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="chartuple2str">
+<parameters>
+<parameter id="Class"/>
+<parameter id="Str"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

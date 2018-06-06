@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the ShapeDrive interface in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note: the object 3D model is represented with the HALCON</c>
+<c>*       camera 3D coordinate system in meters</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>MyCameraType := 'default'</l>
+<l>info_framegrabber ('ShapeDrive', 'device', Information, Device)</l>
+<c>* </c>
+<c>* If needed, please adapt the index of Device to open the required Shape Drive 3D sensor</c>
+<l>MyDevice := Device[0]</l>
+<c>* </c>
+<l>open_framegrabber ('ShapeDrive', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', MyCameraType, MyDevice, 0, 0, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<c>* </c>
+<c>* </c>
+<c>* Get the used camera model to define the needed working distance</c>
+<c>* This distance is needed to improve the detection an to eliminate invalid values</c>
+<l>get_framegrabber_param (AcqHandle, 'model', Model)</l>
+<l>PositionSD1 := strstr(Model,'SD-1')</l>
+<l>PositionSD2 := strstr(Model,'SD-2')</l>
+<l>PositionSD3 := strstr(Model,'SD-3')</l>
+<l>if (PositionSD1 &gt; 0)</l>
+<l>    workingDistance := 255</l>
+<l>elseif (PositionSD2 &gt; 0)</l>
+<l>    workingDistance := 133</l>
+<l>elseif (PositionSD3 &gt; 0)</l>
+<l>    workingDistance := 406</l>
+<l>else</l>
+<c>    * Unknown model type. The 'model' parameter should contain the model type, e.g. SD-1 or SD-2 or SD-3</c>
+<c>    * Please find and set the required working distance in mm.</c>
+<l>    stop ()</l>
+<c>    * Please set the working distance to the sensor</c>
+<l>    workingDistance := 0</l>
+<l>endif</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * Prepare graphics windows using image dimensions</c>
+<l>    dev_close_window ()</l>
+<l>    Width := Width / 4</l>
+<l>    Height := Height / 4</l>
+<l>    dev_open_window (0, 0, Width, Height, 'black', WindowID1)</l>
+<l>    dev_open_window (0, Width + 10, Width, Height, 'black', WindowID2)</l>
+<l>    dev_open_window (0, Width * 2 + 20, Width, Height, 'black', WindowID3)</l>
+<c>    * </c>
+<c>    * Use grab_data[_async] to acquire all images</c>
+<l>    grab_data (ImageData, Region, Contours, AcqHandle, Data)</l>
+<l>    count_obj (ImageData, NumImageData)</l>
+<c>    * </c>
+<c>    * X-Image</c>
+<l>    select_obj (ImageData, ImageX, 3)</l>
+<c>    * Change from mm to m</c>
+<l>    scale_image (ImageX, ImageX, 0.001, 0)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (ImageX)</l>
+<l>    disp_message (WindowID1, 'Calibrated X image (float)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Y-Image</c>
+<l>    select_obj (ImageData, ImageY, 4)</l>
+<c>    * Change from mm to m</c>
+<l>    scale_image (ImageY, ImageY, 0.001, 0)</l>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (ImageY)</l>
+<l>    disp_message (WindowID2, 'Calibrated Y image (float)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Z-Image</c>
+<l>    select_obj (ImageData, ImageZ, 5)</l>
+<l>    threshold (ImageZ, Region, workingDistance, lsh(1,16) - 1)</l>
+<l>    reduce_domain (ImageZ, Region, ImageZ)</l>
+<c>    * Change from mm to m</c>
+<l>    scale_image (ImageZ, ImageZ, 0.001, 0)</l>
+<c>    * </c>
+<l>    dev_set_window (WindowID3)</l>
+<l>    dev_set_lut ('rainbow')</l>
+<l>    dev_display (ImageZ)</l>
+<l>    disp_message (WindowID3, 'Calibrated Z image (float)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<c>    * Generate an ObjectModel3D and visualize it, press button</c>
+<c>    * to continue</c>
+<l>    xyz_to_object_model_3d (ImageX, ImageY, ImageZ, ObjectModel3D)</l>
+<l>    dev_open_window (0, 0, 800, 600, 'black', WindowID)</l>
+<l>    dev_set_lut ('default')</l>
+<l>    set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        VisPose := []</l>
+<l>        Instructions[0] := 'Rotate: Left button'</l>
+<l>        Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>        Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>        visualize_object_model_3d (WindowID, ObjectModel3D, [], VisPose, ['intensity','lut'], ['coord_z','rainbow'], 'ObjectModel3D', [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * In order to create a surface triangulation from the</c>
+<c>        * ObjectModel3D, please see the following examples:</c>
+<c>        *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>        *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>        * </c>
+<l>    else</l>
+<l>        disp_message (WindowID, 'Null 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<c>    * </c>
+<l>endwhile</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

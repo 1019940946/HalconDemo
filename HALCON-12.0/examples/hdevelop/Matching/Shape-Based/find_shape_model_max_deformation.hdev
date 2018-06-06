@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the 'max_deformation'</c>
+<c>* parameter in the shape-based matching to robustly find objects</c>
+<c>* that are slightly deformed. In this example, the deformation</c>
+<c>* of the object results from a simulated tampon print effect.</c>
+<c>* </c>
+<c>* First, a shape-model is created from the MVTec logo</c>
+<l>create_mvtec_logo_broadened (LogoImage, 0, 200, 256, 256)</l>
+<l>get_image_size (LogoImage, Width, Height)</l>
+<l>WindowWidth := 2 * Width</l>
+<l>WindowHeight := 2 * Height</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, WindowWidth, WindowHeight, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_display (LogoImage)</l>
+<l>disp_message (WindowHandle1, 'Model image', 'window', 12, 12, 'black', 'true')</l>
+<l>create_shape_model (LogoImage, 'auto', 0, 0, 'auto', 'auto', 'ignore_color_polarity', 'auto', 10, ModelID)</l>
+<l>area_center (LogoImage, Area, RowRef, ColumnRef)</l>
+<l>get_shape_model_contours (ModelContours, ModelID, 1)</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Second, the model is searched in an image that shows the logo</c>
+<c>* in a deformed way. The search is performed two times: In the first</c>
+<c>* pass, no model deformation is allowed. In the second pass, a</c>
+<c>* maximum model deformation of 10 pixels is allowed.</c>
+<l>dev_open_window (0, WindowWidth + 8, WindowWidth, WindowHeight, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>DispString := ['No deformations allowed','Deformations allowed']</l>
+<l>Rows1 := []</l>
+<l>Columns1 := []</l>
+<l>Scores1 := []</l>
+<l>Rows2 := []</l>
+<l>Columns2 := []</l>
+<l>Scores2 := []</l>
+<l>NumImages := 0</l>
+<l>for Broadening := -5 to 5 by 0.1</l>
+<l>    NumImages := NumImages + 1</l>
+<l>    create_mvtec_logo_broadened (SearchImage, Broadening, 200, 256, 256)</l>
+<l>    for Search := 1 to 2 by 1</l>
+<l>        if (Search == 1)</l>
+<l>            WindowHandle := WindowHandle1</l>
+<l>            SubPixel := 'least_squares_high'</l>
+<l>        else</l>
+<l>            WindowHandle := WindowHandle2</l>
+<l>            SubPixel := ['least_squares_high','max_deformation 10']</l>
+<l>        endif</l>
+<l>        dev_set_window (WindowHandle)</l>
+<l>        dev_display (SearchImage)</l>
+<l>        disp_message (WindowHandle, DispString[Search - 1], 'window', 12, 12, 'black', 'true')</l>
+<l>        count_seconds (Seconds1)</l>
+<l>        find_shape_model (SearchImage, ModelID, 0, 0, 0.4, 1, 0.5, SubPixel, 0, 0.9, Row, Column, Angle, Score)</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := 1000.0 * (Seconds2 - Seconds1)</l>
+<l>        for I := 0 to |Score| - 1 by 1</l>
+<l>            disp_message (WindowHandle, 'Match found in ' + Time$'3.1f' + ' ms (Score: ' + Score[I]$'3.2f' + ')', 'window', 40, 12, 'black', 'true')</l>
+<l>            vector_angle_to_rigid (0, 0, 0, Row[I], Column[I], Angle[I], HomMat2D)</l>
+<l>            affine_trans_contour_xld (ModelContours, ModelContoursTrans, HomMat2D)</l>
+<l>            dev_set_color ('green')</l>
+<l>            dev_display (ModelContoursTrans)</l>
+<l>        endfor</l>
+<c>        * Collect the data for statistical evaluation</c>
+<l>        if (Search == 1)</l>
+<l>            Rows1 := [Rows1,Row]</l>
+<l>            Columns1 := [Columns1,Column]</l>
+<l>            Scores1 := [Scores1,Score]</l>
+<l>        else</l>
+<l>            Rows2 := [Rows2,Row]</l>
+<l>            Columns2 := [Columns2,Column]</l>
+<l>            Scores2 := [Scores2,Score]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    if (Broadening &lt; -4)</l>
+<l>        disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        wait_seconds (0.05)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Calculate and display some statistics</c>
+<l>MeanError1 := mean(sqrt(pow(Rows1 - RowRef,2) + pow(Columns1 - ColumnRef,2)))</l>
+<l>MeanScore1 := mean(Scores1)</l>
+<l>MeanError2 := mean(sqrt(pow(Rows2 - RowRef,2) + pow(Columns2 - ColumnRef,2)))</l>
+<l>MeanScore2 := mean(Scores2)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>disp_message (WindowHandle1, |Scores1| + ' of ' + NumImages + ' instances found', 'window', WindowHeight - 96, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle1, 'Mean position error: ' + MeanError1$'3.1f' + '; Mean score: ' + MeanScore1$'3.2', 'window', WindowHeight - 68, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle2, |Scores2| + ' of ' + NumImages + ' instances found', 'window', WindowHeight - 96, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle2, 'Mean position error: ' + MeanError2$'3.1f' + '; Mean score: ' + MeanScore2$'3.2', 'window', WindowHeight - 68, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_shape_model (ModelID)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_mvtec_logo_broadened">
+<interface>
+<oo>
+<par name="LogoImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Broadening" base_type="ctrl" dimension="0"/>
+<par name="WidthLogo" base_type="ctrl" dimension="0"/>
+<par name="WidthImage" base_type="ctrl" dimension="0"/>
+<par name="HeightImage" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>blue := [0,48,117]</l>
+<l>orange := [255,181,41]</l>
+<c>* </c>
+<c>* Read an image containing the logo</c>
+<l>read_image (Image, 'pen/pen-01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<c>* Segment the logo</c>
+<l>auto_threshold (Image, Regions, 10)</l>
+<l>connection (Regions, Regions)</l>
+<l>select_shape (Regions, SelectedRegions, ['row1','holes_num'], 'and', [80,0], [100,0])</l>
+<l>sort_region (SelectedRegions, SelectedRegions, 'character', 'true', 'row')</l>
+<l>closing_rectangle1 (SelectedRegions, Characters, 3, 3)</l>
+<l>opening_rectangle1 (Characters, Characters, 5, 5)</l>
+<c>* </c>
+<c>* Extract the contour</c>
+<l>dilation_rectangle1 (Characters, RegionDilation, 5, 5)</l>
+<l>erosion_rectangle1 (Characters, RegionErosion, 5, 5)</l>
+<l>difference (RegionDilation, RegionErosion, RegionDifference)</l>
+<l>count_obj (RegionDifference, Number)</l>
+<l>gen_empty_obj (MVTecContours)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    select_obj (RegionDifference, ObjectSelected, Index)</l>
+<l>    reduce_domain (Image, ObjectSelected, ImageReduced)</l>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 1.5, 10, 20)</l>
+<l>    union_adjacent_contours_xld (Edges, UnionContours, 5, 1, 'attr_keep')</l>
+<l>    close_contours_xld (UnionContours, ClosedContours)</l>
+<l>    concat_obj (MVTecContours, ClosedContours, MVTecContours)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Create the colored image of the logo</c>
+<l>smallest_rectangle1_xld (MVTecContours, Row1, Column1, Row2, Column2)</l>
+<l>Row1 := min(Row1)</l>
+<l>Column1 := min(Column1)</l>
+<l>Row2 := max(Row2)</l>
+<l>Column2 := max(Column2)</l>
+<l>WidthLogoOrig := Column2 - Column1 + 1</l>
+<l>ScaleFactor := real(WidthLogo) / WidthLogoOrig</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, -0.5 * (Row1 + Row2), -0.5 * (Column1 + Column2), HomMat2DTranslate)</l>
+<l>hom_mat2d_scale (HomMat2DTranslate, ScaleFactor, ScaleFactor, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_translate (HomMat2DScale, 0.5 * HeightImage, 0.5 * WidthImage, HomMat2DComplete)</l>
+<l>affine_trans_contour_xld (MVTecContours, MVTecContoursTrans, HomMat2DComplete)</l>
+<l>gen_image_const (Red, 'byte', WidthImage, HeightImage)</l>
+<l>gen_image_const (Green, 'byte', WidthImage, HeightImage)</l>
+<l>gen_image_const (Blue, 'byte', WidthImage, HeightImage)</l>
+<l>compose3 (Red, Green, Blue, LogoImageTempl)</l>
+<l>paint_xld (MVTecContoursTrans, LogoImageTempl, LogoImage, [blue,orange,blue,blue,blue,blue])</l>
+<c>* </c>
+<c>* Dilate the original logo</c>
+<l>if (Broadening &gt; 0)</l>
+<l>    gray_dilation_shape (LogoImage, LogoImage, 2 * Broadening + 1, 2 * Broadening + 1, 'octagon')</l>
+<l>elseif (Broadening &lt; 0)</l>
+<l>    gray_erosion_shape (LogoImage, LogoImage, -2 * Broadening + 1, -2 * Broadening + 1, 'octagon')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="create_mvtec_logo_broadened">
+<short lang="en_US">returns a colored image of the MVTec logo</short>
+<parameters>
+<parameter id="Broadening"/>
+<parameter id="HeightImage"/>
+<parameter id="LogoImage"/>
+<parameter id="WidthImage"/>
+<parameter id="WidthLogo"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>IOInterfaceName := 'Template'</l>
+<l>query_io_interface (IOInterfaceName, 'revision', Revision)</l>
+<l>query_io_interface (IOInterfaceName, 'param_name', Params)</l>
+<l>query_io_interface (IOInterfaceName, 'io_device_names', Devices)</l>
+<l>query_io_interface (IOInterfaceName, 'io_device_info', DevicesInfo)</l>
+<c></c>
+<l>open_io_device (IOInterfaceName, Devices[0], [], [], IODeviceHandle)</l>
+<l>query_io_device (IODeviceHandle, [], 'io_channel_names', Channels)</l>
+<l>query_io_device (IODeviceHandle, [], 'io_channel_names.digital_input', InputChannels)</l>
+<l>query_io_device (IODeviceHandle, [], 'io_channel_names.digital_output', OutputChannels)</l>
+<c></c>
+<l>open_io_channel (IODeviceHandle, 'di_0.0-7', [], [], InputHandle)</l>
+<l>open_io_channel (IODeviceHandle, 'do_0.0-7', [], [], OutputHandle)</l>
+<l>read_io_channel (InputHandle, Value, Status)</l>
+<l>write_io_channel (OutputHandle, bnot Value, Status)</l>
+<c></c>
+<l>close_io_device (IODeviceHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

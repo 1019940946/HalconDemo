@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<c>* init compute device</c>
+<l>query_available_compute_devices (DeviceIdentifier)</l>
+<l>if (|DeviceIdentifier| == 0)</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>DevId := DeviceIdentifier[0]</l>
+<c>* </c>
+<l>open_compute_device (DevId, DeviceHandle)</l>
+<c>* extension package operators using OpenCL may as well be initialized</c>
+<c>* in init_compute_device</c>
+<l>init_compute_device (DeviceHandle, ['mean_image','user_laplace'])</l>
+<l>activate_compute_device (DeviceHandle)</l>
+<c>* execute the extension package operator on the device</c>
+<l>try</l>
+<l>    user_laplace (Image, LaplaceImage)</l>
+<l>catch (Exception)</l>
+<c>    * get extended error information about the last error</c>
+<l>    get_extended_error_info (OpName, ErrorCode, ErrorMessage)</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<c>* </c>
+<c>* to demonstrate the usage of the OpenCL interop API</c>
+<c>* LaplaceImage is copied using get_compute_device_pointer and</c>
+<c>* gen_image_device_ptr.</c>
+<c>* Of course this does not make much sense, but the purpose of</c>
+<c>* these operators is to be used within C/C++ code, which uses</c>
+<c>* OpenCL on its own and interchanges OpenCL memory objects with</c>
+<c>* HALCON without device to host transfer.</c>
+<l>get_compute_device_context (Context)</l>
+<l>get_compute_device_pointer (LaplaceImage, Pointer, Kind)</l>
+<c>* In real code, Pointer must be retained using clRetainMemObject!</c>
+<l>gen_image_device_ptr (LICopy, Pointer, Kind, 'byte', 512, 512)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

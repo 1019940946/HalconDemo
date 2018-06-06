@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use watersheds_threshold</c>
+<c>* for different tasks.</c>
+<c>* </c>
+<c>* Segment the letters of the MVTec logo</c>
+<l>watersheds_threshold_logo ()</l>
+<c>* </c>
+<c>* Segment dark cells</c>
+<l>watersheds_threshold_cells ()</l>
+<c>* </c>
+<c>* Split touching pellets</c>
+<l>watersheds_threshold_pellets ()</l>
+<c>* </c>
+<c>* Perform an unsupervised color classification</c>
+<l>watersheds_threshold_classification ()</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="watersheds_threshold_logo">
+<interface/>
+<body>
+<c>* In this example, the task is to segment the letters of the</c>
+<c>* MVTec logo by applying the watersheds algorithm to the</c>
+<c>* edge amplitude of the gray values.</c>
+<c>* To emphasize the advantage of watersheds_threshold over the</c>
+<c>* watersheds operator, first the result of watersheds is displayed</c>
+<c>* and then the result of watersheds_threshold.</c>
+<c>* </c>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_colored (12)</l>
+<l>read_image (ImageLogo, 'mvtec_logo.png')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (ImageLogo, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (ImageLogo)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>gauss_filter (ImageLogo, ImageGauss, 9)</l>
+<l>sobel_amp (ImageGauss, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>watersheds (EdgeAmplitude, Basins1, Watersheds)</l>
+<l>dev_display (Basins1)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>watersheds_threshold (EdgeAmplitude, Basins2, 14)</l>
+<l>dev_display (Basins2)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="watersheds_threshold_logo">
+<short lang="en_US">Segment dark cells using watersheds_threshold</short>
+<parameters/>
+</docu>
+</procedure>
+<procedure name="watersheds_threshold_cells">
+<interface/>
+<body>
+<c>* In this example, the task is to segment the dark cells in the image</c>
+<c>* by applying the watersheds algorithm to the image.</c>
+<c>* To emphasize the advantage of watersheds_threshold over the</c>
+<c>* watersheds operator, first the result of watersheds is displayed</c>
+<c>* and then the result of watersheds_threshold.</c>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_colored (12)</l>
+<l>read_image (Meningg6, 'meningg6.png')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Meningg6, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>gauss_filter (Meningg6, ImageGauss, 3)</l>
+<l>dev_display (ImageGauss)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>watersheds (ImageGauss, Basins1, Watersheds)</l>
+<l>dev_display (ImageGauss)</l>
+<l>dev_display (Basins1)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>watersheds_threshold (ImageGauss, Basins2, 10)</l>
+<l>dev_display (ImageGauss)</l>
+<l>dev_display (Basins2)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="watersheds_threshold_cells">
+<short lang="en_US">Segment dark cells using watersheds_threshold</short>
+<parameters/>
+</docu>
+</procedure>
+<procedure name="watersheds_threshold_classification">
+<interface/>
+<body>
+<c>* In this example, the task is to perform an unsupervised</c>
+<c>* color classification of the input image.</c>
+<c>* For this the two dimensional histogram of the u and the v</c>
+<c>* channel (color space 'yuv') is computed. In order to compute</c>
+<c>* the borders between different clusters in the histogram the</c>
+<c>* watersheds are computed on the inverted histogram image.</c>
+<c>* Each resulting basin represents a different cluster. Finally, the</c>
+<c>* clusters are used to classify the image.</c>
+<c>* </c>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'ic')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_open_window (0, Width + 7, 256, 256, 'black', WindowHandleHisto)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_window (WindowHandleHisto)</l>
+<l>decompose3 (Image, ImageRed, ImageGreen, ImageBlue)</l>
+<l>trans_from_rgb (ImageRed, ImageGreen, ImageBlue, ImageY, ImageU, ImageV, 'yuv')</l>
+<l>histo_2dim (Image, ImageU, ImageV, Histo2Dim)</l>
+<l>convert_image_type (Histo2Dim, Histo2DimUINT2, 'uint2')</l>
+<l>mean_image (Histo2DimUINT2, Histo2DimMean, 9, 9)</l>
+<l>invert_image (Histo2DimMean, ImageInvert)</l>
+<l>dev_set_lut ('cubic_root')</l>
+<l>dev_set_part (93, 86, 163, 156)</l>
+<l>dev_display (Histo2DimMean)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Change the threshold in order to adapt the number of classes:</c>
+<l>watersheds_threshold (ImageInvert, Basins, 50)</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Basins)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_lut ('default')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('fill')</l>
+<l>class_2dim_sup (ImageU, ImageV, Basins, RegionClass2Dim)</l>
+<l>dev_display (RegionClass2Dim)</l>
+<l>dev_open_window (255 + 68, Width + 7, Width / 2, Height / 2, 'black', WindowHandleSmall)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandleHisto)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandleSmall)</l>
+<l>dev_close_window ()</l>
+<l>return ()</l>
+</body>
+<docu id="watersheds_threshold_classification">
+<short lang="en_US">Perform an unsupervised color classification using watersheds_threshold</short>
+<parameters/>
+</docu>
+</procedure>
+<procedure name="watersheds_threshold_pellets">
+<interface/>
+<body>
+<c>* In this example, the task is to split the touching pellets.</c>
+<c>* First, a simple thresholding operation yields the region of the pellets</c>
+<c>* in the image. Unfortunately, some of the connected components</c>
+<c>* of this region do not represent single pellets but contain more than one</c>
+<c>* pellet. Therefore, in a second step the watersheds are computed based</c>
+<c>* on the distance transformed pellets regions. The corresponding basins</c>
+<c>* are finally used to split the falsely connected pellets by intersecting the</c>
+<c>* basins with the pellets regions.</c>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>read_image (Image, 'pellets')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>threshold (Image, Region, 105, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 20, 99999)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedRegions)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>distance_transform (SelectedRegions, DistanceImage, 'octagonal', 'true', 380, 350)</l>
+<l>convert_image_type (DistanceImage, DistanceImageByte, 'byte')</l>
+<l>invert_image (DistanceImageByte, DistanceImageInv)</l>
+<l>scale_image_max (DistanceImageInv, DistanceImageInvScaled)</l>
+<l>watersheds_threshold (DistanceImageInv, Basins, 5)</l>
+<l>dev_display (DistanceImageInvScaled)</l>
+<l>dev_display (Basins)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedRegions)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (Basins)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>intersection (Basins, SelectedRegions, SegmentedPellets)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (SegmentedPellets)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="watersheds_threshold_pellets">
+<short lang="en_US">Segment pills in an image using watersheds_threshold</short>
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

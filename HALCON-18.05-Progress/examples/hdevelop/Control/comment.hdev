@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This is a program with comments</c>
+<c>* 'this is a string as comment'</c>
+<c>* here are numbers: 4711, 0.815</c>
+<l>stop ()</l>
+<c>* Here comes special code for exported C++</c>
+<c>* Please export to C++ to check this feature</c>
+<l># int i = 0;</l>
+<l>stop ()</l>
+<c>* Here comes code which can be used in Visual Basic</c>
+<c>* Please export to Visual Basic to check this feature</c>
+<l># Call MsgBox("Continue",wbYes,"Press button","",1000)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

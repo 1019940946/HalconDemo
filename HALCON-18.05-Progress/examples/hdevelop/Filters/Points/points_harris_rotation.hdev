@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program illustrates the robustness of the Harris point detector.</c>
+<c>* We extract the prominent points, once from the original image and</c>
+<c>* once from a rotated image. The points from the rotated image are again</c>
+<c>* rotated by the same angle but in the opposite direction. Eventually both sets</c>
+<c>* of points are displayed in the same image.</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* </c>
+<l>if (Width &lt; Height)</l>
+<l>    Radius := Width / 2</l>
+<l>else</l>
+<l>    Radius := Height / 2</l>
+<l>endif</l>
+<l>gen_circle (Circle, Width / 2, Height / 2, Radius)</l>
+<c>* </c>
+<l>SigmaGrad := 3.0</l>
+<l>SigmaSmooth := 3.0</l>
+<l>Threshold := 1000</l>
+<c>* </c>
+<l>RotationAngle := 22.5</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(RotationAngle), Height / 2, Width / 2, HomMat2DRotate)</l>
+<l>hom_mat2d_invert (HomMat2DRotate, HomMat2DRotateBack)</l>
+<c>* </c>
+<l>affine_trans_image (Image, ImageRotated, HomMat2DRotate, 'constant', 'false')</l>
+<l>reduce_domain (ImageRotated, Circle, ImageReduced)</l>
+<l>points_harris (ImageReduced, SigmaGrad, SigmaSmooth, 0.04, Threshold, Row, Col)</l>
+<l>gen_cross_contour_xld (Temp, Row, Col, 6, rad(45) - rad(RotationAngle))</l>
+<l>affine_trans_contour_xld (Temp, Rotated, HomMat2DRotateBack)</l>
+<c>* </c>
+<l>reduce_domain (Image, Circle, ImageReduced)</l>
+<l>points_harris (ImageReduced, SigmaGrad, SigmaSmooth, 0.04, Threshold, Row, Col)</l>
+<l>gen_cross_contour_xld (Original, Row, Col, 4, rad(45))</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageReduced)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Rotated)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Original)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

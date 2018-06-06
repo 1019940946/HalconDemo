@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>for J := 1 to 5 by 1</l>
+<l>    read_image (Image, 'dot_print_rotated/dot_print_rotated_' + J$'02d')</l>
+<l>    text_line_orientation (Image, Image, 50, rad(-30), rad(30), OrientationAngle)</l>
+<l>    rotate_image (Image, ImageRotate, -OrientationAngle / rad(180) * 180, 'constant')</l>
+<l>    segment_characters (ImageRotate, ImageRotate, ImageForeground, RegionForeground, 'local_auto_shape', 'false', 'true', 'medium', 25, 25, 0, 10, UsedThreshold)</l>
+<l>    select_characters (RegionForeground, RegionCharacters, 'true', 'ultra_light', 60, 60, 'false', 'false', 'none', 'true', 'wide', 'true', 0, 'completion')</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRotate)</l>
+<l>    dev_display (RegionCharacters)</l>
+<l>    if (J &lt; 5)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the parameter 'meas_param_estimation'.</c>
+<c>* </c>
+<c>* The parameter 'meas_param_estimation' can be particularly useful to increase</c>
+<c>* the reading performance for barcodes with a very small element size</c>
+<c>* (1-1.5 pixels) together with additional image artifacts such as</c>
+<c>* blur and noise. In the following example a series of such barcode images are</c>
+<c>* read. The results for the two settings of the parameter</c>
+<c>* 'meas_param_estimation' are compared.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/ean13/ean13_meas_param_estimation_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_open_window (0, Width + 10, 660, Height, 'white', WindowHandleText)</l>
+<l>set_display_font (WindowHandleText, 14, 'mono', 'true', 'false')</l>
+<l>Message[0] := 'This program demonstrates the use of the parameter \'meas_param_estimation\'.\n'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The parameter \'meas_param_estimation\' can be particularly useful to increase the reading performance for barcodes with a very small element size (1-1.5 pixels) together with additional image artifacts such as blur and noise, such as in the image shown to the left.\n'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,60})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandleText, MessageWrapped, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandleText, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create barcode model.</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* As we expect to read codes with a small element size, we set the</c>
+<c>* parameter 'element_size_min' to 1.0.</c>
+<l>dev_clear_window ()</l>
+<l>Message := []</l>
+<l>Message[0] := 'As we expect to read codes with a small element size, we set the parameter \'element_size_min\' to 1.0.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'In the following example a series of such barcode images are read and the results for the two settings of the parameter \'meas_param_estimation\' are compared.'</l>
+<c>* </c>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,60})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandleText, MessageWrapped, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandleText, 'black', 'false')</l>
+<l>stop ()</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_min', 1.0)</l>
+<c>* disable advanced post processing features, so effect of improved edge extraction</c>
+<c>* is visible in this dataset</c>
+<l>set_bar_code_param (BarCodeHandle, 'merge_scanlines', 'false')</l>
+<l>set_bar_code_param (BarCodeHandle, 'print_growth_inversion', 'false')</l>
+<l>CodeType := 'EAN-13'</l>
+<c>* </c>
+<l>NumDecodedParamEst := 0</l>
+<l>NumDecodedDefault := 0</l>
+<l>for I := 1 to 10 by 1</l>
+<c>    * Read image and reduce element size</c>
+<l>    read_image (Image, 'barcode/ean13/ean13_meas_param_estimation_' + (I$'.2'))</l>
+<c>    * Read barcode with 'meas_param_estimation' == 'false'</c>
+<l>    set_bar_code_param (BarCodeHandle, 'meas_param_estimation', 'false')</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<c>    * Read barcode with 'meas_param_estimation' == 'true'</c>
+<l>    set_bar_code_param (BarCodeHandle, 'meas_param_estimation', 'true')</l>
+<l>    find_bar_code (Image, SymbolRegionsParamEst, BarCodeHandle, CodeType, DecodedDataStringsParamEst)</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegionsParamEst)</l>
+<l>    dev_set_window (WindowHandleText)</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<l>    Message := 'Decoded data with \'meas_param_estimation\' == \'false\':'</l>
+<l>    disp_message (WindowHandleText, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>    if (|DecodedDataStrings| &gt; 0)</l>
+<l>        disp_message (WindowHandleText, DecodedDataStrings, 'window', 42, 12, 'blue', 'false')</l>
+<l>        NumDecodedDefault := NumDecodedDefault + |DecodedDataStrings|</l>
+<l>    else</l>
+<l>        disp_message (WindowHandleText, 'No decode', 'window', 42, 12, 'red', 'false')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    Message := 'Decoded data with \'meas_param_estimation\' == \'true\':'</l>
+<l>    disp_message (WindowHandleText, Message, 'window', 92, 12, 'black', 'false')</l>
+<l>    if (|DecodedDataStringsParamEst| &gt; 0)</l>
+<l>        disp_message (WindowHandleText, DecodedDataStringsParamEst, 'window', 122, 12, 'forest green', 'false')</l>
+<l>        NumDecodedParamEst := NumDecodedParamEst + |DecodedDataStringsParamEst|</l>
+<l>    else</l>
+<l>        disp_message (WindowHandleText, 'No decode', 'window', 122, 12, 'red', 'false')</l>
+<l>    endif</l>
+<l>    wait_seconds (2)</l>
+<l>endfor</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<l>Message := 'Reading performance:\n'</l>
+<l>disp_message (WindowHandleText, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>Message := 'With \'meas_param_estimation\' == \'false\': ' + NumDecodedDefault + ' out of 10\n'</l>
+<l>disp_message (WindowHandleText, Message, 'window', 42, 12, 'black', 'false')</l>
+<l>Message := 'With \'meas_param_estimation\' == \'true\': ' + NumDecodedParamEst + ' out of 10\n'</l>
+<l>disp_message (WindowHandleText, Message, 'window', 72, 12, 'black', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

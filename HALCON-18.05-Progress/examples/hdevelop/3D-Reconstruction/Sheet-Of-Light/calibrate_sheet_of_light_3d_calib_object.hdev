@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to calibrate a sheet-of-light setup with</c>
+<c>* calibrate_sheet_of_light.</c>
+<c>* </c>
+<c>* In order to use calibrate_sheet_of_light, you need a 3D calibration object.</c>
+<c>* You can create a CAD model of the 3D calibration object with</c>
+<c>* create_sheet_of_light_calib_object. Then, you can use this CAD model</c>
+<c>* to manufacture your individual 3D calibration object. Note that MVTec</c>
+<c>* does not offer 3D calibration objects. More information on how to</c>
+<c>* manufacture a calibration object is provided by</c>
+<c>* the reference of create_sheet_of_light_calib_object.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (CalibObjectDisparity, 'sheet_of_light/calib_object_disparity')</l>
+<l>get_image_size (CalibObjectDisparity, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (CalibObjectDisparity, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* The first step in the calibration procedure is to create a new sheet-of-light</c>
+<c>* model and initialize it with the parameters of the camera. So far,</c>
+<c>* calibrate_sheet_of_light only supports pinhole cameras and the division model</c>
+<l>read_object_model_3d ('calib_object.dxf', 'm', [], [], CalibObject3D, Status)</l>
+<l>create_pose (0.000, 0.07, 2.7, 130, 350, 125, 'Rp+T', 'gba', 'point', VisualizationPoseModel)</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>Title := 'CAD model of the calibration object\nThe object must be scanned low edge first'</l>
+<l>visualize_object_model_3d (WindowHandle, CalibObject3D, [], VisualizationPoseModel, [], [], Title, [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* Create sheet-of-light model</c>
+<l>gen_cam_par_area_scan_division (0.016, 0, 4.65e-06, 4.65e-06, 640, 512, 1280, 1024, CameraParam)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>get_cam_par_data (CameraParam, 'image_width', ImageWidth)</l>
+<l>get_cam_par_data (CameraParam, 'image_height', ImageHeight)</l>
+<l>gen_rectangle1 (Domain, 0, 0, ImageHeight - 1, ImageWidth - 1)</l>
+<l>create_sheet_of_light_model (Domain, [], [], SheetOfLightModelID)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'camera_parameter', CameraParam)</l>
+<c>* </c>
+<c>* Define the 3D calibration object</c>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'calibration_object', 'calib_object.dxf')</l>
+<c>* </c>
+<c>* Reconstruct the 3D calibration object with this sheet-of-light model</c>
+<c>* Be careful with the setup</c>
+<c>*  - The camera must be mounted correctly, such that higher parts on the calibration</c>
+<c>*    target correspond to lower values in the disparity image.</c>
+<c>*  - All sides of the truncated pyramid must be visible (at least 10 pixels wide)</c>
+<c>* </c>
+<c>* This example uses a precompute reconstruction (disparity image)</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_paint (['3d_plot','shaded',8,0.9,0.02,0.3,-0.3,0.3,-0.01,-0.003,-0.025])</l>
+<l>dev_display (CalibObjectDisparity)</l>
+<l>disp_message (WindowHandle, 'Measured disparity of the calibration object', 'window', 12, 12, 'black', 'true')</l>
+<l>set_profile_sheet_of_light (CalibObjectDisparity, SheetOfLightModelID, [])</l>
+<l>disp_message (WindowHandle, 'Now calibrating. This may take a minute...', 'image', Height - 50, 12, 'orange', 'false')</l>
+<l>dev_set_paint ('default')</l>
+<c>* </c>
+<c>* Perform the calibration (this may take a minute...)</c>
+<l>calibrate_sheet_of_light (SheetOfLightModelID, Error)</l>
+<c>* The error is the RMS of the distance of the reconstructed points to the calibration</c>
+<c>* object in meters</c>
+<c>* </c>
+<c>* Obtain the now calibrated reconstruction of the 3D calibration object</c>
+<l>set_profile_sheet_of_light (CalibObjectDisparity, SheetOfLightModelID, [])</l>
+<l>get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, ObjectModel3D)</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Align the reconstructed object model with the object model of the 3D calibration object</c>
+<l>create_surface_model (CalibObject3D, 0.03, [], [], SurfaceModelID)</l>
+<l>find_surface_model (SurfaceModelID, ObjectModel3D, 0.05, 0.2, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>pose_to_hom_mat3d (Pose, CHomMat3D)</l>
+<l>affine_trans_object_model_3d (CalibObject3D, CHomMat3D, ObjectModel3DAffineTrans)</l>
+<l>create_pose (0.1, 0.02, 2.8, 135, 360, 110, 'Rp+T', 'gba', 'point', VisualizationPoseResult)</l>
+<c>* </c>
+<c>* Remove background and subsample the reconstructed object model for a better visualization</c>
+<l>select_points_object_model_3d (ObjectModel3D, 'point_coord_z', 0.001, 1, ObjectModel3DThresholded)</l>
+<l>sample_object_model_3d (ObjectModel3DThresholded, 'accurate', 0.001, [], [], ObjectModel3DSampled)</l>
+<l>Title := 'Calibrated reconstruction of the measurement (yellow) together with the calibration object (blue)'</l>
+<l>TitleWrapped := regexp_replace(Title + ' ',['(.{0,60})\\s','replace_all'],'$1\n')</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DSampled,ObjectModel3DAffineTrans], [], VisualizationPoseResult, ['alpha_0','alpha_1','color_0','color_1'], [0.5,0.3,'yellow','blue'], TitleWrapped, [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* Get calibration result, can be used for debugging</c>
+<l>get_sheet_of_light_param (SheetOfLightModelID, 'camera_parameter', CamParamResult)</l>
+<l>get_sheet_of_light_param (SheetOfLightModelID, 'camera_pose', CameraPose)</l>
+<l>get_sheet_of_light_param (SheetOfLightModelID, 'lightplane_pose', LightPlanePose)</l>
+<l>get_sheet_of_light_param (SheetOfLightModelID, 'movement_pose', MovementPose)</l>
+<l>dev_inspect_ctrl ([CameraParam,CamParamResult,CameraPose,LightPlanePose,MovementPose])</l>
+<l>stop ()</l>
+<l>dev_close_inspect_ctrl ([CameraParam,CamParamResult,CameraPose,LightPlanePose,MovementPose])</l>
+<c>* </c>
+<c>* Visualize setup with calibration object</c>
+<l>gen_sheet_of_light_object_model_3d (SheetOfLightModelID, 0.2, 0.05, 0.4, OM3DLightPlane, OM3DMovement, OM3DCamera, OM3DCone)</l>
+<l>visualize_object_model_3d (WindowHandle, [CalibObject3D,OM3DLightPlane,OM3DMovement,OM3DCamera,OM3DCone], [], [0.0309362,0.15155,8.14821,100.687,1.86383,90.368,0], ['alpha_1','alpha_3','alpha_4','alpha_5','color_0','color_3','color_4','color_5'], [0.5,0.5,0.5,0.5,'blue','green','green','green'], 'Setup with calibration object', [], [], PoseOut)</l>
+<c>* </c>
+<c>* Visualize setup with reconstructed object</c>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DSampled,OM3DLightPlane,OM3DMovement,OM3DCamera,OM3DCone], [], PoseOut, ['alpha_1','alpha_3','alpha_4','alpha_5','color_0','color_3','color_4','color_5'], [0.5,0.5,0.5,0.5,'blue','green','green','green'], 'Setup with reconstructed object', [], [], PoseOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

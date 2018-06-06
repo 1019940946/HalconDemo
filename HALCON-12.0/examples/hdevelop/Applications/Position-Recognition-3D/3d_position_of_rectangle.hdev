@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to use get_rectangle_pose to</c>
+<c>* estimate the pose of rectangular objects in space. After the pose</c>
+<c>* of a work sheet is estimated, it is used to draw a frame on top</c>
+<c>* of the object. Note that get_rectangle_pose can process only</c>
+<c>* contours that can be segmented unambiguously into 4 line segments.</c>
+<c>* To preprocess the work sheet in such a way that get_rectangle_pose</c>
+<c>* can handle its octangular shape, the intersection points of the</c>
+<c>* main sides of the work sheet are added to the contour to be</c>
+<c>* processed.</c>
+<c>* </c>
+<l>Width := 800</l>
+<l>Height := 800</l>
+<l>RectWidth := 0.095</l>
+<l>RectHeight := 0.035</l>
+<c>* </c>
+<c>* </c>
+<c>* Initialization</c>
+<c>* </c>
+<l>get_system ('clip_region', ClipRegion)</l>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>get_system ('empty_region_result', EmptyRegionResult)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>set_system ('store_empty_region', 'true')</l>
+<l>set_system ('empty_region_result', 'true')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_update_window ('off')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* </c>
+<c>* Read the camera calibration.</c>
+<c>* </c>
+<l>CaltabName := 'caltab_30mm.descr'</l>
+<l>Dir := 'metal-parts'</l>
+<l>CamParam := [0.0136446,830.197,4.58317e-006,4.65e-006,509.153,487.791,800,800]</l>
+<c>* </c>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (1)</l>
+<l>gen_rectangle1 (ImageBorder, 2, 2, Height - 2, Width - 2)</l>
+<l>complement (ImageBorder, ImageBorder)</l>
+<l>for I := 1 to 5 by 1</l>
+<c>    * Read new image</c>
+<l>    read_image (Image, Dir + '/work_sheet_' + I$'.2')</l>
+<l>    dev_display (Image)</l>
+<c>    * Extract light objects</c>
+<l>    mean_image (Image, ImageMean, 201, 201)</l>
+<l>    dyn_threshold (Image, ImageMean, Region, 0, 'light')</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    connection (RegionFillUp, ConnectedRegions)</l>
+<l>    erosion_circle (ConnectedRegions, RegionErosion, 3.5)</l>
+<l>    dilation_circle (RegionErosion, RegionDilation, 3.5)</l>
+<l>    select_shape (RegionDilation, Objects, ['area','convexity','rectangularity'], 'and', [2000,0.9,0.8], [4000000,1,1])</l>
+<c>    * Filter out objects intersecting with the border</c>
+<l>    intersection (Objects, ImageBorder, RegionIntersection)</l>
+<l>    area_center (RegionIntersection, Area, Row, Column)</l>
+<l>    tuple_find (Area, 0, ZerosIndices)</l>
+<c>    * Display the 3D object</c>
+<l>    if (ZerosIndices != -1)</l>
+<l>        select_obj (Objects, RectangularRegions, ZerosIndices + 1)</l>
+<l>        find_pose_from_region (RectangularRegions, Image, CamParam, WindowHandle, RectWidth, RectHeight, 'small_detail/cut_edges', PoseSmallField)</l>
+<l>        if (|PoseSmallField| &gt; 0)</l>
+<l>            display_3D_detail (PoseSmallField, RectWidth, RectHeight, CamParam)</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (I &lt; 5)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Restore system parameters</c>
+<l>set_system ('clip_region', ClipRegion)</l>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('empty_region_result', EmptyRegionResult)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_pose_from_region">
+<interface>
+<io>
+<par name="RectangularRegions" base_type="iconic" dimension="0"/>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="RectWidth" base_type="ctrl" dimension="0"/>
+<par name="RectHeight" base_type="ctrl" dimension="0"/>
+<par name="FileName" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PoseOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (ErrorVar, 1)</l>
+<l>PoseOut := []</l>
+<c>* </c>
+<c>* Reduce the image to the border of the region and extract edges</c>
+<l>dilation_rectangle1 (RectangularRegions, RectDilated, 9, 9)</l>
+<l>erosion_rectangle1 (RectangularRegions, RectEroded, 9, 9)</l>
+<l>difference (RectDilated, RectEroded, RectBorders)</l>
+<l>select_shape (RectBorders, RectBorders, 'area', 'and', 600, 99999)</l>
+<l>count_obj (RectBorders, Number)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (RectBorders, RectSelected, I)</l>
+<l>    reduce_domain (Image, RectSelected, ImageReduced)</l>
+<c>    * Extract contours and make them quadrangular</c>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 0.7, 20, 30)</l>
+<l>    count_obj (Edges, NumberEdges)</l>
+<l>    if (NumberEdges == 0)</l>
+<l>        return ()</l>
+<l>    endif</l>
+<l>    segment_contours_xld (Edges, ContoursSplit, 'lines', 7, 4, 2)</l>
+<l>    select_contours_xld (ContoursSplit, SelectedEdges, 'contour_length', 70, 1000, -0.5, 0.5)</l>
+<l>    union_adjacent_contours_xld (SelectedEdges, UnionContours, 10, 1, 'attr_keep')</l>
+<l>    count_obj (UnionContours, NumberFilteredEdges)</l>
+<l>    if (NumberFilteredEdges != 4)</l>
+<l>        return ()</l>
+<l>    endif</l>
+<l>    fit_line_contour_xld (UnionContours, 'tukey', -1, 0, 5, 2, RowBegin, ColumnBegin, RowEnd, ColumnEnd, Nr, Nc, Dist)</l>
+<c>    * Find intersection points [Rows, Columns]</c>
+<l>    for J := 0 to 3 by 1</l>
+<l>        intersection_lines (RowBegin[J], ColumnBegin[J], RowEnd[J], ColumnEnd[J], RowBegin[(J + 1) % 4], ColumnBegin[(J + 1) % 4], RowEnd[(J + 1) % 4], ColumnEnd[(J + 1) % 4], Row, Column, IsOverlapping)</l>
+<l>        gen_cross_contour_xld (Cross, Row, Column, 6, 0.785398)</l>
+<l>        Rows[J] := Row</l>
+<l>        Columns[J] := Column</l>
+<l>    endfor</l>
+<c>    * Merge points</c>
+<l>    FinalRow := []</l>
+<l>    FinalColumn := []</l>
+<l>    for J := 1 to 4 by 1</l>
+<l>        select_obj (UnionContours, Edge, J)</l>
+<l>        get_contour_xld (Edge, RowEdge, ColumnEdge)</l>
+<l>        FinalRow := [FinalRow,RowEdge[5:|RowEdge| - 5],Rows[J - 1]]</l>
+<l>        FinalColumn := [FinalColumn,ColumnEdge[5:|ColumnEdge| - 5],Columns[J - 1]]</l>
+<l>    endfor</l>
+<l>    gen_contour_polygon_xld (Quadrangle, FinalRow, FinalColumn)</l>
+<c>    * Process contour</c>
+<l>*     dev_set_color ('medium slate blue')</l>
+<l>*     dev_display (Quadrangle)</l>
+<l>    count_obj (Quadrangle, NumberEdges)</l>
+<l>    if (NumberEdges &gt; 0)</l>
+<l>        close_contours_xld (Quadrangle, ClosedContours)</l>
+<l>        get_rectangle_pose (ClosedContours, CamParam, RectWidth, RectHeight, 'tukey', 2, Poses, PoseCov, Error)</l>
+<l>        ErrorAgain := ErrorVar</l>
+<l>        if (ErrorAgain == H_MSG_TRUE)</l>
+<c>            * Store pose</c>
+<l>            Pose := Poses[0:6]</l>
+<l>            pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>            affine_trans_point_3d (HomMat3D, [0,0], [0,0], [0,1], Qx, Qy, Qz)</l>
+<c>            * Invert (if necessary) direction of z axis to point towards the camera</c>
+<l>            if (Qz[1] - Qz[0] &gt; 0)</l>
+<l>                Pose[4] := Pose[4] + 180</l>
+<l>                Pose[5] := -Pose[5]</l>
+<l>            endif</l>
+<l>            PoseOut := [PoseOut,Pose]</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_error_var (ErrorVar, 0)</l>
+<l>dev_set_check ('give_error')</l>
+<l>return ()</l>
+</body>
+<docu id="find_pose_from_region">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="FileName"/>
+<parameter id="Image"/>
+<parameter id="PoseOut"/>
+<parameter id="RectHeight"/>
+<parameter id="RectWidth"/>
+<parameter id="RectangularRegions"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_3D_detail">
+<interface>
+<ic>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="RectWidth" base_type="ctrl" dimension="0"/>
+<par name="RectHeight" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display a box</c>
+<l>dev_set_line_width (3)</l>
+<l>pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>hW := RectWidth / 2</l>
+<l>hH := RectHeight / 2</l>
+<l>Ofst := 0.005</l>
+<l>XCoord := [hW,hW - Ofst,-hW + Ofst,-hW,-hW,-hW + Ofst,hW - Ofst,hW,hW]</l>
+<l>XCoord := [XCoord,XCoord]</l>
+<l>YCoord := [hH - Ofst,hH,hH,hH - Ofst,-hH + Ofst,-hH,-hH,-hH + Ofst,hH - Ofst]</l>
+<l>YCoord := [YCoord,YCoord]</l>
+<l>tuple_gen_const (9, 0.01, ZCoord)</l>
+<l>ZCoord := [ZCoord,0,0,0,0,0,0,0,0,0]</l>
+<l>affine_trans_point_3d (HomMat3D, XCoord, YCoord, ZCoord, Qx, Qy, Qz)</l>
+<l>project_3d_point (Qx, Qy, Qz, CamParam, Row, Column)</l>
+<l>gen_contour_polygon_xld (Cover, Row[9:17], Column[9:17])</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cover)</l>
+<l>gen_contour_polygon_xld (Bottom, Row[0:8], Column[0:8])</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (Bottom)</l>
+<l>dev_set_color ('red')</l>
+<l>for J := 0 to 8 by 1</l>
+<l>    gen_contour_polygon_xld (Edge, [Row[J],Row[J + 9]], [Column[J],Column[J + 9]])</l>
+<l>    dev_display (Edge)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="display_3D_detail">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Pose"/>
+<parameter id="RectHeight"/>
+<parameter id="RectWidth"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

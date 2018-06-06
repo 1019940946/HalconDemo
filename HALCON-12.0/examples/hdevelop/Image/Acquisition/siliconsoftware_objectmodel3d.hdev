@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the Silicon Software and 3D</c>
+<c>* Triangulation Smart Applet in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* With the 3D Triangulation SmartApplet family, the HALCON</c>
+<c>* SiliconSoftware interface delivers a disparity image that is</c>
+<c>* calculated by the FPGA.</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* </c>
+<c>* To use this example the installation of Silicon Software Smart</c>
+<c>* Applets is required. Please use microDisplay to create a proper</c>
+<c>* mcf-file!</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Set the continuous grabbing mode for best performance</c>
+<l>* set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c>* </c>
+<c>* Each kind of applet needs a different configuration. Therefore</c>
+<c>* the applet type have to be queried to configure it accordingly.</c>
+<l>get_framegrabber_param (AcqHandle, 'applet_type', AppletTypeVal)</l>
+<l>tuple_strstr (AppletTypeVal[0], 'Tria', Position)</l>
+<l>if (Position != -1)</l>
+<l>    AppletType := 'Tria'</l>
+<l>else</l>
+<c>    * Unsupported or not a Triangulation SmartApplet.</c>
+<c>    * This example handles only the Triangulation SmartApplets.</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* 3D Triangulation Applet configuration</c>
+<c>* </c>
+<c>*  'FG_3D_IMAGE_OUTPUT' parameter values:</c>
+<c>*     0 -&gt; Output LaserLineAndImage</c>
+<c>*     1 -&gt; Output LaserLine</c>
+<c>*     2 -&gt; Output Image (not supported via grab_data[_async])</c>
+<l>set_framegrabber_param (AcqHandle, 'FG_3D_IMAGE_OUTPUT', 0)</l>
+<l>NumProfiles := 300</l>
+<l>set_framegrabber_param (AcqHandle, 'num_scans', NumProfiles)</l>
+<c>* </c>
+<c>* Get image dimensions</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>DisplayWidth := 800</l>
+<l>DisplayHeight := DisplayWidth * ImageHeight / ImageWidth</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * Grab 3D data -&gt; LaserLineAndImage</c>
+<l>    grab_data (Image, Regions, Contours, AcqHandle, Data)</l>
+<c>    * </c>
+<c>    * Show the laser line with the last captured image</c>
+<l>    count_obj (Image, NumImages)</l>
+<l>    select_obj (Image, LastGrabbedImage, NumImages)</l>
+<l>    dev_open_window (0, 0, DisplayWidth, DisplayHeight, 'black', WindowID1)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_display (LastGrabbedImage)</l>
+<l>    display_triangulation_line (Image, NumImages, ImageWidth, WindowID1)</l>
+<l>    disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Get the disparity image calculated by the FPGA</c>
+<l>    select_obj (Image, DisparityImage, 1)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (DisparityImage)</l>
+<l>    disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Find region to reduce image domain</c>
+<l>    threshold (DisparityImage, Region, 1, ImageHeight)</l>
+<c>    * Reduce disparity image domain</c>
+<l>    reduce_domain (DisparityImage, Region, DisparityImage)</l>
+<c>    * </c>
+<c>    * The profile width is defined in create_sheet_of_light_model</c>
+<c>    * by the width of a rectangle. Please adapt the rectangle to</c>
+<c>    * your specific configuration:</c>
+<l>    Row1 := 0</l>
+<l>    Column1 := 0</l>
+<l>    Row2 := ImageWidth - 1</l>
+<l>    Column2 := ImageWidth - 1</l>
+<l>    gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<c>    * Create the sheet of light model with simplified parameters,</c>
+<c>    * i.e. 'calibration' = 'offset_scale'.</c>
+<l>    create_sheet_of_light_model (Rectangle, 'calibration', 'offset_scale', SheetOfLightModelID)</l>
+<c>    * Set the scaling factors such that the distance of</c>
+<c>    * neighboring 3D points is approximately the same as in the</c>
+<c>    * real object. Note that through the scaling, only</c>
+<c>    * approximate 3D coordinates are obtained (scaling does not</c>
+<c>    * replace calibration).</c>
+<l>    ScaleX := 1</l>
+<l>    ScaleY := 10</l>
+<l>    ScaleZ := 1</l>
+<l>    set_sheet_of_light_param (SheetOfLightModelID, 'scale_x', ScaleX)</l>
+<l>    set_sheet_of_light_param (SheetOfLightModelID, 'scale_y', ScaleY)</l>
+<l>    set_sheet_of_light_param (SheetOfLightModelID, 'scale_z', ScaleZ)</l>
+<c>    * </c>
+<c>    * Use the disparity Image to create a Sheet of Light Model ID</c>
+<l>    apply_sheet_of_light_calibration (DisparityImage, SheetOfLightModelID)</l>
+<c>    * Get the Sheet of light Model, based on the previous defined</c>
+<c>    * configuration</c>
+<l>    get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, ObjectModel3D)</l>
+<c>    * Display the result, press button to continue</c>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, 800, 600, 'black', WindowID1)</l>
+<l>    set_display_font (WindowID1, 16, 'mono', 'true', 'false')</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        VisPose := []</l>
+<l>        Instructions[0] := 'Rotate: Left button'</l>
+<l>        Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>        Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>        visualize_object_model_3d (WindowID1, ObjectModel3D, [], VisPose, ['intensity','lut'], ['coord_z','rainbow'], 'ObjectModel3D (UNCALIBRATED)', [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * In order to create a surface triangulation from the</c>
+<c>        * ObjectModel3D, please see the following examples:</c>
+<c>        *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>        *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>        * </c>
+<l>    else</l>
+<l>        disp_message (WindowID1, 'Null 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<l>    dev_close_window ()</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_triangulation_line">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="NumImages" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (NumImages &gt; 1)</l>
+<l>    select_obj (Image, TriangObj, 1)</l>
+<l>    tuple_gen_const (ImageWidth, 0, Row)</l>
+<l>    tuple_gen_sequence (0, ImageWidth - 1, 1, Col)</l>
+<l>    get_grayval (TriangObj, Row, Col, Grayval)</l>
+<c>    * </c>
+<l>    tuple_find (Grayval, 0, Indices)</l>
+<l>    Indices := [-1,Indices,|Grayval|]</l>
+<l>    for I := 0 to |Indices| - 2 by 1</l>
+<l>        if (|Indices| == 3 and I == 0)</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>        tuple_gen_sequence (Indices[I] + 1, Indices[I + 1] - 1, 1, Sequence)</l>
+<l>        tuple_select (Grayval, Sequence, Selected)</l>
+<l>        if (|Selected| &gt; 0)</l>
+<l>            disp_polygon (WindowHandle, Selected, Sequence)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_triangulation_line">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageWidth"/>
+<parameter id="NumImages"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

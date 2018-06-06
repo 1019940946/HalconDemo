@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use a drawing object of type</c>
+<c>* 'circle_arc' for an interactive edge detection application.</c>
+<c>* While interactively moving, resizing, or changing the angle</c>
+<c>* of the drawing object, a filter is applied to detect edges</c>
+<c>* within the area enclosed by the draw object.</c>
+<c>* </c>
+<c>* In contrast to other drawing operators, e.g., draw_circle, the</c>
+<c>* use of drawing objects does not block the whole application.</c>
+<c>* Thus, the user may interact with the object or make changes</c>
+<c>* to the program without ending the interaction first.</c>
+<c>* </c>
+<c>* Initialize settings</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptDlg)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* Read image</c>
+<l>read_image (Image, 'mreut')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>get_system ('operating_system', OS)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Display short description</c>
+<l>Message := 'This example shows how to apply a Sobel filter'</l>
+<l>Message[1] := 'within the area of a drawing object of type'</l>
+<l>Message[2] := '\'circle_arc\' to detect edges while'</l>
+<l>Message[3] := 'interactively moving, resizing, or changing'</l>
+<l>Message[4] := 'the angle of the circle sector.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create a drawing object of type 'circle_arc' and set its color</c>
+<l>create_drawing_object_circle_sector (250, 200, 100, 0, 3.14159, DrawID)</l>
+<l>set_drawing_object_params (DrawID, 'color', 'yellow')</l>
+<c>* </c>
+<c>* Attach the drawing object and the image to the window</c>
+<l>attach_drawing_object_to_window (WindowHandle, DrawID)</l>
+<l>attach_background_to_window (Image, WindowHandle)</l>
+<c>* </c>
+<c>* Display a short description using a text drawing object</c>
+<l>Message := 'Move, resize or change the angles by dragging\nthe handles and border of the circle sector.\nExit the interaction by clicking the right\nmouse button.'</l>
+<l>get_font (WindowHandle, Font)</l>
+<l>create_drawing_object_text (12, 20, Message, DrawIDMessage)</l>
+<l>set_drawing_object_params (DrawIDMessage, ['color','font'], ['yellow',Font])</l>
+<l>attach_drawing_object_to_window (WindowHandle, DrawIDMessage)</l>
+<c>* </c>
+<c>* Detect edges interactively using the drawing object</c>
+<c>* ***************************************************</c>
+<c>* Apply a sobel filter in the area of the drawing object to</c>
+<c>* extract edges. The circle sector can be moved, resized, or</c>
+<c>* changed interactively by the user. The edges are detected</c>
+<c>* constantly while the drawing object is adjusted.</c>
+<c>* The user interaction is ended by clicking the right mouse button.</c>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>Button := 0</l>
+<l>while (Button != 4)</l>
+<l>    try</l>
+<l>        image_processing (Image, EdgeAmplitude, DrawID)</l>
+<l>        display_results (EdgeAmplitude, WindowHandle)</l>
+<c>        * Check the mouse position and button</c>
+<l>        get_mposition (WindowHandle, Row, Column, Button)</l>
+<l>    catch (Exception)</l>
+<c>        * Keep waiting until the mouse is</c>
+<c>        * positioned over the image</c>
+<l>    endtry</l>
+<l>endwhile</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<c>* </c>
+<c>* Detach the drawing objects</c>
+<l>detach_drawing_object_from_window (WindowHandle, DrawID)</l>
+<l>detach_drawing_object_from_window (WindowHandle, DrawIDMessage)</l>
+<l>detach_background_from_window (WindowHandle)</l>
+<c>* </c>
+<c>* Clear the drawing objects</c>
+<l>clear_drawing_object (DrawID)</l>
+<l>clear_drawing_object (DrawIDMessage)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptDlg)</l>
+<l>disp_message (WindowHandle, 'The drawing object has been cleared.', 'window', 12, 12, 'black', 'true')</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="image_processing">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="EdgeAmplitude" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="DrawID" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Use the region of the iconic representation of the</c>
+<c>* drawing object for the edge detection</c>
+<l>get_drawing_object_iconic (Region, DrawID)</l>
+<l>reduce_domain (Image, Region, ImageReduced)</l>
+<l>sobel_amp (ImageReduced, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>return ()</l>
+</body>
+<docu id="image_processing">
+<parameters>
+<parameter id="DrawID">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>draw_object</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="EdgeAmplitude">
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Image">
+<sem_type>image</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_results">
+<interface>
+<io>
+<par name="EdgeAmplitude" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* it is necessary to clear the graphic stack, so that previous</c>
+<c>* results do not show anymore</c>
+<l>dev_clear_window ()</l>
+<l>dev_display (EdgeAmplitude)</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="display_results">
+<parameters>
+<parameter id="EdgeAmplitude">
+<sem_type>object</sem_type>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ********************************************************</c>
+<c>* This example program shows how to remove parts of a</c>
+<c>* 3D object model using reduce_object_model_3d_by_view.</c>
+<c>* In particular, the user can rotate and translate the</c>
+<c>* object and then draw a region that cuts out all points</c>
+<c>* of the model that are projected into this region.</c>
+<c>* All faces that base on one of these points are removed.</c>
+<c>* ********************************************************</c>
+<c>* </c>
+<c>* Read 3D object model</c>
+<l>read_object_model_3d ('glass_mug', 'cm', [], [], ObjectModel3D, Status)</l>
+<c>* </c>
+<c>* Prepare the Visualization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 768, 512, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_division (0.01, 0, 7e-6, 7e-6, 384, 255, 768, 512, CamParam)</l>
+<l>Pose := [-0.1e-3,-0.47e-3,55.8e-3,104.5,358.0,353.0,0]</l>
+<l>GenParamName := ['color_0','disp_pose_0','alpha_0']</l>
+<l>GenParamValue := ['yellow','true',0.3]</l>
+<l>GenParamName := [GenParamName,'color_1','attribute_1','disp_background']</l>
+<l>GenParamValue := [GenParamValue,'blue','points','true']</l>
+<l>gen_image_gray_ramp (Ramp, -0.5, 0, 300, 0, 512, 768, 512)</l>
+<c>* </c>
+<c>* Show current 3D object model</c>
+<l>Title := 'Move and rotate the object to an appropriate pose, before'</l>
+<l>Title[1] := 'selecting the region of the points to be trimmed off.'</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>dev_display (Ramp)</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3D,ObjectModel3D], CamParam, Pose, GenParamName, GenParamValue, Title, [], Instructions, Pose)</l>
+<c>* </c>
+<c>* Now, select the points to be trimmed off by entering a</c>
+<c>* suitable region</c>
+<l>Message := 'Now draw region with the mouse to cut out part of the model'</l>
+<l>Message[1] := '(Right click to finish)'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* Wait for a region</c>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('red')</l>
+<l>draw_region (Region, WindowHandle)</l>
+<l>get_cam_par_data (CamParam, 'image_width', ImageWidth)</l>
+<l>get_cam_par_data (CamParam, 'image_height', ImageHeight)</l>
+<l>gen_rectangle1 (Rectangle, 0, 0, ImageHeight, ImageWidth)</l>
+<l>difference (Rectangle, Region, RegionComplement)</l>
+<c>* Apply the region drawn before to the 3d object model</c>
+<l>reduce_object_model_3d_by_view (RegionComplement, ObjectModel3D, CamParam, Pose, ObjectModel3DReduced)</l>
+<c>* </c>
+<c>* Visualize the result</c>
+<l>Title := 'Resulting reduced 3d object model'</l>
+<l>dev_display (Ramp)</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DReduced,ObjectModel3DReduced], CamParam, Pose, GenParamName, GenParamValue, Title, [], Instructions, Pose)</l>
+<l>clear_object_model_3d ([ObjectModel3D,ObjectModel3DReduced])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the basic use of message queues</c>
+<c>* for data delivery among multiple threads.</c>
+<c>* This is illustrated by an application that detects and counts</c>
+<c>* bottles in crates.</c>
+<c>* The main thread first starts a separate acquisition thread</c>
+<c>* and two processing threads and then waits for results.</c>
+<c>* The acquired images are delivered to the processing threads</c>
+<c>* through a message queue. The processing results are delivered</c>
+<c>* back to the main thread using another message queue.</c>
+<c>* As soon as the input is used up, all threads are stopped</c>
+<c>* automatically.</c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Open windows for reporting the results as they are delivered.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 240, 'black', WindowResults)</l>
+<l>set_display_font (WindowResults, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This example demonstrates the basic use of message queues for data'</l>
+<l>Message[1] := 'delivery among multiple threads.'</l>
+<l>Message[2] := 'The main thread first starts a separate acquisition thread and'</l>
+<l>Message[3] := 'two processing threads and then waits for results.'</l>
+<l>Message[4] := 'As soon as the input is used up, all threads are stopped automatically.'</l>
+<l>disp_message (WindowResults, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowResults, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_open_window (200, 320, 480, 384, 'black', WindowImage)</l>
+<c>* </c>
+<c>* Create both queues, one to deliver acquired images</c>
+<c>* to processing threads, the other to deliver results.</c>
+<l>create_message_queue (QueueImages)</l>
+<l>create_message_queue (QueueResults)</l>
+<c>* </c>
+<c>* Start the acquisition and processing threads.</c>
+<l>NumWorkerThreads := 2</l>
+<l>for ThreadIndex := 0 to NumWorkerThreads - 1 by 1</l>
+<l>    par_start&lt;VProcThreads.at(ThreadIndex)&gt; : processing_thread (QueueImages, QueueResults, ThreadIndex)</l>
+<l>endfor</l>
+<l>par_start&lt;AcqThread&gt; : acquisition_thread (QueueImages, QueueResults, NumWorkerThreads)</l>
+<l>NumStartedThreads := NumWorkerThreads + 1</l>
+<l>NumFinishedThreads := 0</l>
+<c>* </c>
+<c>* Initialize variables.</c>
+<l>dev_update_off ()</l>
+<l>NumCrates := 0</l>
+<l>NumBottles := 0</l>
+<l>NumIncomplete := 0</l>
+<l>IncompleteIDs := []</l>
+<l>ClutteredIDs := []</l>
+<l>StopMessages := []</l>
+<l>display_results (WindowResults, NumCrates, NumBottles, NumIncomplete, IncompleteIDs, ClutteredIDs, StopMessages, 0)</l>
+<c>* </c>
+<c>* Loop waiting for results coming from the processing threads.</c>
+<l>while (1)</l>
+<c>    * Read next message with results from the queue.</c>
+<l>    dequeue_message (QueueResults, 'timeout', 'infinite', MessageResult)</l>
+<c>    * </c>
+<c>    * Here, the message can be either a real collection of results processing</c>
+<c>    * a single input image - or a special message informing about completion</c>
+<c>    * of one of the worker threads.</c>
+<l>    get_message_param (MessageResult, 'key_exists', 'thread_finished', ThreadEndInfo)</l>
+<l>    if (ThreadEndInfo[0])</l>
+<c>        * Worker-thread-finish message, just increment the</c>
+<c>        * finished-thread counter.</c>
+<l>        get_message_tuple (MessageResult, 'thread_finished', ThreadEndMessage)</l>
+<l>        StopMessages := [StopMessages,ThreadEndMessage[0]]</l>
+<l>        NumFinishedThreads := NumFinishedThreads + 1</l>
+<l>    else</l>
+<c>        * This message contains real processing results.</c>
+<c>        * Retrieve and display the visualization of the results.</c>
+<l>        get_message_obj (ImgProcessedCrate, MessageResult, 'processed_crate')</l>
+<l>        dev_set_window (WindowImage)</l>
+<l>        dev_display (ImgProcessedCrate)</l>
+<c>        * Increment the crates/bottles counters and other statistics</c>
+<c>        * based on the information delivered in the message</c>
+<c>        * from the processing thread.</c>
+<l>        NumCrates := NumCrates + 1</l>
+<l>        get_message_tuple (MessageResult, 'num_bottles', NumBottlesInCrate)</l>
+<l>        NumBottles := NumBottles + NumBottlesInCrate</l>
+<l>        get_message_tuple (MessageResult, 'crate_id', CrateID)</l>
+<l>        if (NumBottlesInCrate &lt; 20)</l>
+<l>            NumIncomplete := NumIncomplete + 1</l>
+<l>            IncompleteIDs := [IncompleteIDs,CrateID]</l>
+<l>        endif</l>
+<l>        get_message_param (MessageResult, 'key_exists', 'clutter', ClutterPresent)</l>
+<l>        if (ClutterPresent[0])</l>
+<l>            ClutteredIDs := [ClutteredIDs,CrateID]</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Update the results display.</c>
+<l>    display_results (WindowResults, NumCrates, NumBottles, NumIncomplete, IncompleteIDs, ClutteredIDs, StopMessages, 0)</l>
+<c>    * </c>
+<c>    * If all the worker threads finished, stop waiting for the results.</c>
+<l>    if (NumFinishedThreads == NumStartedThreads)</l>
+<l>        break</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Final cleanup</c>
+<l>convert_vector_to_tuple (VProcThreads, ProcThreads)</l>
+<l>par_join ([AcqThread,ProcThreads])</l>
+<c>* Display final results.</c>
+<l>display_results (WindowResults, NumCrates, NumBottles, NumIncomplete, IncompleteIDs, ClutteredIDs, StopMessages, 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="processing_thread">
+<interface>
+<ic>
+<par name="QueueImage" base_type="ctrl" dimension="0"/>
+<par name="QueueResults" base_type="ctrl" dimension="0"/>
+<par name="ThreadIndex" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Procedure implementing the processing thread</c>
+<c>* </c>
+<c>* Avoid empty regions in operators' output to reliably</c>
+<c>* identify clutter (see below)</c>
+<l>set_system ('store_empty_region', 'false')</l>
+<c>* </c>
+<c>* Process the acquired data in a loop, until receiving the end-of-input</c>
+<c>* message from the acquisition thread.</c>
+<l>while (1)</l>
+<c>    * Receive next message from the "image" queue</c>
+<c>    * This queue is filled with images by the acquisition thread</c>
+<l>    dequeue_message (QueueImage, 'timeout', 'infinite', MessageData)</l>
+<c>    * </c>
+<c>    * If the "stop_processing" key is present in the message,</c>
+<c>    * this is an indicator from the acquisition thread that</c>
+<c>    * no more input is coming.</c>
+<l>    get_message_param (MessageData, 'key_exists', 'stop_processing', StopProcInfo)</l>
+<l>    if (StopProcInfo[0])</l>
+<l>        break</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Otherwise read the input image from the message</c>
+<l>    get_message_obj (Image, MessageData, 'image')</l>
+<c>    * </c>
+<c>    * Find the bottles in the crate:</c>
+<c>    * - Extract background</c>
+<l>    threshold (Image, BackgroundRegion, 50, 130)</l>
+<l>    opening_circle (BackgroundRegion, BackgroundRegion, 3.5)</l>
+<c>    * - Extract bottle reflections</c>
+<l>    threshold (Image, Region, 85, 255)</l>
+<l>    difference (Region, BackgroundRegion, Region)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<c>    * - Large reflections are judged as clutter</c>
+<l>    select_shape (ConnectedRegions, Clutter, ['width','height'], 'or', [100,100], [500,400])</l>
+<l>    opening_circle (Clutter, Clutter, 8.5)</l>
+<l>    difference (ConnectedRegions, Clutter, Region)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<c>    * - Ignore noise regions</c>
+<l>    select_shape (ConnectedRegions, Candidates, ['width','height'], 'and', [25,25], [100,100])</l>
+<l>    fill_up (Candidates, FilledCandidates)</l>
+<l>    opening_circle (FilledCandidates, FilledCandidates, 15.5)</l>
+<c>    * - Only 'round' reflections are from bottles</c>
+<l>    select_shape (FilledCandidates, RoundCandidates, 'circularity', 'and', 0.87, 1)</l>
+<l>    select_shape (RoundCandidates, BigBottles, 'max_diameter', 'and', 75, 99999)</l>
+<l>    count_obj (RoundCandidates, NumBottles)</l>
+<l>    count_obj (Clutter, NumClutter)</l>
+<c>    * </c>
+<c>    * The processing is finished, collect the results and send them</c>
+<c>    * to the main thread over the "results" queue, simply reusing</c>
+<c>    * the original (input) message:</c>
+<c>    * - Remove the no more needed input image from the message,</c>
+<c>    *   but keep the crate ID information attached to the message</c>
+<c>    *   by the acquisition thread</c>
+<l>    set_message_param (MessageData, 'remove_key', 'image', [])</l>
+<c>    * - Create results visualization and store it in the message</c>
+<l>    create_results_preview (Image, RoundCandidates, BigBottles, Clutter, ResultsView)</l>
+<l>    set_message_obj (ResultsView, MessageData, 'processed_crate')</l>
+<c>    * - Add information about number of bottles and clutter</c>
+<l>    set_message_tuple (MessageData, 'num_bottles', NumBottles)</l>
+<l>    if (NumClutter &gt; 0)</l>
+<l>        set_message_tuple (MessageData, 'clutter', NumClutter)</l>
+<l>    endif</l>
+<c>    * - Send the message with all the information to the "results" queue,</c>
+<c>    *   the results are collected by the main thread</c>
+<l>    enqueue_message (QueueResults, MessageData, [], [])</l>
+<c>    * Pretend non-trivial processing time</c>
+<l>    wait_seconds (0.7 + 0.4 * ThreadIndex)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Finally, inform the main thread that this processing thread</c>
+<c>* is finished through the "results" queue.</c>
+<l>create_message (MessageFinished)</l>
+<l>set_message_tuple (MessageFinished, 'thread_finished', 'Processing thread #' + ThreadIndex + ' finished')</l>
+<l>enqueue_message (QueueResults, MessageFinished, [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="processing_thread">
+<parameters>
+<parameter id="QueueImage"/>
+<parameter id="QueueResults"/>
+<parameter id="ThreadIndex"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="acquisition_thread">
+<interface>
+<ic>
+<par name="QueueImages" base_type="ctrl" dimension="0"/>
+<par name="QueueResults" base_type="ctrl" dimension="0"/>
+<par name="NrProcessingThreads" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Procedure implementing/simulating the acquisition thread.</c>
+<c>* </c>
+<c>* Acquires a predefined number of images, after which the acquisition</c>
+<c>* is stopped. In real applications, this acquisition stop would</c>
+<c>* be controlled for example by an external input.</c>
+<l>for Index := 1 to 24 by 1</l>
+<l>    read_image (Image, 'bottles/bottle_crate_' + Index$'.02')</l>
+<c>    * </c>
+<c>    * Create a message and store the acquired image in it</c>
+<l>    create_message (MessageImg)</l>
+<l>    set_message_obj (Image, MessageImg, 'image')</l>
+<c>    * </c>
+<c>    * Add the crate ID to the message</c>
+<l>    set_message_tuple (MessageImg, 'crate_id', Index)</l>
+<c>    * </c>
+<c>    * Send the message to the "image" queue, which is used to deliver</c>
+<c>    * input images from the acquisition thread to the multiple</c>
+<c>    * processing threads.</c>
+<l>    enqueue_message (QueueImages, MessageImg, [], [])</l>
+<c>    * </c>
+<c>    * Pretend non-trivial acquisition time</c>
+<l>    wait_seconds (0.3)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* When the acquisition is stopped (here: the predefined number of</c>
+<c>* images has been sent to the processing threads), inform the processing</c>
+<c>* threads that no more work is coming. Here, this is done</c>
+<c>* by appending a special "stop processing" messages at the end</c>
+<c>* of the queue. These messages do not carry any image,</c>
+<c>* only a specific key (stop_processing) that will be interpreted</c>
+<c>* by the processing threads as instruction to stop the execution.</c>
+<c>* It is important to queue as many stop messages as there are</c>
+<c>* processing threads to ensure that each of the processing threads</c>
+<c>* receives a stop message.</c>
+<l>create_message (MessageStop)</l>
+<l>set_message_tuple (MessageStop, 'stop_processing', 1)</l>
+<l>for Index := 1 to NrProcessingThreads by 1</l>
+<l>    enqueue_message (QueueImages, MessageStop, [], [])</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Finally, inform the main thread through the "results" queue that</c>
+<c>* the acquisision is finished</c>
+<l>create_message (MessageFinished)</l>
+<l>set_message_tuple (MessageFinished, 'thread_finished', 'Acquisition thread finished')</l>
+<l>enqueue_message (QueueResults, MessageFinished, [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="acquisition_thread">
+<parameters>
+<parameter id="NrProcessingThreads"/>
+<parameter id="QueueImages"/>
+<parameter id="QueueResults"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_results">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="NumCrates" base_type="ctrl" dimension="0"/>
+<par name="NumBottles" base_type="ctrl" dimension="0"/>
+<par name="NumIncomplete" base_type="ctrl" dimension="0"/>
+<par name="IncompleteIDs" base_type="ctrl" dimension="0"/>
+<par name="ClutteredIDs" base_type="ctrl" dimension="0"/>
+<par name="StopMessages" base_type="ctrl" dimension="0"/>
+<par name="Finished" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Helper routine to display the actual (intermediate/final)</c>
+<c>* processing results in textual form</c>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<c>* Display processing results</c>
+<l>Message := []</l>
+<l>Message[0] := 'Processed crates: ' + NumCrates</l>
+<l>Message[1] := 'Found bottles: ' + NumBottles</l>
+<l>Message[2] := 'Incomplete crates: ' + NumIncomplete</l>
+<l>tuple_join (IncompleteIDs, ', ', IncompleteIDList)</l>
+<l>Message[3] := 'IDs of incomplete crates: ' + IncompleteIDList</l>
+<l>tuple_join (ClutteredIDs, ', ', ClutteredIDList)</l>
+<l>Message[4] := 'IDs of cluttered crates: ' + ClutteredIDList</l>
+<l>Message[5] := ' '</l>
+<c>* </c>
+<l>Color := [gen_tuple_const(6,'white'),gen_tuple_const(|StopMessages|,'gray'),'magenta']</l>
+<l>if (Finished)</l>
+<l>    StopMessages := [StopMessages,'Finished processing']</l>
+<l>endif</l>
+<l>disp_message (WindowHandle, [Message,StopMessages], 'window', 12, 12, Color, 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="display_results">
+<parameters>
+<parameter id="ClutteredIDs"/>
+<parameter id="Finished"/>
+<parameter id="IncompleteIDs"/>
+<parameter id="NumBottles"/>
+<parameter id="NumCrates"/>
+<parameter id="NumIncomplete"/>
+<parameter id="StopMessages"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="tuple_join">
+<interface>
+<ic>
+<par name="Input" base_type="ctrl" dimension="0"/>
+<par name="Separator" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Result" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Trivial helper routine that will join tuple elements</c>
+<c>* to a single long string, using the defined separator</c>
+<c>* </c>
+<l>Result := ''</l>
+<c>* </c>
+<l>for Index := 0 to |Input| - 1 by 1</l>
+<l>    if (Index &gt; 0)</l>
+<l>        Result := Result + Separator</l>
+<l>    endif</l>
+<l>    Result := Result + Input[Index]</l>
+<l>endfor</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="tuple_join">
+<parameters>
+<parameter id="Input"/>
+<parameter id="Result"/>
+<parameter id="Separator"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_results_preview">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Bottles" base_type="iconic" dimension="0"/>
+<par name="BigBottles" base_type="iconic" dimension="0"/>
+<par name="Clutter" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ResultsView" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Helper routine to visualize the processing output,</c>
+<c>* i.e., the original image overlaid by detected bottles,</c>
+<c>* big bottles and clutter, each with a different color.</c>
+<c>* </c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>open_window (0, 0, Width, Height, 0, 'buffer', '', WindowHandle)</l>
+<l>set_part (WindowHandle, 0, 0, Height - 1, Width - 1)</l>
+<l>disp_obj (Image, WindowHandle)</l>
+<l>set_color (WindowHandle, 'lime green')</l>
+<l>disp_obj (Bottles, WindowHandle)</l>
+<l>set_color (WindowHandle, 'goldenrod')</l>
+<l>disp_obj (BigBottles, WindowHandle)</l>
+<l>set_color (WindowHandle, 'red')</l>
+<l>disp_obj (Clutter, WindowHandle)</l>
+<l>dump_window_image (ResultsView, WindowHandle)</l>
+<l>close_window (WindowHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="create_results_preview">
+<parameters>
+<parameter id="BigBottles"/>
+<parameter id="Bottles"/>
+<parameter id="Clutter"/>
+<parameter id="Image"/>
+<parameter id="ResultsView"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

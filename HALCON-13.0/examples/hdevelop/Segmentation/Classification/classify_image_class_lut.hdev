@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the time needed to segment an RGB image</c>
+<c>* with the classifiers MLP, SVM, and GMM in comparison to the</c>
+<c>* look-up table classifier (LUT) based on the MLP, SVM,</c>
+<c>* or GMM, respectively.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'patras')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandleL)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_window (WindowHandleL)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Create regions that contain the training samples of the</c>
+<c>* four classes</c>
+<l>set_display_font (WindowHandleL, 14, 'mono', 'true', 'false')</l>
+<l>gen_rectangle1 (Sea, 10, 10, 120, 270)</l>
+<l>gen_rectangle2 (Deck, [170,400], [350,375], [-0.56,-0.75], [64,104], [26,11])</l>
+<l>union1 (Deck, Deck)</l>
+<l>gen_rectangle1 (Walls, 355, 623, 420, 702)</l>
+<l>gen_rectangle2 (Chimney, 286, 623, -0.56, 64, 33)</l>
+<l>concat_obj (Sea, Deck, Classes)</l>
+<l>concat_obj (Classes, Walls, Classes)</l>
+<l>concat_obj (Classes, Chimney, Classes)</l>
+<c>* </c>
+<l>dev_display_rois (Image, Deck, Sea, Walls, Chimney)</l>
+<l>disp_message (WindowHandleL, 'ROIs for the training data', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the MLP classifier, add the samples, and train it</c>
+<l>create_class_mlp (3, 3, 4, 'softmax', 'principal_components', 3, 42, MLPHandle)</l>
+<l>add_samples_image_class_mlp (Image, Classes, MLPHandle)</l>
+<l>dev_display_rois (Image, Deck, Sea, Walls, Chimney)</l>
+<l>disp_message (WindowHandleL, 'Training MLP classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>train_class_mlp (MLPHandle, 200, 1, 0.01, Error, ErrorLog)</l>
+<c>* </c>
+<c>* Create the MLP-based LUT classifier</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Creating MLP-based LUT classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>count_seconds (Start1)</l>
+<l>create_class_lut_mlp (MLPHandle, [], [], ClassLUTHandle)</l>
+<l>count_seconds (End1)</l>
+<l>TimeLUTCreateMLP := End1 - Start1</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Time to create the LUT: ' + TimeLUTCreateMLP$'.1f' + ' s', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment (classify) the image with the MLP-based LUT classifier</c>
+<l>count_seconds (Start2)</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    classify_image_class_lut (Image, ClassRegionsLUT, ClassLUTHandle)</l>
+<l>endfor</l>
+<l>count_seconds (End2)</l>
+<l>TimeLUTClassifyMLP := 1000 * (End2 - Start2) / 100</l>
+<l>region_to_mean (ClassRegionsLUT, Image, ImageClassLUTbyMLP)</l>
+<l>dev_display (ImageClassLUTbyMLP)</l>
+<l>disp_message (WindowHandleL, 'Result of the LUT classifier\nTime to classify: ' + TimeLUTClassifyMLP$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Segment (classify) the image with the MLP classifier</c>
+<l>dev_open_and_init_second_window (Image, Width, Height, WindowHandleR)</l>
+<l>count_seconds (Start2)</l>
+<l>classify_image_class_mlp (Image, ClassRegionsMLP, MLPHandle, 0.5)</l>
+<l>count_seconds (End2)</l>
+<l>TimeMLPClassify := 1000 * (End2 - Start2)</l>
+<l>region_to_mean (ClassRegionsMLP, Image, ImageClassMLP)</l>
+<l>dev_display (ImageClassMLP)</l>
+<l>disp_message (WindowHandleR, 'Result of the MLP classifier\nTime to classify: ' + TimeMLPClassify$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>TimeSpeedupFactorMLP := TimeMLPClassify / TimeLUTClassifyMLP</l>
+<l>disp_message (WindowHandleL, 'Speedup factor: ' + TimeSpeedupFactorMLP$'.0f' + ' times faster', 'window', 60, 12, 'dark green', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reset view and clear handles</c>
+<l>clear_class_lut (ClassLUTHandle)</l>
+<l>clear_class_mlp (MLPHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandleL)</l>
+<c>* </c>
+<c>* Create the SVM classifier, add the samples, and train it</c>
+<l>create_class_svm (3, 'rbf', 0.1, 0.0005, 4, 'one-versus-all', 'principal_components', 3, SVMHandle)</l>
+<l>add_samples_image_class_svm (Image, Classes, SVMHandle)</l>
+<l>dev_display_rois (Image, Deck, Sea, Walls, Chimney)</l>
+<l>disp_message (WindowHandleL, 'Training SVM classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>train_class_svm (SVMHandle, 0.001, 'default')</l>
+<c>* </c>
+<c>* Create the LUT classifier using the SVM</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Creating SVM-based LUT classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>count_seconds (Start1)</l>
+<l>create_class_lut_svm (SVMHandle, [], [], ClassLUTHandle)</l>
+<l>count_seconds (End1)</l>
+<l>TimeLUTCreateSVM := End1 - Start1</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Time to create the LUT: ' + TimeLUTCreateSVM$'.1f' + ' s', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment (classify) the image with the SVM-based LUT classifier</c>
+<l>count_seconds (Start2)</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    classify_image_class_lut (Image, ClassRegionsLUT, ClassLUTHandle)</l>
+<l>endfor</l>
+<l>count_seconds (End2)</l>
+<l>TimeLUTClassifySVM := 1000 * (End2 - Start2) / 100</l>
+<l>region_to_mean (ClassRegionsLUT, Image, ImageClassLUTbySVM)</l>
+<l>dev_display (ImageClassLUTbySVM)</l>
+<l>disp_message (WindowHandleL, 'Result of the LUT classifier\nTime to classify: ' + TimeLUTClassifySVM$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Segment (classify) the image with the SVM classifier</c>
+<l>dev_open_and_init_second_window (Image, Width, Height, WindowHandleR)</l>
+<l>count_seconds (Start2)</l>
+<l>classify_image_class_svm (Image, ClassRegionsSVM, SVMHandle)</l>
+<l>count_seconds (End2)</l>
+<l>TimeSVMClassify := 1000 * (End2 - Start2)</l>
+<l>region_to_mean (ClassRegionsSVM, Image, ImageClassSVM)</l>
+<l>dev_display (ImageClassSVM)</l>
+<l>disp_message (WindowHandleR, 'Result of the SVM classifier\nTime to classify: ' + TimeSVMClassify$'.2f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>TimeSpeedupFactorSVM := TimeSVMClassify / TimeLUTClassifySVM</l>
+<l>disp_message (WindowHandleL, 'Speedup factor: ' + TimeSpeedupFactorSVM$'.0f' + ' times faster', 'window', 60, 12, 'dark green', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reset view and clear handles</c>
+<l>clear_class_lut (ClassLUTHandle)</l>
+<l>clear_class_svm (SVMHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandleL)</l>
+<c>* </c>
+<c>* Create the GMM classifier, add the samples, and train it</c>
+<l>create_class_gmm (3, 4, [1,10], 'full', 'none', 3, 42, GMMHandle)</l>
+<l>add_samples_image_class_gmm (Image, Classes, GMMHandle, 2.0)</l>
+<l>dev_display_rois (Image, Deck, Sea, Walls, Chimney)</l>
+<l>disp_message (WindowHandleL, 'Training GMM classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>train_class_gmm (GMMHandle, 500, 0.0001, 'uniform', 0.0001, Centers, Iter)</l>
+<c>* </c>
+<c>* Create the GMM-based LUT classifier</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Creating GMM-based LUT classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>count_seconds (Start1)</l>
+<l>create_class_lut_gmm (GMMHandle, [], [], ClassLUTHandle)</l>
+<l>count_seconds (End1)</l>
+<l>TimeLUTCreateGMM := End1 - Start1</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Time to create the LUT: ' + TimeLUTCreateGMM$'.1f' + ' s', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment (classify) the image with the GMM-based LUT classifier</c>
+<l>count_seconds (Start2)</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    classify_image_class_lut (Image, ClassRegionsLUT, ClassLUTHandle)</l>
+<l>endfor</l>
+<l>count_seconds (End2)</l>
+<l>TimeLUTClassifyGMM := 1000 * (End2 - Start2) / 100</l>
+<l>region_to_mean (ClassRegionsLUT, Image, ImageClassLUTbyGMM)</l>
+<l>dev_display (ImageClassLUTbyGMM)</l>
+<l>disp_message (WindowHandleL, 'Result of the LUT classifier\nTime to classify: ' + TimeLUTClassifyGMM$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Segment (classify) the image with the GMM classifier</c>
+<l>dev_open_and_init_second_window (Image, Width, Height, WindowHandleR)</l>
+<l>count_seconds (Start2)</l>
+<l>classify_image_class_gmm (Image, ClassRegionsGMM, GMMHandle, 0.0001)</l>
+<l>count_seconds (End2)</l>
+<l>TimeGMMClassify := 1000 * (End2 - Start2)</l>
+<l>region_to_mean (ClassRegionsGMM, Image, ImageClassGMM)</l>
+<l>dev_display (ImageClassGMM)</l>
+<l>disp_message (WindowHandleR, 'Result of the GMM classifier\nTime to classify: ' + TimeGMMClassify$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>TimeSpeedupFactorGMM := TimeGMMClassify / TimeLUTClassifyGMM</l>
+<l>disp_message (WindowHandleL, 'Speedup factor: ' + TimeSpeedupFactorGMM$'.0f' + ' times faster', 'window', 60, 12, 'dark green', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reset view and clear handles</c>
+<l>clear_class_lut (ClassLUTHandle)</l>
+<l>clear_class_gmm (GMMHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandleL)</l>
+<c>* </c>
+<c>* Create the k-NN classifier, add the samples, and train it</c>
+<l>create_class_knn (3, KNNHandle)</l>
+<l>add_samples_image_class_knn (Image, Classes, KNNHandle)</l>
+<l>dev_display_rois (Image, Deck, Sea, Walls, Chimney)</l>
+<l>disp_message (WindowHandleL, 'Training k-NN classifier...', 'window', 12, 12, 'black', 'true')</l>
+<l>train_class_knn (KNNHandle, [], [])</l>
+<c>* </c>
+<c>* Create the LUT classifier using the k-NN</c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Creating k-NN-based LUT classifier. This may take a while...', 'window', 12, 12, 'black', 'true')</l>
+<l>count_seconds (Start1)</l>
+<l>create_class_lut_knn (KNNHandle, [], [], ClassLUTHandle)</l>
+<l>count_seconds (End1)</l>
+<l>TimeLUTCreateKNN := End1 - Start1</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Time to create the LUT: ' + TimeLUTCreateKNN$'.1f' + ' s', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment (classify) the image with the k-NN-based LUT classifier</c>
+<l>count_seconds (Start2)</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    classify_image_class_lut (Image, ClassRegionsLUT, ClassLUTHandle)</l>
+<l>endfor</l>
+<l>count_seconds (End2)</l>
+<l>TimeLUTClassifyKNN := 1000 * (End2 - Start2) / 100</l>
+<l>region_to_mean (ClassRegionsLUT, Image, ImageClassLUTbyKNN)</l>
+<l>dev_display (ImageClassLUTbyKNN)</l>
+<l>disp_message (WindowHandleL, 'Result of the LUT classifier\nTime to classify: ' + TimeLUTClassifyKNN$'.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Segment (classify) the image with the k-NN-based classifier</c>
+<l>dev_open_and_init_second_window (Image, Width, Height, WindowHandleR)</l>
+<l>count_seconds (Start2)</l>
+<l>classify_image_class_knn (Image, ClassRegionsKNN, DistanceImageKNN, KNNHandle, 5)</l>
+<l>count_seconds (End2)</l>
+<l>TimeKNNClassify := 1000 * (End2 - Start2)</l>
+<l>region_to_mean (ClassRegionsKNN, Image, ImageClassKNN)</l>
+<l>dev_display (ImageClassKNN)</l>
+<l>disp_message (WindowHandleR, 'Result of the k-NN classifier\nTime to classify: ' + TimeKNNClassify$'.2f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>TimeSpeedupFactorKNN := TimeKNNClassify / TimeLUTClassifyKNN</l>
+<l>disp_message (WindowHandleL, 'Speedup factor: ' + TimeSpeedupFactorKNN$'.0f' + ' times faster', 'window', 60, 12, 'dark green', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reset view and clear handles</c>
+<l>clear_class_lut (ClassLUTHandle)</l>
+<l>clear_class_knn (KNNHandle)</l>
+<l>disp_end_of_program_message (WindowHandleL, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_display_rois">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Deck" base_type="iconic" dimension="0"/>
+<par name="Sea" base_type="iconic" dimension="0"/>
+<par name="Walls" base_type="iconic" dimension="0"/>
+<par name="Chimney" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('indian red')</l>
+<l>dev_display (Deck)</l>
+<l>dev_set_color ('cornflower blue')</l>
+<l>dev_display (Sea)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Walls)</l>
+<l>dev_set_color ('black')</l>
+<l>dev_display (Chimney)</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_rois">
+<parameters>
+<parameter id="Chimney"/>
+<parameter id="Deck"/>
+<parameter id="Image"/>
+<parameter id="Sea"/>
+<parameter id="Walls"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_open_and_init_second_window">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandleR" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_open_window (0, Width / 2 + 10, Width / 2, Height / 2, 'black', WindowHandleR)</l>
+<l>dev_set_window (WindowHandleR)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandleR, 14, 'mono', 'true', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_open_and_init_second_window">
+<parameters>
+<parameter id="Height"/>
+<parameter id="Image"/>
+<parameter id="Width"/>
+<parameter id="WindowHandleR"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Detect lines in an image with the help of the Hough transform</c>
+<c>* and return it in HNF</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>rectangle1_domain (Image, ImageReduced, 230, 180, 330, 280)</l>
+<c>* Detect edges (amplitude) using the Sobel operator</c>
+<l>sobel_amp (ImageReduced, EdgeAmplitude, 'thin_sum_abs', 3)</l>
+<l>dev_set_color ('red')</l>
+<l>threshold (EdgeAmplitude, Region, 10, 255)</l>
+<l>hough_lines (Region, 4, 50, 5, 5, Angle, Dist)</l>
+<l>dev_set_color ('blue')</l>
+<c>* Store input lines described in HNF</c>
+<l>gen_region_hline (Regions, Angle, Dist)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

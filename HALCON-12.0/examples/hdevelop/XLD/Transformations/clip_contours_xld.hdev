@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows how to use clip_contours_xld.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Angio, 'angio-part')</l>
+<l>get_image_size (Angio, Width, Height)</l>
+<l>dev_open_window (0, 0, 3 * Width / 2, 3 * Height / 2, 'black', WindowID)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* </c>
+<c>* Preparation: extract contours from an image.</c>
+<l>lines_gauss (Angio, Lines, 2.3, 0.0, 0.7, 'dark', 'true', 'parabolic', 'true')</l>
+<l>dev_display (Angio)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Lines)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now reduce the image domain. The previously extracted contours</c>
+<c>* are clipped accordingly (the original contours are displayed in gray).</c>
+<c>* Note, that the  clipped contours end not at the pixel border,</c>
+<c>* but at the last contour point that lies within the pixel.</c>
+<l>Top := 200</l>
+<l>Left := 100</l>
+<l>Bottom := 300</l>
+<l>Right := 200</l>
+<l>gen_rectangle1 (Rectangle, Top, Left, Bottom, Right)</l>
+<l>reduce_domain (Angio, Rectangle, AngioReduced)</l>
+<l>clip_contours_xld (Lines, LinesClipped, Top, Left, Bottom, Right)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (AngioReduced)</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (Lines)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (LinesClipped)</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_color ('white')</l>
+<l>disp_arrow (WindowID, 198, 130, 153, 175, 1)</l>
+<l>dev_open_window (25, 275, 300, 300, 'black', ZoomWindow)</l>
+<l>dev_set_part (198, 126, 202, 130)</l>
+<l>dev_display (AngioReduced)</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (Lines)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (LinesClipped)</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_color ('black')</l>
+<l>disp_arrow (WindowID, 198, 130, 153, 175, 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

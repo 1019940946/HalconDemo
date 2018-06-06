@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* In addition to the two well established variable types in HDevelop,</c>
+<c>* tuples and iconic objects, there is a third variable type: the vector.</c>
+<c>* A vector is a container that can hold an arbitrary number of elements,</c>
+<c>* all of which must have the exact same variable type (i.e., tuple,</c>
+<c>* iconic object, or vector). Regarding memory management and the like,</c>
+<c>* vectors in HDevelop are implemented the same way as vectors in the</c>
+<c>* C++ Standard Template Library.</c>
+<c>* Nomenclature: A vector of tuples (or of iconic objects) is called</c>
+<c>* one dimensional, a vector of vectors of tuples two dimensional, and so on.</c>
+<c>* (Hence, tuples or iconic objects have a dimension of zero).</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This program gives an overview of'</l>
+<l>Message[1] := 'vector variables and how to use them.'</l>
+<l>Message[2] := 'Please'</l>
+<l>Message[3] := ' - step through the program,'</l>
+<l>Message[4] := ' - read the comments,'</l>
+<l>Message[5] := ' - and check the variable view.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Construction of vectors:</c>
+<c>* </c>
+<c>* The easiest way to write down a vector is to put a (comma separated)</c>
+<c>* list of its elements between curly brackets.</c>
+<l>Vector1 := {1,2}</l>
+<c>* Note, that {[1,2]} is NOT the same as {1,2}:</c>
+<l>Vector2 := {[1,2]}</l>
+<c>* Vector elements may be constant (expressions) as well as variables.</c>
+<l>Tuple1 := [5,6]</l>
+<l>Tuple2 := 'eight'</l>
+<l>Vector3 := {Tuple1,Tuple2}</l>
+<c>* Vectors can also contain iconic objects:</c>
+<l>read_image (ImageFabrik, 'fabrik')</l>
+<l>read_image (ImagePatras, 'patras')</l>
+<l>ImageVector := {ImageFabrik,ImagePatras}</l>
+<c>* It is possible to use multidimensional vectors:</c>
+<l>Vector2dim := {{1,2},Vector3}</l>
+<l>Vector3dim := {Vector2dim,{Vector1,Vector2}}</l>
+<c>* Note, that all elements of a vector must have the same type.</c>
+<c>* E.g., the following does not work:</c>
+<l>* InvalidExpression := {Vector1,Vector2dim}</l>
+<c>* </c>
+<c>* Element access:</c>
+<c>* Vector elements are accessed via the .at() expression</c>
+<l>Tuple := Vector3.at(0)</l>
+<l>Image := ImageVector.at(1)</l>
+<c>* .at() expressions may as well serve as l-values.</c>
+<c>* E.g., they can be used as output parameters.</c>
+<l>Vector4.at(0) := Tuple</l>
+<c>* Writing to a non existing vector element is allowed. If necessary,</c>
+<c>* the vector is automatically filled with empty elements.</c>
+<l>Vector5.at(4) := Tuple</l>
+<c>* Vector elements can be used as parameters for operators or procedures</c>
+<c>* (as long as they have the required type).</c>
+<l>for I := 0 to ImageVector.length() - 1 by 1</l>
+<l>    sobel_amp (ImageVector.at(I), ImageVectorSobel.at(I), 'sum_abs', 3)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* It is also possible to combine several .at() expressions to access the</c>
+<c>* subelements of multidimensional vectors.</c>
+<l>Vector3dim.at(1).at(0) := {5,6}</l>
+<c>* Even the following is possible (though not exactly recommended).</c>
+<l>Vector3dim.at(0).at(1).at(1)[0] := 8</l>
+<c>* </c>
+<c>* Vector length:</c>
+<c>* The number of elements of a vector can be accessed with .length()</c>
+<l>Length := Vector1.length()</l>
+<c>* </c>
+<c>* Vector manipulation:</c>
+<c>* .clear() clears a vector, i.e., removes all its elements:</c>
+<l>Vector3dimCopy := Vector3dim</l>
+<l>Vector3dimCopy.clear()</l>
+<c>* Note, that the cleared vectors still keep their variable type. The</c>
+<c>* following assignments cause a type conflict and, therefore, are invalid!</c>
+<l>* Vector3dimCopy.at(0) := 1</l>
+<l>* Vector3dimCopy.at(0) := {1}</l>
+<c>* .remove() removes an element with given index from a vector.</c>
+<l>Vector5.remove(0)</l>
+<c>* </c>
+<c>* .insert() inserts at the given position one vector element into a vector.</c>
+<l>Vector5.insert(1,2)</l>
+<c>* Again, the vector gets filled up with empty elements where necessary.</c>
+<l>Vector5.insert(8,10)</l>
+<c>* </c>
+<c>* Vector conversion:</c>
+<c>* Convert a tuple into a one-dimensional vector</c>
+<l>Tuple3 := [1,2,3,4,5,6,7,8]</l>
+<l>convert_tuple_to_vector_1d (Tuple3, 1, Vector1FromTuple3)</l>
+<l>convert_tuple_to_vector_1d (Tuple3, 2, Vector2FromTuple3)</l>
+<c>* convert_vector_to_tuple concatenates all tuples that are contained in the</c>
+<c>* input vector of arbitrary dimension and stores them in the single</c>
+<c>* output tuple.</c>
+<l>convert_vector_to_tuple (Vector5, TupleFromVector5)</l>
+<l>convert_vector_to_tuple (Vector2dim, TupleFromVector2dim)</l>
+<c>* </c>
+<c>* The variable view can be used to inspect vector variables</c>
+<l>dev_inspect_ctrl ([Tuple3,Vector1FromTuple3,Vector2FromTuple3,Vector5,TupleFromVector5,Vector2dim,TupleFromVector2dim,Vector3dim])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

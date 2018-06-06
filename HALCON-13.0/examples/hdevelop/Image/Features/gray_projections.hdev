@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate horizontal and vertical gray-value projections of a region</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>Row1 := 130</l>
+<l>Col1 := 90</l>
+<c>* Create a region</c>
+<l>gen_rectangle1 (Rectangle, Row1, Col1, 300, Col1 + 10)</l>
+<l>gray_projections (Rectangle, Image, 'simple', HorProjection, VertProjection)</l>
+<l>dev_update_time ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<c>* Show the horizontal projections in a graphical mode</c>
+<l>for i := 0 to |HorProjection| - 1 by 1</l>
+<l>    disp_line (WindowID, Row1 + i, Col1 + 40, Row1 + i, HorProjection[i] + Col1 + 40)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

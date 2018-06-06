@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example visualizes different poses</c>
+<c>* in the camera coordinate system</c>
+<c>* </c>
+<c>* A calibration plate is held at varying positions in different</c>
+<c>* orientations with respect to the camera.</c>
+<c>* The left window visualizes the pose of the camera and the calibration</c>
+<c>* plate as seen from the side.</c>
+<c>* The right windows shows how the calibration</c>
+<c>* plate appears when seen through the camera.</c>
+<c>* The crosslines show the center of the image plane.</c>
+<c>* The position of the calibration plate is described</c>
+<c>* by a 3D translation (tx, ty, tz) specifying the translation along</c>
+<c>* the x-, y-, and z-axis. Its orientation is described</c>
+<c>* by successive rotations (Rx, Ry, Rz) around the x-, y-, and z-axis.</c>
+<c>* </c>
+<c>* Different poses of the calibration plate are visualized as seen by the camera.</c>
+<c>* An ideal camera without radial distortion is assumed.</c>
+<c>* The calibration plate is held at different poses with</c>
+<c>* respect to the camera.</c>
+<c>* </c>
+<c>* The 3D-translations (tx, ty, tz) are the first 3 elements of a pose.</c>
+<c>* At the first pose, the calibration plate is moved tz=0.2 m along the z-axis of the camera</c>
+<c>* coordinate system. The z-axis points along the camera axis, i.e. away from</c>
+<c>* the viewer. The camera coordinate system is shown in the left window by the</c>
+<c>* red arrow (x-axis), green arrow (y-axis), and blue arrow (z-axis) placed on the camera.</c>
+<c>* The calibration plate is held parallel to the camera plane.</c>
+<c>* The camera plane is the xy-plane of the camera coordinate system.</c>
+<c>* The pose of the calibration plate in the camera coordinate system can also be</c>
+<c>* interpreted as a local coordinate system attached to the calibration plate.</c>
+<c>* In both windows, this local coordinate system is shown and moves with the calibration</c>
+<c>* plate.</c>
+<c>* </c>
+<c>* </c>
+<c>* First, the effect of rotations is demonstrated. The translational</c>
+<c>* components tx, ty are set to zero. Tz is set to 0.2 m to make sure</c>
+<c>* the calibration plate is visible by the camera.</c>
+<c>* </c>
+<c>* For the following rotations the order of rotation 'gba' is chosen.</c>
+<c>* It stands for Rot(x)*Rot(y)*Rot(z).</c>
+<c>* </c>
+<c>* Read from the right, the orientation of the pose</c>
+<c>* in this example is determined by always performing rotations relative to</c>
+<c>* the global (i.e., fixed or “old”) coordinate system of the camera.</c>
+<c>* </c>
+<c>* If the chain of rotations is read from the left, the orientation of the pose</c>
+<c>* is determined by always performing rotations relative to</c>
+<c>* the local (i.e. “new”) coordinate system attached to the rotated object,</c>
+<c>* i.e. the calibration plate in this example.</c>
+<c>* </c>
+<c>* Interpreting the chain of rotations as rotations in the new, local</c>
+<c>* object coordinate system is often easier to understand</c>
+<c>* and will thus be demonstrated in this example.</c>
+<c>* </c>
+<c>* The rotation('gba') can be read as follows:</c>
+<c>* First rotate around the x-axis, then around the “new” y-axis,</c>
+<c>* and finally around the “new” z-axis. The effect of different</c>
+<c>* rotations is shown by the next calibration plate poses.</c>
+<c>* </c>
+<c>* </c>
+<c>* Second, combined translations along all three axes</c>
+<c>* and a combined rotation about all three axes are shown.</c>
+<c>* </c>
+<c>* The object is translated along the z-axis, then along</c>
+<c>* the x-axis, and the then along the the y-axis.</c>
+<c>* </c>
+<c>* After that, the object is rotated about the x-axis of the</c>
+<c>* camera_calibration coordinate system which is identical with the</c>
+<c>* x-axis of the local object coordinate system.</c>
+<c>* This results in a new calibration plate coordinate system.</c>
+<c>* Then, the calibration plate is rotated about the y-axis</c>
+<c>* of this new coordinate system. And finally a rotation about</c>
+<c>* the z-axis of the new coordinate system is performed.</c>
+<c>* </c>
+<c>* </c>
+<c>* Initialization</c>
+<c>* </c>
+<c>* First, define calibration plate and read the values for</c>
+<c>* the ideal internal camera parameters</c>
+<l>CalTabFile := 'caltab_30mm.descr'</l>
+<l>gen_cam_par_area_scan_division (0.0117685, 0.0, 7.32909e-006, 7.4e-006, 259, 259, 512, 512, IdealCamParam)</l>
+<l>dev_close_window ()</l>
+<c>* Get image width and heigth from camera parameters</c>
+<l>get_cam_par_data (IdealCamParam, 'image_width', Width)</l>
+<l>get_cam_par_data (IdealCamParam, 'image_height', Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', TitleWindowHandle)</l>
+<l>set_display_font (TitleWindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_open_window (0, Width + 12, Width, Height, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>gen_camera_image (TitleImage, TitleWindowHandle)</l>
+<c>* </c>
+<c>* Part I</c>
+<c>* </c>
+<c>* Demonstrate the effect of rotations</c>
+<c>* </c>
+<c>* Place calibration plate tz=0.2m away from the camera along the z-axis.</c>
+<l>create_pose (0, 0.0, 0.2, 0, 0, 0, 'Rp+T', 'gba', 'point', ObjInCamPose)</l>
+<l>Message := 'The calibration plate is placed Tz=' + ObjInCamPose[2] + ' m along'</l>
+<l>Message[1] := 'the z-axis of the camera coordinate system'</l>
+<l>Message[2] := 'and held parallel to the camera plane.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Rotate by rx=60 degrees about the x-axis.</c>
+<c>* The effect is that the calibration plate is tilted towards</c>
+<c>* the left with respect to the camera plane.</c>
+<l>create_pose (0.0, 0.0, 0.2, 60, 0, 0, 'Rp+T', 'gba', 'point', ObjInCamPose)</l>
+<l>Message := 'The plate is rotated by Rx=' + ObjInCamPose[3] + '° around the x-axis'</l>
+<l>Message[1] := '(red arrow) of the local plate coordinate '</l>
+<l>Message[2] := 'system. It is NOT parallel to the camera plane.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Rotate by ry=45 degrees about the x-axis.</c>
+<c>* The effect is that the calibration plate is tilted towards</c>
+<c>* the left with respect to the camera plane.</c>
+<l>create_pose (0.0, 0.0, 0.2, 0, 45, 0, 'Rp+T', 'gba', 'point', ObjInCamPose)</l>
+<l>Message := 'The plate is rotated by Ry=' + ObjInCamPose[4] + '° around the y-axis'</l>
+<l>Message[1] := '(green arrow) of the local plate coordinate'</l>
+<l>Message[2] := 'system. It is NOT parallel to the camera plane.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Rotate by rz=30 degrees about the x-axis.</c>
+<c>* This has the effect that the calibration plate is rotated</c>
+<c>* in the camera plane but is still parallel to the camera plane,</c>
+<c>* i.e. is still parallel to the xy plane of the camera</c>
+<c>* coordinate system.</c>
+<l>create_pose (0.0, 0.0, 0.2, 0, 0, 30, 'Rp+T', 'gba', 'point', ObjInCamPose)</l>
+<l>Message := 'A rotation by Rz=' + ObjInCamPose[5] + '° around the z-axis of the'</l>
+<l>Message[1] := 'calibration plate coordinate system is performed.'</l>
+<l>Message[2] := 'The plate is still parallel to the camera plane.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part II</c>
+<c>* </c>
+<c>* Demonstrate combined translations and rotations</c>
+<c>* </c>
+<c>* Original unrotated calibration plate pose (tz=0.2m).</c>
+<l>create_pose (0.0, 0.0, 0.2, 0, 0, 0, 'Rp+T', 'gba', 'point', ObjInCamPose)</l>
+<l>Message := 'Original unrotated calibration plate pose.'</l>
+<l>Message[1] := 'A translation Tz=' + ObjInCamPose[2] + ' m along the z-axis'</l>
+<l>Message[2] := 'of the camera coordinate system is performed.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Additionally move the calibration plate tx=0.015 m along the x-axis (red arrow).</c>
+<l>create_pose (0.015, 0, 0, 0, 0, 0, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>pose_compose (ObjInCamPose, Pose, ObjInCamPose)</l>
+<c>* Resulting pose: [0.015, 0, 0.2, 0, 0, 0]</c>
+<l>Message := 'Additionally, the plate is moved Tx=' + ObjInCamPose[0] + ' m'</l>
+<l>Message[1] := 'along the x-axis (red arrow) of the camera'</l>
+<l>Message[2] := 'coordinate system.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Additionally move the calibration plate tx=0.01 m along the y-axis (green arrow).</c>
+<l>create_pose (0, 0.01, 0, 0, 0, 0, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>pose_compose (ObjInCamPose, Pose, ObjInCamPose)</l>
+<c>* Resulting pose: [0.015, 0.01, 0.2, 0, 0, 0]</c>
+<l>Message := 'Additionally, the plate is moved Ty=' + ObjInCamPose[1] + ' m'</l>
+<l>Message[1] := 'along the y-axis (green arrow) of the camera'</l>
+<l>Message[2] := 'coordinate system.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Additionally rotate by rx=20 degrees about the x-axis.</c>
+<c>* The effect is that the calibration plate is tilted towards</c>
+<c>* the left with respect to the camera plane.</c>
+<l>create_pose (0.0, 0.0, 0, 20, 0, 0, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>pose_compose (ObjInCamPose, Pose, ObjInCamPose)</l>
+<c>* Resulting pose: [0.015, 0.01, 0.2, 20, 0, 0]</c>
+<l>Message := 'Additionally, the plate is rotated by '</l>
+<l>Message[1] := 'Rx=20° around the x-axis (red arrow) '</l>
+<l>Message[2] := 'of the local plate coordinate system.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Additionally rotate by ry=45 degrees about the x-axis.</c>
+<l>create_pose (0.0, 0.0, 0, 0, 45, 0, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>pose_compose (ObjInCamPose, Pose, ObjInCamPose)</l>
+<c>* Resulting pose: [0.015, 0.01, 0.2, 20, 45, 0]</c>
+<l>Message := 'Additionally, the plate is rotated by Ry=' + ObjInCamPose[4] + '°'</l>
+<l>Message[1] := 'around the y-axis (green arrow) of the'</l>
+<l>Message[2] := 'local plate coordinate system.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Additionally rotate by ry=30 degrees about the x-axis.</c>
+<l>create_pose (0.0, 0.0, 0., 0, 0, 30, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>pose_compose (ObjInCamPose, Pose, ObjInCamPose)</l>
+<c>* Resulting pose: [0.015, 0.01, 0.2, 20, 45, 30]</c>
+<l>Message := 'The plate is rotated by Rz=' + ObjInCamPose[5] + '° around'</l>
+<l>Message[1] := 'the z-axis (blue arrow) of the local'</l>
+<l>Message[2] := 'coordinate system of the plate.'</l>
+<l>show_camera_view (CalTabFile, IdealCamParam, ObjInCamPose, WindowHandle)</l>
+<l>show_extern_scene_view (TitleWindowHandle, CalTabFile, IdealCamParam, ObjInCamPose, Message)</l>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="rotate_object">
+<interface>
+<ic>
+<par name="Rx" base_type="ctrl" dimension="0"/>
+<par name="Ry" base_type="ctrl" dimension="0"/>
+<par name="Rz" base_type="ctrl" dimension="0"/>
+<par name="ObjPose" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ObjPoseRotated" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure rotates the given object by the given orientation</c>
+<c>* in the camera centered coordinate system.</c>
+<c>* Only the orientation is effected</c>
+<c>* Input parameters:</c>
+<c>* Rx, Ry, Rz: Rotations around the corresponding axes</c>
+<c>* ObjPose: Pose of the calibration plate in camera coordinate system</c>
+<c>* ObjPoseRotated: Pose of the calibration plate in camera coordinate system</c>
+<c>*                 rotated at ObjPose[0], ObjPose[1], ObjPose[2] of the camera</c>
+<c>*                 coordinate system by Rx, Ry, Rz</c>
+<l>create_pose (0.0, 0.0, 0.0, Rx, Ry, Rz, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>pose_compose (Pose, ObjPose, ObjPoseRotated)</l>
+<c>* Perform a translation in the global coordinate system of the camera</c>
+<l>ObjPoseRotated[0] := ObjPose[0]</l>
+<l>ObjPoseRotated[1] := ObjPose[1]</l>
+<l>ObjPoseRotated[2] := ObjPose[2]</l>
+<l>return ()</l>
+</body>
+<docu id="rotate_object">
+<parameters>
+<parameter id="ObjPose"/>
+<parameter id="ObjPoseRotated"/>
+<parameter id="Rx"/>
+<parameter id="Ry"/>
+<parameter id="Rz"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_extern_scene_view">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CalTabFile" base_type="ctrl" dimension="0"/>
+<par name="IdealCamParam" base_type="ctrl" dimension="0"/>
+<par name="ObjInCamPose" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Show the pose for the object as seen from the outside.</c>
+<c>* </c>
+<c>* The view on the calibration plate is -86 degrees rotated with respect</c>
+<c>* to the camera coordinate system</c>
+<l>create_pose (0, 0.0, 0.0, -86, 0, 0, 'Rp+T', 'gba', 'point', Pose4Rot)</l>
+<c>* Pose for rotation of the camera with respect to the coordinate system</c>
+<c>* of the observer.</c>
+<l>create_pose (0, 0.0, 0.2, -90, 0, 0, 'Rp+T', 'gba', 'point', CamInObserverPose)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>ShadowOn := 'false'</l>
+<c>* Set parameter for the calibration plate</c>
+<l>GrayBackground := 255</l>
+<l>GrayCaltab := 224</l>
+<l>GrayMarks := 80</l>
+<l>ScaleFac := 1</l>
+<l>CoordAxesLength := 0.007</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>gen_camera_image (TitleImage, WindowHandle)</l>
+<c>* Define first position of the caltab</c>
+<l>InitX := 0</l>
+<l>InitY := 0</l>
+<l>InitZ := 0.1</l>
+<c>* Remember object position</c>
+<l>Tx := ObjInCamPose[0]</l>
+<l>Ty := ObjInCamPose[1]</l>
+<l>Tz := ObjInCamPose[2]</l>
+<c>* Constant pose for z coordinate. Only for displaying purposes of the camera</c>
+<l>ConstZ := 0.2</l>
+<c>* Compute difference from a defined initial pose, determines scaling</c>
+<c>* off the movement shown in the left image</c>
+<l>XRange := 0.02</l>
+<l>YRange := 0.01</l>
+<l>ZRange := 0.1</l>
+<l>NewX := (Tx - InitX) / XRange</l>
+<l>NewY := (Ty - InitY) / YRange</l>
+<l>NewZ := (Tz - InitZ) / ZRange</l>
+<c>* Only rotate the object in the camera coordinate system</c>
+<l>rotate_object (Pose4Rot[3], Pose4Rot[4], Pose4Rot[5], ObjInCamPose, RotatedObjPoseInCam)</l>
+<c>* Adapt the position for visualization of the translation.</c>
+<c>* The simulated image shall only appear enlarged if it is</c>
+<c>* moved along the y-axis of the camera coordinate system.</c>
+<l>RotatedObjPoseInCam[0] := 0</l>
+<l>RotatedObjPoseInCam[1] := 0</l>
+<l>RotatedObjPoseInCam[2] := ConstZ - (NewY * ZRange / 2)</l>
+<c>* Generate calibration plate image according to RotatedObjPoseInCam</c>
+<l>sim_caltab (RotatedImage, CalTabFile, IdealCamParam, RotatedObjPoseInCam, GrayBackground, GrayCaltab, GrayMarks, ScaleFac)</l>
+<c>* Scale the sythetic image for fitting into TitleImage</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>Scale := 0.5</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, Scale, Scale, 0, 0, HomMat2DScale)</l>
+<l>affine_trans_image_size (RotatedImage, ImageAffineTrans, HomMat2DScale, 'constant', Width / 2, Height / 2)</l>
+<l>concat_obj (TitleImage, ImageAffineTrans, Images)</l>
+<c>* Determine position of generated image in TitleImage</c>
+<l>project_3d_point (0, 0, ConstZ, IdealCamParam, Row, Column)</l>
+<c>* Specify the rectangle to cut from the generated and scaled image ImageAffineTrans</c>
+<l>Radius := 200</l>
+<l>TopR := (Row - Radius) * Scale</l>
+<l>BottomR := (Row + Radius) * Scale</l>
+<l>TopC := (Column - Radius) * Scale</l>
+<l>BottomC := (Column + Radius) * Scale</l>
+<c>* Determine where to place the subimage</c>
+<l>RowIncMax := 100</l>
+<l>ColIncMax := 50</l>
+<l>RowOffset := RowIncMax * NewZ</l>
+<l>ColOffset := ColIncMax * NewX</l>
+<l>DiffRow := Radius * Scale</l>
+<l>DiffCol := Radius * Scale</l>
+<c>* Where to place the image for pose [0,0,0.1,0,0,0,0]</c>
+<l>ImagePosRow := 190 + RowOffset</l>
+<l>ImagePosCol := 185 + ColOffset</l>
+<c>* Place caltab image in the Title Image</c>
+<l>tile_images_offset (Images, ExternViewImage, [0,ImagePosRow], [0,ImagePosCol], [-1,TopR], [-1,TopC], [-1,BottomR], [-1,BottomC], Width, Height)</l>
+<l>dev_display (ExternViewImage)</l>
+<c>* Compute position of object coordinate system</c>
+<c>* Position of top left corner of the inserted subimage with respect to projected camera</c>
+<c>* coordinate system + in offset of the extracte</c>
+<l>ObjCSRow := ImagePosRow + DiffRow</l>
+<l>ObjCSCol := ImagePosCol + DiffCol</l>
+<l>dev_set_colored (3)</l>
+<l>ObjInCamPoseOrientation := [RotatedObjPoseInCam[3],RotatedObjPoseInCam[4],RotatedObjPoseInCam[5]]</l>
+<l>disp_3d_coord_system_in_image (WindowHandle, IdealCamParam, ObjInCamPoseOrientation, ObjCSRow, ObjCSCol, CoordAxesLength + (0.002 * NewY))</l>
+<l>disp_message (WindowHandle, 'Object pose in\ncamera coordinates', 'image', 400, 40, 'black', ShadowOn)</l>
+<c>* Show camera coordinate system</c>
+<l>CamCSOrientation := [CamInObserverPose[3],CamInObserverPose[4],CamInObserverPose[5]]</l>
+<l>disp_3d_coord_system_in_image (WindowHandle, IdealCamParam, CamCSOrientation, 121, 287, CoordAxesLength)</l>
+<l>disp_message (WindowHandle, 'Camera\ncoordinate\nsystem', 'image', 120, 360, 'black', ShadowOn)</l>
+<l>disp_message (WindowHandle, Message, 'image', 10, 10, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="show_extern_scene_view">
+<parameters>
+<parameter id="CalTabFile"/>
+<parameter id="IdealCamParam"/>
+<parameter id="Message"/>
+<parameter id="ObjInCamPose"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_camera_view">
+<interface>
+<ic>
+<par name="CalTabFile" base_type="ctrl" dimension="0"/>
+<par name="IdealCamParam" base_type="ctrl" dimension="0"/>
+<par name="ObjInCamPose" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Set parameters for sim_caltab</c>
+<l>GrayBackground := 128</l>
+<l>GrayCaltab := 224</l>
+<l>GrayMarks := 80</l>
+<l>ScaleFac := 1</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<c>* Generate simulated calibration plate held with respect to the camera</c>
+<c>* as described by ObjInCamPose</c>
+<l>sim_caltab (SimImage, CalTabFile, IdealCamParam, ObjInCamPose, GrayBackground, GrayCaltab, GrayMarks, ScaleFac)</l>
+<l>dev_display (SimImage)</l>
+<c>* Display the pose components. The components are colored with respect to their axis</c>
+<l>Colors := ['black','black','red','forest green','blue','red','forest green','blue']</l>
+<l>Message := 'Object pose in'</l>
+<l>Message[1] := 'camera coordinates'</l>
+<l>Message[2] := 'Tx = ' + ObjInCamPose[0]$'.03f' + ' m'</l>
+<l>Message[3] := 'Ty = ' + ObjInCamPose[1]$'.03f' + ' m'</l>
+<l>Message[4] := 'Tz = ' + ObjInCamPose[2]$'.03f' + ' m'</l>
+<l>Message[5] := 'Rx = ' + ObjInCamPose[3]$'.02f' + ' deg'</l>
+<l>Message[6] := 'Ry = ' + ObjInCamPose[4]$'.02f' + ' deg'</l>
+<l>Message[7] := 'Rz = ' + ObjInCamPose[5]$'.02f' + ' deg'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, Colors, 'white')</l>
+<l>dev_set_colored (3)</l>
+<c>* This coordinate system shows the coordinate system of the camera projected</c>
+<c>* onto the image plane (PoseProjectedCamCS).</c>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_cam_par_data (IdealCamParam, 'cx', Cx)</l>
+<l>get_cam_par_data (IdealCamParam, 'cy', Cy)</l>
+<l>gen_contour_polygon_xld (Cross1, [Cx,Cx], [0,Width - 1])</l>
+<l>gen_contour_polygon_xld (Cross2, [0,Height - 1], [Cy,Cy])</l>
+<l>set_line_style (WindowHandle, [1,5])</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (Cross1)</l>
+<l>dev_display (Cross2)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>dev_set_colored (3)</l>
+<c>* This coordinate system shows the local coordinate system of the object.</c>
+<l>disp_3d_coord_system (WindowHandle, IdealCamParam, ObjInCamPose, 0.01)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="show_camera_view">
+<parameters>
+<parameter id="CalTabFile"/>
+<parameter id="IdealCamParam"/>
+<parameter id="ObjInCamPose"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_camera_image">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure draws a camera in the window and dumps the window</c>
+<c>* content into an image object.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_line_width (3)</l>
+<l>gen_rectangle2_contour_xld (Rectangle, 120, 285, 0, 25, 40)</l>
+<l>dev_display (Rectangle)</l>
+<l>gen_contour_polygon_xld (Triangle, [187,161,161,187,187,187], [265,284,284,304,304,265])</l>
+<l>dev_display (Triangle)</l>
+<l>dump_window_image (Image, WindowHandle)</l>
+<l>decompose3 (Image, Image, Image2, Image3)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_camera_image">
+<parameters>
+<parameter id="Image"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_3d_coord_system_in_image">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Orientation3D" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Col" base_type="ctrl" dimension="0"/>
+<par name="CoordAxesLength" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays a 3D coordinate system.</c>
+<c>* It needs the procedure gen_arrow_contour_xld.</c>
+<c>* </c>
+<c>* Input parameters:</c>
+<c>* WindowHandle: The window where the coordinate system shall be displayed</c>
+<c>* CamParam: The camera paramters</c>
+<c>* Pose: The Orientation of the pose to be displayed</c>
+<c>* CoordAxesLength: The length of the coordinate axes in world coordinates</c>
+<c>* </c>
+<l>get_window_extents (WindowHandle, WinRow, WinColumn, Width, Height)</l>
+<l>OffsetRow := Row - Height / 2.0</l>
+<l>OffsetColumn := Col - Width / 2.0</l>
+<l>create_pose (0, 0, 0.2, Orientation3D[0], Orientation3D[1], Orientation3D[2], 'Rp+T', 'gba', 'point', OriginPose)</l>
+<c>* Convert the pose to a transformation matrix</c>
+<l>pose_to_hom_mat3d (OriginPose, TransWorld2Cam)</l>
+<c>* Project the world origin into the image</c>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, 0, 0, OrigCamX, OrigCamY, OrigCamZ)</l>
+<l>project_3d_point (OrigCamX, OrigCamY, OrigCamZ, CamParam, Row0, Column0)</l>
+<c>* Project the coordinate axes into the image</c>
+<l>affine_trans_point_3d (TransWorld2Cam, CoordAxesLength, 0, 0, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxX, ColumnAxX)</l>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, CoordAxesLength, 0, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxY, ColumnAxY)</l>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, 0, CoordAxesLength, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxZ, ColumnAxZ)</l>
+<c>* </c>
+<c>* Generate an XLD contour for each axis</c>
+<l>distance_pp ([Row0,Row0,Row0], [Column0,Column0,Column0], [RowAxX,RowAxY,RowAxZ], [ColumnAxX,ColumnAxY,ColumnAxZ], Distance)</l>
+<l>HeadLength := int(max([max(Distance) / 12.0,5.0]))</l>
+<l>gen_arrow_contour_xld (Arrows, [Row0,Row0,Row0], [Column0,Column0,Column0], [RowAxX,RowAxY,RowAxZ], [ColumnAxX,ColumnAxY,ColumnAxZ], HeadLength, HeadLength)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<c>* -5, -4 to compensate interal offset in projective_trans_contour_xld</c>
+<l>ImageRowOffset := OffsetRow - 5</l>
+<l>ImageColOffset := OffsetColumn - 4</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, ImageRowOffset, ImageColOffset, HomMat2DTranslate)</l>
+<l>hom_mat2d_translate (HomMat2DTranslate, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DAdapted)</l>
+<l>projective_trans_contour_xld (Arrows, Arrows, HomMat2DTmp)</l>
+<c>* </c>
+<c>* Display coordinate system</c>
+<l>disp_xld (Arrows, WindowHandle)</l>
+<c>* </c>
+<l>get_rgb (WindowHandle, Red, Green, Blue)</l>
+<l>set_rgb (WindowHandle, Red[0], Green[0], Blue[0])</l>
+<l>set_tposition (WindowHandle, RowAxX + 3 + ImageRowOffset, ColumnAxX + 3 + ImageColOffset)</l>
+<l>write_string (WindowHandle, 'X')</l>
+<l>set_rgb (WindowHandle, Red[1 % |Red|], Green[1 % |Green|], Blue[1 % |Blue|])</l>
+<l>set_tposition (WindowHandle, RowAxY + 3 + ImageRowOffset, ColumnAxY + 3 + ImageColOffset)</l>
+<l>write_string (WindowHandle, 'Y')</l>
+<l>set_rgb (WindowHandle, Red[2 % |Red|], Green[2 % |Green|], Blue[2 % |Blue|])</l>
+<l>set_tposition (WindowHandle, RowAxZ + 3 + ImageRowOffset, ColumnAxZ + 3 + ImageColOffset)</l>
+<l>write_string (WindowHandle, 'Z')</l>
+<l>set_rgb (WindowHandle, Red, Green, Blue)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_3d_coord_system_in_image">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Col"/>
+<parameter id="CoordAxesLength"/>
+<parameter id="Orientation3D"/>
+<parameter id="Row"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

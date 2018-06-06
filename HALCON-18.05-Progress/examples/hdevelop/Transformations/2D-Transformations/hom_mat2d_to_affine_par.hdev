@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows the use of hom_mat2d_to_affine_par, which decomposes</c>
+<c>* an affine transformation into meaningful geometric parameters. You specify</c>
+<c>* three points in the image, which determine an affine transformation</c>
+<c>* by mapping the first point you specify to the point (0,0), the second point</c>
+<c>* you specify to (0,Width), and the third point you specify to (Height,Width). The</c>
+<c>* transformation is determined by vector_to_hom_mat2d.</c>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'board/board-01.png')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 500, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>display_instructions (WindowHandle, WindowHandle1)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('yellow')</l>
+<c>* </c>
+<c>* Input affine transformation</c>
+<l>RowTarget := [0,0,Height,Height]</l>
+<l>ColumnTarget := [0,Width,Width,0]</l>
+<l>input_affine_trans (WindowHandle, RowTarget, ColumnTarget, Rows, Columns)</l>
+<c>* </c>
+<c>* Determine affine transformation from input points</c>
+<l>vector_to_hom_mat2d (Rows, Columns, RowTarget[0:2], ColumnTarget[0:2], HomMat2D)</l>
+<l>calculate_and_display_4th_corner_point (Cross, Contour, Arrow, HomMat2D, Height, Rows, Columns, RowTarget, ColumnTarget, HomMat2DInvert, HomMat2DTmp, HomMat2DInvertAdapted, Row4, Column4)</l>
+<c>* </c>
+<c>* Apply transformation to the image</c>
+<c>* (but before that, correct the coordinate system)</c>
+<l>hom_mat2d_translate (HomMat2D, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DAdapted)</l>
+<l>affine_trans_image (Image, ImageAffineTrans, HomMat2DAdapted, 'constant', 'true')</l>
+<c>* </c>
+<c>* Calculate affine transformation parameters from</c>
+<c>* the transformation matrix</c>
+<l>hom_mat2d_to_affine_par (HomMat2D, Sx, Sy, Phi, Theta, Tx, Ty)</l>
+<c>* </c>
+<c>* Display result</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageAffineTrans)</l>
+<l>Message := 'Transformed image'</l>
+<l>Message[1] := ' Scale (Row)          = ' + Sx$' .1f'</l>
+<l>Message[2] := ' Scale (Column)       = ' + Sy$' .1f'</l>
+<l>Message[3] := ' Slant                = ' + deg(Theta)$' .1f' + '°'</l>
+<l>Message[4] := ' Rotation             = ' + deg(Phi)$' .1f' + '°'</l>
+<l>Message[5] := ' Translation (Row)    = ' + Tx$' .1f'</l>
+<l>Message[6] := ' Translation (Column) = ' + Ty$' .1f'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_instructions">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandleInstructions" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>dev_open_window (0, Width + 12, Width, Height, 'black', WindowHandleInstructions)</l>
+<l>dev_set_part (Row1, Column1, Row2, Column2)</l>
+<l>set_display_font (WindowHandleInstructions, 14, 'mono', 'true', 'false')</l>
+<l>Message := 'Draw three points in the left image'</l>
+<l>Message[1] := 'to define an affine transformation.'</l>
+<l>Message[2] := '(Left click to choose,'</l>
+<l>Message[3] := ' right click to confirm.)'</l>
+<l>disp_message (WindowHandleInstructions, Message, 'window', 12, 24, 'white', 'false')</l>
+<l>gen_rectangle2_contour_xld (Rectangle, Height / 2, Width / 2, 0, Width / 2 - 100, Height / 2 - 100)</l>
+<l>R := [200,150,380,430]</l>
+<l>C := [60,420,450,90]</l>
+<l>gen_cross_contour_xld (Cross, R, C, 6, 0.785398)</l>
+<l>gen_contour_polygon_xld (Contour, R, C)</l>
+<l>close_contours_xld (Contour, ClosedContours)</l>
+<l>for I := 0 to 2 by 1</l>
+<l>    disp_message (WindowHandleInstructions, I + 1, 'image', R[I], C[I], 'white', 'false')</l>
+<l>endfor</l>
+<l>gen_arrow_contour_xld (Arrows, R, C, [Row1,Row1,Row2,Row2], [Column1,Column2,Column2,Column1], 10, 10)</l>
+<l>dev_display (ClosedContours)</l>
+<l>dev_display (Cross)</l>
+<l>dev_display (Arrows)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="display_instructions">
+<parameters>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleInstructions"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="input_affine_trans">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="RowTarget" base_type="ctrl" dimension="0"/>
+<par name="ColumnTarget" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>for I := 0 to 2 by 1</l>
+<l>    draw_point (WindowHandle, Row, Column)</l>
+<l>    Rows[I] := Row</l>
+<l>    Columns[I] := Column</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 6, 0.785398)</l>
+<l>    gen_arrow_contour_xld (Arrow, Row, Column, RowTarget[I], ColumnTarget[I], 10, 10)</l>
+<l>    gen_contour_polygon_xld (Contour, Rows, Columns)</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_display (Arrow)</l>
+<l>    dev_display (Contour)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="input_affine_trans">
+<parameters>
+<parameter id="ColumnTarget"/>
+<parameter id="Columns"/>
+<parameter id="RowTarget"/>
+<parameter id="Rows"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="calculate_and_display_4th_corner_point">
+<interface>
+<oo>
+<par name="Cross" base_type="iconic" dimension="0"/>
+<par name="Contour" base_type="iconic" dimension="0"/>
+<par name="Arrow" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="HomMat2D" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+<par name="RowTarget" base_type="ctrl" dimension="0"/>
+<par name="ColumnTarget" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HomMat2DInvert" base_type="ctrl" dimension="0"/>
+<par name="HomMat2DTmp" base_type="ctrl" dimension="0"/>
+<par name="HomMat2DInvertAdapted" base_type="ctrl" dimension="0"/>
+<par name="Row4" base_type="ctrl" dimension="0"/>
+<par name="Column4" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Calculate 4th corner point using the inverse transformation</c>
+<c>* (just for visualization).</c>
+<l>hom_mat2d_invert (HomMat2D, HomMat2DInvert)</l>
+<l>hom_mat2d_translate (HomMat2DInvert, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DInvertAdapted)</l>
+<l>affine_trans_pixel (HomMat2DInvertAdapted, Height, 0, Row4, Column4)</l>
+<c>* </c>
+<l>gen_cross_contour_xld (Cross, Row4, Column4, 6, 0.785398)</l>
+<l>gen_contour_polygon_xld (Contour, [Rows,Row4,Rows[0]], [Columns,Column4,Columns[0]])</l>
+<l>gen_arrow_contour_xld (Arrow, Row4, Column4, RowTarget[3], ColumnTarget[3], 10, 10)</l>
+<l>dev_display (Cross)</l>
+<l>dev_display (Contour)</l>
+<l>dev_display (Arrow)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="calculate_and_display_4th_corner_point">
+<parameters>
+<parameter id="Arrow"/>
+<parameter id="Column4"/>
+<parameter id="ColumnTarget"/>
+<parameter id="Columns"/>
+<parameter id="Contour"/>
+<parameter id="Cross"/>
+<parameter id="Height"/>
+<parameter id="HomMat2D"/>
+<parameter id="HomMat2DInvert"/>
+<parameter id="HomMat2DInvertAdapted"/>
+<parameter id="HomMat2DTmp"/>
+<parameter id="Row4"/>
+<parameter id="RowTarget"/>
+<parameter id="Rows"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

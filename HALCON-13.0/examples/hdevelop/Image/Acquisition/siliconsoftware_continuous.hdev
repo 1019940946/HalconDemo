@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON SiliconSoftware Interface.</c>
+<c>* </c>
+<c>* It uses the continuous_grabbing mode in order to get the</c>
+<c>* maximum frame rate. In this example it is used to consecutively</c>
+<c>* grab images from a line scan camera which are then combined to</c>
+<c>* one bigger image without loosing image lines.</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c>* </c>
+<c>* Combine 3 consecutive frames of a (line scan) camera:</c>
+<c>* </c>
+<l>grab_image_async (Image1, AcqHandle, -1)</l>
+<l>grab_image_async (Image2, AcqHandle, -1)</l>
+<l>grab_image_async (Image3, AcqHandle, -1)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 1)</l>
+<c>* </c>
+<l>concat_obj (Image1, Image2, Images)</l>
+<l>concat_obj (Images, Image3, Images)</l>
+<l>tile_images (Images, TiledImage, 1, 'vertical')</l>
+<c>* </c>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 4, (Height * 3) / 4, 'black', WindowID)</l>
+<l>dev_display (TiledImage)</l>
+<l>stop ()</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'disable')</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

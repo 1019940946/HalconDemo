@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program measures the execution times of the operators</c>
+<c>* write_image and write_object for images of different sizes</c>
+<c>* and different file formats.</c>
+<c>* </c>
+<c>* Used images and file formats.</c>
+<l>ImageNames := ['fabrik','clip','pcb_color','caliper/caliper_line_scan']</l>
+<l>FileFormats := ['write_object','hobj','jpg','png','bmp','jp2','jpegxr','tiff']</l>
+<l>Extensions := ['hobj','hobj','jpg','png','bmp','jp2','jxr','tiff']</l>
+<c>* </c>
+<c>* Set number of writes to get a more robust measurement.</c>
+<l>NumLoops := 3</l>
+<c>* </c>
+<c>* Find a temporary folder to write images.</c>
+<l>get_tmp_dir (LocalTemp)</l>
+<l>get_current_dir (DirName)</l>
+<l>set_current_dir (LocalTemp)</l>
+<c>* </c>
+<c>* Set window properties.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>WinWidth := 800</l>
+<l>WinHeight := 420</l>
+<l>dev_open_window (0, 0, WinWidth, WinHeight, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Initialize variables to control table display.</c>
+<l>ColumnWidth := 140</l>
+<l>ColumnStart := 230</l>
+<l>RowHeight := 35</l>
+<l>RowStart := 100</l>
+<l>display_table (ImageNames, Extensions, ColumnStart, ColumnWidth, RowStart, RowHeight, WindowHandle, ColumnGrid, RowGrid)</l>
+<l>disp_message (WindowHandle, 'Comparison of writing times for different image formats (mean of ' + NumLoops + ' writes)', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Iterate over all images and file formats.</c>
+<l>for I := 0 to |ImageNames| - 1 by 1</l>
+<l>    read_image (ImageOrg, ImageNames[I])</l>
+<l>    get_image_size (ImageOrg, ImWidth, ImHeight)</l>
+<l>    count_channels (ImageOrg, NumChannels)</l>
+<l>    disp_message (WindowHandle, [' ' + ImWidth$'4' + 'x' + ImHeight,NumChannels + ' channel(s)'], 'image', RowStart - 40, ColumnGrid[I] + 10, 'black', 'false')</l>
+<c>    * Store time measurements for every format.</c>
+<l>    Measurements := []</l>
+<l>    FileNameBase := LocalTemp + '/imagetmp'</l>
+<c>    * Iterate over all specified file formats.</c>
+<l>    for J := 0 to |Extensions| - 1 by 1</l>
+<l>        Format := FileFormats[J]</l>
+<l>        Extension := Extensions[J]</l>
+<l>        FileName := FileNameBase + '.' + Extension</l>
+<l>        Times := []</l>
+<c>        * Execute once to prevent initialization effects</c>
+<c>        * that might disturb the measurement.</c>
+<l>        if (Format == 'write_object')</l>
+<l>            write_object (ImageOrg, FileName)</l>
+<l>        else</l>
+<l>            write_image (ImageOrg, Format, 0, FileName)</l>
+<l>        endif</l>
+<c>        * Measure execution times multiple times</c>
+<c>        * for more robust results.</c>
+<l>        for Loop := 1 to NumLoops by 1</l>
+<c>            * Use randomly modified images to prevent caching.</c>
+<l>            add_noise_white (ImageOrg, Image, 1)</l>
+<c>            * Perform measurement.</c>
+<l>            if (Format == 'write_object')</l>
+<c>                * Use write_object operator.</c>
+<l>                count_seconds (Start)</l>
+<l>                write_object (Image, FileName)</l>
+<l>                count_seconds (End)</l>
+<l>            else</l>
+<c>                * Use write_image operator.</c>
+<l>                count_seconds (Start)</l>
+<l>                write_image (Image, Format, 0, FileName)</l>
+<l>                count_seconds (End)</l>
+<l>            endif</l>
+<l>            Times := [Times,End - Start]</l>
+<l>        endfor</l>
+<c>        * Display current result.</c>
+<l>        TimeMean := mean(Times)</l>
+<l>        Measurements := [Measurements,TimeMean]</l>
+<l>        disp_message (WindowHandle, (TimeMean * 1000)$'6.1f' + ' ms', 'image', RowGrid[J] + 10, ColumnGrid[I] + 40, 'blue', 'false')</l>
+<c>        * Delete temporary file.</c>
+<l>        delete_file (FileName)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Indicate the 3 fastest combinations.</c>
+<l>    WinnerColor := ['gold','gray','goldenrod']</l>
+<l>    Indices := sort_index(Measurements)</l>
+<l>    NumWinners := min2(3,|Measurements|)</l>
+<l>    for W := 0 to NumWinners - 1 by 1</l>
+<l>        WinnerRow := RowGrid[Indices[W]] + 10</l>
+<l>        WinnerColumn := ColumnGrid[I] + 20</l>
+<l>        gen_circle (Circle, WinnerRow + 8, WinnerColumn + 5, 11.5)</l>
+<l>        dev_set_color (WinnerColor[W])</l>
+<l>        dev_display (Circle)</l>
+<l>        disp_message (WindowHandle, W + 1, 'image', WinnerRow, WinnerColumn, 'white', 'false')</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* Reset current directory.</c>
+<l>set_current_dir (DirName)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_table">
+<interface>
+<ic>
+<par name="ImageNames" base_type="ctrl" dimension="0"/>
+<par name="Extensions" base_type="ctrl" dimension="0"/>
+<par name="ColumnStart" base_type="ctrl" dimension="0"/>
+<par name="ColumnWidth" base_type="ctrl" dimension="0"/>
+<par name="RowStart" base_type="ctrl" dimension="0"/>
+<par name="RowHeight" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ColumnGrid" base_type="ctrl" dimension="0"/>
+<par name="RowGrid" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>NumColumns := |ImageNames|</l>
+<l>NumRows := |Extensions|</l>
+<l>ColumnEnd := ColumnStart + NumColumns * ColumnWidth</l>
+<l>ColumnGrid := [ColumnStart:ColumnWidth:ColumnEnd]</l>
+<l>RowEnd := RowStart + NumRows * RowHeight</l>
+<l>RowGrid := [RowStart:RowHeight:RowEnd]</l>
+<c>* Generate and draw table grid</c>
+<l>gen_empty_obj (TableGrid)</l>
+<l>OpDescription := ['write_image (' + Extensions + ')',' ']</l>
+<l>OpDescription[0] := 'write_object (hobj)'</l>
+<l>for J := 0 to NumRows by 1</l>
+<l>    disp_message (WindowHandle, OpDescription[J], 'image', RowGrid[J] + 10, 15, 'black', 'false')</l>
+<l>    gen_contour_polygon_xld (Lines, [RowGrid[J],RowGrid[J]], [15,ColumnEnd])</l>
+<l>    concat_obj (TableGrid, Lines, TableGrid)</l>
+<l>endfor</l>
+<l>for ColIdx := 0 to NumColumns by 1</l>
+<l>    gen_contour_polygon_xld (Lines, [RowStart - 40,RowGrid[NumRows]], [ColumnGrid[ColIdx],ColumnGrid[ColIdx]])</l>
+<l>    concat_obj (TableGrid, Lines, TableGrid)</l>
+<l>endfor</l>
+<l>dev_set_color ('black')</l>
+<l>dev_display (TableGrid)</l>
+<l>return ()</l>
+</body>
+<docu id="display_table">
+<parameters>
+<parameter id="ColumnGrid"/>
+<parameter id="ColumnStart"/>
+<parameter id="ColumnWidth"/>
+<parameter id="Extensions"/>
+<parameter id="ImageNames"/>
+<parameter id="RowGrid"/>
+<parameter id="RowHeight"/>
+<parameter id="RowStart"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_tmp_dir">
+<interface>
+<oc>
+<par name="LocalTemp" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_environment ('TEMP', LocalTemp)</l>
+<l>if (LocalTemp == '')</l>
+<l>    tuple_environment ('TMP', LocalTemp)</l>
+<l>    if (LocalTemp == '')</l>
+<l>        file_exists ('/tmp', FileExists)</l>
+<l>        if (FileExists)</l>
+<l>            LocalTemp := '/tmp'</l>
+<l>        else</l>
+<l>            LocalTemp := './'</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_tmp_dir">
+<parameters>
+<parameter id="LocalTemp"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

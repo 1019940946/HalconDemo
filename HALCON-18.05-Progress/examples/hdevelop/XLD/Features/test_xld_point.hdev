@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows how to use test_xld_point.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Four points are tested simultaneously whether they are enclosed</c>
+<c>* by an XLD contour.</c>
+<c>* </c>
+<l>PointRow := [100,50,150,200]</l>
+<l>PointCol := [100,100,100,100]</l>
+<l>gen_contour_polygon_xld (Contour1, [50,50,150,150,50], [50,150,150,50,50])</l>
+<l>test_xld_point (Contour1, PointRow, PointCol, IsInsideContour1)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contour1)</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (Cross)</l>
+<l>for CurPoint := 0 to |PointRow| - 1 by 1</l>
+<l>    set_tposition (WindowHandle, PointRow[CurPoint], PointCol[CurPoint])</l>
+<l>    if (IsInsideContour1[CurPoint] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        write_string (WindowHandle, 'inside')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'outside')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Contours that are not closed will be closed automatically.</c>
+<c>* Therefore, the test result for the open contour is exactly</c>
+<c>* the same as in the previous example.</c>
+<c>* </c>
+<l>gen_contour_polygon_xld (Contour2, [50,50,150,150], [50,150,150,50])</l>
+<l>test_xld_point (Contour2, PointRow, PointCol, IsInsideContour2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contour2)</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (Cross)</l>
+<l>for CurPoint := 0 to |PointRow| - 1 by 1</l>
+<l>    set_tposition (WindowHandle, PointRow[CurPoint], PointCol[CurPoint])</l>
+<l>    if (IsInsideContour2[CurPoint] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        write_string (WindowHandle, 'inside')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'outside')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Now four contours and a single point are tested simultaneously.</c>
+<c>* </c>
+<l>PointRow := 100</l>
+<l>PointCol := 100</l>
+<l>gen_contour_polygon_xld (Contours, [50,50,150,150,50], [50,150,150,50,50])</l>
+<l>gen_contour_polygon_xld (Contour3, [250,250,350,350,250], [50,150,150,50,50])</l>
+<l>concat_obj (Contours, Contour3, Contours)</l>
+<l>gen_contour_polygon_xld (Contour4, [50,50,150,150,50], [250,350,350,250,250])</l>
+<l>concat_obj (Contours, Contour4, Contours)</l>
+<l>gen_contour_polygon_xld (Contour5, [250,250,350,350,250], [250,350,350,250,250])</l>
+<l>concat_obj (Contours, Contour5, Contours)</l>
+<l>test_xld_point (Contours, PointRow, PointCol, IsInsideContours)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (Cross)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contours)</l>
+<l>count_obj (Contours, NumContours)</l>
+<l>for ContourIndex := 1 to NumContours by 1</l>
+<l>    select_obj (Contours, CurContour, ContourIndex)</l>
+<l>    get_contour_xld (CurContour, Row, Col)</l>
+<l>    set_tposition (WindowHandle, Row[0], Col[0])</l>
+<l>    if (IsInsideContours[ContourIndex - 1] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        write_string (WindowHandle, 'inside')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'outside')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Now four contours and four points are tested simultaneously.</c>
+<c>* The i-th polygon is tested with the i-th point. Points are displayed</c>
+<c>* in the same color as their corresponding polygons.</c>
+<c>* </c>
+<l>PointRow := [100,100,300,300]</l>
+<l>PointCol := [100,300,100,300]</l>
+<l>Colors := ['white','cyan','yellow','green']</l>
+<l>test_xld_point (Contours, PointRow, PointCol, IsInsideContours)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>count_obj (Contours, NumContours)</l>
+<l>for CurPoint := 0 to |PointRow| - 1 by 1</l>
+<l>    dev_set_color (Colors[CurPoint])</l>
+<l>    select_obj (Cross, CurCross, CurPoint + 1)</l>
+<l>    dev_display (CurCross)</l>
+<l>    select_obj (Contours, CurContour, CurPoint + 1)</l>
+<l>    dev_display (CurContour)</l>
+<l>    set_tposition (WindowHandle, PointRow[CurPoint], PointCol[CurPoint])</l>
+<l>    if (IsInsideContours[CurPoint] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        write_string (WindowHandle, 'inside')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'outside')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Intersecting line segments may cause holes in a polygon. Note that</c>
+<c>* line segments in real world applications will practically never intersect.</c>
+<c>* </c>
+<l>PointRow := [100,100,200,250,300,400,400]</l>
+<l>PointCol := [100,400,300,250,200,100,400]</l>
+<l>gen_contour_polygon_xld (Contour6, [50,50,275,275,150,150,450,450,225,225,350,350,50], [50,350,350,225,225,450,450,150,150,275,275,50,50])</l>
+<l>test_xld_point (Contour6, PointRow, PointCol, IsInsideContour6)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contour6)</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (Cross)</l>
+<l>for CurPoint := 0 to |PointRow| - 1 by 1</l>
+<l>    set_tposition (WindowHandle, PointRow[CurPoint], PointCol[CurPoint])</l>
+<l>    if (IsInsideContour6[CurPoint] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        write_string (WindowHandle, 'inside')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'outside')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Points lying directly on one of the contour's line segments</c>
+<c>* cannot be classified reliably.</c>
+<c>* </c>
+<l>PointRow := 200</l>
+<l>PointCol := 200</l>
+<l>Steps := 100</l>
+<l>Count := 0</l>
+<l>TotalCount := 0</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>for Offset := -100.0 to 100.0 by 2.0</l>
+<l>    gen_contour_polygon_xld (Contour7, [400,200 + Offset,200 - Offset,400,400], [100,100,300,300,100])</l>
+<l>    test_xld_point (Contour7, PointRow, PointCol, IsInsideContour7)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (Contour7)</l>
+<l>    dev_set_color ('gray')</l>
+<l>    dev_display (Cross)</l>
+<l>    set_tposition (WindowHandle, PointRow, PointCol)</l>
+<l>    TotalCount := TotalCount + 1</l>
+<l>    if (IsInsideContour7 == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        Count := Count + 1</l>
+<l>        write_string (WindowHandle, 'inside')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'outside')</l>
+<l>    endif</l>
+<l>    wait_seconds (0.03)</l>
+<l>*     stop ()</l>
+<l>endfor</l>
+<l>set_tposition (WindowHandle, 12, 12)</l>
+<l>write_string (WindowHandle, (Count * 100) / TotalCount + ' % classified as inside')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

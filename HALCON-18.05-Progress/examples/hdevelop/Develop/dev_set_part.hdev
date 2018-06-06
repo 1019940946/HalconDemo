@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>for i := 1 to 240 by 10</l>
+<l>    dev_set_part (i, i, 511 - i, 511 - i)</l>
+<l>    dev_display (Image)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>dev_set_window_extents (0, 0, 640, 480)</l>
+<l>dev_set_part (0, 0, 479, 639)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (Image)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

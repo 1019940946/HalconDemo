@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the 1394IIDC interface</c>
+<c>* (image grabbing in format_7 with different frame rates)</c>
+<c>* </c>
+<l>get_system ('operating_system', OperatingSystem)</l>
+<l>set_system ('clock_mode', 'performance_counter')</l>
+<c>* </c>
+<l>MyColorSpace := 'default'</l>
+<l>MyDevice := 'default'</l>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    MyCameraType := '7:0:0'</l>
+<l>else</l>
+<l>    MyCameraType := 'default'</l>
+<l>endif</l>
+<l>open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, MyColorSpace, -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Open graphics window:</c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, MaxWidth / 2, MaxHeight / 2, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<l>if (OperatingSystem != 'Linux')</l>
+<c>    * Try to set format_7:</c>
+<l>    get_framegrabber_param (AcqHandle, 'color_space', ColorSpace)</l>
+<l>    if (ColorSpace == 'rgb')</l>
+<l>        MyCameraType := '7:0:4'</l>
+<l>    else</l>
+<l>        MyCameraType := '7:0:0'</l>
+<l>    endif</l>
+<l>endif</l>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_free_resources', 1)</l>
+<l>endif</l>
+<l>set_framegrabber_param (AcqHandle, 'camera_type', MyCameraType)</l>
+<l>set_framegrabber_param (AcqHandle, 'horizontal_offset', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'vertical_offset', 0)</l>
+<l>* set_framegrabber_param (AcqHandle, 'burst_count', 0)</l>
+<l>wait_seconds (1)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'horizontal_resolution_range', WidthRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'vertical_resolution_range', HeightRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'horizontal_offset_range', HorOffsetRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'vertical_offset_range', VerOffsetRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'packet_size_range', PacketSizeRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'frame_rate', FrameRate)</l>
+<l>MaxWidth := WidthRange[1]</l>
+<l>MaxHeight := HeightRange[1]</l>
+<c>* </c>
+<c>* Vary different packet sizes:</c>
+<l>PacketSizeMin := PacketSizeRange[0]</l>
+<l>PacketSizeMax := PacketSizeRange[1]</l>
+<l>StepWidth := PacketSizeRange[2]</l>
+<l>if (StepWidth &lt; 64)</l>
+<l>    StepWidth := StepWidth * (64 / StepWidth)</l>
+<l>endif</l>
+<l>while (PacketSizeMin &lt; 512)</l>
+<l>    PacketSizeMin := PacketSizeMin + StepWidth</l>
+<l>endwhile</l>
+<l>for i := PacketSizeMin to PacketSizeMax by StepWidth</l>
+<l>    if (OperatingSystem == 'Linux')</l>
+<l>        set_framegrabber_param (AcqHandle, 'do_free_resources', 1)</l>
+<l>    else</l>
+<l>        set_framegrabber_param (AcqHandle, 'packet_size', i)</l>
+<l>    endif</l>
+<l>    wait_seconds (0.2)</l>
+<l>    get_framegrabber_param (AcqHandle, 'frame_rate', FrameRate)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_set_draw ('fill')</l>
+<l>    dev_set_color ('white')</l>
+<l>    disp_rectangle1 (WindowHandle, 18, 8, 70, 220)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    set_tposition (WindowHandle, 24, 12)</l>
+<l>    write_string (WindowHandle, 'PacketSize: ' + i)</l>
+<l>    set_tposition (WindowHandle, 48, 12)</l>
+<l>    write_string (WindowHandle, 'FrameRate: ' + FrameRate)</l>
+<l>*     stop ()</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* "zoom" into the image dynamically:</c>
+<l>open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, MyColorSpace, -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<l>for i := 0 to 15 by 1</l>
+<l>    if (OperatingSystem == 'Linux')</l>
+<l>        set_framegrabber_param (AcqHandle, 'do_free_resources', 1)</l>
+<l>    endif</l>
+<l>    set_framegrabber_param (AcqHandle, 'horizontal_resolution', MaxWidth - (WidthRange[2] * 4) * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'horizontal_offset', HorOffsetRange[2] * 2 * i)</l>
+<l>    get_framegrabber_param (AcqHandle, 'horizontal_resolution', HorizontalResolution)</l>
+<l>    if (OperatingSystem == 'Linux')</l>
+<l>        set_framegrabber_param (AcqHandle, 'vertical_resolution', HorizontalResolution * 3 / 4)</l>
+<l>    else</l>
+<l>        set_framegrabber_param (AcqHandle, 'vertical_resolution', MaxHeight - (HeightRange[2] * 4) * i)</l>
+<l>    endif</l>
+<l>    set_framegrabber_param (AcqHandle, 'vertical_offset', VerOffsetRange[2] * 2 * i)</l>
+<l>    get_framegrabber_param (AcqHandle, ['horizontal_offset','vertical_offset','horizontal_resolution','vertical_resolution'], ImagePart)</l>
+<l>    get_framegrabber_param (AcqHandle, 'packet_size', PacketSize)</l>
+<l>    get_framegrabber_param (AcqHandle, 'frame_rate', FrameRate)</l>
+<l>    if (OperatingSystem == 'Linux')</l>
+<l>        wait_seconds (1.5)</l>
+<l>    endif</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<c>* reset image size</c>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_free_resources', 1)</l>
+<l>endif</l>
+<l>set_framegrabber_param (AcqHandle, 'horizontal_offset', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'horizontal_resolution', MaxWidth)</l>
+<l>set_framegrabber_param (AcqHandle, 'vertical_offset', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'vertical_resolution', MaxHeight)</l>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    wait_seconds (1.5)</l>
+<l>endif</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>wait_seconds (0.2)</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<c>* Specify cropping part interactively:</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, MaxWidth / 2, MaxHeight / 2, 'black', WindowHandle)</l>
+<l>open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, MyColorSpace, -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'horizontal_offset', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'vertical_offset', 0)</l>
+<c>* Capture some images and calculate actual frame rate:</c>
+<l>set_system ('clock_mode', 'performance_counter')</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>count_seconds (start)</l>
+<l>NumImages := 15</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    grab_image_async (Image1, AcqHandle, -1)</l>
+<l>    access_channel (Image1, Image, 1)</l>
+<l>endfor</l>
+<l>count_seconds (_AUTO_RENAME_stop)</l>
+<l>if (_AUTO_RENAME_stop - start &gt; 0)</l>
+<l>    CurrentFrameRate := NumImages / (_AUTO_RENAME_stop - start)</l>
+<l>    dev_set_draw ('fill')</l>
+<l>    dev_set_color ('white')</l>
+<l>    disp_rectangle1 (WindowHandle, 18, 8, 45, 230)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    set_tposition (WindowHandle, 24, 12)</l>
+<l>    write_string (WindowHandle, 'Frame rate (1/s): ' + CurrentFrameRate$'.3f')</l>
+<l>endif</l>
+<c>* </c>
+<l>draw_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>disp_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>NewWidth := abs(Column2 - Column1)</l>
+<l>NewHeight := abs(Row2 - Row1)</l>
+<l>tuple_round (Row1, Row1)</l>
+<l>tuple_round (Column1, Column1)</l>
+<l>tuple_round (NewWidth, NewWidth)</l>
+<l>tuple_round (NewHeight, NewHeight)</l>
+<c>* </c>
+<c>* Set new image parameters:</c>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_free_resources', 1)</l>
+<l>endif</l>
+<l>if (NewWidth % 16)</l>
+<l>    set_framegrabber_param (AcqHandle, 'horizontal_resolution', NewWidth - (NewWidth % 16))</l>
+<l>else</l>
+<l>    set_framegrabber_param (AcqHandle, 'horizontal_resolution', NewWidth)</l>
+<l>endif</l>
+<l>if (NewHeight % 16)</l>
+<l>    set_framegrabber_param (AcqHandle, 'vertical_resolution', NewHeight - (NewHeight % 16))</l>
+<l>else</l>
+<l>    set_framegrabber_param (AcqHandle, 'vertical_resolution', NewHeight)</l>
+<l>endif</l>
+<l>if (Column1 % 2)</l>
+<l>    set_framegrabber_param (AcqHandle, 'horizontal_offset', Column1 - (Column1 % 2))</l>
+<l>else</l>
+<l>    set_framegrabber_param (AcqHandle, 'horizontal_offset', Column1)</l>
+<l>endif</l>
+<l>if (Row1 % 2)</l>
+<l>    set_framegrabber_param (AcqHandle, 'vertical_offset', Row1 - (Row1 % 2))</l>
+<l>else</l>
+<l>    set_framegrabber_param (AcqHandle, 'vertical_offset', Row1)</l>
+<l>endif</l>
+<l>dev_set_color ('red')</l>
+<l>disp_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>dev_open_window (Row1, Column1, NewWidth / 2, NewHeight / 2, 'black', WindowHandle2)</l>
+<l>grab_image (Image2, AcqHandle)</l>
+<c>* </c>
+<c>* Capture some images and calculate frame rate:</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>NumImages := 15</l>
+<l>count_seconds (start)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    grab_image_async (Image1, AcqHandle, -1)</l>
+<l>    access_channel (Image1, Image, 1)</l>
+<l>endfor</l>
+<l>count_seconds (_AUTO_RENAME_stop)</l>
+<l>if (_AUTO_RENAME_stop - start &gt; 0)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_color ('blue')</l>
+<l>    set_tposition (WindowHandle2, 24, 12)</l>
+<l>    write_string (WindowHandle2, 'Frame rate (1/s):')</l>
+<l>    set_tposition (WindowHandle2, 52, 12)</l>
+<l>    CurrentFrameRate := NumImages / (_AUTO_RENAME_stop - start)</l>
+<l>    write_string (WindowHandle2, '' + CurrentFrameRate$'.3f')</l>
+<l>endif</l>
+<l>dev_set_draw ('fill')</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* reset image size</c>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_free_resources', 1)</l>
+<l>endif</l>
+<l>set_framegrabber_param (AcqHandle, 'horizontal_offset', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'horizontal_resolution', MaxWidth)</l>
+<l>set_framegrabber_param (AcqHandle, 'vertical_offset', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'vertical_resolution', MaxHeight)</l>
+<l>get_framegrabber_param (AcqHandle, ['horizontal_offset','vertical_offset','horizontal_resolution','vertical_resolution'], ImagePart)</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

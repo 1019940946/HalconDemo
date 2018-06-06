@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example to demonstrate how to open a digital I/O device from Contec and</c>
+<c>* how to write values to a digital output</c>
+<c>* </c>
+<c>* </c>
+<c>* Query the revision</c>
+<l>query_io_interface ('Contec', 'revision', IoRevision)</l>
+<c>* </c>
+<c>* Query currently installed I/O devices</c>
+<l>query_io_interface ('Contec', 'io_device_names', DeviceNames)</l>
+<c>* </c>
+<c>* Open the first device</c>
+<l>open_io_device ('Contec', DeviceNames[0], [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* Get the device name</c>
+<l>get_io_device_param (IoDeviceHandle, 'io_device_name', IoDeviceName)</l>
+<c>* </c>
+<c>* Query all output channels of the device or only the digital output channels.</c>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names', ChannelsAll)</l>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names.digital_output', ChannelsOutput)</l>
+<c>* </c>
+<c>* Get the range of a channel. Just for demonstration, we pick the first one.</c>
+<l>query_io_device (IoDeviceHandle, ChannelsAll[0], 'value.range', ChannelRange0)</l>
+<c>* </c>
+<l>if (|ChannelsOutput| == 0)</l>
+<c>    * No output channels supported by this device</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* First, we show the usage of a single channel</c>
+<l>get_channels_indices (ChannelsOutput, Indices)</l>
+<c>* </c>
+<c>* Open first channel provided by ChannelsOutput</c>
+<l>Channel0 := Indices[0]</l>
+<l>open_io_channel (IoDeviceHandle, ChannelsOutput[Channel0], [], [], IoHandle0)</l>
+<c>* </c>
+<c>* Open second channel provided by ChannelsOutput</c>
+<l>Channel1 := Indices[1]</l>
+<l>open_io_channel (IoDeviceHandle, ChannelsOutput[Channel1], [], [], IoHandle1)</l>
+<c>* </c>
+<c>* Get the range of the channel. In case of an channel (bit) the value could only be one or zero.</c>
+<l>get_io_channel_param (IoHandle0, 'value.range', ChannelsRange1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Write a 1 to the selected digital output</c>
+<l>write_io_channel (IoHandle0, 1, Status0)</l>
+<c>* Write a 0 to the selected digital output</c>
+<l>write_io_channel (IoHandle1, 0, Status1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Write to multiple output channels</c>
+<l>write_io_channel ([IoHandle0,IoHandle1], [1,0], Status)</l>
+<c>* </c>
+<c>* Cleanup previous initialized handles</c>
+<l>close_io_channel ([IoHandle0,IoHandle1])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Open all channels provided by one port, not only a single channel (bit).</c>
+<c>* Find the ports.</c>
+<l>get_port_indices (ChannelsOutput, Indices)</l>
+<c>* </c>
+<c>* Open a port</c>
+<l>FirstPort := Indices[0]</l>
+<l>open_io_channel (IoDeviceHandle, ChannelsOutput[FirstPort], [], [], IoHandle)</l>
+<c>* </c>
+<c>* Get the range</c>
+<l>get_io_channel_param (IoHandle, 'value.range', ChannelsRange1)</l>
+<c>* </c>
+<c>* Write the minimum value</c>
+<l>write_io_channel (IoHandle, ChannelsRange1[0], Status)</l>
+<l>stop ()</l>
+<c>* Write the maximum value</c>
+<l>write_io_channel (IoHandle, ChannelsRange1[1], Status)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Use a loop to write the indices to the output port</c>
+<l>for Index := 1 to ChannelsRange1[1] by 1</l>
+<l>    wait_seconds (0.2)</l>
+<l>    write_io_channel (IoHandle, Index, Status)</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>close_io_channel (IoHandle)</l>
+<l>close_io_device (IoDeviceHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_channels_indices">
+<interface>
+<ic>
+<par name="Channels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Indices" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Find the indices of the channels with the following format:</c>
+<c>* di_x.x, do_x.x and dio_x.x</c>
+<l>tuple_regexp_match (Channels, '^d(?:[io]|io)(_)[0-9]+\\.[0-9]+$', Matches)</l>
+<l>tuple_find (Matches, '_', Indices)</l>
+<l>return ()</l>
+</body>
+<docu id="get_channels_indices">
+<parameters>
+<parameter id="Channels"/>
+<parameter id="Indices"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_port_indices">
+<interface>
+<ic>
+<par name="Channels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Indices" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_regexp_match (Channels, '-*', Matches)</l>
+<l>tuple_strstr (Matches, '-', Position)</l>
+<l>tuple_find (Position, 0, Indices)</l>
+<l>return ()</l>
+</body>
+<docu id="get_port_indices">
+<parameters>
+<parameter id="Channels"/>
+<parameter id="Indices"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

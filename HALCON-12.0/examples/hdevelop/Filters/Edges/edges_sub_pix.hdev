@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows how subpixel precise edges can be</c>
+<c>* extracted from an image.</c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<c>* The default parameter were adapted to find more</c>
+<c>* connected edges in the image.</c>
+<l>edges_sub_pix (Image, Edges, 'canny', 2, 12, 22)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Edges)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Zoom into the image to enable detailed edge inspection</c>
+<l>dev_set_part (160, 250, 210, 300)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Edges)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

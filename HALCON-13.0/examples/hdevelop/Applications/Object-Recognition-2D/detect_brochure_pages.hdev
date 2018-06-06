@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example finds pages of articles in a picture database.</c>
+<c>* In the first step different pages are trained and models are created.</c>
+<c>* Afterwards unknown images are searched and the correct article</c>
+<c>* pages are detected.</c>
+<c>* Please notice that this example needs some memory to train the models.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'brochure/brochure_page_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Clear all already created descriptor models.</c>
+<l>ModelIDs := []</l>
+<l>ModelsFound := 0</l>
+<l>NumPoints := []</l>
+<l>NumModels := 3</l>
+<l>TotalTime := 0</l>
+<c>* </c>
+<c>* Create region for visualization purpose.</c>
+<l>RowRoi := [10,10,Height - 10,Height - 10]</l>
+<l>ColRoi := [10,Width - 10,Width - 10,10]</l>
+<l>gen_rectangle1 (Rectangle, 10, 10, Height - 10, Width - 10)</l>
+<l>disp_message (WindowHandle, ['Press \'Run\' to start model creation ...','(may take a few minutes)'], 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* For every page the descriptor model is created.</c>
+<l>for Index := 1 to NumModels by 1</l>
+<l>    read_image (Image, 'brochure/brochure_page_' + Index$'.2')</l>
+<l>    rgb1_to_gray (Image, ImageGray)</l>
+<l>    get_image_size (ImageGray, Width, Height)</l>
+<l>    reduce_domain (ImageGray, Rectangle, ImageReduced)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageGray)</l>
+<l>    disp_message (WindowHandle, 'Creating model no. ' + Index + '/' + NumModels + ' ... please wait.', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Create the descriptor model with default parameters (except scaling)</c>
+<c>    * For a fast detection, the harris binomial point detector is chosen.</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    create_uncalib_descriptor_model (ImageReduced, 'harris_binomial', [], [], ['min_rot','max_rot','min_scale','max_scale'], [-90,90,0.2,1.1], 42, ModelID)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    TotalTime := TotalTime + (Seconds2 - Seconds1)</l>
+<c>    * </c>
+<c>    * For the correct projection of the rectangles in a later step the origin</c>
+<c>    *   of the model has to be set to the image origin</c>
+<l>    set_descriptor_model_origin (ModelID, -Height / 2, -Width / 2)</l>
+<l>    ModelIDs := [ModelIDs,ModelID]</l>
+<c>    * </c>
+<c>    * Store the points which are extracted from the model for later matching.</c>
+<l>    get_descriptor_model_points (ModelID, 'model', 'all', Row_D, Col_D)</l>
+<l>    NumPoints := [NumPoints,|Row_D|]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Model creation finished.</c>
+<l>dev_display (ImageGray)</l>
+<l>disp_message (WindowHandle, NumModels + ' models created in ' + TotalTime$'.4' + ' seconds.', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Initialize the window again, because the image size has changed.</c>
+<l>read_image (Image, 'brochure/brochure_01')</l>
+<l>dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Main loop:</c>
+<c>* Search the models in all images</c>
+<l>for Index1 := 1 to 12 by 1</l>
+<l>    OutputString := []</l>
+<l>    NumMsgs := 0</l>
+<l>    ModelsFound := 0</l>
+<l>    TotalTime := 0</l>
+<l>    read_image (Image, 'brochure/brochure_' + Index1$'.2')</l>
+<l>    rgb1_to_gray (Image, ImageGray)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Searching image ...', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Search every model in each image</c>
+<l>    for Index2 := 0 to |ModelIDs| - 1 by 1</l>
+<c>        * </c>
+<c>        * Find model (using default parameters)</c>
+<l>        count_seconds (Seconds1)</l>
+<l>        find_uncalib_descriptor_model (ImageGray, ModelIDs[Index2], 'threshold', 600, ['min_score_descr','guided_matching'], [0.003,'on'], 0.25, 1, 'num_points', HomMat2D, Score)</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := Seconds2 - Seconds1</l>
+<l>        TotalTime := TotalTime + Time</l>
+<c>        * </c>
+<c>        * Check if the found instance is to be considered as a possible right match</c>
+<c>        * depending on the number of points which were considered</c>
+<l>        if ((|HomMat2D| &gt; 0) and (Score &gt; NumPoints[Index2] / 4))</l>
+<l>            get_descriptor_model_points (ModelIDs[Index2], 'search', 0, Row, Col)</l>
+<l>            gen_cross_contour_xld (Cross, Row, Col, 6, 0.785398)</l>
+<c>            * </c>
+<c>            * Project the ROI rectangle and points</c>
+<l>            projective_trans_region (Rectangle, TransRegion, HomMat2D, 'bilinear')</l>
+<l>            projective_trans_pixel (HomMat2D, RowRoi, ColRoi, RowTrans, ColTrans)</l>
+<l>            angle_ll (RowTrans[2], ColTrans[2], RowTrans[1], ColTrans[1], RowTrans[1], ColTrans[1], RowTrans[0], ColTrans[0], Angle)</l>
+<l>            Angle := deg(Angle)</l>
+<c>            * </c>
+<c>            * Check if the projected rectangle is to be considered as a right match</c>
+<c>            * depending on the angle in the right upper edge.</c>
+<l>            if (Angle &gt; 70 and Angle &lt; 110)</l>
+<l>                area_center (TransRegion, Area, Row, Column)</l>
+<l>                ModelsFound := ModelsFound + 1</l>
+<l>                dev_set_color ('green')</l>
+<l>                dev_set_line_width (4)</l>
+<l>                dev_display (TransRegion)</l>
+<l>                dev_set_colored (12)</l>
+<l>                dev_set_line_width (1)</l>
+<l>                dev_display (Cross)</l>
+<l>                disp_message (WindowHandle, 'Page ' + (Index2 + 1), 'window', Row, Column, 'black', 'true')</l>
+<l>                OutputString := [OutputString,'Page ' + (Index2 + 1) + ' found in ' + (Time * 1000)$'.4' + ' ms\n']</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    if (ModelsFound == 0)</l>
+<l>        OutputString := 'No model found'</l>
+<l>    endif</l>
+<l>    NumMsgs := NumMsgs + 1</l>
+<l>    OutputString := ['Search time over all pages: ' + (TotalTime * 1000)$'.4' + ' ms',OutputString]</l>
+<l>    disp_message (WindowHandle, OutputString, 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (ImageGray)</l>
+<l>disp_message (WindowHandle, 'Program finished.\nPress \'Run\' to clear all descriptor models.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for Index := 0 to |ModelIDs| - 1 by 1</l>
+<l>    clear_descriptor_model (ModelIDs[Index])</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

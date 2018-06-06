@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the elementwise</c>
+<c>* comparison of tuples and the usage of</c>
+<c>* tuple_select_mask to access tuple</c>
+<c>* elements based on conditional expressions</c>
+<c>* </c>
+<c>* Please check the variable window for results</c>
+<c>* </c>
+<l>A := [1,2,1,3,1,4,2,5,4,6]</l>
+<l>B := [1,3,3,3,4,4,2,2,6,6]</l>
+<l>C := ['x','y','xyz','yyy','z']</l>
+<c>* </c>
+<c>* Part 1</c>
+<c>* </c>
+<c>* Show elementwise tuple comparison.</c>
+<c>* Either two tuples of the same length</c>
+<c>* can be compared, or one tuple is</c>
+<c>* compared against a single value.</c>
+<c>* </c>
+<c>* The following lines show</c>
+<c>* a) the HDevelop language syntax ([==], [&lt;] etc.)</c>
+<c>* b) the HALCON operator syntax (tuple_equal_elem etc.)</c>
+<c>* Both modes return the same results,</c>
+<c>* while a) is slightly faster.</c>
+<c>* </c>
+<c>* Equal</c>
+<l>AEqualsB_a := A [==] B</l>
+<l>tuple_equal_elem (A, B, AEqualsBb_b)</l>
+<l>AEquals2_a := A [==] 2</l>
+<l>tuple_equal_elem (A, 2, AEquals2_b)</l>
+<l>XEqualsC_a := 'x' [==] C</l>
+<l>tuple_equal_elem ('x', C, XEqualsC_b)</l>
+<c>* </c>
+<c>* Not equal</c>
+<l>ANotEqualToB_a := A [!=] B</l>
+<l>tuple_not_equal_elem (A, B, ANotEqualToB_b)</l>
+<l>ANotEqualTo2_a := A [!=] 2</l>
+<l>tuple_not_equal_elem (A, 2, ANotEqualTo2_b)</l>
+<l>XNotEqualToC_a := 'x' [!=] C</l>
+<l>tuple_not_equal_elem ('x', C, XNotEqualToC_b)</l>
+<c>* </c>
+<c>* Greater than</c>
+<l>AGreaterThanB_a := A [&gt;] B</l>
+<l>tuple_greater_elem (A, B, AGreaterThanB_b)</l>
+<l>AGreaterThan2_a := A [&gt;] 2</l>
+<l>tuple_greater_elem (A, 2, AGreaterThan2_b)</l>
+<l>TwoGreaterThanB_a := 2 [&gt;] B</l>
+<l>tuple_greater_elem (2, B, TwoGreaterThanB_b)</l>
+<c>* </c>
+<c>* Greater equal</c>
+<l>AGreaterOrEqualToB_a := A [&gt;=] B</l>
+<l>tuple_greater_equal_elem (A, B, AGreaterOrEqualToB_b)</l>
+<l>AGreaterOrEqualTo2_a := A [&gt;=] 2</l>
+<l>tuple_greater_equal_elem (A, 2, AGreaterOrEqualToB_b)</l>
+<l>TwoGreaterOrEqualToB_a := 2 [&gt;=] B</l>
+<l>tuple_greater_equal_elem (2, B, TwoGreaterOrEqualToB_b)</l>
+<c>* </c>
+<c>* Less</c>
+<l>ALessThanB_a := A [&lt;] B</l>
+<l>tuple_less_elem (A, B, ALessThanB_b)</l>
+<l>ALessThan2_a := A [&lt;] 2</l>
+<l>tuple_less_elem (A, 2, ALessThan2_b)</l>
+<l>TwoLessThanB_a := 2 [&lt;] B</l>
+<l>tuple_less_elem (2, B, TwoLessThanB_b)</l>
+<c>* </c>
+<c>* Less equal</c>
+<l>ALessOrEqualToB_a := A [&lt;=] B</l>
+<l>tuple_less_equal_elem (A, B, ALessOrEqualToB_b)</l>
+<l>ALessOrEqualTo2_a := A [&lt;=] 2</l>
+<l>tuple_less_equal_elem (A, 2, ALessOrEqualTo2_b)</l>
+<l>ThressLessOrEqualToB_a := 3 [&lt;=] B</l>
+<l>tuple_less_equal_elem (3, B, ThressLessOrEqualToB_b)</l>
+<c>* </c>
+<c>* Part 2</c>
+<c>* </c>
+<c>* Selecting all elements that fullfil a condition</c>
+<c>* </c>
+<c>* a) Use HDevelop language function select_mask</c>
+<c>* b) Use HALCON operator tuple_select_mask</c>
+<c>* </c>
+<c>* Select all elements that are greater of a specific value</c>
+<l>SelectedElementsOfAGreaterOrEqualToThree_a := select_mask(A,A [&gt;=] 3)</l>
+<l>tuple_select_mask (A, A [&gt;=] 3, SelectedElementsOfAGreaterOrEqualToThree_b)</l>
+<c>* </c>
+<c>* Select all elements in one tuple that fullfil a specific</c>
+<c>* condition in a corresponding tuple:</c>
+<c>* combine element/wise tuple comparison with select_mask</c>
+<l>Filenames := ['abcd.tif','image.jpg','xyz.tif','img00.png']</l>
+<l>Extensions := Filenames{strrchr(Filenames,'.') + 1:strlen(Filenames) - 1}</l>
+<l>Tiffs_a := select_mask(Filenames,Extensions [==] 'tif')</l>
+<l>tuple_select_mask (Filenames, Extensions [==] 'tif', Tiffs_b)</l>
+<c>* </c>
+<l>dev_open_tool ('variable_view', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

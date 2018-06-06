@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows you how to use the novelty detection mode of</c>
+<c>* the SVM classifier to perform a web inspection task.  The novelty detection</c>
+<c>* basically classifies feature vectors that are not contained in the training</c>
+<c>* samples as a new class (hence the name).  For the web inspection task,</c>
+<c>* the SVM hence can be used to detect textures that do not correspond to the</c>
+<c>* texture of the trained good objects.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>read_image (Image, 'plastic_mesh/plastic_mesh_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_color ('red')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* The texture filters used for the classification will return artifacts at the image</c>
+<c>* borders because the images of the plastic mesh to be inspected do not</c>
+<c>* contain an integer number of mesh cells.  Because this would lead to wrongly</c>
+<c>* detected errors at the image borders, we must exclude the area close to the</c>
+<c>* image border from the training and classification.  This is done with the following</c>
+<c>* rectangle.  Note that the image is later scaled down by a factor of two.</c>
+<l>gen_rectangle1 (Rectangle, 10, 10, Height / 2 - 11, Width / 2 - 11)</l>
+<c>* Create the SVM classifier with the novelty detection mode.</c>
+<l>create_class_svm (5, 'rbf', 0.01, 0.0005, 1, 'novelty-detection', 'normalization', 5, SVMHandle)</l>
+<c>* The training is based on five images that contain no errors.</c>
+<l>for J := 1 to 5 by 1</l>
+<l>    read_image (Image, 'plastic_mesh/plastic_mesh_' + J$'02')</l>
+<c>    * The images are zoomed down because the resolution of the mesh is very</c>
+<c>    * high.  This saves a large amount of processing time.</c>
+<l>    zoom_image_factor (Image, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>    dev_display (ImageZoomed)</l>
+<l>    disp_message (WindowHandle, 'Adding training samples...', 'window', 12, 12, 'black', 'true')</l>
+<c>    * Generate the texture image.</c>
+<l>    gen_texture_image (ImageZoomed, ImageTexture)</l>
+<c>    * Add the samples to the classifier.</c>
+<l>    add_samples_image_class_svm (ImageTexture, Rectangle, SVMHandle)</l>
+<l>endfor</l>
+<l>dev_display (ImageZoomed)</l>
+<l>disp_message (WindowHandle, 'Training SVM...', 'window', 12, 12, 'black', 'true')</l>
+<c>* Train the SVM.  This generates a fairly large amount of support vectors.</c>
+<l>train_class_svm (SVMHandle, 0.001, 'default')</l>
+<c>* To increase the classification speed, reduce the number of support vectors.</c>
+<l>reduce_class_svm (SVMHandle, 'bottom_up', 2, 0.001, SVMHandleReduced)</l>
+<c>* Now detect errors in the plastic meshes.</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>for J := 1 to 14 by 1</l>
+<l>    read_image (Image, 'plastic_mesh/plastic_mesh_' + J$'02')</l>
+<l>    zoom_image_factor (Image, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>    dev_display (ImageZoomed)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (Rectangle)</l>
+<l>    gen_texture_image (ImageZoomed, ImageTexture)</l>
+<l>    reduce_domain (ImageTexture, Rectangle, ImageTextureReduced)</l>
+<c>    * Perform the novelty detection with the SVM.</c>
+<l>    classify_image_class_svm (ImageTextureReduced, Errors, SVMHandleReduced)</l>
+<c>    * Postprocess the returned raw errors to remove insignificant parts of the</c>
+<c>    * detected errors.</c>
+<l>    opening_circle (Errors, ErrorsOpening, 3.5)</l>
+<l>    closing_circle (ErrorsOpening, ErrorsClosing, 10.5)</l>
+<l>    connection (ErrorsClosing, ErrorsConnected)</l>
+<l>    select_shape (ErrorsConnected, FinalErrors, 'area', 'and', 300, 1000000)</l>
+<l>    count_obj (FinalErrors, NumErrors)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (FinalErrors)</l>
+<l>    if (NumErrors &gt; 0)</l>
+<l>        disp_message (WindowHandle, 'Mesh not OK', 'window', 12, 12, 'red', 'true')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Mesh OK', 'window', 12, 12, 'forest green', 'true')</l>
+<l>    endif</l>
+<l>    if (J &lt; 14)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_texture_image">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageTexture" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* The texture image is a five-channel image that contains the result of applying</c>
+<c>* five different Laws filters, which basically correspond to first and second</c>
+<c>* derivatives, and smoothing them sufficiently.</c>
+<l>texture_laws (Image, ImageEL, 'el', 5, 5)</l>
+<l>texture_laws (Image, ImageLE, 'le', 5, 5)</l>
+<l>texture_laws (Image, ImageES, 'es', 1, 5)</l>
+<l>texture_laws (Image, ImageSE, 'se', 1, 5)</l>
+<l>texture_laws (Image, ImageEE, 'ee', 2, 5)</l>
+<l>compose5 (ImageEL, ImageLE, ImageES, ImageSE, ImageEE, ImageLaws)</l>
+<l>smooth_image (ImageLaws, ImageTexture, 'gauss', 5)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_texture_image">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageTexture"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

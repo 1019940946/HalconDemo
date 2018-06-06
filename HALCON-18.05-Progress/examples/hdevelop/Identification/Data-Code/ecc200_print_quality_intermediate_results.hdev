@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ****************************************************************</c>
+<c>* Example program that shows intermediate results determined</c>
+<c>* during the assessment of print quality grades of an ECC200</c>
+<c>* data code based on the standard ISO/IEC 15415.</c>
+<c>* ****************************************************************</c>
+<c>* The purpose of this example is to explain and demonstrate these</c>
+<c>* intermediate results. However, for a detailed description of</c>
+<c>* the intermediate print quality results, we refer to the</c>
+<c>* standards IS0/IEC 15415, ISO/IEC 16022.</c>
+<c>* ****************************************************************</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Open the window in an appropriate size</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_print_quality_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Short description.</c>
+<l>Message[0] := 'This program explains and demonstrates'</l>
+<l>Message[1] := 'intermediate grades and values determined'</l>
+<l>Message[2] := 'during the assessment of print quality'</l>
+<l>Message[3] := 'grades of ECC200 data codes based on the'</l>
+<l>Message[4] := 'standards ISO/IEC 15415, ISO/IEC 16022.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'These intermediate results are for'</l>
+<l>Message[7] := 'experienced users. We strongly recommend'</l>
+<l>Message[8] := 'to consult the standards along with this'</l>
+<l>Message[9] := 'example.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<l>Wait := .5</l>
+<c>* </c>
+<c>* Create a model of a 2D data code class.</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Get intermediate result labels.</c>
+<l>get_data_code_2d_results (DataCodeHandle, 'general', 'quality_isoiec15415_intermediate_labels', ISOIEC15415IntermediateLabels)</l>
+<c>* </c>
+<c>* </c>
+<l>Message := 'The intermediate parameters for'</l>
+<l>Message[1] := 'ISO/IEC 15415 are:\n'</l>
+<l>Message[2] := ' '</l>
+<l>for Index := 0 to |ISOIEC15415IntermediateLabels| - 1 by 1</l>
+<l>    Message[3 + Index] := ISOIEC15415IntermediateLabels[Index]</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<l>ISO15415_RMIN := find(ISOIEC15415IntermediateLabels,'Rmin')</l>
+<l>ISO15415_RMAX := find(ISOIEC15415IntermediateLabels,'Rmax')</l>
+<l>ISO15415_L1 := find(ISOIEC15415IntermediateLabels,'L1')</l>
+<l>ISO15415_TR := find(ISOIEC15415IntermediateLabels,'Transition Ratio')</l>
+<l>ISO15415_CTR := find(ISOIEC15415IntermediateLabels,'Clock track regularity')</l>
+<l>ISO15415_CTD := find(ISOIEC15415IntermediateLabels,'Clock track damage')</l>
+<l>ISO15415_SFP := find(ISOIEC15415IntermediateLabels,'Solid fix pattern')</l>
+<l>ISO15415_CTSP := find(ISOIEC15415IntermediateLabels,'Clock track and adjacent solid pattern')</l>
+<l>ISO15415_AVG := find(ISOIEC15415IntermediateLabels,'Average grade')</l>
+<c>* </c>
+<l>ModuleWidth := 10</l>
+<c>* </c>
+<c>* Rmin and Rmax:</c>
+<c>* ----------</c>
+<c>* The minimal and maximal reflectance value in the inspection area</c>
+<c>* including the quiet zone.</c>
+<l>for Index := 1 to 10 by 1</l>
+<c>    * Minimize the contrast in each iteration step a little more</c>
+<c>    * by scaling the gray values of the image.</c>
+<l>    scale_image (Image, ImageScaled, 1.0 / Index * 1.15, Index * 20 - 50)</l>
+<c>    * Find the 2d data code symbol in the image with reduced contrast.</c>
+<l>    find_data_code_2d (ImageScaled, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the intermediate results for ISO/IEC 15415.</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate', ISOIEC15415Intermediate)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate_values', ISOIEC15415IntermediateValues)</l>
+<l>    dev_display (ImageScaled)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for contrast and the respective raw value.</c>
+<l>    Message := 'The minimal and maximal reflectance value in'</l>
+<l>    Message[1] := 'the inspection area including the quite zone.'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    grade_message_text (ISOIEC15415IntermediateLabels, ISOIEC15415Intermediate, ISOIEC15415IntermediateValues, [ISO15415_RMIN,ISO15415_RMAX], Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 52, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Intermediate parameters assessed during the quality grading</c>
+<c>* of the Fixed Pattern Damage:</c>
+<c>* </c>
+<c>* </c>
+<c>* Errors on the L-shaped part of the fixed pattern:</c>
+<c>* -------------------------------------------------</c>
+<c>* The grades and values for the segments L1, QZL1, L2, QZL2 provide</c>
+<c>* a measure for the quality of the L-shaped part of the fixed pattern</c>
+<c>* of ECC200 codes. The grades result from the number of modulation</c>
+<c>* errors found along the shown regions as well as their regularity</c>
+<c>* (see ISO/IEC 16022, Chapter M 1.2. a)-f)).</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>Message := 'The intermediate grades and values for '</l>
+<l>Message[1] := '\'L1\', \'L2\', \'QZL1\' and \'QZL2\' enter'</l>
+<l>Message[2] := 'the final grade for Fixed Pattern Damage, '</l>
+<l>Message[3] := 'and measure the quality of the L-shaped'</l>
+<l>Message[4] := 'part of the fixed pattern in the following'</l>
+<l>Message[5] := 'regions.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Show the regions L1, QZL1, L2, QZL2 as defined in</c>
+<c>* ISO/IEC 16022, Chapter M 1.2.</c>
+<l>gen_rectangle1 (RegionL1, 126, 125, 395, 135)</l>
+<l>gen_rectangle1 (RegionQZL1, 116, 115, 395, 125)</l>
+<l>gen_rectangle1 (RegionL2, 375, 116, 385, 385)</l>
+<l>gen_rectangle1 (RegionQZL2, 385, 116, 395, 395)</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionL1)</l>
+<l>disp_message (WindowHandle, 'L1', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionQZL1)</l>
+<l>disp_message (WindowHandle, 'QZL1', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionL2)</l>
+<l>disp_message (WindowHandle, 'L2', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionQZL2)</l>
+<l>disp_message (WindowHandle, 'QZL2', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>Message := 'As an example we successively introduce'</l>
+<l>Message[1] := 'errors in the regions L1 to demonstrate'</l>
+<l>Message[2] := 'the effect on the respective grade and'</l>
+<l>Message[3] := 'value.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Generate and investigate an image with damaged L1 region.</c>
+<l>for NumModules := 1 to 4 by 1</l>
+<c>    * </c>
+<c>    * Generate an image with damaged L1 region by first</c>
+<c>    * creating a rectangle parallel to the coordinate axes and</c>
+<c>    * then painting it with gray value 255 into the image.</c>
+<l>    gen_rectangle1 (Defect, 156, 126, 156 + NumModules * ModuleWidth, 135)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code symbol in the image with damaged L1 region.</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the intermediate results for ISO/IEC 15415.</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate', ISOIEC15415Intermediate)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate_values', ISOIEC15415IntermediateValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect.</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for L1 region and the respective value for the number</c>
+<c>    * of module errors.</c>
+<l>    grade_message_text (ISOIEC15415IntermediateLabels, ISOIEC15415Intermediate, ISOIEC15415IntermediateValues, ISO15415_L1, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (ISOIEC15415Intermediate[ISO15415_L1] == 0 and NumModules &gt; 3)</l>
+<l>        Message := 'Note: A gap wider than 3 modules results in'</l>
+<l>        Message[1] := 'grade 0. This implies that we don\'t have'</l>
+<l>        Message[2] := 'module errors, since for modulation level 0'</l>
+<l>        Message[3] := 'no modules are considered as error.'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 42, 12, 'black', 'true')</l>
+<l>    endif</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Errors on the alternating part of the fixed pattern:</c>
+<c>* ----------------------------------------------------</c>
+<c>* In the following the combination of one clock track</c>
+<c>* and the solid fix area is called a segment. Note, that</c>
+<c>* each ECC200 code consists at least of two segments. Codes</c>
+<c>* with internal alignment patterns contain even more segments.</c>
+<c>* </c>
+<c>* The grades and values for</c>
+<c>* - Transition ratio,</c>
+<c>* - Clock track regularity,</c>
+<c>* - Clock track damage, and</c>
+<c>* - Solid fix pattern</c>
+<c>* provide a measure for the quality of the alternating part of the</c>
+<c>* fixed pattern of ECC200 codes.</c>
+<c>* </c>
+<c>* - The 'Transition ratio' is given by the ratio TR = Ts'/Tc, with</c>
+<c>*   Ts' = Max(0, Ts-1). Ts is the number of transitions along the</c>
+<c>*   solid area, Tc is the number of transitions along the clock</c>
+<c>*   track (see ISO/IEC 16022, Chapter M1.3 b)).</c>
+<c>* - The 'Clock track regularity' tests for each clock track segment,</c>
+<c>*   that for any group of five adjacent modules no more than two are</c>
+<c>*   module errors. If this condition is true the resulting grade is 4,</c>
+<c>*   otherwise it is 0(see ISO/IEC 16022, Chapter M1.3 e)).</c>
+<c>* - The 'Clock track damage' grades the number of incorrect modules</c>
+<c>*   in the clock track segment (see ISO/IEC 16022, Chapter M1.3 f)).</c>
+<c>* - The 'Solid fix pattern' grades the number of incorrect modules</c>
+<c>*   in the solid area (see ISO/IEC 16022, Chapter M1.3 f)).</c>
+<c>* </c>
+<c>* The grade for 'Clock track and adjacent solid pattern' combines the</c>
+<c>* grades for 'Transition ratio', 'Clock track regularity',</c>
+<c>* 'Clock track damage', and 'Solid fix pattern'  for all segments (see</c>
+<c>* ISO/IEC 16022, Chapter M1.3 h) - k)).</c>
+<c>* The 'Average grade' is based on averaging the grades for 'L1', 'L2',</c>
+<c>* 'QZL1', 'QZL2', and 'Clock track and adjacent solid pattern'.</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>Message := 'The intermediate grades and values for '</l>
+<l>Message[1] := '\'Transition ratio\','</l>
+<l>Message[2] := '\'Clock track regularity\','</l>
+<l>Message[3] := '\'Clock track damage\', and'</l>
+<l>Message[4] := '\'Solid fix pattern\''</l>
+<l>Message[5] := 'measure the quality of the alternating and'</l>
+<l>Message[6] := 'internal alignment patterns as part of the'</l>
+<l>Message[7] := 'fixed pattern. The alternating pattern consists'</l>
+<l>Message[8] := 'of clock track and solid area segments. An'</l>
+<l>Message[9] := 'example for a segment consisting of solid area'</l>
+<l>Message[10] := 'and clock track is shown in the following.'</l>
+<c>* </c>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Show the clock track and solid area (ISO/IEC 16022, Chapter M 1.3.).</c>
+<l>gen_rectangle1 (RegionSolidAreaTop, 116, 125, 125, 395)</l>
+<l>gen_rectangle1 (RegionClockTrackTop, 126, 125, 135, 385)</l>
+<l>gen_rectangle1 (RegionSolidAreaRight, 116, 385, 385, 395)</l>
+<l>gen_rectangle1 (RegionClockTrackRight, 126, 375, 385, 385)</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionClockTrackTop)</l>
+<l>disp_message (WindowHandle, 'Clock track (top segment)', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionSolidAreaTop)</l>
+<l>disp_message (WindowHandle, 'Solid area (top segment)', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionClockTrackRight)</l>
+<l>disp_message (WindowHandle, 'Clock track (right segment)', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionSolidAreaRight)</l>
+<l>disp_message (WindowHandle, 'Solid area (right segment)', 'window', 12, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Generate and investigate an image with a damage at the</c>
+<c>* right clock track segment of the finder pattern.</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'We successively introduce errors along'</l>
+<l>Message[1] := 'right clock track to demonstrate'</l>
+<l>Message[2] := 'the effect on the grades and values for'</l>
+<l>Message[3] := '\'Clock track regularity\' and'</l>
+<l>Message[4] := '\'Clock track damage\'.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>for NumModules := 1 to 11 by 2</l>
+<c>    * </c>
+<c>    * Generate an image with a damaged alternating side of the finder</c>
+<c>    * pattern by first creating a rectangle vertical at the alternating</c>
+<c>    * side and then painting it with gray value 0 into the image.</c>
+<l>    gen_rectangle1 (Defect, 226, 376, NumModules * ModuleWidth + 226, 386)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 0, 'fill')</l>
+<c>    * Find the data code in the image with damaged alternating side.</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the intermediate results for ISO/IEC 15415.</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate', ISOIEC15415Intermediate)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate_values', ISOIEC15415IntermediateValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect.</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grades and values for clock track damage and clock track regularity.</c>
+<l>    grade_message_text (ISOIEC15415IntermediateLabels, ISOIEC15415Intermediate, ISOIEC15415IntermediateValues, [ISO15415_CTR,ISO15415_CTD], Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Generate and investigate an image with a damage at the</c>
+<c>* solid area of the top segment of the finder pattern.</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'We successively introduce errors along'</l>
+<l>Message[1] := 'solid area on the top segment to demonstrate'</l>
+<l>Message[2] := 'the effect on the grades and values for'</l>
+<l>Message[3] := '\'Transition Ratio\' and \'Solid fix pattern\'.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>gen_empty_region (Defect)</l>
+<l>for NumModules := 1 to 9 by 2</l>
+<c>    * </c>
+<c>    * Generate an image with a damaged alternating side of the finder</c>
+<c>    * pattern by first creating a rectangular checker board at the</c>
+<c>    * alternating side and then painting it with gray value 0 into</c>
+<c>    * the image.</c>
+<l>    gen_rectangle1 (Rectangle, 116, 215 + (NumModules - 1) * ModuleWidth, 125, 215 + NumModules * ModuleWidth)</l>
+<l>    concat_obj (Defect, Rectangle, Defect)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 0, 'fill')</l>
+<c>    * Find the data code in the image with damaged alternating side.</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the intermediate results for ISO/IEC 15415.</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate', ISOIEC15415Intermediate)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate_values', ISOIEC15415IntermediateValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect.</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grades and values for solid fix pattern and transition ratio.</c>
+<l>    grade_message_text (ISOIEC15415IntermediateLabels, ISOIEC15415Intermediate, ISOIEC15415IntermediateValues, [ISO15415_TR,ISO15415_SFP], Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Generate and investigate an image with a damage at the</c>
+<c>* both the clock track and solid area.</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'The combined grade for the clock track and'</l>
+<l>Message[1] := 'adjacent solid area for all segments of a code'</l>
+<l>Message[2] := 'is returned by'</l>
+<l>Message[3] := '\'Clock track and adjacent solid pattern\''</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Generate an image with a damaged alternating pattern with errors on both</c>
+<c>* the clock track and the solid area and then painting it with gray value</c>
+<c>* 0 into the image.</c>
+<l>gen_empty_region (DefectSolidArea)</l>
+<l>for NumModules := 1 to 5 by 2</l>
+<l>    gen_rectangle1 (Rectangle, 116, 155 + (NumModules - 1) * ModuleWidth, 125, 155 + NumModules * ModuleWidth)</l>
+<l>    concat_obj (DefectSolidArea, Rectangle, DefectSolidArea)</l>
+<l>endfor</l>
+<l>NumModules := 2</l>
+<l>gen_rectangle1 (DefectClockTrack, 226, 376, NumModules * ModuleWidth + 226, 386)</l>
+<l>concat_obj (DefectSolidArea, DefectClockTrack, Defect)</l>
+<l>paint_region (Defect, Image, ImageDefect, 0, 'fill')</l>
+<c>* Find the data code in the image with damaged alternating side.</c>
+<l>find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>* </c>
+<c>* Get the intermediate results for ISO/IEC 15415.</c>
+<l>get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate', ISOIEC15415Intermediate)</l>
+<l>get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_intermediate_values', ISOIEC15415IntermediateValues)</l>
+<c>* </c>
+<c>* Display the image with the defect.</c>
+<l>dev_display (ImageDefect)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SymbolXLDs)</l>
+<l>set_line_style (WindowHandle, [2,4])</l>
+<l>gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Contours)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<c>* </c>
+<c>* Compute and display a message with the current assessment</c>
+<c>* grades and values for the alternating pattern.</c>
+<l>Message := 'A bad \'Clock track and adjacent solid pattern\''</l>
+<l>Message[1] := 'grade as one of the contributing grades is 0.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := ISOIEC15415IntermediateLabels[ISO15415_CTSP] + ': ' + ISOIEC15415Intermediate[ISO15415_CTSP]</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>grade_message_text (ISOIEC15415IntermediateLabels, ISOIEC15415Intermediate, ISOIEC15415IntermediateValues, [ISO15415_CTR,ISO15415_CTD,ISO15415_TR,ISO15415_SFP], Message)</l>
+<l>disp_message (WindowHandle, Message, 'window', 400, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="grade_message_text">
+<interface>
+<ic>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="Quality" base_type="ctrl" dimension="0"/>
+<par name="QualityValues" base_type="ctrl" dimension="0"/>
+<par name="GradeEnum" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := []</l>
+<l>for i := 0 to |GradeEnum| - 1 by 1</l>
+<l>    CurMessage := Labels[GradeEnum[i]] + ': ' + Quality[GradeEnum[i]]</l>
+<l>    Value := QualityValues[GradeEnum[i]]</l>
+<l>    if (is_number(Value))</l>
+<l>        CurMessage := CurMessage + ' (Value: ' + Value$'.2f' + ')'</l>
+<l>    else</l>
+<l>        CurMessage := CurMessage + ' (Value: ' + Value + ')'</l>
+<l>    endif</l>
+<l>    Message := [Message,CurMessage]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="grade_message_text">
+<parameters>
+<parameter id="GradeEnum"/>
+<parameter id="Labels"/>
+<parameter id="Message"/>
+<parameter id="Quality"/>
+<parameter id="QualityValues"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

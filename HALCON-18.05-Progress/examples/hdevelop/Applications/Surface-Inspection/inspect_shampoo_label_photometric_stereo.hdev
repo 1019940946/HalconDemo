@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the photometric stereo technique</c>
+<c>* for the inspection of the labels of a shampoo bottles.</c>
+<c>* Input are 4 images taken from the labels of a shampoo bottles</c>
+<c>* with light coming from different orientations.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 640, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>Message := 'Inspect the label of a shampoo bottle'</l>
+<l>Message[1] := 'using photometric stereo. In this case four'</l>
+<l>Message[2] := 'different light orientations were used.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Show input images with different illumination</c>
+<l>read_image (Images, 'photometric_stereo/shampoo_label_0' + [1:4])</l>
+<l>for I := 1 to 4 by 1</l>
+<l>    Message := 'Acquire image ' + I + ' of 4'</l>
+<l>    select_obj (Images, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Apply photometric stereo to determine the albedo</c>
+<c>* and the surface gradient.</c>
+<l>Tilts := [6.1,95.0,-176.1,-86.8]</l>
+<l>Slants := [41.4,42.6,41.7,40.9]</l>
+<l>ResultType := ['gradient','albedo']</l>
+<l>photometric_stereo (Images, HeightField, Gradient, Albedo, Slants, Tilts, ResultType, 'poisson', [], [])</l>
+<c>* </c>
+<c>* Display the albedo image</c>
+<l>dev_display (Albedo)</l>
+<l>disp_message (WindowHandle, 'Albedo image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Calculate the gaussian curvature of the surface</c>
+<c>* using the gradient field as input for the operator</c>
+<c>* derivate_vector_field.</c>
+<c>* Defects are usually easy to detect in the curvature image.</c>
+<l>derivate_vector_field (Gradient, MeanCurvature, 1.0, 'mean_curvature')</l>
+<c>* </c>
+<c>* Detect defects</c>
+<c>* </c>
+<c>* Segment the tablet areas in the curvature image</c>
+<l>threshold (MeanCurvature, Region, -10, -0.07)</l>
+<l>opening_circle (Region, RegionOpening, 1)</l>
+<l>connection (RegionOpening, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, Defects, 'area', 'and', 50, 99999)</l>
+<l>shape_trans (Defects, Circle, 'outer_circle')</l>
+<c>* Display the defects in curvature image</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (MeanCurvature)</l>
+<l>dev_display (Circle)</l>
+<l>Message := 'The defect can easily be detected'</l>
+<l>Message[1] := 'in the surface curvature image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the defects in the albedo image</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Albedo)</l>
+<l>dev_display (Circle)</l>
+<l>disp_message (WindowHandle, 'Defect in albedo image', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

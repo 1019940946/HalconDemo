@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program for the usage of the bar code parameter</c>
+<c>* 'meas_thresh_abs'.</c>
+<c>* This parameter can be used to reduce the number of false</c>
+<c>* positives when finding bar code symbol regions which we expect</c>
+<c>* to have a high contrast. To artificially demonstrate this we</c>
+<c>* try to find the bar code type PharmaCode that has no check</c>
+<c>* character and therefore is recognized very easily within</c>
+<c>* noise. As 'noise' we use images that do not contain any bar</c>
+<c>* codes at all.</c>
+<c>* By using 'meas_thresh_abs' with a value greater than 0.0 we</c>
+<c>* force the bar code reader to use only the parts of a scanline</c>
+<c>* with an absolute contrast of at least that value and thus</c>
+<c>* reduce the number of false positives.</c>
+<c>* </c>
+<c>* Create bar code reader model</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Read and display example images without any visible bar codes</c>
+<l>ExampleImages := ['zeiss1','patras','fabrik']</l>
+<l>for Index := 0 to |ExampleImages| - 1 by 1</l>
+<l>    FileName := ExampleImages[Index]</l>
+<l>    read_image (Image, FileName)</l>
+<l>    rgb1_to_gray (Image, Image)</l>
+<c>    * </c>
+<c>    * Set display defaults</c>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * First, disable absolute thresholds by setting the value 0.0</c>
+<c>    * for the parameter 'meas_thresh_abs'</c>
+<l>    MeasThreshAbsValue := 0.0</l>
+<l>    set_bar_code_param (BarCodeHandle, 'meas_thresh_abs', MeasThreshAbsValue)</l>
+<c>    * </c>
+<c>    * The bar code reader finds many (wrong) potential bar codes using</c>
+<c>    * scanlines that have a low absolute contrast</c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'PharmaCode', DecodedDataStrings)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    disp_message (WindowHandle, ['Found ' + |DecodedDataStrings| + ' potential bar codes','  with parameter meas_thresh_abs = ' + MeasThreshAbsValue], 'window', 12, 12, '', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Now, set the bar code reader parameter 'meas_thresh_abs' to a value</c>
+<c>    * greater than 0.0 to use only parts of a scanline having an absolute</c>
+<c>    * contrast of at least that value.</c>
+<l>    MeasThreshAbsValue := 10.0</l>
+<l>    set_bar_code_param (BarCodeHandle, 'meas_thresh_abs', MeasThreshAbsValue)</l>
+<c>    * </c>
+<c>    * Look again for a bar code. Now, significant less scanlines should be found.</c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'PharmaCode', DecodedDataStrings)</l>
+<l>    dev_set_color ('lime green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    disp_message (WindowHandle, ['Found ' + |DecodedDataStrings| + ' potential bar codes','  with parameter meas_thresh_abs = ' + MeasThreshAbsValue], 'window', 5 * 12, 12, '', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Close the bar code reader</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

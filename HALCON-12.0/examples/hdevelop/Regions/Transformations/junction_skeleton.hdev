@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Alpha1, 'alpha1')</l>
+<l>get_image_size (Alpha1, Width, Height)</l>
+<l>mean_image (Alpha1, ImageMean, 21, 21)</l>
+<l>dyn_threshold (Alpha1, ImageMean, Dark, 5, 'dark')</l>
+<l>connection (Dark, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 50, 1000)</l>
+<l>opening_rectangle1 (SelectedRegions, RegionOpening, 2, 2)</l>
+<l>skeleton (RegionOpening, Skeleton)</l>
+<l>junctions_skeleton (Skeleton, EndPoints, JuncPoints)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (0, 0, Width - 1, Height - 1)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (RegionOpening)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EndPoints)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (JuncPoints)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (200, 200, 400, 400)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (RegionOpening)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EndPoints)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (JuncPoints)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>IOInterfaceName := 'Template'</l>
+<l>query_io_interface (IOInterfaceName, 'revision', Revision)</l>
+<l>query_io_interface (IOInterfaceName, 'param_name', Params)</l>
+<l>query_io_interface (IOInterfaceName, 'io_device_names', Devices)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

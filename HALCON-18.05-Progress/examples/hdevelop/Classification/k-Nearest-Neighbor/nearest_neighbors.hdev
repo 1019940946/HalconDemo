@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This is an example for the operator create_class_knn and</c>
+<c>* classify_class_knn. The example demonstrates how to use</c>
+<c>* the k-NN to search for neighboring points in a 3D object model.</c>
+<c>* </c>
+<c>* Get the data</c>
+<l>read_3d_sample_data (XYZ, Length1, Length2, Length3, ObjectModel3D)</l>
+<c>* Prepare 3D Visualization</c>
+<l>dev_update_off ()</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>gen_cam_par_area_scan_division (0.06, 0, 8.5e-6, 8.5e-6, 320, 240, 640, 480, CamParam)</l>
+<l>GenParamName := ['color_0','color_1','color_2','color_3','color_4','point_size','point_size_3','point_size_2','attribute','color_attrib_2','alpha_4','attribute_4']</l>
+<l>GenParamValue := ['green','yellow','green','gray','white',10.0,3.0,5.0,'points','&amp;distance',0.3,'faces']</l>
+<l>create_pose (-8.8e-005, 7.48e-005, 0.035, 100, 0.03, 7, 'Rp+T', 'gba', 'point', Pose)</l>
+<c>* Data for visualization</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'center', Center)</l>
+<c>* </c>
+<c>* Create 3-dimensional k-NN classifier</c>
+<l>create_class_knn (3, KNNHandle)</l>
+<c>* Add sample points</c>
+<l>add_sample_class_knn (KNNHandle, XYZ, 0)</l>
+<c>* Train the classifier</c>
+<l>train_class_knn (KNNHandle, [], [])</l>
+<c>* Switch from the default behaviour 'classes_distance' to 'neighbors_distance'</c>
+<c>* This means, we are not really classifying but only looking up the closest point</c>
+<c>* (We did not specify different classes with add_sample_class_knn)</c>
+<c>* Set k (=number of neighbors) to 20</c>
+<l>set_params_class_knn (KNNHandle, ['method','k'], ['neighbors_distance',20])</l>
+<l>moments_object_model_3d (ObjectModel3D, 'mean_points', CenterObj)</l>
+<c>* Seed some points and search the closest point on the model</c>
+<l>XTest := rand(5) * Length1 + CenterObj[0]</l>
+<l>YTest := rand(5) * Length3 + CenterObj[1]</l>
+<l>ZTest := rand(5) * Length2 + CenterObj[2]</l>
+<c>* Calculate a view point that probably let you see the point</c>
+<c>* and the model  (no guarantee)</c>
+<l>calculate_view_pose (Center, [XTest[0],YTest[0],ZTest[0]], Dir, VX, VY, HomMat3D, Pose)</l>
+<l>for Index := 0 to |XTest| - 1 by 1</l>
+<c>    * Create a point</c>
+<l>    TestPoint := [XTest[Index],YTest[Index],ZTest[Index]]</l>
+<c>    * Serach the closest 20 points on the model</c>
+<l>    classify_class_knn (KNNHandle, TestPoint, NeighborIndices, Distance)</l>
+<c>    * Look up the indices, and build a object model 3D for visualization</c>
+<l>    X := []</l>
+<l>    Y := []</l>
+<l>    Z := []</l>
+<l>    for I := 0 to |NeighborIndices| - 1 by 1</l>
+<l>        get_sample_class_knn (KNNHandle, NeighborIndices[I], Features, ClassID)</l>
+<l>        X := [X,Features[0]]</l>
+<l>        Y := [Y,Features[1]]</l>
+<l>        Z := [Z,Features[2]]</l>
+<l>    endfor</l>
+<l>    gen_object_model_3d_from_points (X, Y, Z, ObjectModel3DNeighbors)</l>
+<l>    gen_object_model_3d_from_points (X[0], Y[0], Z[0], ObjectModel3DNearestNeighbor)</l>
+<l>    set_object_model_3d_attrib_mod (ObjectModel3DNeighbors, '&amp;distance', 'points', 1.0 - Distance)</l>
+<c>    * Create another 3D object model to visualize the search point</c>
+<l>    gen_object_model_3d_from_points (TestPoint[0], TestPoint[1], TestPoint[2], ObjectModel3DSearch)</l>
+<c>    * Visualize the Object, the search point and the resulting points on the model</c>
+<l>    visualize_object_model_3d (WindowHandle, [ObjectModel3DNearestNeighbor,ObjectModel3DSearch,ObjectModel3DNeighbors,ObjectModel3D,ObjectModel3D], CamParam, Pose, GenParamName, GenParamValue, 'The Model, a search point and the\nnearest (k=20) neighbors on the model', ['','Search point','Nearest neighbors','Model',''], Instructions, Pose)</l>
+<l>endfor</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="read_3d_sample_data">
+<interface>
+<oc>
+<par name="XYZ" base_type="ctrl" dimension="0"/>
+<par name="Length1" base_type="ctrl" dimension="0"/>
+<par name="Length2" base_type="ctrl" dimension="0"/>
+<par name="Length3" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>read_object_model_3d ('glass_mug', 'mm', [], [], ObjectModel3D, Status)</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'point_coord_x', X)</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'point_coord_y', Y)</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'point_coord_z', Z)</l>
+<l>Sequence := [0:(3 * |X|) - 1]</l>
+<c>* Create data for k-NN: [x1,y1,z1,x2,y2,z2,...,xn,yn,zn]</c>
+<l>SequenceSel := Sequence / 3</l>
+<l>XTriple := X[SequenceSel]</l>
+<l>YTriple := Y[SequenceSel]</l>
+<l>ZTriple := Z[SequenceSel]</l>
+<l>XMult := (Sequence % 3) [==] 0</l>
+<l>YMult := (Sequence % 3) [==] 1</l>
+<l>ZMult := (Sequence % 3) [==] 2</l>
+<l>XYZ := XTriple * XMult + YTriple * YMult + ZTriple * ZMult</l>
+<c>* Return the bounding box</c>
+<l>smallest_bounding_box_object_model_3d (ObjectModel3D, 'axis_aligned', Pose, Length1, Length2, Length3)</l>
+<l>return ()</l>
+</body>
+<docu id="read_3d_sample_data">
+<parameters>
+<parameter id="Length1"/>
+<parameter id="Length2"/>
+<parameter id="Length3"/>
+<parameter id="ObjectModel3D"/>
+<parameter id="XYZ"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="calculate_view_pose">
+<interface>
+<ic>
+<par name="Center" base_type="ctrl" dimension="0"/>
+<par name="RandomPoint" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Dir" base_type="ctrl" dimension="0"/>
+<par name="VX" base_type="ctrl" dimension="0"/>
+<par name="VY" base_type="ctrl" dimension="0"/>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Dir := (Center - RandomPoint) / sqrt(sum((Center - RandomPoint) * (Center - RandomPoint)))</l>
+<l>if (abs(Dir[1]) &lt; 0.9)</l>
+<l>    tuple_vector_cross_product (Dir, [0,1,0], VX)</l>
+<l>else</l>
+<l>    tuple_vector_cross_product (Dir, [1,0,0], VX)</l>
+<l>endif</l>
+<l>tuple_vector_cross_product (Dir, VX, VY)</l>
+<l>HomMat3D := [VX[0],VY[0],Dir[0],0.000,VX[1],VY[1],Dir[1],0.000,VX[2],VY[2],Dir[2],0.042]</l>
+<l>hom_mat3d_to_pose (HomMat3D, Pose)</l>
+<l>return ()</l>
+</body>
+<docu id="calculate_view_pose">
+<parameters>
+<parameter id="Center"/>
+<parameter id="Dir"/>
+<parameter id="HomMat3D"/>
+<parameter id="Pose"/>
+<parameter id="RandomPoint"/>
+<parameter id="VX"/>
+<parameter id="VY"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

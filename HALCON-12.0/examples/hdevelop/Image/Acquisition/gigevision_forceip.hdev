@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for using ForceIP to correctly configure a misconfigured GigE Vision device</c>
+<c>* </c>
+<c>* </c>
+<c>* List all detected devices</c>
+<l>info_framegrabber ('GigEVision', 'info_boards', Information, InfoBoards)</l>
+<c>* Select only misconfigured devices</c>
+<l>tuple_regexp_select (InfoBoards, 'status:misconfigured', MisconfiguredDevices)</l>
+<l>if (|MisconfiguredDevices| &gt; 0)</l>
+<l>    dev_inspect_ctrl (MisconfiguredDevices)</l>
+<l>    stop ()</l>
+<c>    * </c>
+<l>    tuple_regexp_match (MisconfiguredDevices, 'suggestion:[^ ]+', Suggestions)</l>
+<l>    for Index := 0 to |Suggestions| - 1 by 1</l>
+<c>        * Get Device MAC and Generic parameter</c>
+<l>        tuple_str_last_n (Suggestions[Index], 11, Generic)</l>
+<l>        tuple_str_last_n (Generic, 11, Tmpstring)</l>
+<l>        tuple_str_first_n (Tmpstring, 11, MAC)</l>
+<l>        dev_inspect_ctrl (Generic)</l>
+<l>        stop ()</l>
+<l>        open_framegrabber ('GigEVision', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', Generic, 'false', 'default', MAC, 0, -1, AcqHandle)</l>
+<l>        get_framegrabber_param (AcqHandle, 'GevCurrentIPAddress', Value)</l>
+<c>        * Check if it works</c>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        close_framegrabber (AcqHandle)</l>
+<l>    endfor</l>
+<l>endif</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

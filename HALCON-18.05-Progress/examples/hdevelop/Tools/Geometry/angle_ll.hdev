@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>RowA1 := 255</l>
+<l>ColumnA1 := 10</l>
+<l>RowA2 := 255</l>
+<l>ColumnA2 := 501</l>
+<l>dev_set_color ('black')</l>
+<l>disp_line (WindowID, RowA1, ColumnA1, RowA2, ColumnA2)</l>
+<l>RowB1 := 255</l>
+<l>ColumnB1 := 255</l>
+<l>for i := 1 to 360 by 1</l>
+<l>    RowB2 := 255 + sin(rad(i)) * 200</l>
+<l>    ColumnB2 := 255 + cos(rad(i)) * 200</l>
+<l>    disp_line (WindowID, RowB1, ColumnB1, RowB2, ColumnB2)</l>
+<l>    angle_ll (RowA1, ColumnA1, RowA2, ColumnA2, RowB1, ColumnB1, RowB2, ColumnB2, Angle)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

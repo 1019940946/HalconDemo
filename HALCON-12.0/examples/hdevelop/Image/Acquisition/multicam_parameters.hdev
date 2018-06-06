@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a Euresys MultiCam board</c>
+<c>*        (query current parameter settings)</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('MultiCam', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* You can get the actual values with 'info_framegrabber(...,'info_boards',...)'.</c>
+<c>* </c>
+<c>*     Example for Alpha</c>
+<l>MyConfigurationFile := 'Alpha_Y:CS8530_P30SM'</l>
+<c>*     Example for Iota</c>
+<l>* MyConfigurationFile := 'Iota:KP-F3_P30SA'</l>
+<c>*     Example for Value</c>
+<l>* MyConfigurationFile := 'Value:SVS204MFCL_P42SC'</l>
+<c>*     Example for Picolo</c>
+<l>MyConfigurationFile := 'Picolo_VID1:PAL'</l>
+<l>* MyDeviceId := '1'</l>
+<c>* </c>
+<l>MyDeviceId := '0'</l>
+<c>* </c>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>info_framegrabber ('MultiCam', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 400, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, 399)</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>    if (HalconError == H_MSG_TRUE)</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (|ParameterValue| &gt; 1)</l>
+<l>            for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (WindowHandle, ParameterValue[j])</l>
+<l>        else</l>
+<l>            if (|ParameterValue| == 1)</l>
+<l>                write_string (WindowHandle, ParameterValue)</l>
+<l>            else</l>
+<l>                write_string (WindowHandle, '-')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Simple example for the usage of Euresys MultiCam-specific parameters</c>
+<c>*       for digital input/output lines (all boards)</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'info_boards', Information, ValueList)</l>
+<l>info_framegrabber ('MultiCam', 'parameters', Information, ValueList)</l>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* </c>
+<c>* </c>
+<l>MyConfigurationFile := 'Picolo_VID1:PAL'</l>
+<l>MyDeviceId := '0'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<c>* test with Input line 1</c>
+<l>set_framegrabber_param (AcqHandle, 'digital_input_style', 'ittl')</l>
+<l>get_framegrabber_param (AcqHandle, 'digital_input_style', in_style)</l>
+<l>set_framegrabber_param (AcqHandle, 'digital_input_config:1', 'soft')</l>
+<l>get_framegrabber_param (AcqHandle, 'digital_input_config:1', in_config)</l>
+<l>get_framegrabber_param (AcqHandle, 'digital_input:1', in_state)</l>
+<c>* test with Output line 3</c>
+<l>set_framegrabber_param (AcqHandle, 'digital_output_style', 'ittl')</l>
+<l>get_framegrabber_param (AcqHandle, 'digital_output_style', out_style)</l>
+<l>set_framegrabber_param (AcqHandle, 'digital_output_config:3', 'soft')</l>
+<l>get_framegrabber_param (AcqHandle, 'digital_output_config:3', out_config)</l>
+<l>set_framegrabber_param (AcqHandle, 'digital_output:3', 'high')</l>
+<l>set_framegrabber_param (AcqHandle, 'digital_output:3', 'low')</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Simple example for the usage of Euresys MultiCam-specific parameters</c>
+<c>*        DOMINO Alpha/Gamma</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'info_boards', Information, ValueList)</l>
+<l>info_framegrabber ('MultiCam', 'parameters', Information, ValueList)</l>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* </c>
+<c>* </c>
+<l>MyConfigurationFile := 'Alpha_X:Generic_I50SA'</l>
+<l>MyDeviceId := '0'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'max_buffers', MaxBuffers)</l>
+<l>get_framegrabber_param (AcqHandle, 'num_buffers', NumBuffers)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>get_framegrabber_param (AcqHandle, 'start_row', StartRow)</l>
+<l>get_framegrabber_param (AcqHandle, 'start_column', StartColumn)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'volatile', VolatileMode)</l>
+<l>set_framegrabber_param (AcqHandle, 'volatile', 'enable')</l>
+<l>get_framegrabber_param (AcqHandle, 'volatile', VolatileMode)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'trigger_signal', TriggerSignal)</l>
+<l>get_framegrabber_param (AcqHandle, 'trigger_filter', TriggerFilter)</l>
+<c>* </c>
+<c>* Alpha/Gamma: Gain and Offset Adjustment</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'gain_control', GainControl)</l>
+<l>set_framegrabber_param (AcqHandle, 'gain_control', 'linear')</l>
+<l>get_framegrabber_param (AcqHandle, 'gain_value', GainValue)</l>
+<l>for i := 700 to 1400 by 100</l>
+<l>    set_framegrabber_param (AcqHandle, 'gain_value', i)</l>
+<l>    get_framegrabber_param (AcqHandle, 'gain_value', GainValue)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>set_framegrabber_param (AcqHandle, 'gain_value', 1000)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'offset', Offset)</l>
+<l>for i := -500 to 500 by 100</l>
+<l>    set_framegrabber_param (AcqHandle, 'offset', i)</l>
+<l>    get_framegrabber_param (AcqHandle, 'offset', Offset)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>set_framegrabber_param (AcqHandle, 'offset', 0)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

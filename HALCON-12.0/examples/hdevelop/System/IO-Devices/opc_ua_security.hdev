@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows how to connect to an OPC UA server that uses a security</c>
+<c>* policy other than 'http://opcfoundation.org/UA/SecurityPolicy#None'.</c>
+<c>* </c>
+<c>* </c>
+<c>* Please adapt the following lines to specify your configuration:</c>
+<l>MyOpcUaServer := 'localhost'</l>
+<l>MyOpcUaPortNumber := 4841</l>
+<c>* </c>
+<c>* URL of the server to contact.</c>
+<l>MyOpcUaServer := 'opc.tcp://' + MyOpcUaServer + ':' + MyOpcUaPortNumber</l>
+<c>* </c>
+<c>* Relative path to the OpenSSL file-based certificate store. The certificates</c>
+<c>* (both server and client) will be stored in the 'certs' subdirectory.</c>
+<l>CertificateStore := '.opcua'</l>
+<c>* </c>
+<c>* Name the client certificate will be stored as, without the file extension</c>
+<c>* (which is always '.der'.</c>
+<l>ClientCertificateName := 'client'</l>
+<c>* </c>
+<c>* Create an application URI to use. Note that some servers require the URI</c>
+<c>* in the certificate to match what the client reports to the server when</c>
+<c>* connecting.</c>
+<l>tuple_environment ('HOSTNAME', Hostname)</l>
+<l>ApplicationUri := 'urn:' + Hostname + ':mvtec.com'</l>
+<c>* </c>
+<c>* Check if we already have a client certificate, and create it if we don't.</c>
+<l>file_exists (CertificateStore + '/certs/' + ClientCertificateName + '.der', CertExists)</l>
+<l>if (not CertExists)</l>
+<l>    control_io_interface ('OPC_UA', 'create_certificate', ['.opcua','client',2048,ApplicationUri,'mvtec.com',31536000,'HALCON OPC_UA Interface','MVTec Software GmbH','FI','Munich','Bavaria','DE',''], _)</l>
+<l>endif</l>
+<c>* </c>
+<l>try</l>
+<c>    * Get all endpoints for this server.</c>
+<l>    control_io_interface ('OPC_UA', 'endpoints', MyOpcUaServer, Endpoints)</l>
+<l>    parse_list (Endpoints, ['endpoint_url','server_certificate','message_security_mode','security_policy_uri'], EndpointInfo)</l>
+<c>    * </c>
+<c>    * Now attempt to contact all endpoints that use a security policy other</c>
+<c>    * than none.</c>
+<l>    for Index := 0 to |EndpointInfo| - 1 by 4</l>
+<l>        if (EndpointInfo[Index + 3] == 'http://opcfoundation.org/UA/SecurityPolicy#None')</l>
+<l>            continue</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Check if we already trust the server's certificate. If not, add it to the</c>
+<c>        * OpenSSL file-based certificate store. The name used to store the certificate</c>
+<c>        * is its SHA1 thumbprint.</c>
+<l>        ServerCertificate := EndpointInfo[Index + 1]</l>
+<c>        * If you want to show the contents of the certificate to the user, you can use</c>
+<c>        * following command to turn the certificate into a human readable string:</c>
+<l>*         control_io_interface ('OPC_UA', 'parse_certificate', ServerCertificate, Strings)</l>
+<c>        * </c>
+<l>        control_io_interface ('OPC_UA', 'validate_certificate', [CertificateStore,ServerCertificate], CertificateValid)</l>
+<l>        if (CertificateValid == 'false')</l>
+<l>            control_io_interface ('OPC_UA', 'thumbprint_certificate', ServerCertificate, ServerCertificateThumbprint)</l>
+<l>            control_io_interface ('OPC_UA', 'save_certificate', [CertificateStore,ServerCertificateThumbprint,ServerCertificate], _)</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Now attempt to connect to the server. Note that if the server doesn't trust</c>
+<c>        * the client certificate, the connection will fail. See the documentation of your</c>
+<c>        * OPC UA server on how to tell the server to trust a client certificate.</c>
+<c>        * </c>
+<c>        * Also note that it is necessary to specify the server certificate explicitly</c>
+<c>        * in the open_io_device operator call.</c>
+<l>        open_io_device ('OPC_UA', EndpointInfo[Index], ['server_certificate','certificate_store','client_certificate_name','message_security_mode','security_policy','application_uri'], [ServerCertificate,CertificateStore,ClientCertificateName,EndpointInfo[Index + 2],EndpointInfo[Index + 3],ApplicationUri], OpcServer)</l>
+<c>        * </c>
+<c>        * Get the server's current time.</c>
+<l>        control_io_device (OpcServer, 'translate', ['','/Objects/Server/ServerStatus/CurrentTime'], CurrentTimeNodeId)</l>
+<l>        open_io_channel (OpcServer, CurrentTimeNodeId, [], [], CurrentTimeChannel)</l>
+<l>        read_io_channel (CurrentTimeChannel, CurrentTime, Status)</l>
+<l>        close_io_device (OpcServer)</l>
+<l>    endfor</l>
+<l>catch (Exception)</l>
+<c>    * An error occurred. Get the extended error information (if any) for this error.</c>
+<l>    get_extended_error_info (OpName, ErrorNo, ErrorDescr)</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="parse_list">
+<interface>
+<ic>
+<par name="Info" base_type="ctrl" dimension="0"/>
+<par name="RelevantTags" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="List" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>List := []</l>
+<l>for Index1 := 0 to |Info| - 1 by 1</l>
+<l>    tuple_split (Info[Index1], '|', Entry)</l>
+<l>    tuple_strchr (Entry, ':', Position)</l>
+<l>    tuple_str_first_n (Entry, Position - 1, Tags)</l>
+<l>    tuple_str_last_n (Entry, Position + 1, Values)</l>
+<l>    for Index2 := 0 to |RelevantTags| - 1 by 1</l>
+<l>        List[Index1 * |RelevantTags| + Index2] := ''</l>
+<l>        for Index3 := 0 to |Tags| - 1 by 1</l>
+<l>            if (RelevantTags[Index2] == Tags[Index3])</l>
+<l>                List[Index1 * |RelevantTags| + Index2] := Values[Index3]</l>
+<l>                tuple_remove (Tags, Index3, Tags)</l>
+<l>                tuple_remove (Values, Index3, Values)</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="parse_list">
+<parameters>
+<parameter id="Info"/>
+<parameter id="List"/>
+<parameter id="RelevantTags"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

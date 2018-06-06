@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON ShapeDrive interface</c>
+<c>* (query current parameter settings)</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<c>* </c>
+<l>info_framegrabber ('ShapeDrive', 'info_boards', InfoBoardsInfo, InfoBoardsValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'defaults', DefaultsInfo, DefaultsValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'general', GeneralInfo, GeneralValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'parameters', ParametersInfo, ParameterValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'revision', RevisionInfo, RevisionValues)</l>
+<c>* </c>
+<l>info_framegrabber ('ShapeDrive', 'bits_per_channel', BitsPerChannelInfo, BitsPerChannelValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'camera_type', CameraTypesInfo, CameraTypesValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'color_space', ColorSpaceInfo, ColorSpaceValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'device', DeviceInfo, DeviceValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'external_trigger', ExternalTriggerInfo, ExternalTriggerValues)</l>
+<l>info_framegrabber ('ShapeDrive', 'port', PortInfo, PortValues)</l>
+<c>* </c>
+<l>MyCameraType := 'default'</l>
+<l>info_framegrabber ('ShapeDrive', 'device', Information, Device)</l>
+<c>* </c>
+<c>* If needed, please adapt the index of Device to open the required Shape Drive 3D sensor</c>
+<l>MyDevice := Device[0]</l>
+<c>* </c>
+<l>open_framegrabber ('ShapeDrive', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', MyCameraType, MyDevice, 0, 0, AcqHandle)</l>
+<c>* </c>
+<c>* Sort the parameter values:</c>
+<l>ParameterValues := sort(ParameterValues)</l>
+<c>* </c>
+<c>* Open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterValues| + 20</l>
+<l>dev_open_window (0, 0, 400, 12 + ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, (12 + ImageHeight) - 1, 399)</l>
+<c>* </c>
+<c>* Query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for I := 0 to |ParameterValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * I) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterValues[I] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterValues[I], ParameterValue)</l>
+<l>    ShowValue := true</l>
+<l>    if (strlen(ParameterValues[I]) &gt; 2)</l>
+<l>        if (ParameterValues[I]{0:2} == 'do_')</l>
+<l>            write_string (WindowHandle, '&lt;action parameter&gt;')</l>
+<l>            ShowValue := false</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if ((ShowValue == true) and (HalconError == H_MSG_TRUE))</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (|ParameterValue| &gt; 1)</l>
+<l>            for J := 0 to |ParameterValue| - 2 by 1</l>
+<l>                write_string (WindowHandle, ParameterValue[J] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (WindowHandle, ParameterValue[J + 1])</l>
+<l>        else</l>
+<l>            if (|ParameterValue| == 1)</l>
+<l>                write_string (WindowHandle, ParameterValue)</l>
+<l>            else</l>
+<l>                dev_set_color ('red')</l>
+<l>                write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        if (ShowValue == true)</l>
+<l>            dev_set_color ('red')</l>
+<l>            write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

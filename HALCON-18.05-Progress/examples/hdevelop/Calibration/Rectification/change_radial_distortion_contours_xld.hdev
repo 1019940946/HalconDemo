@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'pioneer')</l>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<l>gen_cam_par_area_scan_division (0.00219846, -78129.2, 5.46495e-06, 5.5e-06, 318.206, 236.732, 640, 480, CamParIn)</l>
+<l>change_radial_distortion_cam_par ('adaptive', CamParIn, 0, CamParOut)</l>
+<c>* </c>
+<c>* edge detection in the original image</c>
+<c>* </c>
+<l>edges_sub_pix (GrayImage, Edges, 'mderiche2', 0.5, 20, 40)</l>
+<c>* </c>
+<c>* Eliminating radial distortions</c>
+<c>* </c>
+<l>change_radial_distortion_contours_xld (Edges, EdgesRectified, CamParIn, CamParOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

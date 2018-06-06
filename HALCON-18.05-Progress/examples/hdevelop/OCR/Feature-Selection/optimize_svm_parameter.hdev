@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program compares the recognition rate of OCR-SVMs with different</c>
+<c>* parameters on artificial data.</c>
+<c>* </c>
+<c>* Images of letters are distorted randomly and are feeded as training data</c>
+<c>* to three different variants of the SVM training:</c>
+<c>* 1. SVM with default settings</c>
+<c>* 2. SVM with settings specialized for this setup (features, nu, gamma(Kernelparameter))</c>
+<c>* 3. Feature selection over SVM with automatic estimation of nu and gamma</c>
+<c>* </c>
+<c>* The term tuning only refers here to the recognition rate. The executiuon time is</c>
+<c>* not considered in this example.</c>
+<c>* The estimation of the best parameter set may take a considerable amount of</c>
+<c>* time, since it is a directed search over a very highdimensional space</c>
+<c>* (depending on the number of possible features and if nu and gamma have to be estimated).</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 500, 500, 'black', WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_system ('seed_rand', 42)</l>
+<l>get_tmp_dir (TmpDir)</l>
+<l>TrainFile := TmpDir + '/letters_autosvm.trf'</l>
+<l>TrainFileBig := TmpDir + '/letters_big_autosvm.trf'</l>
+<c>* </c>
+<c>* Create the original training samples and store them in a train file.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (0, 0, 499, 499)</l>
+<l>Message := 'This example demonstrates the'</l>
+<l>Message[1] := 'automatic parameter estimation and'</l>
+<l>Message[2] := 'automatic feature selection for'</l>
+<l>Message[3] := 'classifiers - in this case a SVM'</l>
+<l>Message[4] := '(support vector machine) classifier'</l>
+<l>Message[5] := 'for OCR.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Please wait while ...', 'window', 200, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ' ... creating initial samples ... ready', 'window', 230, 12, 'white', 'false')</l>
+<l>gen_initial_trainfile (TrainFile)</l>
+<l>read_ocr_trainf_names (TrainFile, CharClasses, CharacterCount)</l>
+<l>read_ocr_trainf (Characters, TrainFile, CharacterNames)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainFileBig)</l>
+<l>dev_set_check ('give_error')</l>
+<l>disp_message (WindowHandle, ' ... creating initial samples ... ready', 'window', 230, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ' ... adding distorted samples ...', 'window', 260, 12, 'white', 'false')</l>
+<l>count_obj (Characters, NumChars)</l>
+<l>for Index := 1 to 2 by 1</l>
+<l>    for J := 0 to NumChars - 1 by 1</l>
+<l>        select_obj (Characters, Char, J + 1)</l>
+<l>        full_domain (Char, CharFull)</l>
+<l>        gen_distorted_character (CharFull, CharDistort, 7)</l>
+<l>        Class := CharacterNames[J]</l>
+<l>        threshold (CharDistort, Region, 0, 128)</l>
+<l>        area_center (Region, Area, Row, Column)</l>
+<l>        if (Area &lt; 10)</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>        append_ocr_trainf (Region, CharDistort, Class, TrainFileBig)</l>
+<l>        full_domain (CharDistort, ImageFull)</l>
+<l>        get_image_size (CharFull, Width, Height)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* Train the SVMs</c>
+<l>disp_message (WindowHandle, ' ... adding distorted samples ... ready', 'window', 260, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (0, 0, 499, 499)</l>
+<l>Message := 'Train SVM with default settings ...   '</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>create_ocr_class_svm (8, 10, 'bilinear', 'default', CharClasses, 'rbf', 0.02, 0.05, 'one-versus-one', 'normalization', 10, OCRHandleSVMDefault)</l>
+<l>count_seconds (S1)</l>
+<l>trainf_ocr_class_svm (OCRHandleSVMDefault, TrainFileBig, 0.001, 'default')</l>
+<l>count_seconds (S2)</l>
+<l>Message := Message + (S2 - S1)$'3.2' + 's'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>Message[1] := ' \nTrain SVM manually optimized ...      '</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>create_ocr_class_svm (8, 10, 'bilinear', ['gradient_8dir','pixel','projection_horizontal','foreground_grid_16','phi','moments_region_2nd_invar','chord_histo','ratio'], CharClasses, 'rbf', 0.001, 0.03, 'one-versus-one', 'normalization', 10, OCRHandleSVMOpt)</l>
+<l>count_seconds (S1)</l>
+<l>trainf_ocr_class_svm (OCRHandleSVMOpt, TrainFileBig, 0.001, 'default')</l>
+<l>count_seconds (S2)</l>
+<l>Message[1] := ' \nTrain SVM manually optimized ...      ' + (S2 - S1)$'3.2' + 's'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>count_seconds (S2)</l>
+<l>Message[2] := ' \nAutomatic parameter estimation ... '</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>Warning := 'Warning: F5 will start the'</l>
+<l>Warning[1] := 'automatic feature selection.'</l>
+<l>Warning[2] := 'This may take a while (up to hours)!'</l>
+<l>Warning[3] := 'On an Intel i5 (4 cores, 3.3GHz) expect'</l>
+<l>Warning[4] := 'about 15 minutes of calculation time.'</l>
+<l>Warning[5] := ' '</l>
+<l>Warning[6] := 'If you don\'t have the time now'</l>
+<l>Warning[7] := 'please cancel the program and'</l>
+<l>Warning[8] := 'come back later.'</l>
+<l>Warning[9] := ' '</l>
+<l>Warning[10] := 'If you want to continue, press F5.'</l>
+<l>disp_message (WindowHandle, Warning, 'window', 150, 20, 'white', 'red')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>Status := 'Performing automatic feature selection ...'</l>
+<l>Status[1] := ' \nPlease check the HDevelop status bar'</l>
+<l>Status[2] := 'for progress information.'</l>
+<l>disp_message (WindowHandle, Status, 'window', 200, 12, 'yellow', 'false')</l>
+<l>count_seconds (S1)</l>
+<l>select_feature_set_trainf_svm (TrainFileBig, ['zoom_factor','ratio','width','height','foreground','foreground_grid_9','foreground_grid_16','anisometry','compactness','convexity','moments_region_2nd_invar','moments_region_2nd_rel_invar','moments_region_3rd_invar','moments_central','phi','num_connect','num_holes','projection_horizontal','projection_vertical','projection_horizontal_invar','projection_vertical_invar','chord_histo','num_runs','pixel','pixel_invar','pixel_binary','gradient_8dir','cooc','moments_gray_plane'], 'greedy', 8, 10, ['nu','gamma'], ['auto','auto'], OCRHandle, FeatureSet, Score)</l>
+<l>count_seconds (S2)</l>
+<c>* Check the automatically estimated parameters</c>
+<l>get_params_ocr_class_svm (OCRHandle, WidthCharacter, HeightCharacter, Interpolation, Features, CharactersT, KernelType, KernelParam, Nu, Mode, Preprocessing, NumComponents)</l>
+<l>dev_clear_window ()</l>
+<l>Message[2] := ' \nAutomatic parameter estimation ... ' + (S2 - S1)$'6.1f' + 's'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>String := 'Now all three classifiers will be tested'</l>
+<l>String[1] := 'on heavily distorted characters and the'</l>
+<l>String[2] := 'error rates are calculated.'</l>
+<l>String[3] := ' \nYou will see, that the performance of the'</l>
+<l>String[4] := 'automatically trained classifier is close'</l>
+<l>String[5] := 'to the manually optimized one.'</l>
+<l>disp_message (WindowHandle, String, 'window', 200, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<c>* Now introduce heavy distortions into the characters</c>
+<c>* and determine the error rates</c>
+<l>NumDistort := 10</l>
+<l>ErrorsSVMDef := 0</l>
+<l>ErrorsSVMTuned := 0</l>
+<l>ErrorsSVMAuto := 0</l>
+<l>TimeSVMDef := 0</l>
+<l>TimeSVMTun := 0</l>
+<l>TimeSVMAut := 0</l>
+<l>Num := 0</l>
+<l>for J := 0 to NumChars - 1 by 1</l>
+<l>    select_obj (Characters, Char, J + 1)</l>
+<l>    Class := CharacterNames[J]</l>
+<l>    full_domain (Char, CharFull)</l>
+<l>    get_image_size (CharFull, Width, Height)</l>
+<l>    Num := max([J * NumDistort,1])</l>
+<l>    gen_empty_obj (Chars)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        gen_distorted_character (CharFull, CharDistort, 7)</l>
+<l>        full_domain (CharDistort, CharDistortFull)</l>
+<l>        threshold (CharDistortFull, Region, 0, 128)</l>
+<l>        reduce_domain (CharDistortFull, Region, CharSeg)</l>
+<l>        area_center (Region, Area, Row, Column)</l>
+<l>        if (Area &lt; 2)</l>
+<l>            concat_obj (Chars, CharDistortFull, Chars)</l>
+<l>        else</l>
+<l>            concat_obj (Chars, CharSeg, Chars)</l>
+<l>        endif</l>
+<l>        dev_set_part (-Height, -Width, Height - 1 + Height, Width - 1 + Width)</l>
+<l>        dev_display (CharDistortFull)</l>
+<l>        dev_set_part (0, 0, 499, 499)</l>
+<l>        Message := 'Testing character ' + (J + 1) + ' of ' + NumChars</l>
+<l>        Message[1] := 'Error rates for:'</l>
+<l>        Message[2] := 'Default:                 ' + (real(ErrorsSVMDef) / Num * 100)$'5.3f' + '%'</l>
+<l>        Message[3] := 'Manually tuned SVM:      ' + (real(ErrorsSVMTuned) / Num * 100)$'5.3f' + '%'</l>
+<l>        Message[4] := 'Automatically tuned SVM: ' + (real(ErrorsSVMAuto) / Num * 100)$'5.3f' + '%'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    endfor</l>
+<l>    count_seconds (S1)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        select_obj (Chars, CharDistort, K)</l>
+<l>        do_ocr_single_class_svm (CharDistort, CharDistort, OCRHandleSVMDefault, 1, ClassRes)</l>
+<l>        if (ClassRes != Class)</l>
+<l>            ErrorsSVMDef := ErrorsSVMDef + 1</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    TimeSVMDef := TimeSVMDef + S2 - S1</l>
+<l>    count_seconds (S1)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        select_obj (Chars, CharDistort, K)</l>
+<l>        do_ocr_single_class_svm (CharDistort, CharDistort, OCRHandleSVMOpt, 1, ClassRes)</l>
+<l>        if (ClassRes != Class)</l>
+<l>            ErrorsSVMTuned := ErrorsSVMTuned + 1</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    TimeSVMTun := TimeSVMTun + S2 - S1</l>
+<l>    count_seconds (S1)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        select_obj (Chars, CharDistort, K)</l>
+<l>        do_ocr_single_class_svm (CharDistort, CharDistort, OCRHandle, 1, ClassRes)</l>
+<l>        if (ClassRes != Class)</l>
+<l>            ErrorsSVMAuto := ErrorsSVMAuto + 1</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    TimeSVMAut := TimeSVMAut + S2 - S1</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainFile)</l>
+<l>delete_file (TrainFileBig)</l>
+<l>dev_set_check ('give_error')</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'End of program', 'window', 150, 12, 'black', 'true')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_distorted_character">
+<interface>
+<io>
+<par name="Char" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="CharDistort" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="NoiseLevel" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_image_size (Char, Width, Height)</l>
+<l>EroDil := rand(1) * NoiseLevel - (NoiseLevel / 2.0)</l>
+<l>if (EroDil &lt; 0)</l>
+<l>    gray_erosion_shape (Char, CharEroDil, 1 - EroDil, 1 - EroDil, 'rhombus')</l>
+<l>else</l>
+<l>    gray_dilation_shape (Char, CharEroDil, 1 + EroDil, 1 + EroDil, 'rhombus')</l>
+<l>endif</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(rand(1) * (NoiseLevel * 3.0) - ((NoiseLevel * 3.0) / 2.0)), Height / 2, Width / 2, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, rand(1) * (NoiseLevel / 2.0) - (NoiseLevel / 4.0), rand(1) * (NoiseLevel / 2.0) - (NoiseLevel / 4.0), HomMat2DTranslate)</l>
+<l>affine_trans_image (CharEroDil, CharTrans, HomMat2DTranslate, 'constant', 'false')</l>
+<l>expand_domain_gray (CharTrans, CharExpanded, 2)</l>
+<l>gen_image_proto (CharExpanded, ImageBlank, 128)</l>
+<l>add_noise_white (ImageBlank, ImageNoise, 60)</l>
+<l>smooth_image (ImageNoise, ImageSmooth, 'gauss', 1)</l>
+<l>scale_image (ImageSmooth, ImageScaled, 3, -256)</l>
+<l>add_image (CharExpanded, ImageScaled, CharDistort, 1, -128)</l>
+<l>threshold (CharDistort, Region, 0, 128)</l>
+<l>reduce_domain (CharDistort, Region, CharDistort)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_distorted_character">
+<parameters>
+<parameter id="Char"/>
+<parameter id="CharDistort"/>
+<parameter id="NoiseLevel">
+<default_type>real</default_type>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_initial_trainfile">
+<interface>
+<ic>
+<par name="TrainFileName" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>read_image (Image, 'letters')</l>
+<c>* Segment the image.</c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>* Connect the i's and j's with their dots.</c>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<c>* Compute the correct connected components.</c>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<c>* Reduce each connected component (character) to its original shape.</c>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<c>* Sort the characters line-by-line.</c>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<c>* Compute the true class of each character.</c>
+<l>count_obj (Characters, Number)</l>
+<l>Classes := []</l>
+<l>Sequence := [0:26 * 20 - 1]</l>
+<l>Sequence := Sequence / 20</l>
+<l>LetterColumn := chr(ord('a') + Sequence)</l>
+<l>Classes := [LetterColumn,gen_tuple_const(20,'.')]</l>
+<c>* Construct the necessary training file from the segmented characters.</c>
+<l>write_ocr_trainf (Characters, Image, Classes, TrainFileName)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_initial_trainfile">
+<parameters>
+<parameter id="TrainFileName"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_tmp_dir">
+<interface>
+<oc>
+<par name="LocalTemp" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_environment ('TEMP', LocalTemp)</l>
+<l>if (LocalTemp == '')</l>
+<l>    tuple_environment ('TMP', LocalTemp)</l>
+<l>    if (LocalTemp == '')</l>
+<l>        file_exists ('/tmp', FileExists)</l>
+<l>        if (FileExists)</l>
+<l>            LocalTemp := '/tmp'</l>
+<l>        else</l>
+<l>            LocalTemp := './'</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_tmp_dir">
+<parameters>
+<parameter id="LocalTemp"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

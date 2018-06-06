@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example to demonstrate the functionality of</c>
+<c>* the Example I/O interface</c>
+<c>* </c>
+<c>* Before using this example you first have to build the</c>
+<c>* Example I/O interface that can be found in the</c>
+<c>* folder %HALCONEXAMPLES%\io_integration (Windows) /</c>
+<c>* $HALCONEXAMPLES/io_integration (Linux). For building the</c>
+<c>* interface follow the instructions in the README.txt</c>
+<c>* in this folder. After building the example, copy the interface</c>
+<c>* hioExample.dll (Windows) / hioExample.so (Linux) to the HALCON</c>
+<c>* bin directory (%HALCONROOT%\bin\%HALCONARCH% (Windows) /</c>
+<c>* $HALCONROOT/lib/$HALCONARCH (Linux)). The OS X version of</c>
+<c>* the Example I/O interface does not provide the functionality</c>
+<c>* for this example.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<l>IOInterfaceName := 'Example'</l>
+<c>* </c>
+<c>* Query the revision</c>
+<l>query_io_interface (IOInterfaceName, 'revision', Revision)</l>
+<c>* </c>
+<c>* Query the available devices</c>
+<l>query_io_interface (IOInterfaceName, 'io_device_names', Devices)</l>
+<l>query_io_interface (IOInterfaceName, 'io_device_info', DevicesInfo)</l>
+<c>* </c>
+<c>* Open the device</c>
+<l>open_io_device (IOInterfaceName, Devices[0], [], [], IODeviceHandle)</l>
+<c>* </c>
+<c>* Query the available channels</c>
+<l>query_io_device (IODeviceHandle, [], 'io_channel_names', Channels)</l>
+<l>query_io_device (IODeviceHandle, [], 'io_channel_names.digital_input', InputChannels)</l>
+<l>query_io_device (IODeviceHandle, [], 'io_channel_names.digital_output', OutputChannels)</l>
+<c>* </c>
+<c>* Open the output channels</c>
+<l>open_io_channel (IODeviceHandle, OutputChannels, [], [], OutputHandles)</l>
+<c>* </c>
+<c>* Read out the initial values</c>
+<l>read_io_channel (OutputHandles, InitialValues, Status)</l>
+<c>* </c>
+<c>* Write to the output channels. The keyboard LEDs should blink</c>
+<l>disp_message (WindowHandle, 'Changing state of the keyboard LEDs...', 'window', 12, 12, 'black', 'true')</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>for Index := 1 to 50 by 1</l>
+<l>    write_io_channel (OutputHandles, gen_tuple_const(|OutputHandles|,0), Status)</l>
+<l>    write_io_channel (OutputHandles[Index % |OutputHandles|], 1, Status)</l>
+<l>    wait_seconds (0.2)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Set the channels back to the initial values</c>
+<l>write_io_channel (OutputHandles, InitialValues, Status)</l>
+<c>* </c>
+<c>* Close the output channels</c>
+<l>close_io_channel (OutputHandles)</l>
+<c>* </c>
+<c>* Open the input channel corresponding to the left SHIFT key</c>
+<l>open_io_channel (IODeviceHandle, InputChannels, [], [], InputHandles)</l>
+<l>ChannelNames := ['Shift_L','Control_L','Super_L','Alt_L','Alt_R','Super_R','Control_R','Shift_R']</l>
+<c>* </c>
+<c>* Read out the value of the input channels and display</c>
+<c>* which keys are currently pressed</c>
+<l>InstructionMessage := 'Press any of the modifier keys...'</l>
+<l>disp_message (WindowHandle, InstructionMessage, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>for Index := 1 to 50 by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    read_io_channel (InputHandles, Values, Status)</l>
+<c></c>
+<l>    Message := [InstructionMessage,select_mask(ChannelNames,Values[0:|ChannelNames| - 1])]</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>    wait_seconds (0.2)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Close the input channels</c>
+<l>close_io_channel (InputHandles)</l>
+<c>* </c>
+<c>* Close the Example device</c>
+<l>close_io_device (IODeviceHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example which shows the usage of chunk data with the GigEVision2 interface.</c>
+<l>info_framegrabber ('GigEVision2', 'device', Information, ValueList)</l>
+<l>Device := ValueList[0]</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Save initial settings.</c>
+<l>try</l>
+<l>    get_framegrabber_param (AcqHandle, 'ChunkModeActive', ChunkModeActive)</l>
+<l>    get_framegrabber_param (AcqHandle, 'AcquisitionMode', AcquisitionMode)</l>
+<c>    * </c>
+<c>    * Activate chunk mode and query available chunk parameters.</c>
+<l>    if (ChunkModeActive != 1)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,2]" as_ord="2">        set_framegrabber_param (AcqHandle, 'ChunkModeActive', 1)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    get_framegrabber_param (AcqHandle, 'ChunkSelector_values', Value)</l>
+<l>catch (Exception)</l>
+<l>    if (Exception[0] == 5330)</l>
+<c>        * Camera does not support chunks, so we close the handle.</c>
+<l>        close_framegrabber (AcqHandle)</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endtry</l>
+<c>* Prepare output windows.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 408, 400, 400, 'black', WindowHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'Width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'Height', Height)</l>
+<l>dev_open_window (0, 0, Width / 8, Height / 8, 'black', WindowHandleImage)</l>
+<c>* </c>
+<l>try</l>
+<l>    set_framegrabber_param (AcqHandle, 'AcquisitionMode', 'SingleFrame')</l>
+<l>catch (Exception)</l>
+<c>    * Device doesn't support SingleFrame acquisition mode.</c>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<l>num_chunks := |Value| - 1</l>
+<c>* </c>
+<l>for Index := 0 to num_chunks by 1</l>
+<c>    * Set new chunk parameter.</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,2]" as_ord="3">    set_framegrabber_param (AcqHandle, 'ChunkSelector', Value[Index])</l>
+<c>    * Enable chunk data, if neccessary.</c>
+<l>    get_framegrabber_param (AcqHandle, 'ChunkEnable', ChunkEnable)</l>
+<l>    if (ChunkEnable != 1)</l>
+<l>        set_framegrabber_param (AcqHandle, 'ChunkEnable', 1)</l>
+<l>    endif</l>
+<l>    set_tposition (WindowHandle, (12 * (Index - |num_chunks| / 2)) + 2, 10)</l>
+<l>    dev_set_color ('green')</l>
+<l>    write_string (WindowHandle, Value[Index] + ': ')</l>
+<l>    dev_set_window (WindowHandleImage)</l>
+<c>    * </c>
+<c>    * Grab image to receive new chunk data.</c>
+<l>    grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<c>    * </c>
+<l>    dev_set_window (WindowHandle)</l>
+<c>    * Read the chunk data.</c>
+<l>    try</l>
+<l>        get_framegrabber_param (AcqHandle, 'Chunk' + Value[Index], chunkdata)</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (|chunkdata| &gt; 1)</l>
+<l>            for j := 0 to |chunkdata| - 2 by 1</l>
+<l>                write_string (WindowHandle, chunkdata[j] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (WindowHandle, chunkdata[j + 1])</l>
+<l>        else</l>
+<l>            if (|chunkdata| == 1)</l>
+<l>                write_string (WindowHandle, chunkdata)</l>
+<l>            else</l>
+<l>                write_string (WindowHandle, '&lt;currently not readable&gt;')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    catch (Exception)</l>
+<l>        dev_set_color ('red')</l>
+<l>        if (Value[Index] == 'Image')</l>
+<l>            write_string (WindowHandle, '&lt;ChunkImage has no readable data&gt;')</l>
+<l>        else</l>
+<l>            write_string (WindowHandle, '&lt;currently not readable&gt;')</l>
+<l>        endif</l>
+<l>    endtry</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* Reset values and clean up.</c>
+<l>set_framegrabber_param (AcqHandle, 'AcquisitionMode', AcquisitionMode)</l>
+<l>set_framegrabber_param (AcqHandle, 'ChunkModeActive', ChunkModeActive)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

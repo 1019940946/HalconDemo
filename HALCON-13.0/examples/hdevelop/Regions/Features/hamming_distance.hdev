@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Hamming distance between two regions</c>
+<c>* </c>
+<l>read_image (Image, 'monkey')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('fill')</l>
+<l>threshold (Image, Region, 200, 255)</l>
+<c>* Compute connected components of a region</c>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 99999)</l>
+<c>* Apply closing to regions with a circular structuring element</c>
+<l>closing_circle (SelectedRegions, RegionClosing, 3.5)</l>
+<l>hamming_distance (SelectedRegions, RegionClosing, Distance1, Similarity1)</l>
+<l>opening_circle (SelectedRegions, RegionOpening, 3.5)</l>
+<l>hamming_distance (SelectedRegions, RegionOpening, Distance2, Similarity2)</l>
+<c>* Display the extracted regions</c>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RegionClosing)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SelectedRegions)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (RegionOpening)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

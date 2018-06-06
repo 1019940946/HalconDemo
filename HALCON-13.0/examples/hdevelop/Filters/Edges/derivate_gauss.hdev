@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* usage as smoothing filter</c>
+<l>read_image (Meningg5, 'meningg5')</l>
+<l>derivate_gauss (Meningg5, Smoothed, 2, 'none')</l>
+<l>convert_image_type (Smoothed, SmoothedByte, 'byte')</l>
+<l>watersheds (SmoothedByte, Basins, Watersheds)</l>
+<l>dev_display (Meningg5)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Basins)</l>
+<l>stop ()</l>
+<c>* usage as edge detector</c>
+<l>read_image (Image, 'mreut')</l>
+<l>derivate_gauss (Image, GradientAmpl, 1.5, 'gradient')</l>
+<l>threshold (GradientAmpl, Gradient, 10, 255)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Gradient)</l>
+<l>stop ()</l>
+<c>* usage as corner detector</c>
+<l>read_image (Image, 'fabrik')</l>
+<l>derivate_gauss (Image, Det, 1.5, 'det')</l>
+<l>threshold (Det, Corners, 20, 1000000)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Corners)</l>
+<l>stop ()</l>
+<c>* Usage as edge detector</c>
+<l>read_image (Image, 'mreut')</l>
+<l>derivate_gauss (Image, EdgesAreZero, 3, '2nd_ddg')</l>
+<l>zero_crossing (EdgesAreZero, Edges)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Edges)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

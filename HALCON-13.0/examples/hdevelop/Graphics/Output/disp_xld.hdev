@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Display an XLD object.</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<c>* Extract edges subpixel precisely using Deriche filter</c>
+<l>edges_sub_pix (Image, Edges, 'mderiche2', 0.7, 10, 20)</l>
+<l>edges_image (Image, ImaAmp, ImaDir, 'mderiche2', 0.7, 'nms', 10, 20)</l>
+<l>threshold (ImaAmp, Region, 1, 255)</l>
+<l>gen_contours_skeleton_xld (Region, Contours, 1, 'filter')</l>
+<l>dev_clear_window ()</l>
+<c>* Measure the runtime to display xlds</c>
+<l>count_seconds (Seconds1)</l>
+<l>disp_xld (Edges, WindowID)</l>
+<l>count_seconds (Seconds2)</l>
+<l>Time1 := Seconds2 - Seconds1</l>
+<l>dev_clear_window ()</l>
+<l>count_seconds (Seconds1)</l>
+<l>disp_xld (Contours, WindowID)</l>
+<l>count_seconds (Seconds2)</l>
+<l>Time2 := Seconds2 - Seconds1</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

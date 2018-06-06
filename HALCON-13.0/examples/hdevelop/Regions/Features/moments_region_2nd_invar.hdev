@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the geometric moments of regions and the product of inertia</c>
+<c>* of the axes through the center parallel to the coordinate axes</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('white')</l>
+<l>M11Tuple := []</l>
+<l>M20Tuple := []</l>
+<l>M02Tuple := []</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<c>* Create regions and calculate the geometric moments</c>
+<l>for i := 10 to 250 by 2</l>
+<l>    gen_ellipse (Ellipse, i, i, 0.4, i, i / 2)</l>
+<l>    moments_region_2nd_invar (Ellipse, M11, M20, M02)</l>
+<l>    M11Tuple := [M11Tuple,M11]</l>
+<l>    M20Tuple := [M20Tuple,M20]</l>
+<l>    M02Tuple := [M02Tuple,M02]</l>
+<l>endfor</l>
+<l>dev_set_color ('red')</l>
+<l>Feature := M11Tuple</l>
+<l>Scale := 3000.0</l>
+<l>for i := 0 to |Feature| - 1 by 1</l>
+<l>    disp_line (WindowID, 200 - Feature[i] * Scale, 100 + i, 200, 100 + i)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

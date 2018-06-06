@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example describes how to use the operator</c>
+<c>* 'disparity_image_to_xyz'.</c>
+<c>* The usage of the operator is shown on two images</c>
+<c>* of a board obtained from a stereo setup of two cameras</c>
+<c>* (left: 'camera1', right: 'camera2'). In the first step</c>
+<c>* both images are rectified and the disparity image of</c>
+<c>* the rectified image pair is determined. Then the operator</c>
+<c>* 'disparity_image_to_xyz' calculates the coordinates of</c>
+<c>* all pixels within the disparity image.</c>
+<c>* Afterwards the 3D points can be rotated in the 3D space for</c>
+<c>* visualization purposes.</c>
+<c>* </c>
+<c>* </c>
+<c>* Initialize settings</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* Define the left and right stereo image</c>
+<l>ImagePath := 'stereo/board/'</l>
+<l>Image1 := ImagePath + '/board_l_01'</l>
+<l>Image2 := ImagePath + '/board_r_01'</l>
+<c>* </c>
+<c>* Define the camera parameters</c>
+<l>CamParamL := [0.0131205,-665.85466,1.4803422e-005,1.48e-005,155.90117,126.703971,320,240]</l>
+<l>CamParamR := [0.0131712,-728.9579,1.4799849e-005,1.48e-005,163.265701,119.310684,320,240]</l>
+<l>RelPose := [0.15350044,-0.003732778,0.04481715,0.1736607,319.8612,359.8945,0]</l>
+<c>* </c>
+<c>* Generate a disparity image</c>
+<c>* ******************************************</c>
+<c>* </c>
+<c>* Generate the rectification maps</c>
+<l>gen_binocular_rectification_map (MapL, MapR, CamParamL, CamParamR, RelPose, 1, 'geometric', 'bilinear', RectCamParL, RectCamParR, CamPoseRectL, CamPoseRectR, RectLPosRectR)</l>
+<c>* </c>
+<c>* Read and rectify the stereo image pair</c>
+<l>read_image (ImageL, Image1)</l>
+<l>read_image (ImageR, Image2)</l>
+<l>map_image (ImageL, MapL, ImageRectifiedL)</l>
+<l>map_image (ImageR, MapR, ImageRectifiedR)</l>
+<c>* </c>
+<c>* Display the left rectified image</c>
+<l>get_image_size (ImageRectifiedL, WidthL, HeightL)</l>
+<l>dev_open_window (0, 0, WidthL, HeightL, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 11, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageRectifiedL)</l>
+<l>disp_message (WindowHandle1, 'Left rectified image', 'window', 10, 10, 'black', 'true')</l>
+<c>* </c>
+<c>* Display the right recitified image</c>
+<l>dev_open_window (0, WidthL + 10, WidthL, HeightL, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 11, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageRectifiedL)</l>
+<l>disp_message (WindowHandle2, 'Right rectified image', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the disparity image.</c>
+<l>binocular_disparity (ImageRectifiedL, ImageRectifiedR, DisparityImage, Score, 'ncc', 17, 17, 5, 10, 40, 1, 0.1, 'left_right_check', 'none')</l>
+<c>* </c>
+<c>* Fill the gaps in the disparity image</c>
+<l>get_domain (DisparityImage, RegionInpainting)</l>
+<l>complement (RegionInpainting, RegionInpainting)</l>
+<l>full_domain (DisparityImage, DisparityImage)</l>
+<l>harmonic_interpolation (DisparityImage, RegionInpainting, DisparityImage, 0.001)</l>
+<c>* </c>
+<c>* Display the disparity image</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_display (DisparityImage)</l>
+<l>disp_message (WindowHandle1, 'Disparity image', 'window', 10, 10, 'black', 'true')</l>
+<c>* </c>
+<c>* Compute the 3D coordinates</c>
+<c>* *******************************************</c>
+<c>* </c>
+<c>* Transform the disparity image into images X, Y and Z.</c>
+<c>* The gray values in X, Y and Z represent the x, y, and z</c>
+<c>* coordinates of the pixels (Row, Column).</c>
+<l>disparity_image_to_xyz (DisparityImage, X, Y, Z, RectCamParL, RectCamParR, RectLPosRectR)</l>
+<c>* </c>
+<c>* Visualize the 3D points in the 3D space</c>
+<c>* *******************************************</c>
+<c>* </c>
+<c>* Center the points around the origin</c>
+<c>* and scale Z (for effect)</c>
+<l>min_max_gray (X, X, 5, MinX, MaxX, RangeX)</l>
+<l>min_max_gray (Y, Y, 5, MinY, MaxY, RangeY)</l>
+<l>min_max_gray (Z, Z, 5, MinZ, MaxZ, RangeZ)</l>
+<l>scale_image (X, X, 1.0, -MinX - 0.5 * RangeX)</l>
+<l>scale_image (Y, Y, 1.0, -MinY - 0.5 * RangeY)</l>
+<l>scale_image (Z, Z, 4.0, -4.0 * MinZ - 2.0 * RangeZ)</l>
+<c>* </c>
+<c>* Display right rectified image</c>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_display (ImageRectifiedR)</l>
+<l>disp_message (WindowHandle2, 'Computed 3D points in 3D space', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_message (WindowHandle2, 'Left button:  rotate', 'window', 205, 10, 'white', 'false')</l>
+<l>disp_message (WindowHandle2, 'Right button: exit', 'window', 220, 10, 'white', 'false')</l>
+<c>* </c>
+<c>* Initialize settings for the rotation loop</c>
+<l>RelQuaternion := [0,0,0,1]</l>
+<l>NumAddIn := 0</l>
+<l>Cx := WidthL * 0.5</l>
+<l>Cy := HeightL * 0.5</l>
+<c>* </c>
+<c>* Rotation loop</c>
+<l>visualize_3D_space (DisparityImage, X, Y, Z, ImageRectifiedL, WindowHandle2, Cx, Cy, HeightL, WidthL, RelQuaternion, NumAddIn, MinX, MinY, MinZ, RangeX, RangeY, RangeZ, RectCamParL)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="normalize_quaternions">
+<interface>
+<ic>
+<par name="Q" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="QNorm" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Normalize the quaternion to ensure that it represents a rotation matrix</c>
+<l>Length := sqrt(sum(Q * Q))</l>
+<l>QNorm := Q / Length</l>
+<l>return ()</l>
+</body>
+<docu id="normalize_quaternions">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Normalize a quaternion to ensure to represent a rotation matrix</short>
+<parameters>
+<parameter id="Q"/>
+<parameter id="QNorm"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="project_point_on_trackball">
+<interface>
+<ic>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="VirtualTrackball" base_type="ctrl" dimension="0"/>
+<par name="TrackballSize" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="V" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (VirtualTrackball == 'shoemake')</l>
+<c>    * Virtual Trackball according to Shoemake</c>
+<l>    R := sqrt(X * X + Y * Y)</l>
+<l>    if (R &lt;= TrackballSize)</l>
+<l>        XP := X</l>
+<l>        YP := Y</l>
+<l>        ZP := sqrt(TrackballSize * TrackballSize - R * R)</l>
+<l>    else</l>
+<l>        XP := X * TrackballSize / R</l>
+<l>        YP := Y * TrackballSize / R</l>
+<l>        ZP := 0</l>
+<l>    endif</l>
+<l>else</l>
+<c>    * Virtual Trackball according to Bell</c>
+<l>    R := sqrt(X * X + Y * Y)</l>
+<l>    if (R &lt;= TrackballSize * 0.70710678)</l>
+<l>        XP := X</l>
+<l>        YP := Y</l>
+<l>        ZP := sqrt(TrackballSize * TrackballSize - R * R)</l>
+<l>    else</l>
+<l>        XP := X</l>
+<l>        YP := Y</l>
+<l>        ZP := 0.5 * TrackballSize * TrackballSize / R</l>
+<l>    endif</l>
+<l>endif</l>
+<l>V := [XP,YP,ZP]</l>
+<l>return ()</l>
+</body>
+<docu id="project_point_on_trackball">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Project an image point onto the trackball</short>
+<parameters>
+<parameter id="TrackballSize"/>
+<parameter id="V"/>
+<parameter id="VirtualTrackball"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="rot_axis_to_quaternion">
+<interface>
+<ic>
+<par name="RotAxis" base_type="ctrl" dimension="0"/>
+<par name="RotAngle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="QuatRotation" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Len := sqrt(sum(RotAxis * RotAxis))</l>
+<l>if (Len &gt; 0.)</l>
+<l>    LenInv := 1. / Len</l>
+<l>    RotAxis := RotAxis * LenInv</l>
+<l>    Scale := sin(RotAngle / 2.0)</l>
+<l>    QuatRotation := [RotAxis[0] * Scale,RotAxis[1] * Scale,RotAxis[2] * Scale,cos(RotAngle / 2.0)]</l>
+<l>else</l>
+<l>    QuatRotation := [0,0,0,1]</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="rot_axis_to_quaternion">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Transform the rotation axis vector to a quaternion</short>
+<parameters>
+<parameter id="QuatRotation"/>
+<parameter id="RotAngle"/>
+<parameter id="RotAxis"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="trackball">
+<interface>
+<ic>
+<par name="MX1" base_type="ctrl" dimension="0"/>
+<par name="MY1" base_type="ctrl" dimension="0"/>
+<par name="MX2" base_type="ctrl" dimension="0"/>
+<par name="MY2" base_type="ctrl" dimension="0"/>
+<par name="VirtualTrackball" base_type="ctrl" dimension="0"/>
+<par name="TrackballSize" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="QuatRotation" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (MX1 == MX2 and MY1 == MY2)</l>
+<l>    QuatRotation := [0,0,0,1]</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* Project the image point onto the track ball</c>
+<l>project_point_on_trackball (MX1, MY1, VirtualTrackball, TrackballSize, P1)</l>
+<l>project_point_on_trackball (MX2, MY2, VirtualTrackball, TrackballSize, P2)</l>
+<c>* The cross product of the projected points defines the rotation axis</c>
+<l>tuple_vector_cross_product (P1, P2, RotAxis)</l>
+<c>* Compute the rotation angle</c>
+<l>D := P2 - P1</l>
+<l>T := sqrt(sum(D * D)) / (2.0 * TrackballSize)</l>
+<l>if (T &gt; 1.0)</l>
+<l>    T := 1.0</l>
+<l>endif</l>
+<l>if (T &lt; -1.0)</l>
+<l>    T := -1.0</l>
+<l>endif</l>
+<l>RotAngle := 2.0 * asin(T)</l>
+<l>rot_axis_to_quaternion (RotAxis, RotAngle, QuatRotation)</l>
+<l>return ()</l>
+</body>
+<docu id="trackball">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Compute the 3d rotation from the mose movement</short>
+<parameters>
+<parameter id="MX1"/>
+<parameter id="MX2"/>
+<parameter id="MY1"/>
+<parameter id="MY2"/>
+<parameter id="QuatRotation"/>
+<parameter id="TrackballSize"/>
+<parameter id="VirtualTrackball"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="tuple_vector_cross_product">
+<interface>
+<ic>
+<par name="V1" base_type="ctrl" dimension="0"/>
+<par name="V2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="VC" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* The caller must ensure that the length of both input vectors is 3</c>
+<l>VC := V1[1] * V2[2] - V1[2] * V2[1]</l>
+<l>VC := [VC,V1[2] * V2[0] - V1[0] * V2[2]]</l>
+<l>VC := [VC,V1[0] * V2[1] - V1[1] * V2[0]]</l>
+<l>return ()</l>
+</body>
+<docu id="tuple_vector_cross_product">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Compute the vector cross product</short>
+<parameters>
+<parameter id="V1"/>
+<parameter id="V2"/>
+<parameter id="VC"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="quaternion_to_hom_mat3d">
+<interface>
+<ic>
+<par name="Q" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Convert a quaternion into a 3d homogeneous transformation matrix</c>
+<l>HomMat3D := 1.0 - 2.0 * (Q[1] * Q[1] + Q[2] * Q[2])</l>
+<l>HomMat3D := [HomMat3D,2.0 * (Q[0] * Q[1] - Q[2] * Q[3])]</l>
+<l>HomMat3D := [HomMat3D,2.0 * (Q[2] * Q[0] + Q[1] * Q[3])]</l>
+<l>HomMat3D := [HomMat3D,0.0]</l>
+<l>HomMat3D := [HomMat3D,2.0 * (Q[0] * Q[1] + Q[2] * Q[3])]</l>
+<l>HomMat3D := [HomMat3D,1.0 - 2.0 * (Q[2] * Q[2] + Q[0] * Q[0])]</l>
+<l>HomMat3D := [HomMat3D,2.0 * (Q[1] * Q[2] - Q[0] * Q[3])]</l>
+<l>HomMat3D := [HomMat3D,0.0]</l>
+<l>HomMat3D := [HomMat3D,2.0 * (Q[2] * Q[0] - Q[1] * Q[3])]</l>
+<l>HomMat3D := [HomMat3D,2.0 * (Q[1] * Q[2] + Q[0] * Q[3])]</l>
+<l>HomMat3D := [HomMat3D,1.0 - 2.0 * (Q[1] * Q[1] + Q[0] * Q[0])]</l>
+<l>HomMat3D := [HomMat3D,0.0]</l>
+<l>return ()</l>
+</body>
+<docu id="quaternion_to_hom_mat3d">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Convert a quaternion into a 3d homogeneous transformation matrix</short>
+<parameters>
+<parameter id="HomMat3D"/>
+<parameter id="Q"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="add_quaternions">
+<interface>
+<ic>
+<par name="Q1" base_type="ctrl" dimension="0"/>
+<par name="Q2" base_type="ctrl" dimension="0"/>
+<par name="NumAddIn" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="QS" base_type="ctrl" dimension="0"/>
+<par name="NumAddOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>H1 := Q1[0:2] * Q2[3]</l>
+<l>H2 := Q2[0:2] * Q1[3]</l>
+<l>tuple_vector_cross_product (Q2[0:2], Q1[0:2], H3)</l>
+<l>QS := H1 + H2 + H3</l>
+<l>QS := [QS,Q1[3] * Q2[3] - sum(Q1[0:2] * Q2[0:2])]</l>
+<l>normalize_quaternions (QS, QS)</l>
+<l>if (NumAddIn &gt; 1000)</l>
+<l>    normalize_quaternions (QS, QS)</l>
+<l>    NumAddOut := 0</l>
+<l>else</l>
+<l>    NumAddOut := NumAddIn + 1</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="add_quaternions">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Add two quaternions</short>
+<parameters>
+<parameter id="NumAddIn"/>
+<parameter id="NumAddOut"/>
+<parameter id="Q1"/>
+<parameter id="Q2"/>
+<parameter id="QS"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="relative_coordinates_to_rotation_matrix">
+<interface>
+<ic>
+<par name="MX1" base_type="ctrl" dimension="0"/>
+<par name="MY1" base_type="ctrl" dimension="0"/>
+<par name="MX2" base_type="ctrl" dimension="0"/>
+<par name="MY2" base_type="ctrl" dimension="0"/>
+<par name="RelQuaternionIn" base_type="ctrl" dimension="0"/>
+<par name="NumAddIn" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="RelQuaternionOut" base_type="ctrl" dimension="0"/>
+<par name="NumAddOut" base_type="ctrl" dimension="0"/>
+<par name="RelHomMat" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Converts relative coordinates to the rotation matrix RelHomMat</c>
+<c>* </c>
+<c>* Compute the quaternion rotation that corresponds to the mouse</c>
+<c>* movement</c>
+<l>trackball (MX1, MY1, MX2, MY2, 'shoemake', 0.8, DeltaQuatRotation)</l>
+<c>* Add the incremental quaternion</c>
+<l>add_quaternions (RelQuaternionIn, DeltaQuatRotation, NumAddIn, RelQuaternionOut, NumAddOut)</l>
+<c>* Transform the quaternion to a rotation matrix</c>
+<l>quaternion_to_hom_mat3d (RelQuaternionOut, RelHomMat)</l>
+<l>return ()</l>
+</body>
+<docu id="relative_coordinates_to_rotation_matrix">
+<parameters>
+<parameter id="MX1"/>
+<parameter id="MX2"/>
+<parameter id="MY1"/>
+<parameter id="MY2"/>
+<parameter id="NumAddIn"/>
+<parameter id="NumAddOut"/>
+<parameter id="RelHomMat"/>
+<parameter id="RelQuaternionIn"/>
+<parameter id="RelQuaternionOut"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="pixel_coordinates_to_relative_coordinates">
+<interface>
+<ic>
+<par name="Cx" base_type="ctrl" dimension="0"/>
+<par name="Cy" base_type="ctrl" dimension="0"/>
+<par name="MRow1" base_type="ctrl" dimension="0"/>
+<par name="MCol1" base_type="ctrl" dimension="0"/>
+<par name="MRow2" base_type="ctrl" dimension="0"/>
+<par name="MCol2" base_type="ctrl" dimension="0"/>
+<par name="HeightL" base_type="ctrl" dimension="0"/>
+<par name="WidthL" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MX1" base_type="ctrl" dimension="0"/>
+<par name="MY1" base_type="ctrl" dimension="0"/>
+<par name="MX2" base_type="ctrl" dimension="0"/>
+<par name="MY2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Converts pixel coordinates (e.g. of the mouse pointer) to relative coordinates</c>
+<c>* </c>
+<l>MX1 := (Cx - MCol1) / (0.5 * WidthL)</l>
+<l>MY1 := (Cy - MRow1) / (0.5 * HeightL)</l>
+<l>MX2 := (Cx - MCol2) / (0.5 * WidthL)</l>
+<l>MY2 := (Cy - MRow2) / (0.5 * HeightL)</l>
+<l>return ()</l>
+</body>
+<docu id="pixel_coordinates_to_relative_coordinates">
+<parameters>
+<parameter id="Cx"/>
+<parameter id="Cy"/>
+<parameter id="HeightL"/>
+<parameter id="MCol1"/>
+<parameter id="MCol2"/>
+<parameter id="MRow1"/>
+<parameter id="MRow2"/>
+<parameter id="MX1"/>
+<parameter id="MX2"/>
+<parameter id="MY1"/>
+<parameter id="MY2"/>
+<parameter id="WidthL"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="visualize_3D_space">
+<interface>
+<io>
+<par name="DisparityImage" base_type="iconic" dimension="0"/>
+<par name="X" base_type="iconic" dimension="0"/>
+<par name="Y" base_type="iconic" dimension="0"/>
+<par name="Z" base_type="iconic" dimension="0"/>
+<par name="ImageRectifiedL" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+<par name="Cx" base_type="ctrl" dimension="0"/>
+<par name="Cy" base_type="ctrl" dimension="0"/>
+<par name="HeightL" base_type="ctrl" dimension="0"/>
+<par name="WidthL" base_type="ctrl" dimension="0"/>
+<par name="RelQuaternion" base_type="ctrl" dimension="0"/>
+<par name="NumAddIn" base_type="ctrl" dimension="0"/>
+<par name="MinX" base_type="ctrl" dimension="0"/>
+<par name="MinY" base_type="ctrl" dimension="0"/>
+<par name="MinZ" base_type="ctrl" dimension="0"/>
+<par name="RangeX" base_type="ctrl" dimension="0"/>
+<par name="RangeY" base_type="ctrl" dimension="0"/>
+<par name="RangeZ" base_type="ctrl" dimension="0"/>
+<par name="RectCamParL" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Button := -1</l>
+<l>while (Button != 4)</l>
+<l>    try</l>
+<l>        get_mposition (WindowHandle2, Row, Column, Button)</l>
+<l>        if (Button == 1)</l>
+<l>            MRow1 := Row</l>
+<l>            MCol1 := Column</l>
+<l>            while (Button == 1)</l>
+<l>                try</l>
+<l>                    get_mposition (WindowHandle2, Row, Column, Button)</l>
+<l>                    MRow2 := Row</l>
+<l>                    MCol2 := Column</l>
+<c>                    * </c>
+<c>                    * Convert pixel coordinates to the rotation matrix RelHomMat</c>
+<l>                    pixel_coordinates_to_relative_coordinates (Cx, Cy, MRow1, MCol1, MRow2, MCol2, HeightL, WidthL, MX1, MY1, MX2, MY2)</l>
+<l>                    relative_coordinates_to_rotation_matrix (MX1, MY1, MX2, MY2, RelQuaternion, NumAddIn, RelQuaternion, NumAddOut, RelHomMat)</l>
+<c>                    * </c>
+<c>                    * Create an image that will receive the rotated and projected points</c>
+<l>                    gen_image_const (RotatedImage, 'byte', WidthL, HeightL)</l>
+<c>                    * </c>
+<c>                    * Get the 3D coordinates of the points</c>
+<c>                    * defined in the disparity image</c>
+<l>                    get_region_points (DisparityImage, Rows, Columns)</l>
+<l>                    get_grayval (X, Rows, Columns, XPoints)</l>
+<l>                    get_grayval (Y, Rows, Columns, YPoints)</l>
+<l>                    get_grayval (Z, Rows, Columns, ZPoints)</l>
+<c>                    * </c>
+<c>                    * Rotate the points and translate them back</c>
+<l>                    hom_mat3d_translate (RelHomMat, MinX + RangeX * 0.5, MinY + RangeY * 0.5, MinZ + RangeZ * 0.5, RelHomMat)</l>
+<l>                    affine_trans_point_3d (RelHomMat, XPoints, YPoints, ZPoints, XVal, YVal, ZVal)</l>
+<c>                    * </c>
+<c>                    * Project the 3D points into the image</c>
+<l>                    project_3d_point (XVal, YVal, ZVal, RectCamParL, ProjRows, ProjCols)</l>
+<l>                    get_grayval (ImageRectifiedL, Rows, Columns, GrayVal)</l>
+<l>                    ProjRows := round(ProjRows)</l>
+<l>                    ProjCols := round(ProjCols)</l>
+<c>                    * </c>
+<c>                    * Find indices of points that lie outside the rotated image</c>
+<l>                    RemoveIndices := uniq(sort([find(sgn(int(ProjRows)),-1),find(sgn(int(ProjRows) - HeightL + 1),1),find(sgn(int(ProjCols)),-1),find(sgn(int(ProjCols) - WidthL + 1),1)]))</l>
+<c>                    * </c>
+<c>                    * Draw all valid points into the output image</c>
+<l>                    set_grayval (RotatedImage, remove(ProjRows,RemoveIndices), remove(ProjCols,RemoveIndices), remove(GrayVal,RemoveIndices))</l>
+<c>                    * </c>
+<c>                    * Fill the gaps in the output image</c>
+<l>                    threshold (RotatedImage, RegionInpainting, 0, 0)</l>
+<l>                    opening_circle (RegionInpainting, RegionInpainting2, 3.5)</l>
+<l>                    difference (RegionInpainting, RegionInpainting2, RegionInpainting)</l>
+<l>                    reduce_domain (RotatedImage, RegionInpainting, RotatedImageReduced)</l>
+<l>                    gray_dilation_rect (RotatedImageReduced, RotatedImageFilled, 3, 3)</l>
+<l>                    concat_obj (RotatedImage, RotatedImageFilled, RotatedImages)</l>
+<l>                    tile_images_offset (RotatedImages, RotatedImageOverlayed, [0,0], [0,0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], WidthL, HeightL)</l>
+<c>                    * </c>
+<c>                    * Display the rotated image</c>
+<l>                    dev_display (RotatedImageOverlayed)</l>
+<l>                    disp_message (WindowHandle2, 'Computed 3D points in 3D space', 'window', 10, 10, 'black', 'true')</l>
+<l>                    disp_message (WindowHandle2, 'Left button:  rotate', 'window', 205, 10, 'white', 'false')</l>
+<l>                    disp_message (WindowHandle2, 'Right button: exit', 'window', 220, 10, 'white', 'false')</l>
+<l>                    MRow1 := MRow2</l>
+<l>                    MCol1 := MCol2</l>
+<l>                catch (Exception)</l>
+<c>                    * Keep waiting</c>
+<l>                endtry</l>
+<l>            endwhile</l>
+<l>        endif</l>
+<l>    catch (Exception)</l>
+<c>        * Keep waiting</c>
+<l>    endtry</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="visualize_3D_space">
+<parameters>
+<parameter id="Cx"/>
+<parameter id="Cy"/>
+<parameter id="DisparityImage"/>
+<parameter id="HeightL"/>
+<parameter id="ImageRectifiedL"/>
+<parameter id="MinX"/>
+<parameter id="MinY"/>
+<parameter id="MinZ"/>
+<parameter id="NumAddIn"/>
+<parameter id="RangeX"/>
+<parameter id="RangeY"/>
+<parameter id="RangeZ"/>
+<parameter id="RectCamParL"/>
+<parameter id="RelQuaternion"/>
+<parameter id="WidthL"/>
+<parameter id="WindowHandle2"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

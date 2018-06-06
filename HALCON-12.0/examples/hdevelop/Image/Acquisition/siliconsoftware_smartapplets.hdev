@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON SiliconSoftware interface</c>
+<c>* (show usage of Silicon Software SmartApplets)</c>
+<c>* </c>
+<c>* To use this example the installation of Silicon Software SmartApplets is required.</c>
+<c>* Please use microDisplay to create a proper mcf-file!</c>
+<c>* </c>
+<l>info_framegrabber ('SiliconSoftware', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'port', PortInfo, PortInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'defaults', DefaultInfo, DefaultInfoValues)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<c>* The parameter 'num_dma_channels=2' is needed by the Segmentation and Binarization SmartApplets.</c>
+<c>* The 3D Triangulation SmartApplets ignores this parameter.</c>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Sets the continuous grabbing mode that improves the speedup.</c>
+<l>* set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c>* </c>
+<c>* The example demonstrates the usage of the binarization, segmentation and triangulation Silicon Software</c>
+<c>* SmartApplets family. Each kind of applet needs a different configuration. Therefore we have to query the</c>
+<c>* applet type and configure the applet accordingly.</c>
+<l>get_framegrabber_param (AcqHandle, 'applet_type', AppletTypeVal)</l>
+<l>tuple_strstr (AppletTypeVal, ['Tria','Blob','Bin'], Position)</l>
+<l>tuple_equal (Position, [1,-1,-1], Equal)</l>
+<l>if (Position[0] != -1)</l>
+<l>    AppletType := 'Tria'</l>
+<l>elseif (Position[1] != -1)</l>
+<l>    AppletType := 'Blob'</l>
+<l>elseif (Position[2] != -1)</l>
+<l>    AppletType := 'Bin'</l>
+<l>else</l>
+<c>    * Unsupported or not a SmartApplet. This examples handles only the SmartApplets.</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle0)</l>
+<c>* The binarisation mode usees grab_image[_async] and provides a multichannel image.</c>
+<l>if (AppletType == 'Bin')</l>
+<l>    dev_open_window (0, ImageWidth / 2 + 50, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle1)</l>
+<l>endif</l>
+<c>* </c>
+<l>if (AppletType == 'Tria')</l>
+<c>    * Output LaserLineAndImage = 0</c>
+<c>    * Output LaserLine = 1</c>
+<c>    * Output Image = 2 this configuration is not supported via grab_data[_async]</c>
+<l>    set_framegrabber_param (AcqHandle, 'FG_3D_IMAGE_OUTPUT', 1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'num_scans', 20)</l>
+<l>endif</l>
+<c>* </c>
+<l>if (AppletType == 'Blob')</l>
+<c>    * In case of a segmentation smart applet, we have to configure the blob parameters.</c>
+<c>    * The setup is only needed, if not already done with microDisplay.</c>
+<c>    * In this case the information is already stored and loaded via the corresponding</c>
+<c>    * mcf file. To setup the blob parameters and the data output, please check the</c>
+<c>    * procedure set_blob_parameter_and_data_output().</c>
+<l>    set_blob_parameter_and_data_output (AcqHandle)</l>
+<l>endif</l>
+<c>* Grab some images</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>while (true)</l>
+<l>    if (AppletType == 'Blob')</l>
+<l>        dev_set_window (WindowHandle0)</l>
+<l>        grab_data_async (Image, Regions, Contours, AcqHandle, -1, Data)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_display (Regions)</l>
+<l>    elseif (AppletType == 'Tria')</l>
+<l>        dev_set_window (WindowHandle0)</l>
+<l>        grab_data_async (Image, Regions, Contours, AcqHandle, -1, Data)</l>
+<l>        count_channels (Image, Channels)</l>
+<l>        tuple_length (Channels, NumImages)</l>
+<c>        * We select the last of the returned image objects, if no camera image is given, we will us the disparity image.</c>
+<l>        select_obj (Image, ImageObj, NumImages)</l>
+<l>        dev_display (ImageObj)</l>
+<c>        * The triangulation line will be displayed, if the 'FG_3D_IMAGE_OUTPUT' parameter is enabled</c>
+<l>        display_triangulation_line (Image, TriangObj, NumImages, ImageWidth, WindowHandle0, Row, Col, Grayval)</l>
+<l>    else</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>        access_channel (Image, Image0, 1)</l>
+<l>        dev_set_window (WindowHandle0)</l>
+<l>        dev_display (Image0)</l>
+<c>        * </c>
+<l>        access_channel (Image, Image1, 2)</l>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_display (Image1)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="set_blob_parameter_and_data_output">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Setup the Segmentation SmartApplets parameters</c>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BINARIZATION_MODE', 1)</l>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BLOB_BB_WIDTH_MIN', 5)</l>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BLOB_BB_WIDTH_MAX', 50)</l>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BLOB_BB_HEIGHT_MIN', 5)</l>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BLOB_BB_HEIGHT_MAX', 50)</l>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BLOB_AREA_MIN', 35)</l>
+<l>* set_framegrabber_param (AcqHandle, 'FG_BLOB_AREA_MAX', 200)</l>
+<c>* </c>
+<c>* Configure the blob information. The data parameter from grab_data_async ()</c>
+<c>* will return a tuple which contains all enabled values</c>
+<l>* set_framegrabber_param (AcqHandle, 'blob_center_of_gravity', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle, 'blob_center_of_gravity', 'enable')</l>
+<l>* set_framegrabber_param (AcqHandle, 'blob_contour_length', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle, 'blob_contour_length', 'enable')</l>
+<l>* set_framegrabber_param (AcqHandle, 'blob_area', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle, 'blob_area', 'enable')</l>
+<l>* set_framegrabber_param (AcqHandle, 'blob_bounding_box', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle, 'blob_bounding_box', 'enable')</l>
+<l>* set_framegrabber_param (AcqHandle, 'blob_region', 'disable')</l>
+<l>set_framegrabber_param (AcqHandle, 'blob_region', 'enable')</l>
+<l>return ()</l>
+</body>
+<docu id="set_blob_parameter_and_data_output">
+<parameters>
+<parameter id="AcqHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_triangulation_line">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="TriangObj" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="NumImages" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle0" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Col" base_type="ctrl" dimension="0"/>
+<par name="Grayval" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (NumImages &gt; 1)</l>
+<l>    select_obj (Image, TriangObj, 1)</l>
+<l>    tuple_gen_const (ImageWidth, 0, Row)</l>
+<l>    tuple_gen_sequence (0, ImageWidth - 1, 1, Col)</l>
+<l>    get_grayval (TriangObj, Row, Col, Grayval)</l>
+<c>    * </c>
+<l>    tuple_find (Grayval, 0, Indices)</l>
+<l>    Indices := [-1,Indices,|Grayval|]</l>
+<l>    for I := 0 to |Indices| - 2 by 1</l>
+<l>        if (|Indices| == 3 and I == 0)</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>        tuple_gen_sequence (Indices[I] + 1, Indices[I + 1] - 1, 1, Sequence)</l>
+<l>        tuple_select (Grayval, Sequence, Selected)</l>
+<l>        if (|Selected| &gt; 0)</l>
+<l>            disp_polygon (WindowHandle0, Selected, Sequence)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_triangulation_line">
+<parameters>
+<parameter id="Col"/>
+<parameter id="Grayval"/>
+<parameter id="Image"/>
+<parameter id="ImageWidth"/>
+<parameter id="NumImages"/>
+<parameter id="Row"/>
+<parameter id="TriangObj"/>
+<parameter id="WindowHandle0"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

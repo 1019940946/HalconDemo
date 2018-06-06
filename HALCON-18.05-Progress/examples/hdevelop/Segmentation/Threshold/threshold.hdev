@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Audi2, 'audi2')</l>
+<l>fill_interlace (Audi2, ImageFilled, 'odd')</l>
+<l>threshold (ImageFilled, Region, 0, 90)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'width', 'and', 30, 70)</l>
+<l>select_shape (SelectedRegions, Letters, 'height', 'and', 60, 110)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (ImageFilled)</l>
+<l>dev_display (Letters)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

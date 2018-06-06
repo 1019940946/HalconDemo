@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Adds a gray value offset to the template to eliminate</c>
+<c>* gray value changes in the image</c>
+<c>* </c>
+<l>read_image (For6, 'for6')</l>
+<l>fill_interlace (For6, ImageFilled, 'odd')</l>
+<l>gen_rectangle1 (Rectangle, 266, 390, 348, 435)</l>
+<l>* gen_rectangle1 (Rectangle, 78, 292, 129, 402)</l>
+<l>* gen_rectangle1 (Rectangle, 258, 214, 296, 258)</l>
+<l>area_center (Rectangle, Area, Row, Column)</l>
+<l>reduce_domain (ImageFilled, Rectangle, ImageReduced)</l>
+<c>* Preparing a pattern for template matching</c>
+<l>create_template (ImageReduced, 255, 4, 'sort', 'original', TemplateID)</l>
+<l>set_reference_template (TemplateID, Row, Column)</l>
+<l>for add := -20 to 20 by 1.1</l>
+<l>    scale_image (ImageFilled, ImageScaled, 1, add)</l>
+<l>    set_offset_template (TemplateID, add)</l>
+<c>    * Searching the best gray value matches in a pyramid</c>
+<l>    best_match_mg (ImageScaled, TemplateID, 30, 'true', 4, 'original', Row, Column, Error)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* Deallocation of the memory of a template</c>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

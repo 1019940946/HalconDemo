@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for accessing an OPC Classic device with the OPC_Classic I/O interface</c>
+<c>* (open an I/O device and read some variables)</c>
+<c>* </c>
+<c>* This example demonstrates how to access variables on the OPC Server.</c>
+<c>* The example uses the Kepware KEPServerEx Simulation driver to read the output</c>
+<c>* of a Sine wave function.</c>
+<c>* </c>
+<c>* For your own server access please adapt the following lines to specify your</c>
+<c>* configuration. Please check your OPC server for the current address where you</c>
+<c>* can connect to it.</c>
+<l>MyOpcServerHost := 'localhost'</l>
+<l>MyOpcProgID := 'Kepware.KEPServerEX.V5'</l>
+<c>* </c>
+<l>MyOpcServer := 'opcda://' + MyOpcServerHost + '/' + MyOpcProgID</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Query the I/O interface version</c>
+<l>query_io_interface ('OPC_Classic', 'revision', GenParamValue)</l>
+<c>* </c>
+<c>* Open the connection to the server</c>
+<l>open_io_device ('OPC_Classic', MyOpcServer, [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* Get the selected device name</c>
+<l>get_io_device_param (IoDeviceHandle, 'io_device_name', IoDeviceName)</l>
+<c>* </c>
+<c>* To access an OPC Classic variable, you need to open an I/O channel for it. In order to</c>
+<c>* open the I/O channel, you need to know the node Id. Here the Sine wave from the Kepware</c>
+<c>* KEPServerEX Simulation Examples will be used.</c>
+<l>IOChannelName := 'Simulation Examples.Functions.Sine1'</l>
+<l>open_io_channel (IoDeviceHandle, IOChannelName, [], [], IoChannelHandle)</l>
+<c>* </c>
+<c>* Read the values from the sine wave</c>
+<l>SineValues := []</l>
+<l>for Index := 1 to 1000 by 1</l>
+<l>    read_io_channel (IoChannelHandle, Value, Status)</l>
+<l>    SineValues := [SineValues,Value]</l>
+<l>    plot_tuple (WindowHandle, [], SineValues, [], [], [], ['start_x','end_x','start_y','end_y'], [0,999,-40,40])</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Close the channel</c>
+<l>close_io_channel (IoChannelHandle)</l>
+<c>* </c>
+<c>* Close the device</c>
+<l>close_io_device (IoDeviceHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

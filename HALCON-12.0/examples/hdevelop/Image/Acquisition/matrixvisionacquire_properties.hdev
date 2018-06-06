@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the MatrixVisionAcquire interface</c>
+<c>* (working with dynamic properties)</c>
+<c>* </c>
+<l>open_framegrabber ('MatrixVisionAcquire', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', 1.0, 'default', 'mvBlue*', '0', -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'Camera/Gain_dB', currentGain)</l>
+<l>get_framegrabber_param (AcqHandle, 'Camera/TriggerMode', currentTriggerMode)</l>
+<c>* </c>
+<c>* play around with some parameters</c>
+<l>get_framegrabber_param (AcqHandle, 'readable_instance_properties', instReadProps)</l>
+<l>get_framegrabber_param (AcqHandle, 'writeable_instance_properties', instWriteProps)</l>
+<l>get_framegrabber_param (AcqHandle, 'readable_device_properties', devReadProps)</l>
+<l>get_framegrabber_param (AcqHandle, 'writeable_device_properties', devWriteProps)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'limits.Camera/Expose_us', exposeLimits)</l>
+<c>* you can also get it via this call:</c>
+<l>get_framegrabber_param (AcqHandle, 'Camera/Expose_us_range', exposeLimits2)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'Camera/Expose_us', currentExposeTime)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'dictionary.Camera/TriggerMode', triggerModes)</l>
+<c>* you can also get it via this call:</c>
+<l>get_framegrabber_param (AcqHandle, 'Camera/TriggerMode_values', triggerModes2)</l>
+<c>* </c>
+<c>* the firmware version doesn't define a limit and therefore returns integer limits</c>
+<l>get_framegrabber_param (AcqHandle, 'limits.Info/FirmwareVersion', firmwareVersionLimits)</l>
+<l>get_framegrabber_param (AcqHandle, 'dictionary.Camera/ExposeMode', exposeModes)</l>
+<l>get_framegrabber_param (AcqHandle, 'isVisible.Camera/ExposeMode', exposeModeVisible)</l>
+<l>get_framegrabber_param (AcqHandle, 'isVisible.ImageProcessing/WhiteBalanceSettings-4/GreenGain', greenGain4Visible)</l>
+<c>* </c>
+<l>cnt := 1</l>
+<l>ImgCount := 100</l>
+<l>dev_update_off ()</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to 100 by 1</l>
+<c>    * This will be slow as we are modifying the expose time all the time. Thus the sensor needs to be reprogramed for each grab</c>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    cnt := cnt + 1</l>
+<l>    if (cnt &gt; 25)</l>
+<l>        cnt := 1</l>
+<l>    endif</l>
+<l>    exposetime := cnt * 5000</l>
+<l>    set_framegrabber_param (AcqHandle, 'Camera/Expose_us', exposetime)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>dev_update_on ()</l>
+<l>fps := ImgCount / (Seconds2 - Seconds1)</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

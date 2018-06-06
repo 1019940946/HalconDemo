@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use Fourier transforms to determine</c>
+<c>* the rotation angle of a grid.</c>
+<c>* First, a reference image (rotation angle 0°) is used to create</c>
+<c>* a reference spectrum of the edge orientation. By correlating</c>
+<c>* the frequency spectrum of the edge orientation of an</c>
+<c>* arbitrarily rotated grid with the reference spectrum, it is</c>
+<c>* possible to determine the rotation angle of the grid.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (ImagePattern, 'grid/grid_01')</l>
+<l>get_image_size (ImagePattern, Width, Height)</l>
+<l>Scale := .7</l>
+<l>HistoBorder := .15</l>
+<l>dev_open_window (0, 0, Width * Scale, Height * Scale, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, (Width * Scale) + 12, Width * Scale, Height * Scale, 'white', WindowHisto)</l>
+<l>set_display_font (WindowHisto, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>Row := gen_tuple_const(180,0)</l>
+<l>Column := [0:179]</l>
+<c>* </c>
+<c>* Compute the histogram of the reference orientation</c>
+<l>optimize_fft_speed (180, 1, 'standard')</l>
+<l>compute_edge_direction_histogram (ImagePattern, ImageDirRef, HistogramDirRef)</l>
+<l>rft_generic (ImageDirRef, ImageFFTRef, 'to_freq', 'none', 'complex', 180)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (ImagePattern)</l>
+<l>disp_message (WindowHandle, 'Reference image', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>dev_set_window (WindowHisto)</l>
+<l>dev_clear_window ()</l>
+<l>ValueYMax := max(HistogramDirRef)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>plot_histo_scale (HistogramDirRef, WindowHisto, 'Angle [°]', 0, 359, 0, ValueYMax, 'black', 'blue', HistoBorder)</l>
+<l>disp_message (WindowHisto, 'Distribution of edge orientation', 'window', 12, 70, 'black', 'false')</l>
+<l>disp_message (WindowHisto, 'Reference image', 'window', 50, 280, 'black', 'false')</l>
+<l>dev_set_color ('blue')</l>
+<l>disp_line (WindowHisto, 85, 355, 85, 390)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the orientation of the images to process</c>
+<l>NumImages := 7</l>
+<l>for Index := 1 to 7 by 1</l>
+<l>    read_image (Image, 'grid/grid_' + Index$'.2d')</l>
+<c>    * </c>
+<c>    * FFT image of rotated object</c>
+<l>    compute_edge_direction_histogram (Image, ImageTest, HistogramDirTest)</l>
+<l>    rft_generic (ImageTest, ImageFFTTest, 'to_freq', 'none', 'complex', 180)</l>
+<c>    * </c>
+<c>    * Compare FFT image of rotated object with reference FFT</c>
+<l>    correlation_fft (ImageFFTRef, ImageFFTTest, ImageCorrelation)</l>
+<l>    rft_generic (ImageCorrelation, ImageFFT, 'from_freq', 'none', 'real', 180)</l>
+<l>    get_grayval (ImageFFT, Row, Column, Grayval)</l>
+<l>    create_funct_1d_array ([Grayval[179],Grayval,Grayval[0]], Function)</l>
+<c>    * </c>
+<c>    * Find best correlation between object and reference FFT</c>
+<l>    determine_max_correlation (Function, Angle)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Grid is rotated by ' + Angle$'.2f' + '°', 'window', 10, 10, 'black', 'true')</l>
+<l>    dev_set_window (WindowHisto)</l>
+<l>    dev_clear_window ()</l>
+<l>    ValueYMax := max([HistogramDirRef,HistogramDirTest])</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    plot_histo_scale (HistogramDirRef, WindowHisto, '', 0, 359, 0, ValueYMax, 'black', 'blue', HistoBorder)</l>
+<l>    plot_histo_scale (HistogramDirTest, WindowHisto, 'Angle [°]', 0, 359, 0, ValueYMax, 'black', 'red', HistoBorder)</l>
+<l>    disp_message (WindowHisto, 'Distribution of edge orientation', 'window', 12, 70, 'black', 'false')</l>
+<l>    disp_message (WindowHisto, 'Reference image', 'window', 50, 280, 'black', 'false')</l>
+<l>    disp_message (WindowHisto, 'Current image', 'window', 65, 280, 'black', 'false')</l>
+<l>    dev_set_color ('blue')</l>
+<l>    disp_line (WindowHisto, 85, 355, 85, 390)</l>
+<l>    dev_set_color ('red')</l>
+<l>    disp_line (WindowHisto, 105, 355, 105, 390)</l>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="compute_edge_direction_histogram">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageDirHistogram" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="DirectionHisto" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure computes the edge directions of the input image</c>
+<c>* and returns the histogram as an image and as a tuple.</c>
+<c>* </c>
+<c>* Compute the edge direction image</c>
+<l>sobel_amp (Image, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>threshold (EdgeAmplitude, Region, 30, 255)</l>
+<l>reduce_domain (Image, Region, ImageReduced)</l>
+<l>edges_image (ImageReduced, ImageAmp, ImageDir, 'canny', 1, 'nms', 20, 40)</l>
+<c>* </c>
+<c>* Compute the histogram of the direction image</c>
+<l>gray_histo_range (ImageDir, ImageDir, 0, 179, 180, DirectionHisto, BinSize)</l>
+<l>gen_image_const (ImageDirHistogram, 'real', 180, 1)</l>
+<l>Row := gen_tuple_const(180,0)</l>
+<l>Column := [0:179]</l>
+<l>set_grayval (ImageDirHistogram, Row, Column, DirectionHisto[0:179] * 1.0)</l>
+<l>return ()</l>
+</body>
+<docu id="compute_edge_direction_histogram">
+<parameters>
+<parameter id="DirectionHisto"/>
+<parameter id="Image"/>
+<parameter id="ImageDirHistogram"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_max_correlation">
+<interface>
+<ic>
+<par name="Function" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Angle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure determines the maximum correlation, which</c>
+<c>* corresponds to the relative angle between the two</c>
+<c>* images.</c>
+<c>* </c>
+<l>local_min_max_funct_1d (Function, 'plateaus_center', 'true', MinPos, MaxPos)</l>
+<l>tuple_thresh (MaxPos, 1, 181, InnerMaxPos)</l>
+<l>get_y_value_funct_1d (Function, InnerMaxPos, 'constant', MaxY)</l>
+<l>tuple_find (MaxY, max(MaxY), MaxPosAbs)</l>
+<l>Angle := 2 * (InnerMaxPos[MaxPosAbs] - 1)</l>
+<l>if (Angle &gt; 180)</l>
+<l>    Angle := Angle - 360</l>
+<l>endif</l>
+<c>* </c>
+<c>* The global maximum is one of the local maxima</c>
+<l>* local_min_max_funct_1d (Function, 'plateaus_center', 'true', MinPos, MaxPos)</l>
+<c>* </c>
+<c>* To avoid undesired border effects, we use an extended domain</c>
+<c>* for the correlation (182 instead of 180 values), but ignore</c>
+<c>* values near the border.</c>
+<l>* GlobalMax := 0</l>
+<l>* GlobalX := 0</l>
+<l>* for I := 0 to |MaxPos| - 1 by 1</l>
+<l>*     get_y_value_funct_1d (Function, MaxPos[I], 'constant', Y)</l>
+<l>*     if (Y &gt; GlobalMax and MaxPos[I] &gt;= 1 and MaxPos[I] &lt; 181)</l>
+<l>*         GlobalMax := Y</l>
+<l>*         GlobalX := MaxPos[I]</l>
+<l>*     endif</l>
+<l>* endfor</l>
+<c>* Because of the extended domain, we have to shift the result</c>
+<c>* from the interval (1,181) back to (0,179). Because the angle</c>
+<c>* is coded as half its value in the original direction image,</c>
+<c>* we have to multiply it by 2.</c>
+<l>* Angle := (GlobalX - 1.0) * 2.0</l>
+<c>* Normalize angle to the interval (-180,180)</c>
+<l>* if (Angle &gt; 180)</l>
+<l>*     Angle := Angle - 360</l>
+<l>* endif</l>
+<l>return ()</l>
+</body>
+<docu id="determine_max_correlation">
+<parameters>
+<parameter id="Angle"/>
+<parameter id="Function"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="plot_histo_scale">
+<interface>
+<ic>
+<par name="Histogram" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="LabelX" base_type="ctrl" dimension="0"/>
+<par name="ValueXMin" base_type="ctrl" dimension="0"/>
+<par name="ValueXMax" base_type="ctrl" dimension="0"/>
+<par name="ValueYMin" base_type="ctrl" dimension="0"/>
+<par name="ValueYMax" base_type="ctrl" dimension="0"/>
+<par name="ColorAxis" base_type="ctrl" dimension="0"/>
+<par name="ColorGraph" base_type="ctrl" dimension="0"/>
+<par name="Border" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure plots the histogram within the value range</c>
+<c>* [LabelXMin,LabelXMax] into the WindowHandle by leaving a</c>
+<c>* relative border around the plot.</c>
+<c>* </c>
+<l>if (|Histogram| &lt;= 0 or Border &lt; 0 or Border &gt;= 1)</l>
+<l>    disp_message (WindowHandle, 'Failed to plot histogram', 'window', 12, 12, 'black', 'true')</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine the area to be used for the plot.</c>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>PlotAreaX := (Column2 - Column1 + 1) * (1 - Border * 2)</l>
+<l>PlotAreaY := (Row2 - Row1 + 1) * (1 - Border * 2)</l>
+<l>OriginX := Column1 + Border * (Column2 - Column1 + 1)</l>
+<l>OriginY := Row2 - Border * (Row2 - Column1 + 1)</l>
+<c>* </c>
+<c>* Determine the extent of the function to be plotted</c>
+<l>MinY := min([Histogram,0,ValueYMin])</l>
+<l>MaxY := max([Histogram,ValueYMax])</l>
+<c>* </c>
+<c>* Determine the scaling values</c>
+<l>ScaleX := PlotAreaX / |Histogram|</l>
+<l>if (MaxY == MinY)</l>
+<l>    ScaleY := PlotAreaY</l>
+<l>    MaxY := ''</l>
+<l>else</l>
+<l>    ScaleY := PlotAreaY / (MaxY - MinY)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Display the histogram values</c>
+<l>polyX := []</l>
+<l>polyY := []</l>
+<l>for Value := 0 to |Histogram| - 1 by 1</l>
+<l>    polyX := [polyX,OriginX + Value * ScaleX]</l>
+<l>    polyY := [polyY,OriginY - (Histogram[Value] - MinY) * ScaleY]</l>
+<l>    polyX := [polyX,OriginX + (Value + 1) * ScaleX]</l>
+<l>    polyY := [polyY,OriginY - (Histogram[Value] - MinY) * ScaleY]</l>
+<l>endfor</l>
+<l>polyX := [polyX,OriginX + |Histogram| * ScaleX,OriginX]</l>
+<l>polyY := [polyY,OriginY,OriginY]</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_color (ColorGraph)</l>
+<l>gen_region_polygon_filled (Histo, polyY, polyX)</l>
+<l>dev_display (Histo)</l>
+<c>* </c>
+<c>* Display the coordinate system</c>
+<l>dev_set_color (ColorAxis)</l>
+<l>gen_arrow_contour_xld (ArrowX, OriginY, OriginX, OriginY, OriginX + PlotAreaX, 5, 5)</l>
+<l>gen_arrow_contour_xld (ArrowY, OriginY, OriginX, OriginY - PlotAreaY, OriginX, 5, 5)</l>
+<l>dev_display (ArrowX)</l>
+<l>dev_display (ArrowY)</l>
+<c>* </c>
+<l>dev_set_color (ColorAxis)</l>
+<l>get_string_extents (WindowHandle, LabelX, Ascent, Descent, W, H)</l>
+<l>set_tposition (WindowHandle, OriginY + 10, OriginX + PlotAreaX / 2 - W / 2)</l>
+<l>write_string (WindowHandle, LabelX)</l>
+<c>* </c>
+<l>if (int(ValueXMin) == ValueXMin)</l>
+<l>    MinXD := int(ValueXMin)</l>
+<l>else</l>
+<l>    MinXD := ValueXMin</l>
+<l>endif</l>
+<l>get_string_extents (WindowHandle, MinXD$'3.1f', Ascent1, Descent1, W, H)</l>
+<l>set_tposition (WindowHandle, OriginY + 10, OriginX)</l>
+<l>write_string (WindowHandle, MinXD$'3.1f')</l>
+<l>if (int(ValueXMax) == ValueXMax)</l>
+<l>    MaxXD := int(ValueXMax)</l>
+<l>else</l>
+<l>    MaxXD := ValueXMax</l>
+<l>endif</l>
+<l>get_string_extents (WindowHandle, MaxXD$'3.1f', Ascent2, Descent2, W, H)</l>
+<l>set_tposition (WindowHandle, OriginY + 10, OriginX + PlotAreaX - W)</l>
+<l>write_string (WindowHandle, MaxXD$'3.1f')</l>
+<l>get_string_extents (WindowHandle, MinY, Ascent3, Descent3, W, H)</l>
+<l>set_tposition (WindowHandle, OriginY - H, OriginX - 10 - W)</l>
+<l>write_string (WindowHandle, MinY)</l>
+<l>get_string_extents (WindowHandle, MaxY, Ascent4, Descent4, W, H)</l>
+<l>set_tposition (WindowHandle, OriginY - PlotAreaY, OriginX - 20 - W)</l>
+<l>write_string (WindowHandle, MaxY)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="plot_histo_scale">
+<parameters>
+<parameter id="Border"/>
+<parameter id="ColorAxis"/>
+<parameter id="ColorGraph"/>
+<parameter id="Histogram"/>
+<parameter id="LabelX"/>
+<parameter id="ValueXMax"/>
+<parameter id="ValueXMin"/>
+<parameter id="ValueYMax"/>
+<parameter id="ValueYMin"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="tuple_thresh">
+<interface>
+<ic>
+<par name="Tuple" base_type="ctrl" dimension="0"/>
+<par name="Low" base_type="ctrl" dimension="0"/>
+<par name="High" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Selected" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure returns all values X of Tuple, that</c>
+<c>* fulfill the equation Low &lt;= X &lt; High</c>
+<c>* </c>
+<l>IndicesBelowHighThreshold := find(sgn(Tuple - High),-1)</l>
+<l>if (IndicesBelowHighThreshold == -1)</l>
+<l>    IndicesBelowHighThreshold := []</l>
+<l>endif</l>
+<l>Tmp := subset(Tuple,IndicesBelowHighThreshold)</l>
+<l>IndicesBelowLowThreshold := find(sgn(Tmp - Low),-1)</l>
+<l>if (IndicesBelowLowThreshold == -1)</l>
+<l>    IndicesBelowLowThreshold := []</l>
+<l>endif</l>
+<l>Selected := remove(Tmp,IndicesBelowLowThreshold)</l>
+<l>return ()</l>
+</body>
+<docu id="tuple_thresh">
+<parameters>
+<parameter id="High"/>
+<parameter id="Low"/>
+<parameter id="Selected"/>
+<parameter id="Tuple"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

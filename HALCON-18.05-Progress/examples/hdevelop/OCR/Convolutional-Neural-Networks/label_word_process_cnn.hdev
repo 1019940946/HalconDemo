@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how OCR results can be improved by restricting the</c>
+<c>* allowed results using a regular expression or a lexicon. Note, that the</c>
+<c>* classification results are artificially distorted for demonstration purposes.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'label/label_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 20, 'mono', 'true', 'false')</l>
+<c>* Load pretrained font for character classification.</c>
+<l>read_ocr_class_cnn ('Universal_NoRej', OCRHandle)</l>
+<c>* Create a lexicon of 3 allowed words.</c>
+<l>create_lexicon ('label', ['BEST','BEFORE','END'], LexiconHandle)</l>
+<l>for I := 1 to 9 by 1</l>
+<c>    * Read image.</c>
+<l>    read_image (Image, 'label/label_0' + I)</l>
+<c>    * Find the label.</c>
+<l>    threshold (Image, Region, 128, 230)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, LabelRaw, 'width', 'and', 350, 450)</l>
+<l>    shape_trans (LabelRaw, Label, 'rectangle2')</l>
+<c>    * Perform rough deskew (of course, the text lines are not even parallel).</c>
+<l>    text_line_orientation (Label, Image, 25, -0.523599, 0.523599, OrientationAngle)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, -OrientationAngle, 0, 0, Deskew)</l>
+<l>    affine_trans_image (Image, ImageDeskew, Deskew, 'constant', 'false')</l>
+<l>    affine_trans_region (Label, LabelDeskew, Deskew, 'nearest_neighbor')</l>
+<l>    smallest_rectangle1 (LabelDeskew, LabelTop, LabelLeft, LabelBottom, LabelRight)</l>
+<l>    reduce_domain (ImageDeskew, LabelDeskew, ImageOCR)</l>
+<c>    * Extract character regions.</c>
+<l>    var_threshold (ImageOCR, Foreground, 40, 40, 0.8, 10, 'dark')</l>
+<l>    connection (Foreground, Blobs)</l>
+<l>    partition_dynamic (Blobs, Split, 21, 40)</l>
+<l>    select_shape (Split, Characters, ['width','height'], 'and', [10,20], [30,50])</l>
+<l>    select_shape (Characters, CharactersWords, 'row', 'and', 0, LabelTop + 80)</l>
+<l>    select_shape (Characters, CharactersDate, 'row', 'and', LabelTop + 80, 600)</l>
+<c>    * Artificially distort segmentation results for correction demonstration.</c>
+<l>    move_region (CharactersWords, CharactersWords, 0, 3)</l>
+<l>    move_region (CharactersDate, CharactersDate, -2, 0)</l>
+<c>    * Process word text.</c>
+<l>    sort_region (CharactersWords, SortedWords, 'character', 'true', 'row')</l>
+<l>    area_center (SortedWords, Area, Row, Column)</l>
+<l>    Column[|Column|] := 9999</l>
+<l>    gen_empty_obj (Word)</l>
+<l>    Text := ''</l>
+<l>    OriginalText := ''</l>
+<l>    for J := 1 to |Column| - 1 by 1</l>
+<l>        select_obj (SortedWords, Character, J)</l>
+<l>        concat_obj (Word, Character, Word)</l>
+<c>        * Check character spacing to determine end of word.</c>
+<l>        if (J == |Column| or (Column[J] - Column[J - 1]) &gt; 30)</l>
+<c>            * Classify the word without restriction (for comparison).</c>
+<l>            do_ocr_word_cnn (Word, ImageOCR, OCRHandle, '.*', 1, 5, Class, Confidence, WordText, WordScore)</l>
+<l>            OriginalText := OriginalText + ' ' + WordText</l>
+<c>            * Classify the word using a lexicon.</c>
+<l>            do_ocr_word_cnn (Word, ImageOCR, OCRHandle, '&lt;label&gt;', 1, 5, Class, Confidence, WordText, WordScore)</l>
+<l>            Text := Text + ' ' + WordText</l>
+<l>            gen_empty_obj (Word)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Process Date Text</c>
+<l>    sort_region (CharactersDate, SortedDate, 'character', 'true', 'row')</l>
+<c>    * Classify the data string without restriction (for comparison).</c>
+<l>    do_ocr_word_cnn (SortedDate, ImageOCR, OCRHandle, '.*', 5, 5, Class, Confidence, OriginalDateText, DateScore)</l>
+<c>    * Classify the data string using a regular expression.</c>
+<l>    do_ocr_word_cnn (SortedDate, ImageOCR, OCRHandle, '^([0-2][0-9]|30|31)/(0[1-9]|10|11|12)/0[0-5]$', 10, 5, Class, Confidence, DateText, DateScore)</l>
+<c>    * Visualization</c>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageOCR)</l>
+<l>    dev_set_colored (6)</l>
+<l>    dev_display (Characters)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_disp_text ('Distorted: ' + OriginalText + ' ' + OriginalDateText, 'image', 10, 10, 'red', 'box', 'false')</l>
+<l>    dev_disp_text ('Corrected: ' + Text + ' ' + DateText, 'image', 40, 10, 'green', 'box', 'false')</l>
+<l>    if (I &lt; 9)</l>
+<l>        set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        set_display_font (WindowHandle, 20, 'mono', 'true', 'false')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

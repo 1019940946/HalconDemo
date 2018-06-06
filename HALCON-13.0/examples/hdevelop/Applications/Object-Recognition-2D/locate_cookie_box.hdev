@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to find a cookie box aligned in different</c>
+<c>* directions with the descriptor based matching feature. First, a</c>
+<c>* model and a reference pose are computed from the reference</c>
+<c>* image, then the model is searched in a sequence of images</c>
+<c>* showing the cookie box in different orientations. Using the</c>
+<c>* resulting pose we can also check whether the box is placed</c>
+<c>* upside down or not.</c>
+<c>* </c>
+<c>* </c>
+<l>ReCreateDescrModel := false</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'packaging/cookie_box_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('blue')</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_division (0.0155565, -109.42, 1.28008e-005, 1.28e-005, 322.78, 240.31, 640, 480, CamParam)</l>
+<c>* </c>
+<c>* </c>
+<l>RowsRoi := [224,224,406,406]</l>
+<l>ColumnsRoi := [115,540,540,115]</l>
+<l>WorldX := [-189,189,189,-189] / 1000.0</l>
+<l>WorldY := [-80,-80,80,80] / 1000.0</l>
+<c>* reference pose of the object to the camera is computed</c>
+<l>vector_to_pose (WorldX, WorldY, [], RowsRoi, ColumnsRoi, CamParam, 'iterative', 'error', Pose, Quality)</l>
+<l>image_points_to_world_plane (CamParam, Pose, RowsRoi, ColumnsRoi, 'm', XOuterBox, YOuterBox)</l>
+<c>* generate ROI for model training</c>
+<l>gen_rectangle1 (Rectangle, 224, 115, 406, 540)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<c>* </c>
+<c>* If desired re-create the descriptor-based model. Note that this may take</c>
+<c>* several minutes dependent on the hardware.</c>
+<l>dev_display (Image)</l>
+<l>if (ReCreateDescrModel)</l>
+<l>    dev_display (Rectangle)</l>
+<l>    disp_message (WindowHandle, 'Creating the descriptor-based model ... \n(may take a minute)', 'window', 10, 10, 'black', 'true')</l>
+<l>    count_seconds (SecondsCreation1)</l>
+<l>    create_calib_descriptor_model (ImageReduced, CamParam, Pose, 'harris_binomial', [], [], ['depth','number_ferns','patch_size','min_scale','max_scale'], [11,30,17,0.4,1.2], 42, ModelID)</l>
+<l>    count_seconds (SecondsCreation2)</l>
+<l>    TimeCreation := SecondsCreation2 - SecondsCreation1</l>
+<l>    write_descriptor_model (ModelID, 'cookie_box_model.dsm')</l>
+<l>else</l>
+<c>    * If desired read the descriptor-based model from disk</c>
+<l>    disp_message (WindowHandle, 'Reading the descriptor-based model file from disk ...\n ... will take a few seconds!', 'window', 10, 10, 'black', 'true')</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    dev_error_var (ErrorVar, 1)</l>
+<l>    read_descriptor_model ('cookie_box_model.dsm', ModelID)</l>
+<l>    Error := ErrorVar</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<c>        * Create the descriptor-based model if it's not available on disk</c>
+<l>        dev_display (Image)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        disp_message (WindowHandle, 'Reading the descriptor-based model file from disk  ... \n... failed!', 'window', 10, 10, 'black', 'true')</l>
+<l>        disp_message (WindowHandle, 'Creating the descriptor-based model (may take a minute)', 'window', 48, 10, 'black', 'true')</l>
+<c>        * </c>
+<l>        count_seconds (SecondsCreation1)</l>
+<l>        create_calib_descriptor_model (ImageReduced, CamParam, Pose, 'harris_binomial', [], [], ['depth','number_ferns','patch_size','min_scale','max_scale'], [11,30,17,0.4,1.2], 42, ModelID)</l>
+<l>        count_seconds (SecondsCreation2)</l>
+<l>        TimeCreation := SecondsCreation2 - SecondsCreation1</l>
+<c>        * Ignore writing errors as they are not critical for this example</c>
+<l>        dev_set_check ('~give_error')</l>
+<l>        write_descriptor_model (ModelID, 'cookie_box_model.dsm')</l>
+<l>        dev_set_check ('give_error')</l>
+<l>        ReCreateDescrModel := true</l>
+<l>    endif</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<l>if (ReCreateDescrModel)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'One model created in ' + TimeCreation$'.03f' + ' seconds.', 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<c>* Main loop:</c>
+<c>* search model in image sequence</c>
+<l>for Index := 1 to 10 by 1</l>
+<l>    OutputString := []</l>
+<l>    read_image (Image, 'packaging/cookie_box_' + Index$'.02')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * find model (using default parameters)</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_calib_descriptor_model (Image, ModelID, [], [], [], [], 0.25, 1, CamParam, 'num_points', Pose, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := Seconds2 - Seconds1</l>
+<c>    * </c>
+<c>    * display results</c>
+<l>    if (|Score| &gt; 0)</l>
+<l>        get_descriptor_model_points (ModelID, 'search', 0, Row, Col)</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_set_line_width (1)</l>
+<l>        gen_cross_contour_xld (Cross1, Row, Col, 6, 0.785398)</l>
+<l>        dev_display (Cross1)</l>
+<l>        dev_set_color ('lime green')</l>
+<l>        dev_set_line_width (3)</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParam, Pose, 0.07)</l>
+<c>        * </c>
+<l>        pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>        affine_trans_point_3d (HomMat3D, XOuterBox, YOuterBox, [0,0,0,0], XTrans, YTrans, ZTrans)</l>
+<l>        project_3d_point (XTrans, YTrans, ZTrans, CamParam, RowTrans, ColTrans)</l>
+<c>        * </c>
+<c>        * </c>
+<l>        gen_contour_polygon_xld (Contour, RowTrans, ColTrans)</l>
+<l>        close_contours_xld (Contour, Contour)</l>
+<l>        dev_display (Contour)</l>
+<c>        * </c>
+<c>        * determine direction of box</c>
+<l>        if ((Pose[5] &gt; 45 and Pose[5] &lt; 135) or (Pose[5] &gt; 225 and Pose[5] &lt; 315))</l>
+<l>            OutputString := 'Box label found in ' + (Time * 1000)$'.4' + ' ms (on the side)'</l>
+<l>        elseif (Pose[5] &gt; 135 and Pose[5] &lt; 225)</l>
+<l>            OutputString := 'Box label found in ' + (Time * 1000)$'.4' + ' ms (upside down)'</l>
+<l>        else</l>
+<l>            OutputString := 'Box label found in ' + (Time * 1000)$'.4' + ' ms'</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (|Score| == 0)</l>
+<l>        OutputString := 'No label found'</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, OutputString, 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Program finished.\nPress \'Run\' to clear all descriptor models.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* created descriptor model has to be deleted</c>
+<l>clear_descriptor_model (ModelID)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

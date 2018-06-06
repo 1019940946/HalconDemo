@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Select regions by desired neighboring relation</c>
+<c>* </c>
+<l>read_image (Meningg6, 'meningg6')</l>
+<l>gauss_filter (Meningg6, ImageGauss, 7)</l>
+<c>* Extract watersheds and basins from image</c>
+<l>watersheds (ImageGauss, Regions, Watersheds)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('light grey')</l>
+<l>* select_obj (Regions, Reference, 261)</l>
+<l>select_shape (Regions, Reference, ['row','column'], 'and', [250,250], [260,260])</l>
+<c>* Choose regions by desired neighboring relation</c>
+<l>select_region_spatial (Reference, Regions, 'left', RegionIndex1, RegionIndex2)</l>
+<l>dev_set_color ('red')</l>
+<l>select_obj (Regions, ObjectSelected, RegionIndex2)</l>
+<l>select_region_spatial (Reference, Regions, 'right', RegionIndex1, RegionIndex2)</l>
+<l>dev_set_color ('green')</l>
+<l>select_obj (Regions, ObjectSelected, RegionIndex2)</l>
+<l>select_region_spatial (Reference, Regions, 'above', RegionIndex1, RegionIndex2)</l>
+<l>dev_set_color ('blue')</l>
+<l>select_obj (Regions, ObjectSelected, RegionIndex2)</l>
+<l>select_region_spatial (Reference, Regions, 'below', RegionIndex1, RegionIndex2)</l>
+<l>dev_set_color ('cyan')</l>
+<l>select_obj (Regions, ObjectSelected, RegionIndex2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

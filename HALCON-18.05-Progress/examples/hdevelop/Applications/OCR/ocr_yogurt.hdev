@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to segment the expiration date of</c>
+<c>* a yoghurt cap. After the segmentation, the characters are classified</c>
+<c>* by the mlp ocr classifier using the dotprint font.</c>
+<c>* </c>
+<c>* </c>
+<c>* Display initializations</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'ocr/yogurt_lid_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<l>read_ocr_class_cnn ('Universal_NoRej.occ', OCRHandle)</l>
+<c>* Approximate the character's dot size</c>
+<l>DotDiameter := 6</l>
+<c>* Rough character size</c>
+<l>CharHeight := 60</l>
+<l>CharWidth := 50</l>
+<c>* Number of candidates returned by the classifier</c>
+<l>NCandidates := 5</l>
+<l>for I := 1 to 4 by 1</l>
+<l>    read_image (Image, 'ocr/yogurt_lid_' + I$'02')</l>
+<c>    * </c>
+<c>    * Segmentation of characters on yoghurt cover</c>
+<l>    decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<c>    * diff_of_gauss() emphasizes structures having a characteristic dimension of size</c>
+<c>    * DotDiameter (line thickness, maximum diameter, ...)</c>
+<l>    diff_of_gauss (ImageR, DiffOfGauss, DotDiameter / 2, 2)</l>
+<l>    scale_image_max (DiffOfGauss, ImageScaleMax)</l>
+<c>    * Merge dots</c>
+<l>    gray_dilation_shape (ImageScaleMax, ImageMax, 3, 3, 'octagon')</l>
+<c>    * Segment_characters expects black on white characters</c>
+<l>    invert_image (ImageMax, ImageInvert)</l>
+<l>    segment_characters (ImageInvert, ImageInvert, ImageForeground, RegionForeground, 'local_contrast_best', 'false', 'true', 'medium', CharWidth, CharHeight, 20, 40, UsedThreshold)</l>
+<l>    closing_circle (RegionForeground, RegionClosing, 3)</l>
+<l>    connection (RegionClosing, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'height', 'and', 39, 65)</l>
+<c>    * </c>
+<c>    * We assume that characters are aligned along a line and</c>
+<c>    * the regions over or below this line are distractors</c>
+<l>    area_center (SelectedRegions, Area, Row, Column)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    tuple_histo_range (Row, 0, Height, 2 * Height / CharHeight, Histo, BinSize)</l>
+<l>    tuple_find (Histo, max(Histo), IndMax)</l>
+<l>    CharRow := BinSize * (IndMax[0] + 0.5)</l>
+<l>    select_shape (SelectedRegions, Characters, 'row', 'and', CharRow - CharHeight / 2, CharRow + CharHeight / 2)</l>
+<c>    * </c>
+<c>    * Read out the characters on the yoghurt cover</c>
+<l>    sort_region (Characters, SortedRegions, 'character', 'true', 'row')</l>
+<l>    do_ocr_word_cnn (SortedRegions, ImageForeground, OCRHandle, '\\d{4}[A-Z]', NCandidates, 3, Class, Confidence, Word, Score)</l>
+<c>    * </c>
+<l>    DateString := Word{0} + Word{1} + '.' + Word{2} + Word{3} + '.'</l>
+<l>    BatchID := Word{4}</l>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SortedRegions)</l>
+<l>    disp_message (WindowHandle, 'Best before: ' + DateString + '\nBatch ID   : ' + BatchID, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I &lt; 4)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

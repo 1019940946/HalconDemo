@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>read_image (Traffic1, 'traffic1')</l>
+<l>read_image (Traffic2, 'traffic2')</l>
+<l>get_image_size (Traffic1, Width, Height)</l>
+<l>dev_open_window (0, 0, 2 * Width, 2 * Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Traffic1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('blue')</l>
+<l>check_difference (Traffic1, Traffic2, Selected1, 'diff_outside', -15, 255, 0, 0, 0)</l>
+<c>* Segment car in second image</c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Traffic2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('yellow')</l>
+<c>* Segment car in first image</c>
+<l>check_difference (Traffic1, Traffic2, Selected2, 'diff_outside', -255, 15, 0, 0, 0)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Compare image with a noisy translated variant of itself</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>MoveRow := 10</l>
+<l>MoveCol := 15</l>
+<l>Add := 10</l>
+<l>Noise := 5</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, MoveRow, MoveCol, HomMat2DTranslate)</l>
+<l>affine_trans_image (Traffic1, Moved1, HomMat2DTranslate, 'constant', 'false')</l>
+<l>scale_image (Moved1, MovedScaled1, 1, Add)</l>
+<l>add_noise_white (MovedScaled1, MovedScaledNoise1, Noise)</l>
+<c>* Since the noise is lower than DiffUpperBound,</c>
+<c>* the Result is empty.</c>
+<l>check_difference (Traffic1, MovedScaledNoise1, Diff, 'diff_outside', -Noise, Noise, -Add, -MoveRow, -MoveCol)</l>
+<l>dev_display (Traffic1)</l>
+<l>dev_display (Diff)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

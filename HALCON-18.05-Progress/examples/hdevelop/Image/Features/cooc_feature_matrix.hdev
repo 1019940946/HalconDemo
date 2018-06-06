@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to calculate co-occurrence matrices</c>
+<c>* from given image regions and how to derive gray value features</c>
+<c>* from these co-occurrence matrices.</c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Read in an image and open and prepare the output windows</c>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>CoocWinSize := 320</l>
+<l>Border := 10</l>
+<l>dev_open_window (0, CoocWinSize + Border, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<l>dev_open_window (Height - CoocWinSize, 0, CoocWinSize, CoocWinSize, 'black', WindowID1)</l>
+<l>set_display_font (WindowID1, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_set_color ('yellow')</l>
+<c>* </c>
+<l>dev_open_window (0, Width + CoocWinSize + 2 * Border, CoocWinSize, CoocWinSize, 'black', WindowID2)</l>
+<l>set_display_font (WindowID2, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_set_color ('blue')</l>
+<c>* </c>
+<c>* Define the regions for which the co-occurance matrices will be calculated</c>
+<l>gen_rectangle1 (Rectangle1, 350, 100, 450, 200)</l>
+<l>gen_rectangle1 (Rectangle2, 100, 200, 200, 300)</l>
+<l>inner_circle (Rectangle1, Row1, Column1, Radius1)</l>
+<l>inner_circle (Rectangle2, Row2, Column2, Radius2)</l>
+<c>* </c>
+<c>* Loop over the four possible directions</c>
+<l>for Direction := 0 to 135 by 45</l>
+<c>    * </c>
+<c>    * Calculate the co-occurrence matrices for the given regions</c>
+<l>    gen_cooc_matrix (Rectangle1, Image, Matrix1, 6, Direction)</l>
+<l>    gen_cooc_matrix (Rectangle2, Image, Matrix2, 6, Direction)</l>
+<c>    * </c>
+<c>    * Calculate the gray value features from the co-occurance matrices</c>
+<l>    cooc_feature_matrix (Matrix1, Energy1, Correlation1, Homogeneity1, Contrast1)</l>
+<l>    cooc_feature_matrix (Matrix2, Energy2, Correlation2, Homogeneity2, Contrast2)</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    dev_set_window (WindowID)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowID, 'Direction: ' + Direction$'3d' + ' degrees', 'window', 260, 100, 'black', 'true')</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Rectangle1)</l>
+<l>    gen_arrow_contour_xld (Arrow1, Row1, Column1, Row1 - sin(rad(Direction)) * 0.9 * Radius1, Column1 + cos(rad(Direction)) * 0.9 * Radius1, 8, 8)</l>
+<l>    dev_display (Arrow1)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Rectangle2)</l>
+<l>    gen_arrow_contour_xld (Arrow2, Row2, Column2, Row2 - sin(rad(Direction)) * 0.9 * Radius2, Column2 + cos(rad(Direction)) * 0.9 * Radius2, 8, 8)</l>
+<l>    dev_display (Arrow2)</l>
+<c>    * </c>
+<l>    String := ['Energy: ','Correlation: ','Homogeneity: ','Contrast: ']</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_display (Matrix1)</l>
+<l>    get_domain (Matrix1, Domain)</l>
+<l>    dev_display (Domain)</l>
+<l>    disp_message (WindowID1, String$'-14s' + [Energy1,Correlation1,Homogeneity1,Contrast1]$'6.3f', 'window', 12, 12, 'white', 'false')</l>
+<c>    * </c>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_display (Matrix2)</l>
+<l>    get_domain (Matrix2, Domain)</l>
+<l>    dev_display (Domain)</l>
+<l>    disp_message (WindowID2, String$'-14s' + [Energy2,Correlation2,Homogeneity2,Contrast2]$'6.3f', 'window', 12, 12, 'white', 'false')</l>
+<c>    * </c>
+<l>    if (Direction &lt; 135)</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

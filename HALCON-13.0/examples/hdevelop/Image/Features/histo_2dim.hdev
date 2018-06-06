@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the histogram of two-channel gray value images</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<c>* Filter the image using a Laws texture filter</c>
+<l>texture_laws (Image, ImageTexture1, 'le', 3, 5)</l>
+<l>texture_laws (Image, ImageTexture2, 'el', 3, 5)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<c>* Create a region</c>
+<l>gen_rectangle1 (Rectangle, 215, 320, 250, 440)</l>
+<l>histo_2dim (Rectangle, ImageTexture1, ImageTexture2, Histo2Dim)</l>
+<c>* Set look-up-table of the the output window</c>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_set_draw ('fill')</l>
+<c>* Select gray values lying within the interval 1 - 100000</c>
+<l>threshold (Histo2Dim, Distrib, 1, 100000)</l>
+<l>dev_set_lut ('default')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

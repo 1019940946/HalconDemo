@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example presents the bar code parameter</c>
+<c>* 'stop_after_result_num'.</c>
+<c>* With this parameter the decoding time can be decreased</c>
+<c>* if the number of expected bar codes is known.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* Display an introduction</c>
+<l>Message := 'This example presents the bar code parameter\n'</l>
+<l>Message[1] := '\'stop_after_result_num\'.\n \n'</l>
+<l>Message[2] := 'With this parameter the decoding time can be decreased'</l>
+<l>Message[3] := 'if the number of expected bar codes is known.\n \n'</l>
+<l>Message[4] := 'Please refer to the reference documentation for further \nexplanations.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Case 1 shows the improvement for images containing only bar</c>
+<c>* codes of type 'GS1 DataBar Stacked' with many false candidates</c>
+<l>StatusHeight := 180</l>
+<l>for I := 1 to 2 by 1</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * read image, initialize window</c>
+<l>    read_image (Image, 'barcode/gs1databar_stacked/gs1databar_stacked_0' + I)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (-1, -1, Width, Height + StatusHeight)</l>
+<l>    dev_set_part (0, 0, Height + StatusHeight - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * run detection with the default number for decodings</c>
+<c>    * (which is practically infinite)</c>
+<l>    set_bar_code_param (BarCodeHandle, 'stop_after_result_num', 0)</l>
+<c>    * </c>
+<c>    * determine the runtime of find_bar_code</c>
+<l>    find_bar_code_timing (Image, SymbolRegions, BarCodeHandle, 'GS1 DataBar Stacked', DecodedDataStrings, Time1)</l>
+<c>    * </c>
+<c>    * run the detection and stop after the first successfully decoded</c>
+<c>    * bar code</c>
+<l>    set_bar_code_param (BarCodeHandle, 'stop_after_result_num', 1)</l>
+<c>    * </c>
+<c>    * determine the runtime of find_bar_code</c>
+<l>    find_bar_code_timing (Image, SymbolRegions, BarCodeHandle, 'GS1 DataBar Stacked', DecodedDataStrings, Time2)</l>
+<c>    * </c>
+<c>    * show candidates (red) and decoded symbols (green)</c>
+<l>    get_bar_code_object (Candidates, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Candidates)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<c>    * </c>
+<l>    Message := 'Elapsed time \n'</l>
+<l>    Message[1] := '    all candidates(default) :   ' + Time1$'7.2f' + ' ms\n'</l>
+<l>    Message[2] := '    decode only one symbol  :   ' + Time2$'7.2f' + ' ms\n'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I == 1)</l>
+<l>        Message := 'If the number of expected bar codes is known in\n'</l>
+<l>        Message[1] := 'advance (here: 1) this can be set as parameter\n'</l>
+<l>        Message[2] := '\'stop_after_result_num\' in set_bar_code_param\n'</l>
+<l>        Message[3] := 'or set_bar_code_param_specific.\n\n'</l>
+<l>        Message[4] := 'Typically, the decoding time decreases in images\n'</l>
+<l>        Message[5] := 'with many false candidates.'</l>
+<l>        disp_message (WindowHandle, Message, 'window', Height + 12, 12, 'black', 'false')</l>
+<l>    endif</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Case 2 shows the usage of stop_after_result_num in the</c>
+<c>* operator set_bar_code_param_specific for mixed bar code types.</c>
+<c>* </c>
+<c>* For each image the expected bar code types and</c>
+<c>* their numbers are given</c>
+<l>CodeTypes := ['Code 39','EAN-13']</l>
+<l>NumCode39 := [2,1,3,2]</l>
+<l>NumEAN13 := [1,1,1,1]</l>
+<c>* </c>
+<c>* Display an introduction</c>
+<l>dev_set_window_extents (-1, -1, 640, 480)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'The number of expected bar codes can be set differently'</l>
+<l>Message[1] := 'for each type (here: ' + CodeTypes[0] + ' and ' + CodeTypes[1] + ') with the\n'</l>
+<l>Message[2] := 'operator set_bar_code_param_specific.\n \n'</l>
+<l>Message[3] := 'Please note that in some cases there is no speed-up'</l>
+<l>Message[4] := 'even though stop_after_result_num has been set, e.g.\n'</l>
+<l>Message[5] := 'in cases where the number of candidates equals the\n'</l>
+<l>Message[6] := 'number of expected bar codes.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for I := 1 to 4 by 1</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * read image, initialize window</c>
+<l>    read_image (Image, 'barcode/mixed/barcode_mixed_0' + I)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (-1, -1, Width / 2, Height / 2)</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * run the detection with the default number of decodings (which</c>
+<c>    * is practically infinite) for all supported bar code types</c>
+<l>    set_bar_code_param (BarCodeHandle, 'stop_after_result_num', 0)</l>
+<c>    * </c>
+<c>    * determine the runtime of find_bar_code</c>
+<l>    find_bar_code_timing (Image, SymbolRegions, BarCodeHandle, CodeTypes, DecodedDataStrings, Time1)</l>
+<c>    * </c>
+<c>    * run the detection and stop after a given number of</c>
+<c>    * successfully decoded bar codes of the given type</c>
+<l>    set_bar_code_param_specific (BarCodeHandle, CodeTypes[0], 'stop_after_result_num', NumCode39[I - 1])</l>
+<l>    set_bar_code_param_specific (BarCodeHandle, CodeTypes[1], 'stop_after_result_num', NumEAN13[I - 1])</l>
+<c>    * </c>
+<c>    * determine the runtime of find_bar_code</c>
+<l>    find_bar_code_timing (Image, SymbolRegions, BarCodeHandle, CodeTypes, DecodedDataStrings, Time2)</l>
+<c>    * </c>
+<c>    * show candidates (red) and decoded symbols (green)</c>
+<l>    get_bar_code_object (Candidates, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Candidates)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<c>    * </c>
+<l>    Message := 'Elapsed time \n'</l>
+<l>    Message[1] := '    all candidates(default) :   ' + Time1$'7.2f' + ' ms\n'</l>
+<l>    Message[2] := '    decode only given number:   ' + Time2$'7.2f' + ' ms\n'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_bar_code_timing">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="SymbolRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="BarCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="CodeType" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DecodedDataStrings" base_type="ctrl" dimension="0"/>
+<par name="Time" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* find_bar_code_timing calls find_bar_code multiple</c>
+<c>* times for a comparable timing measurement.</c>
+<c>* It returns the required time in milliseconds.</c>
+<c>* </c>
+<c>* Call find_bar_code directly before the time measurements</c>
+<c>* to prepare the reader for the time measurements.</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<c>* </c>
+<c>* Repeat the measurements 10 times</c>
+<l>Repeat := 10</l>
+<l>count_seconds (StartTime)</l>
+<l>for Index := 1 to Repeat by 1</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>endfor</l>
+<l>count_seconds (EndTime)</l>
+<l>Time := 1000.0 * (EndTime - StartTime) / Repeat</l>
+<l>return ()</l>
+</body>
+<docu id="find_bar_code_timing">
+<parameters>
+<parameter id="BarCodeHandle"/>
+<parameter id="CodeType"/>
+<parameter id="DecodedDataStrings"/>
+<parameter id="Image"/>
+<parameter id="SymbolRegions"/>
+<parameter id="Time"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

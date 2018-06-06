@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Fast detection of clips</c>
+<c>* </c>
+<c>* ATTENTION</c>
+<c>* On multicore computers supporting the SSE2 instruction set, threshold</c>
+<c>* is most likely faster than fast_threshold.</c>
+<c>* fast_threshold may only be preferred to threshold if those features</c>
+<c>* are not available, e.g. on embedded platforms.</c>
+<l>dev_update_off ()</l>
+<l>read_image (ActualImage, 'clip')</l>
+<l>get_image_size (ActualImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2 + 100, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height + 199, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (ActualImage)</l>
+<c>* </c>
+<c>* Try different values for MinHeight and see what happens</c>
+<l>MinHeight := 20</l>
+<l>Min := 0</l>
+<l>Max := 128</l>
+<l>threshold (ActualImage, ThresholdedRegion, Min, Max)</l>
+<l>count_seconds (Start)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    threshold (ActualImage, ThresholdedRegion, Min, Max)</l>
+<l>endfor</l>
+<l>count_seconds (End)</l>
+<l>TimeThreshold := (End - Start) / 100 * 1000</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ThresholdedRegion)</l>
+<l>disp_message (WindowHandle, 'TimeThreshold: ' + TimeThreshold$'.2' + ' ms', 'image', Height + 10, 20, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>fast_threshold (ActualImage, FastThresholdedRegion, Min, Max, MinHeight)</l>
+<l>count_seconds (Start)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    fast_threshold (ActualImage, FastThresholdedRegion, Min, Max, MinHeight)</l>
+<l>endfor</l>
+<l>count_seconds (End)</l>
+<l>TimeFastThreshold := (End - Start) / 100 * 1000</l>
+<l>dev_display (ActualImage)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (FastThresholdedRegion)</l>
+<l>disp_message (WindowHandle, 'TimeFastThreshold: ' + TimeFastThreshold$'.2' + ' ms', 'image', Height + 60, 20, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ActualImage)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>difference (ThresholdedRegion, FastThresholdedRegion, RegionDifference)</l>
+<l>area_center (RegionDifference, AreaDifference, Row, Column)</l>
+<l>dev_display (RegionDifference)</l>
+<l>disp_message (WindowHandle, 'Area difference: ' + AreaDifference + ' px', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

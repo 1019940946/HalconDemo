@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>intensity (Image, Image, Mean, Deviation)</l>
+<l>open_file ('intensity.txt', 'output', FileHandle)</l>
+<l>fwrite_string (FileHandle, Mean + ' ' + Deviation)</l>
+<l>close_file (FileHandle)</l>
+<l>exit ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

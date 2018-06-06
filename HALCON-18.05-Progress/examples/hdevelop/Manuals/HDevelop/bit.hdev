@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>Number := 128</l>
+<l>LShift := lsh(Number,2)</l>
+<l>RShift := rsh(Number,2)</l>
+<l>Select := Number band 1</l>
+<l>Select := 127 band 4</l>
+<l>Set := 127 bor lsh(1,7)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

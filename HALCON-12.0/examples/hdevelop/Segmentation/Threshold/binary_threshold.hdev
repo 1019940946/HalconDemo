@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the operator binary_threshold.</c>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>ImageFiles := ['dip_switch/dip_switch_01','circular_barcode','fin1']</l>
+<l>for I := 0 to |ImageFiles| - 1 by 1</l>
+<l>    read_image (Image, ImageFiles[I])</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Test image for binary_threshold'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * 'max_separability'</c>
+<c>    * </c>
+<c>    * This method separates the histogram of the input image into</c>
+<c>    * two classes and performs a global thresholding operation</c>
+<c>    * to segment one class.</c>
+<l>    binary_threshold (Image, RegionMaxSeparabilityLight, 'max_separability', 'light', UsedThreshold)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (RegionMaxSeparabilityLight)</l>
+<l>    Message := 'Bright background segmented globally with'</l>
+<l>    Message[1] := 'Method = \'max_separability\''</l>
+<l>    Message[2] := 'Used threshold: ' + UsedThreshold</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * It is also possible to segment dark areas</c>
+<l>    binary_threshold (Image, RegionMaxSeparabilityDark, 'max_separability', 'dark', UsedThreshold)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (RegionMaxSeparabilityDark)</l>
+<l>    Message := 'Dark foreground segmented globally with'</l>
+<l>    Message[1] := 'Method = \'max_separability\''</l>
+<l>    Message[2] := 'Used threshold: ' + UsedThreshold</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * 'smooth_histo'</c>
+<c>    * </c>
+<c>    * This method separates the histogram of the input image into</c>
+<c>    * two classes by subsequently smoothing its histogram until there</c>
+<c>    * is only one minimum in the smoothed histogram. The position of</c>
+<c>    * this minimum determines the threshold.</c>
+<l>    binary_threshold (Image, RegionSmoothHistoLight, 'smooth_histo', 'light', UsedThreshold)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (RegionSmoothHistoLight)</l>
+<l>    Message := 'Bright background segmented globally with'</l>
+<l>    Message[1] := 'Method = \'smooth_histo\''</l>
+<l>    Message[2] := 'Used threshold: ' + UsedThreshold</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Segment dark areas</c>
+<l>    binary_threshold (Image, RegionSmoothHistoDark, 'smooth_histo', 'dark', UsedThreshold)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (RegionSmoothHistoDark)</l>
+<l>    Message := 'Dark foreground segmented globally with'</l>
+<l>    Message[1] := 'Method = \'smooth_histo\''</l>
+<l>    Message[2] := 'Used threshold: ' + UsedThreshold</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<l>endfor</l>
+<c>* </c>
+<c>* The difference between both methods is small,</c>
+<c>* but 'max_separability' is faster in most cases.</c>
+<l>symm_difference (RegionMaxSeparabilityDark, RegionSmoothHistoDark, RegionDifference)</l>
+<c>* Display difference</c>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionDifference)</l>
+<l>Message := 'The difference of both methods is small'</l>
+<l>Message[1] := '- \'max_separability\' is less prone to'</l>
+<l>Message[2] := '  undesired effects caused by over- or underexposure'</l>
+<l>Message[3] := '- often, \'max_separability\' is faster'</l>
+<l>Message[4] := '- \'max_separability\' is only available for'</l>
+<l>Message[5] := '  byte and uint2 images, while \'smooth_histo\''</l>
+<l>Message[6] := '  is available for byte, uint2, and real images'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* binary_threshold returns the threshold used for segmentation in UsedThreshold.</c>
+<c>* The threshold operator with this value returns the same region as</c>
+<c>* binary_threshold did.</c>
+<c>* </c>
+<l>threshold (Image, RegionThreshold, 0, UsedThreshold)</l>
+<c>* As a consequence the difference between these two regions is empty.</c>
+<l>symm_difference (RegionThreshold, RegionSmoothHistoDark, RegionDifference)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

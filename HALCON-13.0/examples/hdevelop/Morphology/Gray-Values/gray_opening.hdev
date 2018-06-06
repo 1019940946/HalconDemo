@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates the general gray morphology. "General"</c>
+<c>* means, that any shape for the structuring elements can be used.</c>
+<c>* The example shows how to segment the drill holes of a PCB.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'pcb_layout')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, 800, 700, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_update_off ()</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* We define a circle as structuring element that fits the size</c>
+<c>* of the drill holes we are looking for.</c>
+<c>* </c>
+<l>gen_image_const (ConstImage, 'byte', 11, 11)</l>
+<l>get_image_size (ConstImage, MaskWidth, MaskHeight)</l>
+<l>gen_circle (Circle, (MaskHeight - 1) / 2.0, (MaskWidth - 1) / 2.0, 3)</l>
+<l>reduce_domain (ConstImage, Circle, ImageReduced)</l>
+<c>* To allow a realistic time measurement, the operators are called once</c>
+<c>* to load the program code into memory</c>
+<l>gray_closing (Image, ImageReduced, ImageClosingFast)</l>
+<l>gray_opening (Image, ImageReduced, ImageOpeningFast)</l>
+<l>sub_image (ImageClosingFast, ImageOpeningFast, ImageSubFast, 1, 0)</l>
+<c>* Now the execution time can be measured</c>
+<l>count_seconds (Start)</l>
+<l>gray_closing (Image, ImageReduced, ImageClosingFast)</l>
+<l>gray_opening (Image, ImageReduced, ImageOpeningFast)</l>
+<l>sub_image (ImageClosingFast, ImageOpeningFast, ImageSubFast, 1, 0)</l>
+<l>count_seconds (End)</l>
+<l>dev_display (ImageSubFast)</l>
+<l>disp_message (WindowHandle, ['Subtraction of gray_closing','and gray_opening','Execution time: ' + ((End - Start) * 1000.0)$'4.2f' + ' ms'], 'window', 5, 12, 'black', 'true')</l>
+<l>get_image_size (ConstImage, MaskWidth, MaskHeight)</l>
+<l>dev_open_window (0, 500, 100, 100, 'black', WindowHandle1)</l>
+<l>dev_display (ConstImage)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Circle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle)</l>
+<c>* </c>
+<l>segment_boreholes (ImageSubFast, Image, HolesFast, 80)</l>
+<l>dev_display (Image)</l>
+<l>dilation_circle (HolesFast, RegionDilation, 3.5)</l>
+<l>dev_display (RegionDilation)</l>
+<l>disp_message (WindowHandle, 'Segmentation of the larger drill holes', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="segment_boreholes">
+<interface>
+<io>
+<par name="ImageSub" base_type="iconic" dimension="0"/>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Holes" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Contrast" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>threshold (ImageSub, Region, 100, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<c>* Preselect the candidates</c>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['circularity','area'], 'and', [0.85,7], [1.0,30])</l>
+<c>* Compare gray values within the region and within its neighborhood</c>
+<c>* (select objects with a minimum contrast)</c>
+<l>dilation_circle (SelectedRegions, RegionDilation, 5)</l>
+<l>difference (RegionDilation, SelectedRegions, RegionDifference)</l>
+<l>intensity (SelectedRegions, Image, Mean, Deviation)</l>
+<l>intensity (RegionDifference, Image, Mean1, Deviation1)</l>
+<l>select_mask_obj (SelectedRegions, Holes, Mean - Mean1 [&gt;] Contrast)</l>
+<l>return ()</l>
+</body>
+<docu id="segment_boreholes">
+<parameters>
+<parameter id="Contrast"/>
+<parameter id="Holes"/>
+<parameter id="Image"/>
+<parameter id="ImageSub"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of an Euresys MultiCam board with 2 cameras</c>
+<c>*        DOMINO Alpha/Gamma/Harmony, GRABLINK Expert</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* You can get the current values with 'info_framegrabber(...,'info_boards',...)'.</c>
+<c>* </c>
+<l>MyConfigurationFile := 'Alpha_X:CS8530_P30SM'</l>
+<l>MyDeviceId := '0'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle0)</l>
+<c>* </c>
+<c>* new open for a second handle (Port Y)</c>
+<l>MyConfigurationFile := 'Alpha_Y:CS8530_P30SM'</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle1)</l>
+<c>* </c>
+<l>grab_image (Image0, AcqHandle0)</l>
+<l>grab_image (Image1, AcqHandle1)</l>
+<l>dev_update_window ('off')</l>
+<l>get_image_size (Image0, Width0, Height0)</l>
+<l>get_image_size (Image1, Width1, Height1)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width0 / 2, Height0 / 2, 'black', WindowHandle0)</l>
+<l>dev_open_window (0, Width0 / 2 + 20, Width1 / 2, Height1 / 2, 'black', WindowHandle1)</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image (Image0, AcqHandle0)</l>
+<l>    dev_set_window (WindowHandle0)</l>
+<l>    dev_display (Image0)</l>
+<l>    grab_image (Image1, AcqHandle1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image1)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>close_framegrabber (AcqHandle0)</l>
+<l>close_framegrabber (AcqHandle1)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

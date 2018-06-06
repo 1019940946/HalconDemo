@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use matrices in HALCON.</c>
+<c>* In this example the holes with a radius of 4.0 and 6.5 pixel</c>
+<c>* are searched for within a board.  The example uses a</c>
+<c>* least-squares adjustment using matrix operators for estimating</c>
+<c>* the centers of the holes. The input (observations) consists of the</c>
+<c>* XLD contours, the expected radius of the holes and a maximal residual</c>
+<c>* error (to determine the variances between the expected radius of the</c>
+<c>* holes and the adjusted holes).  Initial values for the minimization</c>
+<c>* of the unknowns are necessary because of the non-linear adjustment.</c>
+<c>* As initial values for the centers of the holes,  the mean of each</c>
+<c>* XLD contour is used.  The results of the adjustment are the center</c>
+<c>* points of the holes.</c>
+<c>* ******************************</c>
+<c>* Note: This example only demonstrates how to use matrices in HALCON.</c>
+<c>* In practice, the given problem would be solved by other</c>
+<c>* operators like 'select_shape'.</c>
+<c>* ******************************</c>
+<c>* Input: Expected radius of one or more holes</c>
+<l>ExpectedRadius := [4.0,6.5]</l>
+<c>* Input: Quality Value</c>
+<l>QualityValue := [0.3,0.5]</l>
+<c>* Input: Maximum of Iterations</c>
+<l>NumberOfMaxIterations := 10</l>
+<c>* ******************************</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Prepare observations</c>
+<l>read_image (Image, 'board/board-04.png')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_colored (12)</l>
+<l>edges_sub_pix (Image, Edges, 'canny', 0.95, 20, 40)</l>
+<l>dev_display (Edges)</l>
+<c>* Initialize adjustment</c>
+<l>unknowns := 2</l>
+<l>max_iter := 10</l>
+<c>* Loop over each selected contour</c>
+<l>dev_display (Image)</l>
+<l>NrHoles := |ExpectedRadius|</l>
+<l>CountHoles := []</l>
+<l>Colors := ['magenta','blue']</l>
+<l>for R := 0 to NrHoles - 1 by 1</l>
+<l>    CountHoles := [CountHoles,0]</l>
+<l>    select_contours_xld (Edges, SelectedContours, 'closed', 0, ExpectedRadius[R], 0, 0)</l>
+<l>    select_contours_xld (SelectedContours, SelectedContours, 'contour_length', ExpectedRadius[R] * 3.14, 100, 0, 0)</l>
+<l>    count_obj (SelectedContours, Number)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_set_color (Colors[R])</l>
+<l>    for Index := 1 to Number by 1</l>
+<c>        * Generate the observations</c>
+<l>        select_obj (SelectedContours, ObjectSelected, Index)</l>
+<l>        get_contour_xld (ObjectSelected, Y, X)</l>
+<c>        * Approximations</c>
+<l>        x_appr := [mean(X),mean(Y),ExpectedRadius[R]]</l>
+<c>        * Create matrices</c>
+<l>        num := |X|</l>
+<c>        * Initialize matrices A and B</c>
+<l>        create_matrix (num, num * 2, 0, B)</l>
+<l>        create_matrix (num, 2, 0, A)</l>
+<l>        Result := 1</l>
+<l>        redundancy := num - unknowns</l>
+<l>        Iter := 0</l>
+<l>        while (Result &gt; 1e-6 and Iter &lt; NumberOfMaxIterations)</l>
+<l>            Iter := Iter + 1</l>
+<l>            if (Iter &gt; 1)</l>
+<l>                clear_matrix ([dx_hat,w,invBBT])</l>
+<l>            endif</l>
+<c>            * Set matrices A and B with values</c>
+<l>            for i := 0 to num - 1 by 1</l>
+<l>                set_value_matrix (B, [i,i], [i * 2,i * 2 + 1], [2 * (X[i] - x_appr[0]),2 * (Y[i] - x_appr[1])])</l>
+<l>                set_value_matrix (A, [i,i], [0,1], [-2 * (X[i] - x_appr[0]),-2 * (Y[i] - x_appr[1])])</l>
+<l>            endfor</l>
+<c>            * Calculate w = (X-x_appr[0])^2 + (Y-x_appr[1])^2 - x_appr[2]^2</c>
+<l>            create_matrix (num, 1, X - x_appr[0], w1_a)</l>
+<l>            mult_element_matrix (w1_a, w1_a, w1_b)</l>
+<l>            create_matrix (num, 1, Y - x_appr[1], w2_a)</l>
+<l>            mult_element_matrix (w2_a, w2_a, w2_b)</l>
+<l>            create_matrix (num, 1, x_appr[2], w3_a)</l>
+<l>            mult_element_matrix (w3_a, w3_a, w3_b)</l>
+<l>            add_matrix_mod (w1_b, w2_b)</l>
+<l>            sub_matrix (w1_b, w3_b, w)</l>
+<l>            clear_matrix ([w1_a,w2_a,w3_a])</l>
+<l>            clear_matrix ([w1_b,w2_b,w3_b])</l>
+<c>            * Adjustment</c>
+<c>            * Calculate dx_hat = -inv(A' * inv(B*B') * A) * A' * inv(B*B') * w</c>
+<l>            mult_matrix (B, B, 'ABT', BBT)</l>
+<l>            invert_matrix (BBT, 'symmetric', 0, invBBT)</l>
+<l>            mult_matrix (A, invBBT, 'ATB', ATinvBBT)</l>
+<l>            mult_matrix (ATinvBBT, A, 'AB', ATinvBBTA)</l>
+<l>            invert_matrix (ATinvBBTA, 'symmetric', 0, invATinvBBTA)</l>
+<l>            scale_matrix (invATinvBBTA, -1, neg_invATinvBBTA)</l>
+<l>            mult_matrix (neg_invATinvBBTA, A, 'ABT', neg_invATinvBBTAAT)</l>
+<l>            mult_matrix (neg_invATinvBBTAAT, invBBT, 'AB', neg_invATinvBBTAAT_invBBT)</l>
+<l>            mult_matrix (neg_invATinvBBTAAT_invBBT, w, 'AB', dx_hat)</l>
+<c>            * Calculate x_hat = M_x_appr + dx_hat</c>
+<l>            create_matrix (2, 1, [x_appr[0],x_appr[1]], M_x_appr)</l>
+<l>            add_matrix (M_x_appr, dx_hat, x_hat)</l>
+<l>            get_full_matrix (x_hat, x_appr_tmp)</l>
+<l>            x_appr := [x_appr_tmp,x_appr[2]]</l>
+<l>            get_full_matrix (dx_hat, Tdx_hat)</l>
+<l>            Result := max(abs(Tdx_hat))</l>
+<l>            clear_matrix ([BBT,ATinvBBT,ATinvBBTA,invATinvBBTA,neg_invATinvBBTA])</l>
+<l>            clear_matrix ([neg_invATinvBBTAAT,neg_invATinvBBTAAT_invBBT])</l>
+<l>            clear_matrix ([M_x_appr,x_hat])</l>
+<l>        endwhile</l>
+<l>        if (Iter &lt; NumberOfMaxIterations)</l>
+<c>            * Adjustment of a hole is successful.  The hole is displayed.</c>
+<c>            * Calculate k_hat = -inv(B*B') -(A * dx_hat + w)</c>
+<l>            mult_matrix (A, dx_hat, 'AB', Adx_hat)</l>
+<l>            add_matrix (Adx_hat, w, Adx_hatw)</l>
+<l>            scale_matrix (invBBT, -1, neg_invBBT)</l>
+<l>            mult_matrix (neg_invBBT, Adx_hatw, 'AB', k_hat)</l>
+<c>            * Calculate v_hat = B * k_hat</c>
+<l>            mult_matrix (B, k_hat, 'ATB', v_hat)</l>
+<l>            pow_scalar_element_matrix (v_hat, 2, Pow2)</l>
+<l>            mean_matrix (Pow2, 'full', Mean)</l>
+<l>            sqrt_matrix_mod (Mean)</l>
+<l>            get_full_matrix (Mean, MeanValues)</l>
+<l>            clear_matrix ([Adx_hat,Adx_hatw,neg_invBBT,k_hat,v_hat,Pow2,Mean])</l>
+<l>            if (x_appr[0] &gt; 0 and x_appr[0] &lt; Width and x_appr[1] &gt; 0 and x_appr[1] &lt; Height)</l>
+<l>                get_grayval_interpolated (Image, x_appr[1], x_appr[0], 'bilinear', Grayval)</l>
+<l>            else</l>
+<l>                Grayval := 0</l>
+<l>            endif</l>
+<l>            if (Grayval &lt; 80 and MeanValues &lt; QualityValue[R])</l>
+<l>                disp_circle (WindowHandle, x_appr[1], x_appr[0], abs(x_appr[2]))</l>
+<l>                CountHoles[R] := CountHoles[R] + 1</l>
+<l>            endif</l>
+<l>        else</l>
+<l>            i := 1</l>
+<c>            * Adjustment of a hole has failed.  The hole is not displayed.</c>
+<l>        endif</l>
+<l>        clear_matrix ([dx_hat,w,invBBT])</l>
+<l>        clear_matrix ([A,B])</l>
+<l>    endfor</l>
+<l>    tuple_string (CountHoles[R], 'd', String)</l>
+<l>    disp_message (WindowHandle, CountHoles[R] + ' holes with a radius\n of ' + ExpectedRadius[R] + ' pixel found', 'window', 70 + R * 50, 350, Colors[R], 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

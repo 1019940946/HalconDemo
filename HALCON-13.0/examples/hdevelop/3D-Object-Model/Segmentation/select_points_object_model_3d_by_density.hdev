@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how sparse points, that often indicate</c>
+<c>* noisy or inaccurate measurements, can be removed from</c>
+<c>* 3D object models elegantly.</c>
+<c>* </c>
+<c>* The example shows three methods:</c>
+<c>* - 2 methods based on the 3D attribute 'num_neighbors'.</c>
+<c>* - 1 method that uses 2D filtering based on the scene's xyz mapping.</c>
+<c>* </c>
+<c>* The 2D method is much faster, but more difficult to use and</c>
+<c>* only feasible if an xyz mapping is available. Luckily, this</c>
+<c>* is the case in most applications where the scene data is</c>
+<c>* gathered from a 3D sensor.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 1000, 600, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>Instructions := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom: Shift + left button'</l>
+<l>Instructions[2] := 'Move: Ctrl + left button'</l>
+<c>* </c>
+<c>* Read a noisy time-of-flight image.</c>
+<l>read_image (Image, 'time_of_flight/engine_cover_noisy_xyz_01')</l>
+<l>decompose3 (Image, X, Y, Z)</l>
+<l>xyz_to_object_model_3d (X, Y, Z, ObjectModel3D)</l>
+<c>* </c>
+<c>* Find suitable parameters</c>
+<c>* such that the 30% sparsest points are removed.</c>
+<l>NumNeighbors := 15</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'neighbor_distance ' + NumNeighbors, DistanceDistribution)</l>
+<l>InlierRate := 70</l>
+<l>Distance := sort(DistanceDistribution)[|DistanceDistribution| * InlierRate / 100]</l>
+<c>* </c>
+<l>VisPose1 := [-0.008,-0.35,6.1,326,0,175,0]</l>
+<l>VisPose2 := [-0.097,-0.55,14.7,238,5,17,0]</l>
+<c></c>
+<l>for I := 1 to 7 by 1</l>
+<l>    read_image (Image, 'time_of_flight/engine_cover_noisy_xyz_' + I$'02')</l>
+<l>    decompose3 (Image, X, Y, Z)</l>
+<l>    xyz_to_object_model_3d (X, Y, Z, ObjectModel3D)</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (I == 1)</l>
+<l>        Title := ['Scene ' + I + '/7','The original scene is very noisy. We assume that sparse points, e.g., ','points with few neighbors near them, are noise and can be filtered out.']</l>
+<l>    else</l>
+<l>        Title := 'Scene ' + I + '/7'</l>
+<l>    endif</l>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModel3D, [], VisPose1, ['inspection_mode','color','point_size'], ['surface','white',2], Title, [], Instructions, VisPose1)</l>
+<c>    * </c>
+<c>    * MODE 1: Filter using 'num_neighbors'.</c>
+<c>    * </c>
+<c>    * Filter accurately.</c>
+<l>    count_seconds (T0)</l>
+<l>    select_points_object_model_3d (ObjectModel3D, 'num_neighbors ' + Distance, 15, NumPoints, ObjectModel3DThresholdedAccurate)</l>
+<l>    count_seconds (T1)</l>
+<l>    TimeAccurate := (T1 - T0) * 1000</l>
+<c>    * </c>
+<c>    * MODE 2: Filter using 'num_neighbors_fast'.</c>
+<l>    count_seconds (T0)</l>
+<l>    select_points_object_model_3d (ObjectModel3D, 'num_neighbors_fast ' + Distance, 15, NumPoints, ObjectModel3DThresholdedFast)</l>
+<l>    count_seconds (T1)</l>
+<l>    TimeFast := (T1 - T0) * 1000</l>
+<c>    * </c>
+<c>    * MODE 3: Filter using 2D image.</c>
+<l>    count_seconds (T0)</l>
+<l>    object_model_3d_to_xyz (X1, Y1, Z1, ObjectModel3D, 'from_xyz_map', [], [])</l>
+<l>    gray_range_rect (Z1, DepthRange, 3, 3)</l>
+<l>    threshold (DepthRange, Good, 0, 3 * Distance)</l>
+<l>    reduce_domain (Z1, Good, ZReduced)</l>
+<l>    xyz_to_object_model_3d (X, Y, ZReduced, ObjectModel3DFiltered2D)</l>
+<l>    count_seconds (T1)</l>
+<l>    Time2D := (T1 - T0) * 1000</l>
+<c>    * </c>
+<c>    * Visualize results.</c>
+<l>    Legend := ['Filtered','Original']</l>
+<l>    Color := ['yellow','red']</l>
+<l>    if (I == 1)</l>
+<l>        Title1 := 'Accurate mode: ' + TimeAccurate$'.1f' + ' ms'</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_disp_text (Legend, 'window', 12, 900, Color, 'box', 'false')</l>
+<l>        visualize_object_model_3d (WindowHandle1, [ObjectModel3DThresholdedAccurate,ObjectModel3D], [], VisPose1, ['disp_background','inspection_mode','color_0','color_1','point_size'], ['true','surface',Color,2], Title1, [], Instructions, VisPose1)</l>
+<c>        * </c>
+<l>        Title2 := 'Fast mode: ' + TimeFast$'.1f' + ' ms'</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_disp_text (Legend, 'window', 12, 900, Color, 'box', 'false')</l>
+<l>        visualize_object_model_3d (WindowHandle1, [ObjectModel3DThresholdedFast,ObjectModel3D], [], VisPose1, ['disp_background','inspection_mode','color_0','color_1','point_size'], ['true','surface',Color,2], Title2, [], Instructions, VisPose1)</l>
+<c>        * </c>
+<l>        Title3 := 'Alternative 2D method: ' + Time2D$'.1f' + ' ms'</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_disp_text (Legend, 'window', 12, 900, Color, 'box', 'false')</l>
+<l>        visualize_object_model_3d (WindowHandle1, [ObjectModel3DFiltered2D,ObjectModel3D], [], VisPose1, ['disp_background','inspection_mode','color_0','color_1','point_size'], ['true','surface',Color,2], Title3, [], Instructions, VisPose1)</l>
+<l>    endif</l>
+<c>    * Put all three scenes next to each other for visualization and comparison.</c>
+<l>    hom_mat3d_identity (HomMat3DIdentity)</l>
+<l>    hom_mat3d_translate (HomMat3DIdentity, -0.6, 0, 0, ToLeft)</l>
+<l>    affine_trans_object_model_3d (ObjectModel3DThresholdedAccurate, ToLeft, ObjectModel3DThresholdedAccurateAffineTrans)</l>
+<l>    affine_trans_object_model_3d (ObjectModel3D, ToLeft, ObjectModel3DAffineTrans2)</l>
+<l>    hom_mat3d_translate (HomMat3DIdentity, 0.6, 0, 0, ToRight)</l>
+<l>    affine_trans_object_model_3d (ObjectModel3DFiltered2D, ToRight, ObjectModel3DFiltered2DAffineTrans)</l>
+<l>    affine_trans_object_model_3d (ObjectModel3D, ToRight, ObjectModel3DAffineTrans1)</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    dev_disp_text (Legend, 'window', 12, 900, Color, 'box', 'false')</l>
+<l>    ObjectModels3D := [ObjectModel3DThresholdedAccurateAffineTrans,ObjectModel3DAffineTrans2,ObjectModel3DThresholdedFast,ObjectModel3D,ObjectModel3DFiltered2DAffineTrans,ObjectModel3DAffineTrans1]</l>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModels3D, [], VisPose2, ['disp_background','inspection_mode','color_' + [0:5],'point_size'], ['true','surface',Color,Color,Color,1], Title[0], [Title1,'',Title2,'',Title3,''], Instructions, VisPose2)</l>
+<c>    * </c>
+<l>    clear_object_model_3d (ObjectModel3DThresholdedAccurate)</l>
+<l>    clear_object_model_3d (ObjectModel3DFiltered2D)</l>
+<l>    clear_object_model_3d (ObjectModels3D)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

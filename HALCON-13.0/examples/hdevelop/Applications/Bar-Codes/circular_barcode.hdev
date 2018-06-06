@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read circularly printed bar codes.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>get_system ('clip_region', Information)</l>
+<l>set_system ('clip_region', 'true')</l>
+<l>read_image (Image, 'circular_barcode')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment the ring on the CD that contains the bar code.</c>
+<l>threshold (Image, Region, 0, 100)</l>
+<l>closing_circle (Region, Region, 3.5)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, Ring, ['width','height'], 'and', [550,550], [750,750])</l>
+<l>shape_trans (Ring, OuterCircle, 'outer_circle')</l>
+<l>complement (Ring, RegionComplement)</l>
+<l>connection (RegionComplement, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, InnerCircle, ['width','height'], 'and', [450,450], [650,650])</l>
+<c>* </c>
+<c>* Determine the parameters of the ring that contains the bar code.</c>
+<l>smallest_circle (Ring, Row, Column, OuterRadius)</l>
+<l>smallest_circle (InnerCircle, InnerRow, InnerColumn, InnerRadius)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (OuterCircle)</l>
+<l>dev_display (InnerCircle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now read the bar code. This is done by computing the polar transformation</c>
+<c>* of the ring in the image that contains the bar code.</c>
+<l>WidthPolar := 1440</l>
+<l>HeightPolar := round(OuterRadius - InnerRadius - 10)</l>
+<l>polar_trans_image_ext (Image, PolarTransImage, Row, Column, rad(360), 0, OuterRadius - 5, InnerRadius + 5, WidthPolar, HeightPolar, 'bilinear')</l>
+<l>invert_image (PolarTransImage, ImageInvert)</l>
+<c>* </c>
+<c>* Since the bar code region is quite flat the image height is doubled.</c>
+<l>zoom_image_factor (ImageInvert, ImageZoomed, 1, 2, 'weighted')</l>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Bars are small and the contrast is low; therefore the threshold is raised from 0.05 to 0.1.</c>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_min', 1.5)</l>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.3)</l>
+<l>find_bar_code (ImageZoomed, SymbolRegions, BarCodeHandle, 'Code 128', DecodedDataStrings)</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<l>dev_set_window_extents (-1, -1, WidthPolar / 2, HeightPolar)</l>
+<l>dev_display (ImageZoomed)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>set_system ('clip_region', Information)</l>
+<l>disp_message (WindowHandle, DecodedDataStrings, 'image', 10, 180, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Transform the code region back to the original image and display it.</c>
+<l>zoom_region (SymbolRegions, SymbolRegions, 1, 0.5)</l>
+<l>polar_trans_region_inv (SymbolRegions, CodeRegionCircular, Row, Column, rad(360), 0, OuterRadius - 5, InnerRadius + 5, WidthPolar, HeightPolar, Width, Height, 'nearest_neighbor')</l>
+<l>dev_set_window_extents (-1, -1, Width / 2, Height / 2)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CodeRegionCircular)</l>
+<l>disp_message (WindowHandle, DecodedDataStrings, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

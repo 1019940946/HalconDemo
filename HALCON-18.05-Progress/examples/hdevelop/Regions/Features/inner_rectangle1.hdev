@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use inner_rectangle1 to find knot-free</c>
+<c>* rectangles in a piece of wood.  Typically, the piece of wood is then cut along</c>
+<c>* the rectangles to obtain knot-free pieces of wood.</c>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>read_image (Image, 'wood_knots')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* Set the thresholds on the size of the rectangular parts of the piece of wood.</c>
+<l>MinAreaSize := 10000</l>
+<l>MinWidth := 50</l>
+<l>MinHeight := 50</l>
+<l>dev_display (Image)</l>
+<c>* Segment the knots.</c>
+<l>mean_image (Image, ThresholdImage, 31, 31)</l>
+<l>dyn_threshold (Image, ThresholdImage, RegionDynThresh, 20, 'dark')</l>
+<l>erosion_circle (RegionDynThresh, RegionErosion, 1.5)</l>
+<l>connection (RegionErosion, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, KnobRegions, 'area', 'and', 20, 200)</l>
+<l>dilation_circle (KnobRegions, KnobRegionsDilated, 5.5)</l>
+<l>union1 (KnobRegionsDilated, KnobRegionsUnion)</l>
+<c>* Compute the knot-free region.</c>
+<l>get_domain (Image, Domain)</l>
+<l>difference (Domain, KnobRegionsUnion, KnobFreeRegion)</l>
+<c>* Find inner rectangles as long as they fullfil the size restrictions and add them</c>
+<c>* to the tuple of knot-free rectangles.</c>
+<l>area_center (KnobFreeRegion, Area, Row, Column)</l>
+<l>gen_empty_obj (KnobFreeRectangles)</l>
+<l>while (Area &gt; MinAreaSize)</l>
+<l>    inner_rectangle1 (KnobFreeRegion, Row1, Column1, Row2, Column2)</l>
+<l>    RectangleHeight := Row2 - Row1</l>
+<l>    RectangleWidth := Column2 - Column1</l>
+<l>    if (RectangleHeight &gt; MinHeight and RectangleWidth &gt; MinWidth)</l>
+<l>        gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<l>        concat_obj (KnobFreeRectangles, Rectangle, KnobFreeRectangles)</l>
+<l>        difference (KnobFreeRegion, Rectangle, KnobFreeRegion)</l>
+<l>        area_center (KnobFreeRegion, Area, Row, Column)</l>
+<l>    else</l>
+<l>        break</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (KnobFreeRectangles)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

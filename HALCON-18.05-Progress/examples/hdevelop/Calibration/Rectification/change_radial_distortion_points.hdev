@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how point coordinates extracted from a radially</c>
+<c>* distorted image can be corrected. This is done by change_radial_distortion_points</c>
+<c>* using the radial distortion parameters stored in the camera parameters (CamParam)</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'calib/calib_distorted_01.png')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, [600,800], [400,600], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* Read camera parameters and prepare radially corrected camera parameters</c>
+<l>gen_cam_par_area_scan_polynomial (0.00506526, 5142.64, -1.98485e+08, -4.26734e+12, 0.0462524, 0.114147, 9.30055e-06, 9.3e-06, 276.713, 266.078, 640, 512, CamParam)</l>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, [0.0,0.0,0.0,0.0,0.0], CamParamOut)</l>
+<c>* </c>
+<l>for I := 18 to 34 by 1</l>
+<l>    Filename := 'calib/calib_distorted_' + I$'02'</l>
+<l>    read_image (Image, Filename)</l>
+<c>    * Convert image to 'byte'</c>
+<l>    min_max_gray (Image, Image, 0, Min, Max, Range)</l>
+<l>    scale_image_range (Image, ImageScaled, Min, Max)</l>
+<l>    convert_image_type (ImageScaled, ByteImage, 'byte')</l>
+<c>    * Find mark centers</c>
+<l>    find_caltab (ByteImage, Caltab, 'caltab_100mm.descr', 3, 112, 5)</l>
+<l>    find_marks_and_pose (ByteImage, Caltab, 'caltab_100mm.descr', CamParam, 128, 10, 18, 0.9, 15, 100, Row, Column, StartPose)</l>
+<c>    * Rectify the mark centers</c>
+<l>    change_radial_distortion_points (Row, Column, CamParam, CamParamOut, RowChanged, ColChanged)</l>
+<c>    * Prepare output points</c>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 12, rad(45))</l>
+<l>    gen_cross_contour_xld (CrossChanged, RowChanged, ColChanged, 12, rad(45))</l>
+<c>    * Show results</c>
+<l>    dev_display (ByteImage)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (CrossChanged)</l>
+<l>    disp_message (WindowHandle, ['Extracted centers (magenta \'x\')','Corrected centers (green \'x\')'], 'window', 10, 10, ['magenta','forest green'], 'true')</l>
+<l>    wait_seconds (0.2)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>change_radial_distortion_image (ByteImage, ByteImage, ImageRectified, CamParam, CamParamOut)</l>
+<l>dev_display (ByteImage)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'Original image and extracted centers', 'window', 10, 10, 'magenta', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageRectified)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (CrossChanged)</l>
+<l>disp_message (WindowHandle, 'Corrected image and centers', 'window', 10, 10, 'forest green', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Threshold operator for signed images</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Traffic1, 'traffic1')</l>
+<l>read_image (Traffic2, 'traffic2')</l>
+<l>convert_image_type (Traffic1, ImageConverted1, 'int2')</l>
+<l>convert_image_type (Traffic2, ImageConverted2, 'int2')</l>
+<c>* Subtract two images.</c>
+<l>sub_image (ImageConverted1, ImageConverted2, ImageSub, 1, 0)</l>
+<l>dual_threshold (ImageSub, RegionDiff, 500, 20, 10)</l>
+<l>get_image_size (Traffic1, Width, Height)</l>
+<l>dev_open_window (0, 0, 2 * Width, 2 * Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Traffic1)</l>
+<l>dev_display (RegionDiff)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Select regions based on gray value features</c>
+<l>select_gray (RegionDiff, Traffic1, SelectedRegions, 'deviation', 'and', 20, 255)</l>
+<l>dilation_circle (SelectedRegions, RegionDilation, 1.5)</l>
+<l>reduce_domain (Traffic1, RegionDilation, ImageReduced)</l>
+<l>binary_threshold (ImageReduced, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>* Transform the shape of a region.</c>
+<l>shape_trans (Region, RegionTrans, 'convex')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Traffic1)</l>
+<l>dev_display (RegionTrans)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

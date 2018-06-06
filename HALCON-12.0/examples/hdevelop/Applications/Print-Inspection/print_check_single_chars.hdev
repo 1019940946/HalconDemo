@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's variation model operators</c>
+<c>* to perform a typical print quality inspection.  The program detects incorrect</c>
+<c>* prints on the clips of pens.  The program is similar to the program print_check.hdev.</c>
+<c>* The main difference is that each character is checked separately.  This is not</c>
+<c>* a particularly good strategy for this application because it does not detect</c>
+<c>* errors that lie on the clip itself and errors because the V moves with respect</c>
+<c>* to the other characters.  In some applications, however, precisely this</c>
+<c>* invariance is useful.  This program can be used as a basis for such</c>
+<c>* applications.  In the first step, variation models for each character are</c>
+<c>* constructed from images of correct prints.  Since the position of the objects can</c>
+<c>* vary, the images of the different characters must be transformed to a reference</c>
+<c>* position (the position of the character in the variation model).  The position of</c>
+<c>* the character in the model is given by selecting a part of the first image that</c>
+<c>* to the character and a buffer around the character from the first image.  The</c>
+<c>* operator affine_trans_image_size is used to perform this task efficiently.</c>
+<c>* HALCON's shape-based matching is used to detect the pose of each</c>
+<c>* character in the images in a single call to find_shape_models.  The found</c>
+<c>* poses are used to transform the images of the different characters to their</c>
+<c>* respective reference positions.  In the second part of the program, the prints</c>
+<c>* of the correct clips and of several incorrect clips is checked and classified.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'pen/pen-01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Image)</l>
+<c>* Note: the shape models will be constructed from ROIs that are computed</c>
+<c>* automatically based on a simple image segmentation.</c>
+<l>threshold (Image, Region, 100, 255)</l>
+<l>fill_up (Region, RegionFillUp)</l>
+<l>difference (RegionFillUp, Region, RegionDifference)</l>
+<l>shape_trans (RegionDifference, RegionTrans, 'convex')</l>
+<l>dilation_circle (RegionTrans, RegionDilation, 8.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 0, 180)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>sort_region (ConnectedRegions, SortedRegions, 'character', 'true', 'row')</l>
+<l>dilation_circle (SortedRegions, RegionDilation, 1.5)</l>
+<l>smallest_rectangle1 (RegionDilation, Row1, Column1, Row2, Column2)</l>
+<l>count_obj (RegionDilation, Number)</l>
+<l>Heights := Row2 - Row1 + 5</l>
+<l>Widths := Column2 - Column1 + 5</l>
+<l>gen_empty_obj (ShapeModels)</l>
+<l>gen_empty_obj (VariationModelROIs)</l>
+<l>ShapeModelIDs := []</l>
+<l>VariationModelIDs := []</l>
+<l>RowsRef := []</l>
+<l>ColumnsRef := []</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (RegionDilation, ObjectSelected, I)</l>
+<l>    Height := Heights[I - 1]</l>
+<l>    Width := Widths[I - 1]</l>
+<l>    move_region (ObjectSelected, RegionMoved, -Row1[I - 1], -Column1[I - 1])</l>
+<l>    crop_part (Image, ImagePart, Row1[I - 1], Column1[I - 1], Widths[I - 1], Heights[I - 1])</l>
+<l>    reduce_domain (ImagePart, RegionMoved, ImageReduced)</l>
+<l>    inspect_shape_model (ImageReduced, ModelImages, ModelRegions, 1, [15,15,10])</l>
+<l>    gen_contours_skeleton_xld (ModelRegions, ModelContour, 1, 'filter')</l>
+<l>    area_center (RegionMoved, Area, RowRef, ColumnRef)</l>
+<l>    create_shape_model (ImageReduced, 5, rad(-10), rad(20), 'auto', 'none', 'use_polarity', 20, 10, ShapeModelID)</l>
+<l>    create_variation_model (Width, Height, 'byte', 'standard', VariationModelID)</l>
+<l>    concat_obj (ShapeModels, ModelContour, ShapeModels)</l>
+<l>    concat_obj (VariationModelROIs, RegionMoved, VariationModelROIs)</l>
+<l>    ShapeModelIDs := [ShapeModelIDs,ShapeModelID]</l>
+<l>    VariationModelIDs := [VariationModelIDs,VariationModelID]</l>
+<l>    RowsRef := [RowsRef,RowRef]</l>
+<l>    ColumnsRef := [ColumnsRef,ColumnRef]</l>
+<l>endfor</l>
+<c>* Visualize the different shape models.</c>
+<l>gen_empty_obj (Models)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (ShapeModels, ModelSelected, I)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_translate (HomMat2DIdentity, Row1[I - 1], Column1[I - 1], HomMat2D)</l>
+<l>    affine_trans_contour_xld (ModelSelected, ModelTrans, HomMat2D)</l>
+<l>    concat_obj (Models, ModelTrans, Models)</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Models)</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_message (WindowHandle, 'Shape models', 'image', -1, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, '(moved to original pos.)', 'image', 45, 20, 'yellow', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Train the different variation models.</c>
+<l>for J := 1 to 15 by 1</l>
+<l>    read_image (Image, 'pen/pen-' + J$'02d')</l>
+<l>    find_shape_models (Image, ShapeModelIDs, rad(-10), rad(20), 0.5, [1,1,1,1,1], 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score, Model)</l>
+<l>    for K := 0 to |Score| - 1 by 1</l>
+<l>        vector_angle_to_rigid (Row[K], Column[K], Angle[K], RowsRef[Model[K]], ColumnsRef[Model[K]], 0, HomMat2D)</l>
+<l>        affine_trans_image_size (Image, ImageTrans, HomMat2D, 'constant', Widths[Model[K]], Heights[Model[K]])</l>
+<l>        select_obj (VariationModelROIs, ROI, Model[K] + 1)</l>
+<l>        reduce_domain (ImageTrans, ROI, ImageTransReduced)</l>
+<l>        train_variation_model (ImageTransReduced, VariationModelIDs[Model[K]])</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* Visualize the variation models' data.</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>gen_empty_obj (MeanImages)</l>
+<l>gen_empty_obj (VarImages)</l>
+<l>gen_empty_obj (ROIs)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    get_variation_model (MeanImage, VarImage, VariationModelIDs[I - 1])</l>
+<l>    prepare_variation_model (VariationModelIDs[I - 1], 20, 3)</l>
+<l>    select_obj (VariationModelROIs, ROI, I)</l>
+<l>    move_region (ROI, ROIMoved, Row1[I - 1], Column1[I - 1])</l>
+<l>    reduce_domain (MeanImage, ROI, MeanImageReduced)</l>
+<l>    reduce_domain (VarImage, ROI, VarImageReduced)</l>
+<l>    concat_obj (MeanImages, MeanImageReduced, MeanImages)</l>
+<l>    concat_obj (VarImages, VarImageReduced, VarImages)</l>
+<l>    concat_obj (ROIs, ROIMoved, ROIs)</l>
+<c>    * We can now free the training data to save some memory.</c>
+<l>    clear_train_data_variation_model (VariationModelIDs[I - 1])</l>
+<l>endfor</l>
+<l>tile_images_offset (MeanImages, MeanImage, Row1, Column1, gen_tuple_const(Number,-1), gen_tuple_const(Number,-1), gen_tuple_const(Number,-1), gen_tuple_const(Number,-1), Width, Height)</l>
+<l>tile_images_offset (VarImages, VarImage, Row1, Column1, gen_tuple_const(Number,-1), gen_tuple_const(Number,-1), gen_tuple_const(Number,-1), gen_tuple_const(Number,-1), Width, Height)</l>
+<l>get_domain (Image, Domain)</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Domain)</l>
+<l>dev_display (MeanImage)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (ROIs)</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_message (WindowHandle, 'Reference images', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, '(moved to original pos.)', 'image', 45, 20, 'yellow', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Domain)</l>
+<l>dev_display (VarImage)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (ROIs)</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_message (WindowHandle, 'Variation images', 'image', 20, 20, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, '(moved to original pos.)', 'image', 45, 20, 'yellow', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Find the printing errors.</c>
+<l>for J := 1 to 30 by 1</l>
+<l>    read_image (Image, 'pen/pen-' + J$'02d')</l>
+<l>    gen_empty_obj (RegionsErrorTrans)</l>
+<l>    find_shape_models (Image, ShapeModelIDs, rad(-10), rad(20), 0.5, [1,1,1,1,1], 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score, Model)</l>
+<l>    NumberFound := |Score|</l>
+<l>    for K := 0 to NumberFound - 1 by 1</l>
+<l>        vector_angle_to_rigid (Row[K], Column[K], Angle[K], RowsRef[Model[K]], ColumnsRef[Model[K]], 0, HomMat2D)</l>
+<l>        affine_trans_image_size (Image, ImageTrans, HomMat2D, 'constant', Widths[Model[K]], Heights[Model[K]])</l>
+<l>        select_obj (VariationModelROIs, VariationModelROI, Model[K] + 1)</l>
+<l>        reduce_domain (ImageTrans, VariationModelROI, ImageTransReduced)</l>
+<l>        compare_variation_model (ImageTransReduced, RegionDiff, VariationModelIDs[Model[K]])</l>
+<l>        connection (RegionDiff, ConnectedRegions)</l>
+<l>        select_shape (ConnectedRegions, RegionsError, 'area', 'and', 20, 1000000)</l>
+<l>        count_obj (RegionsError, NumError)</l>
+<l>        if (NumError &gt; 0)</l>
+<l>            vector_angle_to_rigid (RowsRef[Model[K]], ColumnsRef[Model[K]], 0, Row[K], Column[K], Angle[K], HomMat2D)</l>
+<l>            affine_trans_region (RegionsError, RegionErrorTrans, HomMat2D, 'nearest_neighbor')</l>
+<l>            concat_obj (RegionsErrorTrans, RegionErrorTrans, RegionsErrorTrans)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (RegionsErrorTrans)</l>
+<l>    count_obj (RegionsErrorTrans, NumError)</l>
+<l>    if (NumError == 0 and NumberFound == Number)</l>
+<l>        disp_message (WindowHandle, 'Clip OK', 'image', 20, 20, 'green', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Clip not OK', 'image', 20, 20, 'red', 'false')</l>
+<l>    endif</l>
+<l>    if (J &lt; 30)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>for I := 1 to Number by 1</l>
+<l>    clear_shape_model (ShapeModelIDs[I - 1])</l>
+<l>    clear_variation_model (VariationModelIDs[I - 1])</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

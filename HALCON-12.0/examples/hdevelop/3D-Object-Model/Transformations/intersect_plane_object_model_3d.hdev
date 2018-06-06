@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ********************************************************************</c>
+<c>* This program shows how to calculate the intersection between a</c>
+<c>* 3D object model and a plane.</c>
+<c>* The intersection is calculated with the operator</c>
+<c>* intersect_plane_object_model.</c>
+<c>* The result of the intersection is a set of polylines.</c>
+<c>* ********************************************************************</c>
+<c>* </c>
+<c>* Read 3D object model</c>
+<l>Files := ['bmc_mini','glass_mug']</l>
+<c>* </c>
+<c>* Prepare visualization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>CamParam := [0.01,0,7e-6,7e-6,240,180,480,360]</l>
+<l>dev_open_window (0, 0, CamParam[6], CamParam[7], 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, CamParam[6] + 12, CamParam[6], CamParam[7], 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<c>* Poses for car object</c>
+<l>VisualizationPose := [0.05,0.10,1.2,181.4,30.6,359.0,0]</l>
+<l>PoseConnected := [0.12,0.08,1.2,180.0,90.0,0.0,0]</l>
+<l>CutPlanePose := [0,0,0,0,90,0,0]</l>
+<l>Border := 0.03</l>
+<c>* Poses for mug object</c>
+<l>VisualizationPose := [VisualizationPose,6.5e-005,-0.15e-3,8.1e-3,120.0,0.0,30.0,0]</l>
+<l>CutPlanePose := [CutPlanePose,0,0,0,70,0,0,0]</l>
+<l>PoseConnected := [PoseConnected,0.0,-0.1e-3,6.0e-3,90.0,0.0,0.0,0]</l>
+<l>Border := [Border,0.0003]</l>
+<c>* </c>
+<l>GenParamName := ['color_0','attribute_0','disp_pose_0','light_position']</l>
+<l>GenParamValue := ['green','faces','true','0.0 0.0 100.0 1.0']</l>
+<l>GenParamName := [GenParamName,'color_1','disp_pose_1','alpha']</l>
+<l>GenParamValue := [GenParamValue,'red','false',.5]</l>
+<l>ColorSytle := ['colored','color']</l>
+<l>ColorValue := [12,'green']</l>
+<c>* </c>
+<c>* Compute the interection of a 3d object model with a plane</c>
+<c>* successively with two different Object models.</c>
+<l>for Index := 0 to |Files| - 1 by 1</l>
+<c>    * </c>
+<c>    * Read a 3d object model</c>
+<l>    read_object_model_3d (Files[Index], 'mm', [], [], ObjectModel3D, Status)</l>
+<c>    * </c>
+<c>    * Compute the intersection of the object with the plane</c>
+<c>    * and calculate the connected components.</c>
+<l>    CurrentCutPlanePose := CutPlanePose[Index * 7:Index * 7 + 6]</l>
+<l>    count_seconds (Seconds)</l>
+<l>    intersect_plane_object_model_3d (ObjectModel3D, CurrentCutPlanePose, ObjectModel3DIntersection)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    connection_object_model_3d (ObjectModel3DIntersection, 'lines', 1, ObjectModel3DConnected)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<c>    * </c>
+<c>    * Calculate plane extents for visualization</c>
+<l>    pose_invert (CurrentCutPlanePose, PoseInvert)</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DIntersection, PoseInvert, ObjectModel3DRigidTrans)</l>
+<l>    get_object_model_3d_params (ObjectModel3DRigidTrans, 'bounding_box1', Param1)</l>
+<l>    X := [Param1[0] - Border[Index],Param1[0] - Border[Index],Param1[3] + Border[Index],Param1[3] + Border[Index]]</l>
+<l>    Y := [Param1[1] - Border[Index],Param1[4] + Border[Index],Param1[4] + Border[Index],Param1[1] - Border[Index]]</l>
+<c>    * Generate plane to visualize the intersecting plane</c>
+<l>    gen_plane_object_model_3d (CurrentCutPlanePose, X, Y, ObjectModel3DPlane)</l>
+<c>    * Visualize the scene</c>
+<l>    Message := ['Compute the intersection','of the object with the plane']</l>
+<l>    disp_object_model_3d_safe (WindowHandle1, [ObjectModel3D,ObjectModel3DPlane], CamParam, VisualizationPose[Index * 7:Index * 7 + 6], GenParamName, GenParamValue)</l>
+<l>    disp_message (WindowHandle1, Message, Message, 12, 12, 'white', 'false')</l>
+<c>    * Display the intersection of the object with the plane</c>
+<l>    get_object_model_3d_params (ObjectModel3DIntersection, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        disp_object_model_3d_safe (WindowHandle2, ObjectModel3DConnected, CamParam, PoseConnected[Index * 7:Index * 7 + 6], ['disp_lines',ColorSytle[Index]], ['true',ColorValue[Index]])</l>
+<l>        disp_message (WindowHandle2, 'Runtime = ' + ((Seconds1 - Seconds) * 1e3)$'.3' + ' ms', 'window', 12, 12, 'white', 'false')</l>
+<l>    else</l>
+<l>        Message := 'The intersection of the object with the plane is empty!'</l>
+<l>        disp_message (WindowHandle1, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * It is also possible to project the resulting 3D lines into the</c>
+<c>    * intersection plane and to convert these planar lines into XLD</c>
+<c>    * contours.</c>
+<l>    project_object_model_3d_lines_to_contour_xld (Intersection, CurrentCutPlanePose, ObjectModel3DIntersection)</l>
+<c>    * Depending on the scale and position of the 3D object, a</c>
+<c>    * transformation of the contours might be required for a suitable</c>
+<c>    * visualization. The transformation parameters are determinde based</c>
+<c>    * on the extent of the intersection contours.</c>
+<l>    determine_transformation_parameters (Intersection, CamParam[7], CamParam[6], 0.1, HomMat2D)</l>
+<l>    affine_trans_contour_xld (Intersection, ContoursAffinTrans, HomMat2D)</l>
+<c>    * </c>
+<l>    if (Index &lt; |Files| - 1)</l>
+<l>        disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Clean up memory</c>
+<l>    clear_object_model_3d ([ObjectModel3D,ObjectModel3DPlane,ObjectModel3DIntersection,ObjectModel3DRigidTrans,ObjectModel3DConnected])</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="project_object_model_3d_lines_to_contour_xld">
+<interface>
+<oo>
+<par name="Intersection" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="PoseIntersectionPlane" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3DIntersection" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Determine the intersections and convert them into XLD contours</c>
+<c>* </c>
+<c>* The inverted intersection plane pose is our projection pose</c>
+<l>pose_invert (PoseIntersectionPlane, PoseInvert)</l>
+<c>* Make sure, the projection plane lies in front of the camera</c>
+<l>get_object_model_3d_params (ObjectModel3DIntersection, 'diameter_axis_aligned_bounding_box', Diameter)</l>
+<l>PoseInvert[2] := PoseInvert[2] + Diameter</l>
+<c>* Use a parallel projection to achieve the desired scaling (default 1:1)</c>
+<l>Scale := 1</l>
+<l>CamParam := [0,0,1.0 / Scale,1.0 / Scale,0,0,512,512]</l>
+<l>project_object_model_3d (Intersection, ObjectModel3DIntersection, CamParam, PoseInvert, 'data', 'lines')</l>
+<l>return ()</l>
+</body>
+<docu id="project_object_model_3d_lines_to_contour_xld">
+<parameters>
+<parameter id="Intersection">
+<multivalue>optional</multivalue>
+<sem_type>xld_cont</sem_type>
+</parameter>
+<parameter id="ObjectModel3DIntersection">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="PoseIntersectionPlane">
+<default_type>real</default_type>
+<mixed_type>optional</mixed_type>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_transformation_parameters">
+<interface>
+<io>
+<par name="Intersection" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="RelBorder" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HomMat2D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Determine extent of the set of all contours</c>
+<l>smallest_rectangle1_xld (Intersection, Row11, Column11, Row21, Column21)</l>
+<l>RowMin := min(Row11)</l>
+<l>RowMax := max(Row21)</l>
+<l>ColumnMin := min(Column11)</l>
+<l>ColumnMax := max(Column21)</l>
+<c>* </c>
+<c>* Calculate scale and translations for visualization</c>
+<l>Scale := (1.0 - 2.0 * RelBorder) * min([Width / (RowMax - RowMin),Height / (ColumnMax - ColumnMin)])</l>
+<l>RowTrans := RelBorder * Width - (RowMin + 0.5) * Scale - 0.5</l>
+<l>ColumnTrans := RelBorder * Height - (ColumnMin + 0.5) * Scale - 0.5</l>
+<c>* </c>
+<c>* Create transformation matrix</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, Scale, Scale, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_translate (HomMat2DScale, RowTrans, ColumnTrans, HomMat2D)</l>
+<l>return ()</l>
+</body>
+<docu id="determine_transformation_parameters">
+<parameters>
+<parameter id="Height">
+<default_type>integer</default_type>
+<default_value>480</default_value>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="HomMat2D">
+<default_type>real</default_type>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat2d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Intersection">
+<multivalue>optional</multivalue>
+<sem_type>xld_cont</sem_type>
+</parameter>
+<parameter id="RelBorder">
+<default_type>real</default_type>
+<default_value>0.1</default_value>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Width">
+<default_type>integer</default_type>
+<default_value>640</default_value>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

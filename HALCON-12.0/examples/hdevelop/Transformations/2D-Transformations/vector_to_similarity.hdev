@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program gives an example of how to use vector_to_similarity.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 500, 500, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, 499, 499)</l>
+<c>* To generate a set of points from which we can construct a transformation,</c>
+<c>* we will use a synthetic ellipse and read out its coordinates.</c>
+<l>gen_ellipse_contour_xld (ContEllipse, 200, 200, rad(20), 150, 100, rad(0), rad(260), 'positive', 1)</l>
+<l>get_contour_xld (ContEllipse, Rows1, Cols1)</l>
+<c>* Now we will transform the ellipse by a known transformation and add some</c>
+<c>* noise to the coordinates.</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(80), 0, 0, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, 600, 400, HomMat2DTranslate)</l>
+<l>hom_mat2d_scale (HomMat2DTranslate, 0.5, 0.5, 0, 0, HomMat2DScale)</l>
+<l>affine_trans_point_2d (HomMat2DScale, Rows1, Cols1, Rows2, Cols2)</l>
+<l>gen_contour_polygon_xld (Contour, Rows2, Cols2)</l>
+<l>add_noise_white_contour_xld (Contour, NoisyContours, 5, 5)</l>
+<c>* We will read out the coordinates of the noisy ellipse and use it to construct</c>
+<c>* the transformation.  Note that by his approach we know exactly which points</c>
+<c>* correspond to each other.  In a real application, the step of determining</c>
+<c>* the correspondences is usually the hard part.</c>
+<l>get_contour_xld (NoisyContours, Rows2, Cols2)</l>
+<c>* Now we can determine the similarity transformation that best approximates the</c>
+<c>* the point correspondences.</c>
+<l>vector_to_similarity (Rows1, Cols1, Rows2, Cols2, HomMat2D)</l>
+<c>* Finally, we transform the original contour by the calculated transformation</c>
+<c>* to get an impression of how accurate the calculated transformation is</c>
+<c>* (but before that, correct the coordinate system).</c>
+<l>hom_mat2d_translate (HomMat2D, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DAdapted)</l>
+<l>affine_trans_contour_xld (ContEllipse, ContoursAffinTrans, HomMat2DAdapted)</l>
+<c>* Now let's display the results:</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Calculate similarity transformation'</l>
+<l>Message[1] := 'of an ellipse:'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_color ('white')</l>
+<l>disp_message (WindowHandle, 'Original ellipse', 'window', 80, 30, '', 'false')</l>
+<l>dev_display (ContEllipse)</l>
+<l>dev_set_color ('red')</l>
+<l>disp_message (WindowHandle, 'Noisy contours', 'window', 300, 250, '', 'false')</l>
+<l>dev_display (NoisyContours)</l>
+<l>dev_set_color ('green')</l>
+<l>disp_message (WindowHandle, 'Transformed ellipse', 'window', 320, 250, '', 'false')</l>
+<l>dev_display (ContoursAffinTrans)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

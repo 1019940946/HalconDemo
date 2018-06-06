@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program checks the accuracy of the gray value features that are</c>
+<c>* returned by area_center_gray.  This is done by comparing the results</c>
+<c>* of the output of the corresponding region feature operator area_center</c>
+<c>* with the result that area_center_gray gives on an equivalent gray value</c>
+<c>* image, i.e., an image in which the region is painted with a constant gray</c>
+<c>* value, and a scaled-down version of the same image.  In the first case,</c>
+<c>* the results should, of course, be identical.  In the second case, the</c>
+<c>* differences give an indication of the subpixel accuracy that is achievable</c>
+<c>* under ideal circumstances.  The variable ScaleFactor can be used to</c>
+<c>* scale the image down so that the object is of a desired size.  Therefore,</c>
+<c>* by varying this parameter, it can be determined how large an object must</c>
+<c>* be in an image to achieve a desired subpixel accuracy.  The differences</c>
+<c>* in the center of gravity are in units of the original image.  They must be</c>
+<c>* multiplied by ScaleFactor to get them in subpixel coordinates.</c>
+<l>dev_update_off ()</l>
+<l>Size := 512</l>
+<l>Radius := 32 * 3</l>
+<l>ScaleFactor := 1. / 32.</l>
+<l>Foreground := 200</l>
+<l>gen_image_const (Image, 'byte', Size, Size)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Size, Size, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>AreasRegion := []</l>
+<l>AreasImage := []</l>
+<l>AreasZoomed := []</l>
+<l>RowsRegion := []</l>
+<l>RowsImage := []</l>
+<l>RowsZoomed := []</l>
+<l>ColsRegion := []</l>
+<l>ColsImage := []</l>
+<l>ColsZoomed := []</l>
+<l>for R := 0 to Radius * 2 by 1</l>
+<c>    * Create test image</c>
+<l>    gen_circle (Circle, Size / 2 - Radius + R, Size / 2, Radius + 0.5)</l>
+<l>    area_center (Circle, AreaRegion, RowRegion, ColumnRegion)</l>
+<l>    paint_region (Circle, Image, ImageCircle, Foreground, 'fill')</l>
+<l>    threshold (ImageCircle, Region, 1, 255)</l>
+<l>    area_center_gray (Region, ImageCircle, AreaImage, RowImage, ColumnImage)</l>
+<l>    zoom_image_factor (ImageCircle, ImageZoomed, ScaleFactor, ScaleFactor, 'constant')</l>
+<l>    threshold (ImageZoomed, RegionZoomed, 1, 255)</l>
+<l>    area_center_gray (RegionZoomed, ImageZoomed, AreaZoomed, RowZoomed, ColumnZoomed)</l>
+<c>    * Store area and position of reference region and results from zoomed image</c>
+<l>    AreasRegion := [AreasRegion,AreaRegion]</l>
+<l>    AreasImage := [AreasImage,AreaImage / Foreground]</l>
+<l>    AreasZoomed := [AreasZoomed,AreaZoomed / (Foreground * ScaleFactor * ScaleFactor)]</l>
+<l>    RowsRegion := [RowsRegion,RowRegion]</l>
+<l>    RowsImage := [RowsImage,RowImage]</l>
+<l>    RowsZoomed := [RowsZoomed,(RowZoomed + 0.5) / ScaleFactor - 0.5]</l>
+<l>    ColsRegion := [ColsRegion,ColumnRegion]</l>
+<l>    ColsImage := [ColsImage,ColumnImage]</l>
+<l>    ColsZoomed := [ColsZoomed,(ColumnZoomed + 0.5) / ScaleFactor - 0.5]</l>
+<l>    dev_display (ImageZoomed)</l>
+<c>    * Visualize extraction results</c>
+<l>    gen_ellipse_contour_xld (ContEllipse, RowZoomed, ColumnZoomed, 0, sqrt(AreaZoomed / (rad(180) * Foreground)), sqrt(AreaZoomed / (rad(180) * Foreground)), 0, rad(360), 'positive', 1)</l>
+<l>    dev_display (ImageZoomed)</l>
+<l>    disp_message (WindowHandle, ['Gray values &gt; 0','Corresponding circle'], 'window', 12, 12, ['red','green'], 'false')</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (ContEllipse)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (RegionZoomed)</l>
+<l>    wait_seconds (0.01)</l>
+<l>endfor</l>
+<l>DiffAreaRegionImage := AreasRegion - AreasImage</l>
+<l>DiffAreaRegionZoomed := AreasRegion - AreasZoomed</l>
+<l>DiffRowRegionImage := RowsRegion - RowsImage</l>
+<l>DiffRowRegionZoomed := RowsRegion - RowsZoomed</l>
+<l>DiffColRegionImage := ColsRegion - ColsImage</l>
+<l>DiffColRegionZoomed := ColsRegion - ColsZoomed</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

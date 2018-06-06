@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how an SVM classifier behaves in the mode</c>
+<c>* 'novelty-detection'.  The first part of the program shows how the kernel</c>
+<c>* parameter gamma can be used to control how tightly the classes fit around</c>
+<c>* the training samples.  The second part of the program shows that the SVM</c>
+<c>* can tolerate outliers in the training samples to some extent by selecting an</c>
+<c>* appropriate value for Nu, possible at the expense of classifying a few of the</c>
+<c>* training samples as novel.  Hence, it can be seen that it is usually best to</c>
+<c>* ensure that the training samples for novelty detection contain no outliers.</c>
+<c>* In this example, two-dimensional data are used for the features because they</c>
+<c>* can easily be visualized as regions.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 199)</l>
+<l>dev_update_off ()</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>gen_region_points (Region, rand(1000) * 200, rand(1000) * 200)</l>
+<l>set_system ('clip_region', 'true')</l>
+<l>gen_ellipse (Ellipse1, 100, 70, rad(-60), 90, 40)</l>
+<l>gen_ellipse (Ellipse2, 120, 150, rad(40), 50, 30)</l>
+<l>union2 (Ellipse1, Ellipse2, Ellipses)</l>
+<l>intersection (Ellipses, Region, Region)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_color ('white')</l>
+<l>set_tposition (WindowHandle, 2, 5)</l>
+<l>write_string (WindowHandle, 'Training samples')</l>
+<l>set_tposition (WindowHandle, 12, 5)</l>
+<l>write_string (WindowHandle, 'Irregularly shaped class')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (Region, WindowHandle, 0.05, 0.01, 1.0)</l>
+<l>set_tposition (WindowHandle, 190, 2)</l>
+<l>dev_set_color ('white')</l>
+<l>write_string (WindowHandle, 'Gamma = 0.05: Loose fit')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (Region, WindowHandle, 0.4, 0.01, 1.0)</l>
+<l>set_tposition (WindowHandle, 190, 2)</l>
+<l>dev_set_color ('white')</l>
+<l>write_string (WindowHandle, 'Gamma = 0.4: Tight fit')</l>
+<l>stop ()</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>gen_region_points (Region, rand(1000) * 200, rand(1000) * 200)</l>
+<l>set_system ('clip_region', 'true')</l>
+<l>gen_ellipse (Ellipse1, 100, 70, rad(-60), 90, 40)</l>
+<l>gen_ellipse (Ellipse2, 80, 150, rad(20), 10, 10)</l>
+<l>union2 (Ellipse1, Ellipse2, Ellipses)</l>
+<l>intersection (Ellipses, Region, Region)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_color ('white')</l>
+<l>set_tposition (WindowHandle, 2, 5)</l>
+<l>write_string (WindowHandle, 'Training samples')</l>
+<l>set_tposition (WindowHandle, 12, 5)</l>
+<l>write_string (WindowHandle, 'Class with outliers (errors)')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (Region, WindowHandle, 0.2, 0.01, 1.0)</l>
+<l>set_tposition (WindowHandle, 190, 2)</l>
+<l>dev_set_color ('white')</l>
+<l>write_string (WindowHandle, 'Nu = 0.01: Outliers in result')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (Region, WindowHandle, 0.2, 0.2, 1.0)</l>
+<l>set_tposition (WindowHandle, 190, 2)</l>
+<l>dev_set_color ('white')</l>
+<l>write_string (WindowHandle, 'Nu = 0.2: Outliers not in result')</l>
+<l>stop ()</l>
+<l>classify_2d_feature_space (Region, WindowHandle, 0.2, 0.2, 0.9)</l>
+<l>set_tposition (WindowHandle, 190, 2)</l>
+<l>dev_set_color ('white')</l>
+<l>write_string (WindowHandle, 'Nu = 0.2: Rejection threshold = 0.9')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="classify_2d_feature_space">
+<interface>
+<io>
+<par name="Region" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="KernelParam" base_type="ctrl" dimension="0"/>
+<par name="Nu" base_type="ctrl" dimension="0"/>
+<par name="RejectionThreshold" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_region_points (Region, Rows, Cols)</l>
+<l>create_class_svm (2, 'rbf', KernelParam, Nu, 1, 'novelty-detection', 'normalization', 0, SVMHandle)</l>
+<c>* Add the samples to the SVM.</c>
+<l>for J := 0 to |Rows| - 1 by 1</l>
+<l>    add_sample_class_svm (SVMHandle, [real(Rows[J]),real(Cols[J])], 0)</l>
+<l>endfor</l>
+<c>* Train the SVM.</c>
+<l>train_class_svm (SVMHandle, 0.001, 'default')</l>
+<c>* Classify each point of the 2D feature space and accumulate the classification</c>
+<c>* result in a class label image.</c>
+<l>gen_image_const (Image, 'byte', 200, 200)</l>
+<l>if (RejectionThreshold == 1.0)</l>
+<l>    for R := 0 to 199 by 1</l>
+<l>        for C := 0 to 199 by 1</l>
+<l>            classify_class_svm (SVMHandle, [real(R),real(C)], 1, Class)</l>
+<l>            set_grayval (Image, R, C, Class)</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>else</l>
+<l>    for R := 0 to 199 by 1</l>
+<l>        for C := 0 to 199 by 1</l>
+<l>            evaluate_class_svm (SVMHandle, [real(R),real(C)], Result)</l>
+<l>            Class := Result &gt;= RejectionThreshold</l>
+<l>            set_grayval (Image, R, C, Class)</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>label_to_region (Image, Classes)</l>
+<l>select_obj (Classes, Class1, 1)</l>
+<l>select_obj (Classes, Class2, 2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Class2)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Class1)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region)</l>
+<l>set_tposition (WindowHandle, 2, 2)</l>
+<l>write_string (WindowHandle, 'Class 2 and class region')</l>
+<l>dev_set_color ('red')</l>
+<l>set_tposition (WindowHandle, 180, 2)</l>
+<l>write_string (WindowHandle, 'Class 1 and class region')</l>
+<l>clear_class_svm (SVMHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="classify_2d_feature_space">
+<parameters>
+<parameter id="KernelParam"/>
+<parameter id="Nu"/>
+<parameter id="Region"/>
+<parameter id="RejectionThreshold"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

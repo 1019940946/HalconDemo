@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of a Opteon imaging system</c>
+<c>* </c>
+<l>info_framegrabber ('Opteon', 'general', GeneralInfo, GeneralValues)</l>
+<l>info_framegrabber ('Opteon', 'ports', Information, ValueList)</l>
+<l>info_framegrabber ('Opteon', 'camera_types', CameraTypeInfo, CameraTypeValues)</l>
+<l>info_framegrabber ('Opteon', 'defaults', DefaultInfo, DefaultValues)</l>
+<l>info_framegrabber ('Opteon', 'parameters', ParameterInfo, ParameterValues)</l>
+<l>info_framegrabber ('Opteon', 'info_boards', InfoBoardInfo, InfoBoardValues)</l>
+<l>info_framegrabber ('Opteon', 'revision', RevisionInfo, RevisionValues)</l>
+<c>* </c>
+<l>open_framegrabber ('Opteon', 1, 1, -1, -1, -1, -1, 'default', 8, 'gray', -1, 'false', 'default', 'default', 0, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

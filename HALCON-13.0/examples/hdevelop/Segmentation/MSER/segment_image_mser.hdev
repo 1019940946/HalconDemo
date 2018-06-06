@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the functionality of segment_image_mser.</c>
+<c>* </c>
+<c>* Create artificial example image.</c>
+<l>create_example_image (Image)</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>Message := 'The operator \'segment_image_mser\' extracts'</l>
+<l>Message[1] := 'maximally stable extremal regions (MSER) in the image.'</l>
+<l>Message[2] := 'MSERs are regions that do not change their size'</l>
+<l>Message[3] := 'significantly over multiple consecutive thresholds.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Call segment_image_mser with default parameters and Polarity set to 'dark'.</c>
+<l>segment_image_mser (Image, MSERDark, MSERLight, 'dark', 10, [], 15, [], [])</l>
+<l>disp_dark_light_results (Image, MSERDark, MSERLight, WindowHandle)</l>
+<l>Message := 'With \'Polarity\' set to \'dark\', the operator extracts'</l>
+<l>Message[1] := 'regions which are darker than their background.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Call segment_image_mser with default parameters and Polarity set to 'light'.</c>
+<l>segment_image_mser (Image, MSERDark, MSERLight, 'light', 10, [], 15, [], [])</l>
+<l>disp_dark_light_results (Image, MSERDark, MSERLight, WindowHandle)</l>
+<l>Message := 'With \'Polarity\' set to \'light\', the operator extracts'</l>
+<l>Message[1] := 'regions which are brighter than their background.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Call segment_image_mser with MinArea and MaxArea set to exclude too</c>
+<c>* small and too large regions.</c>
+<l>MinArea := 2000</l>
+<l>MaxArea := 15000</l>
+<l>segment_image_mser (Image, MSERDark, MSERLight, 'both', MinArea, MaxArea, 15, [], [])</l>
+<l>disp_dark_light_results (Image, MSERDark, MSERLight, WindowHandle)</l>
+<l>Message := 'The parameters \'MinArea\' and \'MaxArea\' can be used to'</l>
+<l>Message[1] := 'restrict the size of the returned regions.'</l>
+<l>Message[2] := 'Increasing \'MinArea\' can reduce the computation time.'</l>
+<l>Message[3] := 'Here: MinArea = ' + MinArea + ', MaxArea = ' + MaxArea</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Call segment_image_mser with further setting Delta to a lower value.</c>
+<c>* This reduces the number of regions.</c>
+<l>Delta := 5</l>
+<l>segment_image_mser (Image, MSERDark, MSERLight, 'both', 100, [], Delta, [], [])</l>
+<l>disp_dark_light_results (Image, MSERDark, MSERLight, WindowHandle)</l>
+<l>Message := 'Furthermore, \'Delta\' can be used to regulate'</l>
+<l>Message[1] := 'the number of thresholds over which a region needs'</l>
+<l>Message[2] := 'to be stable. Decreasing the value of Delta'</l>
+<l>Message[3] := 'results in more regions.'</l>
+<l>Message[4] := 'Here: Delta = ' + Delta</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Call segment_image_mser with further setting the generic parameter</c>
+<c>* 'max_variation' to a larger value. This increases the number of regions.</c>
+<l>MaxVariation := 1.0</l>
+<l>segment_image_mser (Image, MSERDark, MSERLight, 'both', 100, [], Delta, 'max_variation', MaxVariation)</l>
+<l>disp_dark_light_results (Image, MSERDark, MSERLight, WindowHandle)</l>
+<l>Message := 'The generic parameter \'max_variation\' can be used to'</l>
+<l>Message[1] := 'regulate how much a region is allowed to vary'</l>
+<l>Message[2] := 'between the range of thresholds. A larger value'</l>
+<l>Message[3] := 'increases the number of regions.'</l>
+<l>Message[4] := 'Here: \'max_variation\' = ' + MaxVariation</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Call segment_image_mser with further setting the generic parameter</c>
+<c>* 'min_diversity' to a larger value. This increases the number of overlapping regions.</c>
+<l>MinDiversity := 5.5</l>
+<l>segment_image_mser (Image, MSERDark, MSERLight, 'both', 100, [], Delta, ['max_variation','min_diversity'], [MaxVariation,MinDiversity])</l>
+<l>disp_dark_light_results (Image, MSERDark, MSERLight, WindowHandle)</l>
+<l>Message := 'The generic parameter \'min_diversity\' can be used to'</l>
+<l>Message[1] := 'regulate the number of multiple (overlapping)'</l>
+<l>Message[2] := 'responses. A larger value reduces the number'</l>
+<l>Message[3] := 'of overlapping regions. '</l>
+<l>Message[4] := 'Here: \'min_diversity\' = ' + MinDiversity</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_example_image">
+<interface>
+<oo>
+<par name="ImageResult" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Generate background.</c>
+<l>gen_image_gray_ramp (Image, 10.0, 0, 128, 325, 300, 600, 600)</l>
+<c>* </c>
+<c>* Generate a row of bright circles.</c>
+<l>Row := [200,200,200,200,200]</l>
+<l>Column := [75:100:550]</l>
+<l>Radius := [20:10:60]</l>
+<l>Gray1 := [160:-20:80]</l>
+<l>gen_circle (Circle, Row, Column, Radius)</l>
+<l>overpaint_region (Image, Circle, Gray1, 'fill')</l>
+<c>* Generate some gray-value steps.</c>
+<l>erosion_circle (Circle, CircleEroded13, 13)</l>
+<l>Gray1 := [180:-20:100]</l>
+<l>overpaint_region (Image, CircleEroded13, Gray1, 'fill')</l>
+<l>erosion_circle (Circle, CircleEroded19, 19)</l>
+<l>Gray1 := [200:-20:120]</l>
+<l>overpaint_region (Image, CircleEroded19, Gray1, 'fill')</l>
+<c>* Smooth the image to obtain more interesting gray-value transitions.</c>
+<l>union1 (Circle, RegionUnion)</l>
+<l>dilation_circle (RegionUnion, RegionDilation, 3.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>mean_image (ImageReduced, ImageMean, 11, 11)</l>
+<c>* </c>
+<c>* Generate a row of dark circles.</c>
+<l>Row := [450,450,450,450,450]</l>
+<l>Gray1 := [80:20:160]</l>
+<l>gen_circle (Circle, Row, Column, Radius)</l>
+<l>overpaint_region (Image, Circle, Gray1, 'fill')</l>
+<c>* Generate some gray-value steps.</c>
+<l>erosion_circle (Circle, CircleEroded13, 13)</l>
+<l>Gray1 := [60:20:140]</l>
+<l>overpaint_region (Image, CircleEroded13, Gray1, 'fill')</l>
+<l>erosion_circle (Circle, CircleEroded19, 19)</l>
+<l>Gray1 := [40:20:120]</l>
+<l>overpaint_region (Image, CircleEroded19, Gray1, 'fill')</l>
+<c>* Smooth the image to obtain more interesting gray-value transitions.</c>
+<l>union1 (Circle, RegionUnion)</l>
+<l>dilation_circle (RegionUnion, RegionDilation, 3.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>mean_image (ImageReduced, ImageMean, 11, 11)</l>
+<c>* </c>
+<l>add_noise_white (Image, ImageResult, 10)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="create_example_image">
+<parameters>
+<parameter id="ImageResult"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_dark_light_results">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="MSERDark" base_type="iconic" dimension="0"/>
+<par name="MSERLight" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (MSERDark)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (MSERLight)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="disp_dark_light_results">
+<parameters>
+<parameter id="Image"/>
+<parameter id="MSERDark"/>
+<parameter id="MSERLight"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

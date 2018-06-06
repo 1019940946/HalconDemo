@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to detect the edges of a diamond</c>
+<c>* with subpixel accuracy and calculate the angle between them.</c>
+<c>* </c>
+<c>* In contrast to the example measure_diamond.hdev,</c>
+<c>* this example uses a metrology model to measure the edges.</c>
+<c>* </c>
+<c>* First, the top of the diamond is roughly segmented</c>
+<c>* to align the metrology objects.</c>
+<c>* Then, the metrology model is applied and returns the</c>
+<c>* parameters of the fitted lines.</c>
+<c>* Finally, the angle between the two lines is computed.</c>
+<c>* </c>
+<c>* Display initializations</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'diamond/diamond_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<c>* Create the metrology model data structure</c>
+<l>create_metrology_model (MetrologyHandle)</l>
+<c>* The image size is set in advance to speed up the</c>
+<c>* first call of apply_metrology_model.</c>
+<l>set_metrology_model_image_size (MetrologyHandle, Width, Height)</l>
+<c>* Define the parameters of the metrology line objects</c>
+<l>LineRow1 := [155,155]</l>
+<l>LineColumn1 := [400,400]</l>
+<l>LineRow2 := [290,290]</l>
+<l>LineColumn2 := [230,570]</l>
+<l>Tolerance := 20</l>
+<c>* </c>
+<c>* Create two metrology line objects and set parameters</c>
+<l>add_metrology_object_line_measure (MetrologyHandle, LineRow1, LineColumn1, LineRow2, LineColumn2, Tolerance, 10, 1, 20, [], [], Index1)</l>
+<c>* Create region of interest for the alignment</c>
+<l>gen_rectangle1 (Rectangle, LineRow1[0] - 40, LineColumn1[0] - 50, LineRow1[0] + 20, LineColumn1[0] + 50)</l>
+<c>* Change the reference coordinate system in which the</c>
+<c>* metrology model is given to be situated at the top of the diamond</c>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 128, 255)</l>
+<l>get_region_points (Region, Rows, Columns)</l>
+<l>set_metrology_model_param (MetrologyHandle, 'reference_system', [Rows[0],Columns[0],0])</l>
+<c>* </c>
+<c>* Main loop</c>
+<c>* </c>
+<l>for I := 1 to 5 by 1</l>
+<l>    read_image (Image, 'diamond/diamond_' + I$'02')</l>
+<c>    * Roughly segment the diamond's position</c>
+<l>    reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>    threshold (ImageReduced, Region, 128, 255)</l>
+<c>    * Extract the top of the diamond</c>
+<l>    get_region_points (Region, Rows, Columns)</l>
+<c>    * </c>
+<c>    * Use the top of the diamond to align the metrology model in</c>
+<c>    * the current image</c>
+<c>    * </c>
+<l>    align_metrology_model (MetrologyHandle, Rows[0], Columns[0], 0)</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Perform the measurement for both lines in one call</c>
+<c>    * </c>
+<l>    apply_metrology_model (Image, MetrologyHandle)</l>
+<c>    * </c>
+<c>    * Access results</c>
+<c>    * </c>
+<l>    get_metrology_object_result (MetrologyHandle, 'all', 'all', 'result_type', 'all_param', LineParameter)</l>
+<l>    angle_ll (LineParameter[0], LineParameter[1], LineParameter[2], LineParameter[3], LineParameter[4], LineParameter[5], LineParameter[6], LineParameter[7], Angle)</l>
+<l>    Angle := deg(Angle)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<c>    * </c>
+<c>    * Create line contours</c>
+<l>    get_metrology_object_result_contour (ResultContour, MetrologyHandle, 'all', 'all', 1.5)</l>
+<l>    intersection_lines (LineParameter[0], LineParameter[1], LineParameter[2], LineParameter[3], LineParameter[4], LineParameter[5], LineParameter[6], LineParameter[7], Row, Column, IsOverlapping1)</l>
+<c>    * Calculate the orientation of the two lines</c>
+<l>    line_orientation (LineParameter[0], LineParameter[1], LineParameter[2], LineParameter[3], Orientation1)</l>
+<l>    if (Orientation1 &gt; 0)</l>
+<l>        Orientation1 := Orientation1 - rad(180)</l>
+<l>    endif</l>
+<l>    line_orientation (LineParameter[4], LineParameter[5], LineParameter[6], LineParameter[7], Orientation2)</l>
+<c>    * </c>
+<c>    * Visualize the angle between the lines</c>
+<l>    gen_circle_contour_xld (ContCircle, Row, Column, 100, Orientation1, Orientation2, 'positive', 1)</l>
+<c>    * Get the used measure regions and the measured points</c>
+<c>    * for visualization</c>
+<l>    get_metrology_object_measures (Contour, MetrologyHandle, 'all', 'all', MRow, MColumn)</l>
+<l>    gen_cross_contour_xld (Cross, MRow, MColumn, 6, rad(45))</l>
+<c>    * Display everything</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Contour)</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (ResultContour)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (ContCircle)</l>
+<l>    disp_message (WindowHandle, 'Angle = ' + Angle$'.5' + '°', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I &lt; 5)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* Clean up memory</c>
+<l>clear_metrology_model (MetrologyHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

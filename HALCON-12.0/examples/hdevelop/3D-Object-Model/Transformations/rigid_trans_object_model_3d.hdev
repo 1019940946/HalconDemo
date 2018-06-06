@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operator</c>
+<c>* rigid_trans_object_model_3d in HALCON.  In this example</c>
+<c>* a cylinder is created. In a second step, the cylinder is</c>
+<c>* tranformed with a rigid transformation.  The generated</c>
+<c>* primitves of the 3D object models are visualized.</c>
+<c>* </c>
+<c>* Initialize program</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>CamParam := [0.016,0,5e-6,5e-6,320,240,640,480]</l>
+<l>DisplayPose := [-1,1,20,110,0,270,0]</l>
+<l>TransPose := [1,2.5,2,90,20,0,0]</l>
+<c>* </c>
+<c>* Create a cylinder without transformation</c>
+<l>gen_cylinder_object_model_3d ([0,0,0,0,0,0,0], 0.5, 0, 2, ObjectModel3DCylinder)</l>
+<l>disp_object_model_3d_safe (WindowHandle, ObjectModel3DCylinder, CamParam, DisplayPose, 'disp_pose', 'true')</l>
+<l>disp_message (WindowHandle, 'Cylinder before transformation', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Apply a rigid transformation</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DCylinder, TransPose, ObjectModel3DRigidTrans)</l>
+<l>dev_clear_window ()</l>
+<l>disp_object_model_3d_safe (WindowHandle, ObjectModel3DRigidTrans, CamParam, DisplayPose, 'disp_pose', 'true')</l>
+<l>disp_message (WindowHandle, 'Cylinder after transformation', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Clear all 3D object models</c>
+<l>clear_object_model_3d (ObjectModel3DCylinder)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

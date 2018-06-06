@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operator get_circle_pose.</c>
+<c>* </c>
+<c>* Set the camera parameters</c>
+<l>CamParam := [0.004,-100,1e-5,1e-5,512,384,1024,768]</l>
+<l>create_pose (0.0, 0.0, 0.02, -20, 0, 0, 'Rp+T', 'gba', 'point', Pose)</l>
+<c>* </c>
+<c>* Initialize some variables</c>
+<l>AngleStart := 0</l>
+<l>AngleEnd := 360</l>
+<l>AngleStep := 5</l>
+<l>CT := 'caltab_30mm.descr'</l>
+<l>Radius := 0.0009375</l>
+<l>bg_images_available := false</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, CamParam[6], CamParam[7], 512, CamParam[7], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>pose_to_hom_mat3d (Pose, CCS_H_WCS)</l>
+<l>hom_mat3d_identity (H)</l>
+<c>* </c>
+<c>* Generate a simulated image of a calibration plate and extract the calibration marks</c>
+<l>sim_caltab (SimImage, CT, CamParam, Pose, 128, 224, 80, 1)</l>
+<l>find_caltab (SimImage, Caltab, CT, 3, 112, 5)</l>
+<l>erosion_circle (Caltab, Caltab, 3.5)</l>
+<l>reduce_domain (SimImage, Caltab, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 0.5, 10, 40)</l>
+<l>select_contours_xld (Edges, Edges, 'contour_length', 25, 99999, -0.5, 0.5)</l>
+<l>count_obj (Edges, Number)</l>
+<c>* </c>
+<c>* Determine the position and orientation of the individual calibration marks</c>
+<l>get_circle_pose (Edges, CamParam, gen_tuple_const(Number,Radius), 'center_normal', CenterNormal1, CenterNormal2)</l>
+<c>* </c>
+<c>* Cluster the results such that the first cluster contains those positions and orientations</c>
+<c>* where the normal vector points in approximately the same direction.  Because all the circles lie</c>
+<c>* in the same plane, their normal vectors must point in the same direction.</c>
+<c>* Cluster 2 then contains the second solution for the position and orientation of each circle.</c>
+<c>* As can be seen later, these circles don't lie within the plane of the calibration plate.</c>
+<l>p_cluster_normals (CenterNormal1, CenterNormal2, Cluster1, Cluster2)</l>
+<c>* </c>
+<c>* Visualize the normal vectors and the circles (projected from the 3D position into the image).</c>
+<c>* Note that the normal vectors point away from the optical center.</c>
+<l>p_gen_normals_and_circles (Normals1, Circles1, CamParam, Cluster1, Radius)</l>
+<l>dev_display (SimImage)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Normals1)</l>
+<l>dev_display (Circles1)</l>
+<l>disp_message (WindowHandle, 'Cluster 1', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 35, 10, 'black', 'true')</l>
+<l>get_mbutton (WindowHandle, Row, Column, Button1)</l>
+<c>* </c>
+<l>p_gen_normals_and_circles (Normals2, Circles2, CamParam, Cluster2, Radius)</l>
+<l>dev_display (SimImage)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Normals2)</l>
+<l>dev_display (Circles2)</l>
+<l>disp_message (WindowHandle, 'Cluster 2', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Press mouse button to continue', 'window', 35, 10, 'black', 'true')</l>
+<l>get_mbutton (WindowHandle, Row1, Column1, Button2)</l>
+<c>* </c>
+<c>* Generate the background images for the subsequent visualization</c>
+<l>if (not bg_images_available)</l>
+<l>    gen_empty_obj (SimImages)</l>
+<l>    Angles := []</l>
+<l>    dev_update_window ('off')</l>
+<c>    * Set an appropriate resolution factor to speed up the generation of the background images</c>
+<l>    ResolutionFactor := 4.0</l>
+<c>    * Set the camera parameters for the low resolution background images</c>
+<l>    CamParamLowResolution := CamParam * [1,1,ResolutionFactor,ResolutionFactor,1.0,1.0,1.0 / ResolutionFactor,1.0 / ResolutionFactor]</l>
+<l>    CamParamLowResolution[4] := (CamParam[4] + 0.5) / ResolutionFactor - 0.5</l>
+<l>    CamParamLowResolution[5] := (CamParam[5] + 0.5) / ResolutionFactor - 0.5</l>
+<l>    for AngleDeg := AngleStart to AngleEnd by AngleStep</l>
+<l>        Angle := rad(AngleDeg)</l>
+<c>        * </c>
+<l>        hom_mat3d_rotate (CCS_H_WCS, Angle, 'y', Pose[0], Pose[1], Pose[2], HomMat3DRotate)</l>
+<l>        hom_mat3d_to_pose (HomMat3DRotate, CCS_Pose_WCSR)</l>
+<l>        sim_caltab (SimImageRotate, CT, CamParamLowResolution, CCS_Pose_WCSR, 128, 224, 80, 0.01)</l>
+<l>        binomial_filter (SimImageRotate, ImageBinomial, 3, 3)</l>
+<l>        zoom_image_factor (ImageBinomial, ImageZoomed, ResolutionFactor, ResolutionFactor, 'weighted')</l>
+<c>        * </c>
+<l>        concat_obj (SimImages, ImageZoomed, SimImages)</l>
+<l>        Angles := [Angles,Angle]</l>
+<c>        * </c>
+<l>        dev_display (ImageZoomed)</l>
+<l>        disp_message (WindowHandle, 'Background images are generated', 'window', 10, 10, 'black', 'true')</l>
+<l>        disp_message (WindowHandle, (100.0 * |Angles| / ((AngleEnd - AngleStart) / AngleStep + 1))$'3.0f' + '%', 'window', 35, 10, 'black', 'true')</l>
+<l>    endfor</l>
+<l>    dev_update_window ('on')</l>
+<l>    bg_images_available := true</l>
+<l>endif</l>
+<c>* </c>
+<c>* Visualize the position and orientation of the circles.</c>
+<c>* For this, the simulated calibration plate is rotated, together with the superimposed circles in 3D</c>
+<l>Finish := false</l>
+<l>while (true)</l>
+<l>    if (Finish)</l>
+<l>        break</l>
+<l>    endif</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, 'Left   mouse button: View cluster 1', 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Right  mouse button: View cluster 2', 'window', 35, 10, 'black', 'true')</l>
+<l>    get_mbutton (WindowHandle, Row2, Column2, Button)</l>
+<l>    wait_seconds (0.2)</l>
+<l>    DispCluster1 := false</l>
+<l>    DispCluster2 := false</l>
+<l>    if (Button == 1)</l>
+<l>        DispCluster1 := true</l>
+<l>    endif</l>
+<l>    if (Button == 4)</l>
+<l>        DispCluster2 := true</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (DispCluster1 or DispCluster2)</l>
+<l>        i := 0</l>
+<l>        while (true)</l>
+<l>            set_system ('flush_graphic', 'false')</l>
+<l>            select_obj (SimImages, SimImageRotate, int(fmod(i,|Angles| - 1)) + 1)</l>
+<l>            Angle := Angles[fmod(i,|Angles| - 1)]</l>
+<c>            * </c>
+<l>            hom_mat3d_rotate (H, Angle, 'y', Pose[0], Pose[1], Pose[2], HomMat3DRotate)</l>
+<c>            * </c>
+<l>            if (DispCluster1)</l>
+<l>                p_gen_normals_and_circles_rot (Normals1Rot, Circles1Rot, CamParam, Cluster1, HomMat3DRotate, Radius)</l>
+<l>                dev_set_color ('blue')</l>
+<l>                dev_display (Normals1Rot)</l>
+<l>                dev_set_color ('yellow')</l>
+<l>                dev_display (Circles1Rot)</l>
+<l>            endif</l>
+<l>            if (DispCluster2)</l>
+<l>                p_gen_normals_and_circles_rot (Normals2Rot, Circles2Rot, CamParam, Cluster2, HomMat3DRotate, Radius)</l>
+<l>                dev_set_color ('blue')</l>
+<l>                dev_display (Normals2Rot)</l>
+<l>                dev_set_color ('yellow')</l>
+<l>                dev_display (Circles2Rot)</l>
+<l>            endif</l>
+<l>            set_system ('flush_graphic', 'true')</l>
+<l>            disp_message (WindowHandle, 'Press mouse button to stop', 'window', 10, 10, 'black', 'true')</l>
+<l>            dev_error_var (err, 1)</l>
+<l>            dev_set_check ('~give_error')</l>
+<l>            ButtonPressed := 0</l>
+<l>            get_mposition (WindowHandle, Row3, Column3, ButtonPressed)</l>
+<l>            dev_error_var (err, 0)</l>
+<l>            dev_set_check ('give_error')</l>
+<l>            if (ButtonPressed &gt; 0)</l>
+<l>                disp_message (WindowHandle, 'Left   mouse button: Select cluster', 'window', 10, 10, 'black', 'true')</l>
+<l>                disp_message (WindowHandle, 'Right  mouse button: Exit          ', 'window', 35, 10, 'black', 'true')</l>
+<l>                get_mbutton (WindowHandle, Row4, Column4, Button)</l>
+<l>                if (Button == 1)</l>
+<l>                    break</l>
+<l>                endif</l>
+<l>                if (Button == 4)</l>
+<l>                    Finish := true</l>
+<l>                    break</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>            wait_seconds (0.07)</l>
+<l>            i := i + 1</l>
+<l>        endwhile</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_clear_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="p_gen_normals_and_circles">
+<interface>
+<oo>
+<par name="Normals" base_type="iconic" dimension="0"/>
+<par name="Circles" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="CenterNormal" base_type="ctrl" dimension="0"/>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Number := |CenterNormal| / 6</l>
+<c>* </c>
+<l>idx := []</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    idx := [idx,i * 6]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* determine the normal vectors</c>
+<l>StartX := subset(CenterNormal,idx)</l>
+<l>StartY := subset(CenterNormal,idx + 1)</l>
+<l>StartZ := subset(CenterNormal,idx + 2)</l>
+<l>EndX := StartX + 0.005 * subset(CenterNormal,idx + 3)</l>
+<l>EndY := StartY + 0.005 * subset(CenterNormal,idx + 4)</l>
+<l>EndZ := StartZ + 0.005 * subset(CenterNormal,idx + 5)</l>
+<c>* </c>
+<l>project_3d_point (StartX, StartY, StartZ, CamParam, StartRow, StartCol)</l>
+<l>project_3d_point (EndX, EndY, EndZ, CamParam, EndRow, EndCol)</l>
+<c>* </c>
+<l>gen_empty_obj (Normals)</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    gen_contour_polygon_xld (Contour, [StartRow[i],EndRow[i]], [StartCol[i],EndCol[i]])</l>
+<l>    concat_obj (Normals, Contour, Normals)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<l>gen_circle_contour_xld (ContCircle, 0, 0, Radius, 0, 6.28318, 'positive', Radius / 10.0)</l>
+<l>get_contour_xld (ContCircle, Row, Col)</l>
+<c>* </c>
+<l>gen_empty_obj (Circles)</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    p_center_normal_2_pose (CenterNormal[i * 6:i * 6 + 5], Pose)</l>
+<l>    pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>    affine_trans_point_3d (HomMat3D, Row, Col, gen_tuple_const(|Row|,0.0), Qx, Qy, Qz)</l>
+<l>    project_3d_point (Qx, Qy, Qz, CamParam, EllRow, EllCol)</l>
+<l>    gen_contour_polygon_xld (ContourEll, EllRow, EllCol)</l>
+<l>    concat_obj (Circles, ContourEll, Circles)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="p_gen_normals_and_circles">
+<short lang="en_US">Generate the normal vectors and the circles,  projected into the image</short>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="CenterNormal"/>
+<parameter id="Circles"/>
+<parameter id="Normals"/>
+<parameter id="Radius"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="p_cluster_normals">
+<interface>
+<ic>
+<par name="CenterNormal1" base_type="ctrl" dimension="0"/>
+<par name="CenterNormal2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Cluster1" base_type="ctrl" dimension="0"/>
+<par name="Cluster2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Number := |CenterNormal1| / 6</l>
+<l>Cluster1 := CenterNormal1[0:5]</l>
+<l>Cluster2 := CenterNormal2[0:5]</l>
+<l>NA := Cluster1[3:5]</l>
+<l>NB := Cluster2[3:5]</l>
+<l>for i := 1 to Number - 1 by 1</l>
+<l>    N1 := CenterNormal1[i * 6 + 3:i * 6 + 5]</l>
+<l>    N2 := CenterNormal2[i * 6 + 3:i * 6 + 5]</l>
+<l>    N1NA := sum(N1 * NA)</l>
+<l>    N1NB := sum(N1 * NB)</l>
+<l>    N2NA := sum(N2 * NA)</l>
+<l>    N2NB := sum(N2 * NB)</l>
+<l>    tuple_sort_index ([N1NA,N1NB,N2NA,N2NB] * -1, Indices)</l>
+<l>    if (Indices[0] == 0 or Indices[0] == 3)</l>
+<l>        Cluster1 := [Cluster1,CenterNormal1[i * 6:i * 6 + 5]]</l>
+<l>        Cluster2 := [Cluster2,CenterNormal2[i * 6:i * 6 + 5]]</l>
+<l>    else</l>
+<l>        Cluster1 := [Cluster1,CenterNormal2[i * 6:i * 6 + 5]]</l>
+<l>        Cluster2 := [Cluster2,CenterNormal1[i * 6:i * 6 + 5]]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>idx := []</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    idx := [idx,i * 6 + 3]</l>
+<l>endfor</l>
+<l>DeviationC1 := deviation(subset(Cluster1,idx)) + deviation(subset(Cluster1,idx + 1)) + deviation(subset(Cluster1,idx + 2))</l>
+<l>DeviationC2 := deviation(subset(Cluster2,idx)) + deviation(subset(Cluster2,idx + 1)) + deviation(subset(Cluster2,idx + 2))</l>
+<l>if (DeviationC2 &lt; DeviationC1)</l>
+<l>    Help := Cluster1</l>
+<l>    Cluster1 := Cluster2</l>
+<l>    Cluster2 := Help</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="p_cluster_normals">
+<short lang="en_US">Out of the two possible orientations per ellipse, Cluster1 contains the ones, where the normal vectors point in a similar direction</short>
+<parameters>
+<parameter id="CenterNormal1"/>
+<parameter id="CenterNormal2"/>
+<parameter id="Cluster1"/>
+<parameter id="Cluster2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="p_center_normal_2_pose">
+<interface>
+<ic>
+<par name="CenterNormal" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Alpha := atan2(-CenterNormal[4],CenterNormal[5])</l>
+<l>if (Alpha &lt; 0)</l>
+<l>    Alpha := Alpha + 2.0 * 3.14159265358979</l>
+<l>endif</l>
+<l>CAlpha := cos(Alpha)</l>
+<l>SAlpha := sin(Alpha)</l>
+<l>if (fabs(CAlpha) &gt; fabs(SAlpha))</l>
+<l>    Beta := atan2(CenterNormal[3],CenterNormal[5] / CAlpha)</l>
+<l>else</l>
+<l>    Beta := atan2(CenterNormal[3],-CenterNormal[4] / SAlpha)</l>
+<l>endif</l>
+<l>if (Beta &lt; 0)</l>
+<l>    Beta := Beta + 2.0 * 3.14159265358979</l>
+<l>endif</l>
+<l>create_pose (CenterNormal[0], CenterNormal[1], CenterNormal[2], Alpha * 180.0 / 3.1415926535, Beta * 180.0 / 3.1415926535, 0, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>return ()</l>
+</body>
+<docu id="p_center_normal_2_pose">
+<short lang="en_US">Transform the center_normal representation into a pose</short>
+<parameters>
+<parameter id="CenterNormal"/>
+<parameter id="Pose"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="p_gen_normals_and_circles_rot">
+<interface>
+<oo>
+<par name="Normals" base_type="iconic" dimension="0"/>
+<par name="Circles" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="CenterNormal" base_type="ctrl" dimension="0"/>
+<par name="HomMat3DRot" base_type="ctrl" dimension="0"/>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Number := |CenterNormal| / 6</l>
+<c>* </c>
+<l>idx := []</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    idx := [idx,i * 6]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* determine the normal vectors</c>
+<l>StartX := subset(CenterNormal,idx)</l>
+<l>StartY := subset(CenterNormal,idx + 1)</l>
+<l>StartZ := subset(CenterNormal,idx + 2)</l>
+<l>EndX := StartX + 0.005 * subset(CenterNormal,idx + 3)</l>
+<l>EndY := StartY + 0.005 * subset(CenterNormal,idx + 4)</l>
+<l>EndZ := StartZ + 0.005 * subset(CenterNormal,idx + 5)</l>
+<c>* </c>
+<l>affine_trans_point_3d (HomMat3DRot, StartX, StartY, StartZ, StartXRot, StartYRot, StartZRot)</l>
+<l>affine_trans_point_3d (HomMat3DRot, EndX, EndY, EndZ, EndXRot, EndYRot, EndZRot)</l>
+<c>* </c>
+<l>project_3d_point (StartXRot, StartYRot, StartZRot, CamParam, StartRow, StartCol)</l>
+<l>project_3d_point (EndXRot, EndYRot, EndZRot, CamParam, EndRow, EndCol)</l>
+<c>* </c>
+<l>gen_empty_obj (Normals)</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    gen_contour_polygon_xld (Contour, [StartRow[i],EndRow[i]], [StartCol[i],EndCol[i]])</l>
+<l>    concat_obj (Normals, Contour, Normals)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<l>gen_circle_contour_xld (ContCircle, 0, 0, Radius, 0, 6.28318, 'positive', Radius / 10.0)</l>
+<l>get_contour_xld (ContCircle, Row, Col)</l>
+<c>* </c>
+<l>gen_empty_obj (Circles)</l>
+<l>for i := 0 to Number - 1 by 1</l>
+<l>    p_center_normal_2_pose (CenterNormal[i * 6:i * 6 + 5], Pose)</l>
+<l>    pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>    affine_trans_point_3d (HomMat3D, Row, Col, gen_tuple_const(|Row|,0.0), Qx, Qy, Qz)</l>
+<l>    affine_trans_point_3d (HomMat3DRot, Qx, Qy, Qz, QxRot, QyRot, QzRot)</l>
+<l>    project_3d_point (QxRot, QyRot, QzRot, CamParam, EllRow, EllCol)</l>
+<l>    gen_contour_polygon_xld (ContourEll, EllRow, EllCol)</l>
+<l>    concat_obj (Circles, ContourEll, Circles)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="p_gen_normals_and_circles_rot">
+<short lang="en_US">Generate the normal vectors and the circles, rotated be HomMat3DRot and projected into the image</short>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="CenterNormal"/>
+<parameter id="Circles"/>
+<parameter id="HomMat3DRot"/>
+<parameter id="Normals"/>
+<parameter id="Radius"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

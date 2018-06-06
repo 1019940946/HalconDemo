@@ -1,0 +1,141 @@
+#!/usr/bin/awk -f
+
+###############################################################################
+#  acqpre-win
+###############################################################################
+#
+# Project:     HALCON Image Acquisition
+# Authors:     D.-W. Peters
+# Description: Preprocess documentation
+# Version:     1.5
+#
+# (c) 2011-2017 by MVTec Software GmbH
+#              www.mvtec.com
+#
+###############################################################################
+
+BEGIN {
+  namespace = ""
+  base="."
+  css=base "/generic.css"
+  cmplevel = 0
+  printline[cmplevel]=1
+  mode="doc"
+}
+
+{
+  sub("\r", "")
+}
+
+namespace == "css" {
+  sub("^", "      ")
+}
+
+/^\[/ {
+  if (namespace) {
+    sub("^\\[", "[" namespace)
+  }
+}
+
+/^#INCLUDE <CSS>/ {
+  sub("<CSS>", css)
+}
+
+/^#INCLUDE/ {
+  path = ""
+  if (substr($2, 1, 1) != "/") path = base "/"
+  system("awk -f acqpre-win base=" base " css=" css " version=" version " iface=" iface " namespace=\"" $3 "\" " path $2)
+  next
+}
+
+/^\[/ {
+  ifblock = 0
+}
+
+/^\[interface\]/ {
+  ifblock = 1
+}
+
+ifblock && $1 == "name" {
+  iface = $3
+  ifblock = 0
+}
+
+/^#MATCH/ || /^#NOMATCH/ {
+  cmplevel += 1
+  cmpflag = $1
+  # leave early if outer level is already false:
+  if (!printline[cmplevel-1]) {
+    printline[cmplevel] = 0
+    next
+  }
+  if ($2 == "mode") {
+    cmpfield = mode
+  }
+  if ($2 == "tag") {
+    cmpfield = tag
+  }
+  if ($2 == "iface") {
+    cmpfield = iface
+  }
+  if ($2 == "version") {
+    cmpfield = version
+  }
+  if (NF == 3) {
+    cmpop = "=~"
+    cmpvalue = $3
+  } else {
+    cmpop = $3
+    cmpvalue = $4
+  }
+  if (cmpop == "<") {
+    printline[cmplevel] = (cmpfield < cmpvalue)
+  }
+  if (cmpop == ">") {
+    printline[cmplevel] = (cmpfield > cmpvalue)
+  }
+  if (cmpop == "<=") {
+    printline[cmplevel] = (cmpfield <= cmpvalue)
+  }
+  if (cmpop == ">=") {
+    printline[cmplevel] = (cmpfield >= cmpvalue)
+  }
+  if (cmpop == "==") {
+    printline[cmplevel] = (cmpfield == cmpvalue)
+  }
+  if (cmpop == "=~") {
+    printline[cmplevel] = (match(cmpfield, cmpvalue))
+  }
+  if (cmpflag == "#NOMATCH") {
+    printline[cmplevel] = !printline[cmplevel]
+  }
+  next
+}
+
+/^#ENDMATCH *$/ {
+  printline[cmplevel] = 1
+  cmplevel -= 1
+  next
+}
+
+/<opref>/ {
+  while(match($0, "<opref>")) {
+    ast = RSTART
+    alg = RLENGTH
+    x = match($0, "</opref>")
+    bst = RSTART
+    blg = RLENGTH
+    opname = substr($0, ast + alg, bst - (ast + alg))
+    oplink = "<a href=\"../operators/" opname "\">" opname "</a>"
+    $0 = substr($0, 1, ast -1) oplink substr($0, bst + blg)
+  }
+}
+
+printline[cmplevel] {
+  print $0
+}
+
+/^\[version\]/ {
+  print "halcon = " version
+  print "halconfull = " fullversion
+}

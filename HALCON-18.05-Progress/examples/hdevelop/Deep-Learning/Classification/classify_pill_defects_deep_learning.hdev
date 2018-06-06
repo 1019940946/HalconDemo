@@ -1,0 +1,1030 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to train a deep learning defect classifier, along</c>
+<c>* with a detailed explanation of the necessary steps.</c>
+<c>* </c>
+<c>* Initialization.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>WindowWidth := 800</l>
+<l>WindowHeight := 600</l>
+<l>dev_open_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Some procedures use a random number generator. Set the seed for reproducibility.</c>
+<l>set_system ('seed_rand', 42)</l>
+<c>* </c>
+<c>* Introduction text.</c>
+<l>dev_disp_introduction_text (WindowWidth, WindowHeight)</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<l>dev_resize_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1)</l>
+<c>* </c>
+<c>* ** TRAINING **</c>
+<c>* </c>
+<c>* Read one of the pretrained networks.</c>
+<l>read_dl_classifier ('pretrained_dl_classifier_compact.hdl', DLClassifierHandle)</l>
+<c>* </c>
+<c>* 1) Preprocess the data set.</c>
+<c>* </c>
+<c>* Path to directory with images.</c>
+<l>RawDataFolder := 'pill'</l>
+<c>* </c>
+<c>* Get the raw data set with labels.</c>
+<c>* </c>
+<c>* For a successful training, you generally need a lot of labeled images,</c>
+<c>* in the order of hundreds to thousands per class. However, this is very</c>
+<c>* dependent on the complexity of your classification task.</c>
+<c>* </c>
+<c>* Each image of the data set is located in a subfolder which has the name</c>
+<c>* of the corresponding class ('good', 'crack' and 'contamination').</c>
+<c>* </c>
+<c>* e.g.:</c>
+<c>* pill/.../good/foo.png</c>
+<c>* pill/.../contami/bar.png</c>
+<c>* pill/.../crack/foobar.png</c>
+<l>read_dl_classifier_data_set (RawDataFolder, 'last_folder', RawImageFiles, Labels, LabelIndices, Classes)</l>
+<c>* </c>
+<c>* We will show here how a single image is preprocessed</c>
+<c>* for demonstration purpose.</c>
+<l>SampleImageFile := RawImageFiles[1302]</l>
+<l>read_image (SampleImage, SampleImageFile)</l>
+<c>* </c>
+<c>* The preprocessing procedure is a custom procedure.</c>
+<l>preprocess_dl_pills_example (SampleImage, SampleImagePreprocessed, DLClassifierHandle)</l>
+<c>* </c>
+<l>dev_disp_preprocessing_text (SampleImage, SampleImagePreprocessed, WindowHandle, WindowHandleTemp1, WindowHandleTemp2)</l>
+<l>stop ()</l>
+<l>dev_close_temp_windows (WindowHandleTemp1, WindowHandleTemp2, WindowHandle)</l>
+<c>* </c>
+<c>* Path of output directory for preprocessed data set.</c>
+<l>PreprocessedFolder := 'pills_preprocessed'</l>
+<c>* </c>
+<c>* If the preprocessed has been generated already,</c>
+<c>* we skip this part.</c>
+<l>file_exists (PreprocessedFolder, FileExists)</l>
+<c>* If you want to try a different preprocessing,</c>
+<c>* set this to true.</c>
+<l>OverwritePreprocessingFolder := false</l>
+<c>* By default, we will remvoe the folder with the preprocessed data.</c>
+<c>* In a real application you might want to keep this data (if the</c>
+<c>* preprocessing does not change to save time).</c>
+<l>RemovePreprocessingAfterExample := true</l>
+<c>* </c>
+<l>if (not FileExists or OverwritePreprocessingFolder)</l>
+<c>    * Preprocess of the raw data.</c>
+<l>    if (FileExists)</l>
+<l>        remove_dir_recursively (PreprocessedFolder)</l>
+<l>    endif</l>
+<c>    * Create output directories.</c>
+<l>    make_dir (PreprocessedFolder)</l>
+<l>    for I := 0 to |Classes| - 1 by 1</l>
+<l>        make_dir (PreprocessedFolder + '/' + Classes[I])</l>
+<l>    endfor</l>
+<c>    * Define output file names.</c>
+<l>    parse_filename (RawImageFiles, BaseNames, Extensions, Directories)</l>
+<l>    ObjectFilesOut := PreprocessedFolder + '/' + Labels + '/' + BaseNames + '.hobj'</l>
+<c>    * Check if output file names</c>
+<c>    * overlap in the preprocessed folder.</c>
+<c>    * This is just a sanity check.</c>
+<l>    check_output_file_names_for_duplicates (RawImageFiles, ObjectFilesOut)</l>
+<c>    * Preprocess images and save them as hobj files.</c>
+<l>    for I := 0 to |RawImageFiles| - 1 by 1</l>
+<l>        read_image (Image, RawImageFiles[I])</l>
+<c>        * Preprocess the image with a custom procedure</c>
+<c>        * in order to remove the background.</c>
+<l>        preprocess_dl_pills_example (Image, ImagePreprocessed, DLClassifierHandle)</l>
+<c>        * Write preprocessed image to hobj file.</c>
+<l>        write_object (ImagePreprocessed, ObjectFilesOut[I])</l>
+<l>        dev_disp_preprocessing_progress (I, RawImageFiles, PreprocessedFolder, WindowHandle)</l>
+<l>    endfor</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_disp_text ('Preprocessing done.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>endif</l>
+<c>* </c>
+<c>* 2) Split data into training, validation, and test set.</c>
+<c>* </c>
+<c>* Read the data, i.e., the paths of the images and their respective ground truth labels.</c>
+<l>read_dl_classifier_data_set (PreprocessedFolder, 'last_folder', ImageFiles, Labels, LabelsIndices, Classes)</l>
+<c>* </c>
+<c>* Split the data into three subsets,</c>
+<c>* for training 70%, validation 15%, and testing 15%.</c>
+<l>TrainingPercent := 70</l>
+<l>ValidationPercent := 15</l>
+<l>split_dl_classifier_data_set (ImageFiles, Labels, TrainingPercent, ValidationPercent, TrainingImages, TrainingLabels, ValidationImages, ValidationLabels, TestImages, TestLabels)</l>
+<l>dev_disp_split_data_text ()</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 3) Set training hyper-parameters.</c>
+<c>* </c>
+<c>* In order to retrain the neural network, we have to specify</c>
+<c>* the class names of our classification problem.</c>
+<l>set_dl_classifier_param (DLClassifierHandle, 'classes', Classes)</l>
+<c>* Set the batch size. The batch size determines how many images</c>
+<c>* are processed simultaneously during training and inference.</c>
+<c>* A higher value increases the speed.</c>
+<l>BatchSize := 64</l>
+<l>set_dl_classifier_param (DLClassifierHandle, 'batch_size', BatchSize)</l>
+<l>if (BatchSize &gt; |TrainingImages|)</l>
+<l>    throw ('In this example, the batch size must be lower than or equal to the number of training images.')</l>
+<l>endif</l>
+<c>* </c>
+<c>* Try to initialize the runtime environment.</c>
+<l>try</l>
+<l>    set_dl_classifier_param (DLClassifierHandle, 'runtime_init', 'immediately')</l>
+<l>catch (Exception)</l>
+<l>    dev_disp_error_text (Exception)</l>
+<c>    * If the problem is not related to insufficient GPU memory the</c>
+<c>    * preprocessed data can get deleted</c>
+<l>    if (RemovePreprocessingAfterExample and Exception[0] != 4104)</l>
+<l>        remove_dir_recursively (PreprocessedFolder)</l>
+<l>        dev_disp_text ('Preprocessed data in folder "' + PreprocessedFolder + '" have been deleted.', 'window', 'bottom', 'left', 'black', [], [])</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<c>* For this data set, an initial learning rate of 0.001</c>
+<c>* has proven to give good results.</c>
+<c>* With a different pretrained network or different</c>
+<c>* training data this might have to be adjusted.</c>
+<c>* The learning rate determines how the gradients</c>
+<c>* are weighted during training.</c>
+<c>* Decreasing it can help when the error</c>
+<c>* is no longer decreasing during training.</c>
+<l>InitialLearningRate := 0.001</l>
+<l>set_dl_classifier_param (DLClassifierHandle, 'learning_rate', InitialLearningRate)</l>
+<c>* </c>
+<c>* In this example, we reduce the learning rate by a factor</c>
+<c>* of 1/10 every 4th epoch. This has been empirically tested</c>
+<c>* for this classification problem.</c>
+<c>* For another dataset, this might need to be adjusted.</c>
+<l>LearningRateStepEveryNthEpoch := 4</l>
+<l>LearningRateStepRatio := 0.1</l>
+<c>* </c>
+<c>* We iterate 16 times over the full training set.</c>
+<l>NumEpochs := 16</l>
+<c>* </c>
+<c>* Set the momentum. The momentum specifies</c>
+<c>* to which extent previous gradients</c>
+<c>* have an influence on the weight update.</c>
+<l>Momentum := 0.9</l>
+<l>set_dl_classifier_param (DLClassifierHandle, 'momentum', Momentum)</l>
+<c>* Set the regularization parameter. Regularization is helpful</c>
+<c>* in the presence of overfitting during the classifier training.</c>
+<l>WeightPrior := 0.0005</l>
+<l>set_dl_classifier_param (DLClassifierHandle, 'weight_prior', WeightPrior)</l>
+<l>NumBatchesInEpoch := int(floor(|TrainingImages| / real(BatchSize)))</l>
+<l>dev_disp_parameters_text (InitialLearningRate, LearningRateStepEveryNthEpoch, NumBatchesInEpoch)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 4) Train the classifier.</c>
+<c>* </c>
+<c>* For the plot during training,</c>
+<c>* we need to concatenate some intermediate results.</c>
+<l>TrainingErrors := []</l>
+<l>ValidationErrors := []</l>
+<l>LearningRates := []</l>
+<l>Epochs := []</l>
+<l>LossByIteration := []</l>
+<c>* </c>
+<c>* TrainSequence is used for easier indexing of the training data.</c>
+<l>tuple_gen_sequence (0, |TrainingImages| - 1, 1, TrainSequence)</l>
+<c>* </c>
+<c>* Set whether the best classifier (so far)</c>
+<c>* is saved respectively.</c>
+<l>SaveBestClassifier := true</l>
+<l>if (SaveBestClassifier)</l>
+<l>    FileName := 'classifier_pills.hdl'</l>
+<l>    MinValidationError := 1</l>
+<l>endif</l>
+<c>* </c>
+<c>* In regular intervals, we want to evaluate</c>
+<c>* how well our classifier performs.</c>
+<l>PlotEveryNthEpoch := 1</l>
+<c>* </c>
+<c>* Thus, we create a tuple that includes all the iterations</c>
+<c>* where the plot should be computed (including the last ieration).</c>
+<l>NumTotalIterations := (NumBatchesInEpoch * NumEpochs) - 1</l>
+<l>PlottedIterations := round([NumBatchesInEpoch * [0:PlotEveryNthEpoch:NumEpochs - 1],NumTotalIterations])</l>
+<c>* </c>
+<c>* Select a subset of the training data set</c>
+<c>* in order to obtain a fast approximation</c>
+<c>* of the training error during training (plotting).</c>
+<l>SelectPercentageTrainingImages := 20</l>
+<l>select_percentage_dl_classifier_data (TrainingImages, TrainingLabels, SelectPercentageTrainingImages, TrainingImagesSelected, TrainingLabelsSelected)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text ('Training has started...', 'window', 'top', 'left', 'black', [], [])</l>
+<l>for Epoch := 0 to NumEpochs - 1 by 1</l>
+<c>    * In order to get randomness in each epoch,</c>
+<c>    * the training set is shuffled every epoch.</c>
+<l>    tuple_shuffle (TrainSequence, TrainSequence)</l>
+<l>    for Iteration := 0 to NumBatchesInEpoch - 1 by 1</l>
+<c>        * Select a batch from the training data set.</c>
+<l>        BatchStart := Iteration * BatchSize</l>
+<l>        BatchEnd := BatchStart + (BatchSize - 1)</l>
+<l>        BatchIndices := TrainSequence[BatchStart:BatchEnd]</l>
+<l>        BatchImageFiles := TrainingImages[BatchIndices]</l>
+<l>        BatchLabels := TrainingLabels[BatchIndices]</l>
+<c>        * </c>
+<c>        * Read the image of the current batch.</c>
+<l>        read_image (BatchImages, BatchImageFiles)</l>
+<c>        * Augment the images to get a better variety of training images.</c>
+<l>        GenParamName := 'mirror'</l>
+<l>        GenParamValue := 'rc'</l>
+<l>        augment_images (BatchImages, BatchImages, GenParamName, GenParamValue)</l>
+<c>        * </c>
+<c>        * Train the network with these images and ground truth labels.</c>
+<l>        train_dl_classifier_batch (BatchImages, DLClassifierHandle, BatchLabels, DLClassifierTrainResultHandle)</l>
+<c>        * You can access the current value of the loss function,</c>
+<c>        * which should decrease during the training.</c>
+<l>        get_dl_classifier_train_result (DLClassifierTrainResultHandle, 'loss', Loss)</l>
+<c>        * Store the loss in a tuple .</c>
+<l>        LossByIteration := [LossByIteration,Loss]</l>
+<c>        * Compute the current iteration and check whether</c>
+<c>        * to plot the training progress.</c>
+<l>        CurrentIteration := int(Iteration + (NumBatchesInEpoch * Epoch))</l>
+<l>        if (sum(CurrentIteration [==] PlottedIterations))</l>
+<c>            * Plot the progress regularly.</c>
+<c>            * Evaluate the current classifier on the training and validation set.</c>
+<l>            apply_dl_classifier_batchwise (TrainingImagesSelected, DLClassifierHandle, TrainingDLClassifierResultIDs, TrainingPredictedLabels, TrainingConfidences)</l>
+<l>            apply_dl_classifier_batchwise (ValidationImages, DLClassifierHandle, ValidationDLClassifierResultIDs, ValidationPredictedLabels, ValidationConfidences)</l>
+<c>            * Evaluate the top-1 error on each dataset.</c>
+<l>            evaluate_dl_classifier (TrainingLabelsSelected, DLClassifierHandle, TrainingDLClassifierResultIDs, 'top1_error', 'global', TrainingTop1Error)</l>
+<l>            evaluate_dl_classifier (ValidationLabels, DLClassifierHandle, ValidationDLClassifierResultIDs, 'top1_error', 'global', ValidationTop1Error)</l>
+<c>            * Concatenate the values for the plot.</c>
+<l>            get_dl_classifier_param (DLClassifierHandle, 'learning_rate', LearningRate)</l>
+<l>            TrainingErrors := [TrainingErrors,TrainingTop1Error]</l>
+<l>            ValidationErrors := [ValidationErrors,ValidationTop1Error]</l>
+<l>            LearningRates := [LearningRates,LearningRate]</l>
+<l>            Epochs := [Epochs,PlottedIterations[|Epochs|] / real(NumBatchesInEpoch)]</l>
+<c>            * Plot validation and error against the epochs in order to</c>
+<c>            * observe the progress of the training.</c>
+<l>            plot_dl_classifier_training_progress (TrainingErrors, ValidationErrors, LearningRates, Epochs, NumEpochs, WindowHandle)</l>
+<l>            if (SaveBestClassifier)</l>
+<l>                if (ValidationTop1Error &lt;= MinValidationError)</l>
+<l>                    write_dl_classifier (DLClassifierHandle, FileName)</l>
+<l>                    MinValidationError := ValidationTop1Error</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Reduce the learning rate every nth epoch.</c>
+<l>    if ((Epoch + 1) % LearningRateStepEveryNthEpoch == 0)</l>
+<l>        get_dl_classifier_param (DLClassifierHandle, 'learning_rate', LearningRate)</l>
+<l>        set_dl_classifier_param (DLClassifierHandle, 'learning_rate', LearningRate * LearningRateStepRatio)</l>
+<l>        get_dl_classifier_param (DLClassifierHandle, 'learning_rate', LearningRate)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>if (SaveBestClassifier)</l>
+<l>    read_dl_classifier (FileName, DLClassifierHandle)</l>
+<l>endif</l>
+<c>* </c>
+<c>* 5) Evaluate the classifier.</c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text ('Training finished, evaluating error. This may take some time.', 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<c>* 5.1) Calculate the Top-1 error for the training, validation and test sets.</c>
+<l>apply_dl_classifier_batchwise (TrainingImages, DLClassifierHandle, DLClassifierResultIDsTraining, PredictedClassesTraining, Confidences)</l>
+<l>evaluate_dl_classifier (TrainingLabels, DLClassifierHandle, DLClassifierResultIDsTraining, 'top1_error', 'global', Top1ErrorTraining)</l>
+<l>apply_dl_classifier_batchwise (ValidationImages, DLClassifierHandle, DLClassifierResultIDsValidation, PredictedClassesValidation, Confidences)</l>
+<l>evaluate_dl_classifier (ValidationLabels, DLClassifierHandle, DLClassifierResultIDsValidation, 'top1_error', 'global', Top1ErrorValidation)</l>
+<c>* </c>
+<l>dev_disp_training_finished_text (Top1ErrorTraining, Top1ErrorValidation)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 5.2) Compute confusion matrix for the validation data set.</c>
+<c>* </c>
+<l>Top1ClassValidation := []</l>
+<l>for Index := 0 to PredictedClassesValidation.length() - 1 by 1</l>
+<l>    Top1ClassValidation := [Top1ClassValidation,PredictedClassesValidation.at(Index)[0]]</l>
+<l>endfor</l>
+<l>gen_confusion_matrix (ValidationLabels, Top1ClassValidation, [], [], WindowHandle, ConfusionMatrix)</l>
+<l>dev_disp_text ('Validation data', 'window', 'top', 'left', 'gray', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 5.3) Display images from the validation set which are classified incorrectly.</c>
+<l>dev_resize_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1)</l>
+<l>dev_disp_images_text ()</l>
+<l>stop ()</l>
+<l>get_dl_classifier_image_results (ImagesErroneouslyClassified, ValidationImages, ValidationLabels, Top1ClassValidation, 'global_selection', 'erroneously_classified', WindowHandle)</l>
+<c>* </c>
+<c>* 5.4) Display heatmap for some images from the validation set.</c>
+<l>dev_resize_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1)</l>
+<l>dev_disp_heatmap_text (Text)</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>for I := 0 to 4 by 1</l>
+<l>    ImageIndex := floor(rand(1) * |ValidationImages|)</l>
+<l>    DisplayHeatmap := true</l>
+<l>    SamplingSize := 7</l>
+<l>    FeatureSize := 80</l>
+<l>    if (ValidationLabels[ImageIndex] == 'crack')</l>
+<l>        FeatureSize := 90</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    read_image (ImageSelected, ValidationImages[ImageIndex])</l>
+<l>    dev_resize_window_fit_image (ImageSelected, 0, 0, -1, -1)</l>
+<l>    dev_display_dl_classifier_heatmap (ImageSelected, DLClassifierHandle, ['feature_size','sampling_size'], [FeatureSize,SamplingSize], WindowHandle)</l>
+<l>    dev_disp_heatmap_result_text (ValidationLabels[ImageIndex], Top1ClassValidation[ImageIndex])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* 5.5) Test the classifier on the test set</c>
+<l>dev_resize_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text ('Calculating test error. This may take some time.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>apply_dl_classifier_batchwise (TestImages, DLClassifierHandle, DLClassifierResultIDsTest, PredictedClassesTest, Confidences)</l>
+<l>evaluate_dl_classifier (TestLabels, DLClassifierHandle, DLClassifierResultIDsTest, 'top1_error', 'global', Top1ErrorTest)</l>
+<l>dev_clear_window ()</l>
+<l>dev_disp_test_error_text (Top1ErrorTraining, |TrainingLabels|, Top1ErrorValidation, |ValidationLabels|, Top1ErrorTest, |TestLabels|)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* ** INFERENCE **</c>
+<c>* </c>
+<c>* This part shows a typical inference scenario.</c>
+<c>* Read the classifier.</c>
+<l>if (SaveBestClassifier)</l>
+<l>    read_dl_classifier (FileName, DLClassifierHandle)</l>
+<l>endif</l>
+<c>* If it is not possible to accumulate multiple images at a time,</c>
+<c>* the batch size should be set to 1.</c>
+<l>set_dl_classifier_param (DLClassifierHandle, 'batch_size', 1)</l>
+<c>* This initializes the runtime environment immediately.</c>
+<c>* Otherwise, the runtime is initialized when apply_dl_classifier</c>
+<c>* is called for the first time.</c>
+<l>set_dl_classifier_param (DLClassifierHandle, 'runtime_init', 'immediately')</l>
+<c>* </c>
+<l>dev_resize_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1)</l>
+<l>dev_disp_inference_text ()</l>
+<l>stop ()</l>
+<c>* Read / acquire images in a loop and classify them.</c>
+<l>for Index := 0 to 20 by 1</l>
+<l>    read_image (Image, RawImageFiles[floor(rand(1) * |RawImageFiles|)])</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    preprocess_dl_pills_example (Image, ImagePreprocessed, DLClassifierHandle)</l>
+<l>    apply_dl_classifier (ImagePreprocessed, DLClassifierHandle, DLClassifierResultHandle)</l>
+<l>    get_dl_classifier_result (DLClassifierResultHandle, 'all', 'predicted_classes', PredictedClass)</l>
+<l>    get_dl_classifier_result (DLClassifierResultHandle, 'all', 'confidences', Confidence)</l>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    Text := 'Predicted class: ' + PredictedClass + ', Confidence: ' + Confidence$'.2f'</l>
+<l>    dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>if (RemovePreprocessingAfterExample)</l>
+<l>    remove_dir_recursively (PreprocessedFolder)</l>
+<l>    dev_disp_text ('End of program.\nPreprocessed data have been deleted.', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>else</l>
+<l>    dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>endif</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_introduction_text">
+<interface>
+<ic>
+<par name="WindowWidth" base_type="ctrl" dimension="0"/>
+<par name="WindowHeight" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Text := 'This example program shows how to train a deep learning defect '</l>
+<l>Text[|Text|] := 'classifier. It gives a detailed explanation of the necessary steps.'</l>
+<l>Text[|Text|] := 'For a short overview, have a look at the example '</l>
+<l>Text[|Text|] := 'classify_fruit_deep_learning.hdev.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'TRAINING'</l>
+<l>Text[|Text|] := '  1) Preprocess the data set.'</l>
+<l>Text[|Text|] := '  2) Split data into training, validation, and test set.'</l>
+<l>Text[|Text|] := '  3) Set training parameters.'</l>
+<l>Text[|Text|] := '  4) Train the classifier.'</l>
+<l>Text[|Text|] := '  5) Evaluate the classifier.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'INFERENCE'</l>
+<l>Text[|Text|] := '  1) Apply the classifier on raw data.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'You will need a compatible GPU for this example (see system requirements).'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_resize_window_fit_size (0, 0, WindowWidth, WindowHeight - 240, -1, -1)</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<c>* Display example images,</c>
+<c>* display a warning in case the images are not found.</c>
+<l>try</l>
+<l>    dev_disp_images_of_classes ()</l>
+<l>catch (Exception)</l>
+<l>    if (Exception[0] == 5200)</l>
+<l>        dev_disp_missing_images_text ()</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        throw (Exception)</l>
+<l>    endif</l>
+<l>endtry</l>
+<c>* Check if the runtime can be initialized.</c>
+<l>try</l>
+<l>    read_dl_classifier ('pretrained_dl_classifier_compact.hdl', DLClassifierHandle)</l>
+<l>    set_dl_classifier_param (DLClassifierHandle, 'batch_size', 1)</l>
+<l>    set_dl_classifier_param (DLClassifierHandle, 'runtime_init', 'immediately')</l>
+<l>catch (Exception)</l>
+<l>    dev_disp_error_text (Exception)</l>
+<l>endtry</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_introduction_text">
+<parameters>
+<parameter id="WindowHeight"/>
+<parameter id="WindowWidth"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_split_data_text">
+<interface/>
+<body>
+<l>Text := '2) Split data into training, validation, and test set.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'We recommend to split the data in three subsets:'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '  1) The training set is used directly for training and given to'</l>
+<l>Text[|Text|] := '     train_dl_classifier_batch.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '  2) The validation set is used indirectly during training, to evaluate'</l>
+<l>Text[|Text|] := '     the success of the classifier on unseen data. Try to improve '</l>
+<l>Text[|Text|] := '     your results based on the validation set (e.g. by tuning'</l>
+<l>Text[|Text|] := '     hyperparameters or changing the preprocessing).'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '  3) The test set is used as a final check for generalization. It should be'</l>
+<l>Text[|Text|] := '     evaluated infrequently after you tried to optimize the validation error.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'See chapter reference "Deep-Learning -&gt; Classification" for details.'</l>
+<c></c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_split_data_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_parameters_text">
+<interface>
+<ic>
+<par name="InitialLearningRate" base_type="ctrl" dimension="0"/>
+<par name="LearningRateStepEveryNthEpoch" base_type="ctrl" dimension="0"/>
+<par name="NumBatchesInEpoch" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Text := '3) Set training hyperparameters.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'For training, several parameters have an influence on the result.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'The most important parameters are:'</l>
+<l>Text[|Text|] := '  - \'InitialLearningRate\' = ' + InitialLearningRate + ': '</l>
+<l>Text[|Text|] := '        We are retraining a pretrained network. The initial learning'</l>
+<l>Text[|Text|] := '        rate should be low because we want to reuse the existing weights.'</l>
+<l>Text[|Text|] := '        In general you should try to start with this initial learning rate'</l>
+<l>Text[|Text|] := '        and observe if the validation error drops.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '  - \'LearningRateStepEveryNthEpoch\' = ' + LearningRateStepEveryNthEpoch + ': '</l>
+<l>Text[|Text|] := '        The learning rate should be reduced only after the validation error'</l>
+<l>Text[|Text|] := '        does not change significantly. It is then reduced by a factor '</l>
+<l>Text[|Text|] := '        (e.g. 1/10 or 1/2). An epoch is the number of iterations it takes'</l>
+<l>Text[|Text|] := '        to iterate over the full training set once.'</l>
+<l>Text[|Text|] := '        In this example one epoch equals ' + NumBatchesInEpoch + ' iterations.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'All hyperparameters have been selected empirically for this example.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'To understand the additional parameters, like the \'batch_size\', '</l>
+<l>Text[|Text|] := '\'momentum\', and \'weight_prior\' have a look at the chapter reference '</l>
+<l>Text[|Text|] := '\'Deep Learning -&gt; Classification\' and the comments in this example.'</l>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_parameters_text">
+<parameters>
+<parameter id="InitialLearningRate"/>
+<parameter id="LearningRateStepEveryNthEpoch"/>
+<parameter id="NumBatchesInEpoch"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_preprocessing_text">
+<interface>
+<io>
+<par name="BatchImages" base_type="iconic" dimension="0"/>
+<par name="BatchImagesPreprocessed" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandleTemp1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleTemp2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Text := '1) Preprocess the data set.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Preprocessing is an important part of a successful classifier. '</l>
+<l>Text[|Text|] := 'A good preprocessing procedure will emphasize relevant details '</l>
+<l>Text[|Text|] := 'and reduce unnecessary aspects.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'In this example, we remove the background. It does not contain any relevant'</l>
+<l>Text[|Text|] := 'information for the classification task.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Additionally, input images used in deep learning classifiers need to be in'</l>
+<l>Text[|Text|] := 'a specific format (size, number of channels, type and value range).'</l>
+<l>Text[|Text|] := 'The procedure preprocess_dl_classifier_images preprocesses a tuple of'</l>
+<l>Text[|Text|] := 'images accordingly.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Initially, we preprocess the whole dataset and save the data to disk.'</l>
+<l>Text[|Text|] := 'This way no time is wasted on preprocessing during training.'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<c>* </c>
+<l>select_obj (BatchImages, ObjectSelected, 1)</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>dev_open_window_fit_image (ObjectSelected, 0, Width + 8, 256, -1, WindowHandleTemp1)</l>
+<l>set_display_font (WindowHandleTemp1, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (ObjectSelected)</l>
+<l>dev_disp_text ('Original', 'window', 'top', 'left', 'black', [], [])</l>
+<l>select_obj (BatchImagesPreprocessed, ObjectSelected, 1)</l>
+<l>get_image_size (ObjectSelected, WidthPreproc, HeightPreproc)</l>
+<l>get_image_type (ObjectSelected, TypePreproc)</l>
+<l>get_window_extents (WindowHandleTemp1, Row1, Column1, Width1, Height1)</l>
+<l>dev_open_window_fit_image (ObjectSelected, Height1 + 56, Width + 8, 256, -1, WindowHandleTemp2)</l>
+<l>set_display_font (WindowHandleTemp2, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (ObjectSelected)</l>
+<l>dev_disp_text ('Preprocessed', 'window', 'top', 'left', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_preprocessing_text">
+<parameters>
+<parameter id="BatchImages"/>
+<parameter id="BatchImagesPreprocessed"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleTemp1"/>
+<parameter id="WindowHandleTemp2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_training_finished_text">
+<interface>
+<ic>
+<par name="Top1ErrorTraining" base_type="ctrl" dimension="0"/>
+<par name="Top1ErrorValidation" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Text := '5) Evaluate the training success.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Now that the training is finished, we check how well the classifier'</l>
+<l>Text[|Text|] := 'performs on the training and validation images.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '5.1) Compute the top-1 error'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'We compute the top-1 error on the two sets. It represents the fraction '</l>
+<l>Text[|Text|] := 'of images for which the predicted classes do not match the respective '</l>
+<l>Text[|Text|] := 'ground truth labels: '</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Top-1 error (training images):   ' + (Top1ErrorTraining * 100)$'.1f' + ' %'</l>
+<l>Text[|Text|] := 'Top-1 error (validation images): ' + (Top1ErrorValidation * 100)$'.1f' + ' %'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '5.2) Compute the confusion matrix.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'One way to better visualize the classification results is the confusion '</l>
+<l>Text[|Text|] := 'matrix. Here, we use it to inspect the validation data.'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_training_finished_text">
+<parameters>
+<parameter id="Top1ErrorTraining"/>
+<parameter id="Top1ErrorValidation"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_images_text">
+<interface/>
+<body>
+<l>Text := '5.3) Display incorrectly classified images.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Using the procedure dev_display_dl_classifier_image_results,'</l>
+<l>Text[|Text|] := 'we can inspect and return classified images according to'</l>
+<l>Text[|Text|] := 'our criteria. Here, for example, we use it to inspect all'</l>
+<l>Text[|Text|] := 'images that were classified incorrectly.'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_images_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_heatmap_text">
+<interface>
+<oc>
+<par name="Text" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Text := '5.4) Display heatmap for some images from the validation data set.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'The procedure dev_display_dl_classifier_heatmap can help to better understand '</l>
+<l>Text[|Text|] := 'the classification results. The heatmap indicates regions in the image '</l>
+<l>Text[|Text|] := 'which are important for the decision of the classifier. '</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'The results strongly depend on the parameter \'feature_size\'. It should '</l>
+<l>Text[|Text|] := 'be set to the expected feature size (in this case the size of the defect). '</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'The procedure also displays the maximum deviation from the confidence '</l>
+<l>Text[|Text|] := 'value of the original classification. If this deviation is very small, '</l>
+<l>Text[|Text|] := 'the heatmap might not provide any significant information. '</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'The heatmap of images classified as \'good\' might highlight large '</l>
+<l>Text[|Text|] := 'regions or even the whole image. This is due to the fact that during '</l>
+<l>Text[|Text|] := 'the generation of the heatmap parts of the original image are occluded, '</l>
+<l>Text[|Text|] := 'which might result in images similar to the ones showing defects. '</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_heatmap_text">
+<parameters>
+<parameter id="Text"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_close_temp_windows">
+<interface>
+<ic>
+<par name="WindowHandleTemp1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleTemp2" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandleTemp1)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandleTemp2)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>return ()</l>
+</body>
+<docu id="dev_close_temp_windows">
+<parameters>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleTemp1"/>
+<parameter id="WindowHandleTemp2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_inference_text">
+<interface/>
+<body>
+<l>Text := 'INFERENCE'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'This program part is a brief introduction on how to make use of '</l>
+<l>Text[|Text|] := 'your trained classifier.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'It is important that the same preprocessing as for the training '</l>
+<l>Text[|Text|] := 'of the classifier is applied to the raw images. '</l>
+<l>Text[|Text|] := ''</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_inference_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_images_of_classes">
+<interface/>
+<body>
+<l>GinsengPath := 'pill/ginseng/' + ['good/pill_ginseng_good_001','contamination/pill_ginseng_contamination_004','crack/pill_ginseng_crack_001']</l>
+<l>MagnesiumPath := 'pill/magnesium/' + ['good/pill_magnesium_good_001','contamination/pill_magnesium_contamination_001','crack/pill_magnesium_crack_001']</l>
+<l>MintPath := 'pill/mint/' + ['good/pill_mint_good_001','contamination/pill_mint_contamination_001','crack/pill_mint_crack_009']</l>
+<l>read_image (Image, [GinsengPath,MagnesiumPath,MintPath])</l>
+<l>tile_images (Image, TiledImage, 3, 'horizontal')</l>
+<c>* </c>
+<c>* Generate background image.</c>
+<l>get_image_size (TiledImage, Width, Height)</l>
+<l>gen_image_proto (TiledImage, ImageR, 18)</l>
+<l>gen_image_proto (TiledImage, ImageG, 22)</l>
+<l>gen_image_proto (TiledImage, ImageB, 28)</l>
+<l>append_channel (ImageR, ImageG, ImageRG)</l>
+<l>append_channel (ImageRG, ImageB, ImageRGB)</l>
+<c>* </c>
+<l>dev_get_window (WindowHandle)</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>dev_open_window_fit_image (TiledImage, Height + 60, 0, -1, 300, WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>set_part_style (WindowHandle1, 1)</l>
+<l>dev_display (ImageRGB)</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_disp_text ('Good', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Contamination', 'window', 'top', 'center', 'black', [], [])</l>
+<l>dev_disp_text ('Crack', 'window', 'top', 'right', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_images_of_classes">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="check_output_file_names_for_duplicates">
+<interface>
+<ic>
+<par name="RawImageFiles" base_type="ctrl" dimension="0"/>
+<par name="ObjectFilesOut" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>CheckOutputFiles := uniq(sort(ObjectFilesOut))</l>
+<l>if (|CheckOutputFiles| != |RawImageFiles|)</l>
+<l>    SortedImageFiles := sort(ObjectFilesOut)</l>
+<l>    for I := 0 to |SortedImageFiles| - 1 by 1</l>
+<l>        if (SortedImageFiles[I] != CheckOutputFiles[I])</l>
+<l>            throw ('Error some file(s) have the same output filenames: ' + SortedImageFiles[I])</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="check_output_file_names_for_duplicates">
+<parameters>
+<parameter id="ObjectFilesOut"/>
+<parameter id="RawImageFiles"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_error_text">
+<interface>
+<ic>
+<par name="Exception" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>ErrorAndAdviceText := 'An error occurred during runtime initialization.'</l>
+<l>ErrorAndAdviceText := [ErrorAndAdviceText,'']</l>
+<l>ErrorAndAdviceText := [ErrorAndAdviceText,'Error ' + Exception[0] + ': \'' + Exception[2] + '\'']</l>
+<l>if (Exception[0] == 4104)</l>
+<c>    * In case of out of device memory we can give advice.</c>
+<l>    ErrorAndAdviceText := [ErrorAndAdviceText,'']</l>
+<l>    ErrorAndAdviceText := [ErrorAndAdviceText,'Install a GPU with more RAM or reduce the batch size.']</l>
+<l>    ErrorAndAdviceText := [ErrorAndAdviceText,'']</l>
+<l>    ErrorAndAdviceText := [ErrorAndAdviceText,'Note, that changing the batch size will have an influence on the results.']</l>
+<l>endif</l>
+<l>dev_clear_window ()</l>
+<c>* Display text with line breaks after 60 characters.</c>
+<l>dev_disp_text (regexp_replace(ErrorAndAdviceText + ' ',['(.{0,60})\\s','replace_all'],'$1\n'), 'window', 'center', 'left', 'red', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_error_text">
+<parameters>
+<parameter id="Exception"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_heatmap_result_text">
+<interface>
+<ic>
+<par name="Label" base_type="ctrl" dimension="0"/>
+<par name="PredictedClass" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Text := []</l>
+<l>Text[|Text|] := 'Label: ' + Label</l>
+<l>Text[|Text|] := 'Predicted Class: ' + PredictedClass</l>
+<l>if (Label == PredictedClass)</l>
+<l>    Color := 'forest green'</l>
+<l>else</l>
+<l>    Color := 'red'</l>
+<l>endif</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Press Run (F5) to continue'</l>
+<l>dev_disp_text (Text, 'window', 'bottom', 'right', ['black',Color,'black'], [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_heatmap_result_text">
+<parameters>
+<parameter id="Label"/>
+<parameter id="PredictedClass"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_test_error_text">
+<interface>
+<ic>
+<par name="TrainingError" base_type="ctrl" dimension="0"/>
+<par name="NumTraining" base_type="ctrl" dimension="0"/>
+<par name="ValidationError" base_type="ctrl" dimension="0"/>
+<par name="NumValidation" base_type="ctrl" dimension="0"/>
+<par name="TestError" base_type="ctrl" dimension="0"/>
+<par name="NumTest" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Text := '5.5) Test the classifier on the test set.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'So far, you used the training set to train the classifier '</l>
+<l>Text[|Text|] := 'and the validation set to monitor and analyze it. '</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'In a realistic application you may now try to minimize the'</l>
+<l>Text[|Text|] := 'error on the validation set (not shown here).'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Finally, you can check how your classifier performs on data which '</l>
+<l>Text[|Text|] := 'is ideally independent of the two data sets that you already used.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'As we did before for the training and validation set, we compute '</l>
+<l>Text[|Text|] := 'the top-1 error, this time on the test set. '</l>
+<l>Text[|Text|] := 'Top-1 error (test):       ' + (TestError * 100)$'.1f' + ' %  (' + int(TestError * NumTest) + '/' + NumTest + ')'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'We list the training and validation error for comparison: '</l>
+<l>Text[|Text|] := 'Top-1 error (training):   ' + (TrainingError * 100)$'.1f' + ' %  (' + int(TrainingError * NumTraining) + '/' + NumTraining + ')'</l>
+<l>Text[|Text|] := 'Top-1 error (validation): ' + (ValidationError * 100)$'.1f' + ' %  (' + int(ValidationError * NumValidation) + '/' + NumValidation + ')'</l>
+<l>Text[|Text|] := ''</l>
+<c></c>
+<l>tuple_gen_const (|Text|, 'white', Colors)</l>
+<l>if (abs(ValidationError - TestError) &lt; 4)</l>
+<l>    Text[|Text|] := 'There is only a small difference between test and validation error. '</l>
+<l>    Text[|Text|] := 'This suggests that the classifier is able to generalize well. '</l>
+<l>    Colors := [Colors,'forest green','forest green']</l>
+<l>else</l>
+<l>    Text[|Text|] := 'There is a significant difference between test and validation error. '</l>
+<l>    Text[|Text|] := 'This suggests that the classifier is not able to generalize well. '</l>
+<l>    Colors := [Colors,'red','red']</l>
+<l>endif</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', Colors, 'box', 'false')</l>
+<c>* </c>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_test_error_text">
+<parameters>
+<parameter id="NumTest"/>
+<parameter id="NumTraining"/>
+<parameter id="NumValidation"/>
+<parameter id="TestError"/>
+<parameter id="TrainingError"/>
+<parameter id="ValidationError"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="preprocess_dl_pills_example">
+<interface>
+<io>
+<par name="Images" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImagePreprocessed" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="DLClassifierHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Collect cropped images in ImagesCropped.</c>
+<l>gen_empty_obj (ImagesCropped)</l>
+<c>* </c>
+<l>count_obj (Images, Number)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (Images, Image, I)</l>
+<c>    * Segment the pill in the center.</c>
+<l>    threshold (Image, Region, 70, 255)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>    if (|Area| &gt; 1)</l>
+<l>        Indices := sort_index(Area)</l>
+<l>        select_obj (ConnectedRegions, Region, Indices[|Indices| - 1] + 1)</l>
+<l>    else</l>
+<l>        select_obj (ConnectedRegions, Region, 1)</l>
+<l>    endif</l>
+<c>    * Crop to the enclosing rectangle1.</c>
+<l>    smallest_rectangle1 (Region, Row1, Column1, Row2, Column2)</l>
+<l>    crop_rectangle1 (Image, Image, Row1, Column1, Row2, Column2)</l>
+<c>    * Store result in ImagesCropped.</c>
+<l>    insert_obj (ImagesCropped, Image, ImagesCropped, I)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Call the standard procedure with no generic parameters.</c>
+<l>PreprocessingGenParamName := []</l>
+<l>PreprocessingGenParamValue := []</l>
+<l>preprocess_dl_classifier_images (ImagesCropped, ImagePreprocessed, PreprocessingGenParamName, PreprocessingGenParamValue, DLClassifierHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="preprocess_dl_pills_example">
+<parameters>
+<parameter id="DLClassifierHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>dl_classifier</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="ImagePreprocessed">
+<multichannel>true</multichannel>
+<multivalue>optional</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Images">
+<description lang="en_US">Custom preprocessing of images for deep learning classification.
+
+This preprocessing will remove the background of the images. Additionally the  standard procedure "preprocess_dl_classifier_images" is applied.
+
+The output of this procedure can be used by train_dl_classifier_batch or apply_dl_classifier</description>
+<multichannel>optional</multichannel>
+<multivalue>optional</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_missing_images_text">
+<interface/>
+<body>
+<l>ErrorAndAdviceText := 'The images required for this example could not be found.'</l>
+<l>ErrorAndAdviceText := [ErrorAndAdviceText,'']</l>
+<l>ErrorAndAdviceText := [ErrorAndAdviceText,'These images are part of a separate installer. Please']</l>
+<l>ErrorAndAdviceText := [ErrorAndAdviceText,'refer to the Installation Guide for more information on']</l>
+<l>ErrorAndAdviceText := [ErrorAndAdviceText,'this topic!']</l>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (ErrorAndAdviceText, 'window', 'center', 'left', 'red', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_missing_images_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_preprocessing_progress">
+<interface>
+<ic>
+<par name="I" base_type="ctrl" dimension="0"/>
+<par name="RawImageFiles" base_type="ctrl" dimension="0"/>
+<par name="PreprocessedFolder" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (I % 10 == 9)</l>
+<l>    set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>    dev_clear_window ()</l>
+<l>    Text := 'Preprocessing the data set... (' + (I + 1) + ' of ' + |RawImageFiles| + ')'</l>
+<l>    Text[|Text|] := ''</l>
+<l>    Text[|Text|] := 'The preprocessed images are written into the folder'</l>
+<l>    Text[|Text|] := '\'' + PreprocessedFolder + '\','</l>
+<l>    Text[|Text|] := 'as specified by the variable PreprocessedFolder.'</l>
+<l>    Text[|Text|] := 'The preprocessed images will be deleted automatically'</l>
+<l>    Text[|Text|] := 'at the end of the program. '</l>
+<l>    dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>    set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_preprocessing_progress">
+<parameters>
+<parameter id="I"/>
+<parameter id="PreprocessedFolder"/>
+<parameter id="RawImageFiles"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

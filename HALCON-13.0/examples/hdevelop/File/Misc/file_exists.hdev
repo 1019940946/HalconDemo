@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Check the existence of a file.</c>
+<c>* </c>
+<l>get_system ('operating_system', OS)</l>
+<l>if (OS{0:2} == 'Win')</l>
+<l>    Separator := ';'</l>
+<l>else</l>
+<l>    Separator := ':'</l>
+<l>endif</l>
+<l>get_system ('image_dir', HalconImages)</l>
+<l>tuple_split (HalconImages, Separator, Substrings)</l>
+<l>HalconImages := Substrings[0]</l>
+<l>get_tmp_dir (TmpDir)</l>
+<l>FileName := TmpDir + '/files.txt'</l>
+<c>* This call to file_exists should return FALSE (0) in FileExists</c>
+<l>file_exists (FileName, FileExists)</l>
+<l>if (FileExists)</l>
+<l>    open_file (FileName, 'input', FileHandle)</l>
+<l>    close_file (FileHandle)</l>
+<l>endif</l>
+<l>if (OS{0:2} == 'Win')</l>
+<l>    system_call ('dir /b /On "' + HalconImages + '\\*.*" &gt; ' + FileName)</l>
+<l>else</l>
+<l>    system_call ('ls ' + HalconImages + '/*.* &gt; ' + FileName)</l>
+<l>endif</l>
+<c>* This call to file_exists should return TRUE (1) in FileExists</c>
+<l>file_exists (FileName, FileExists)</l>
+<l>if (FileExists)</l>
+<l>    open_file (FileName, 'input', FileHandle)</l>
+<l>    Files := []</l>
+<l>    IsEOF := 0</l>
+<l>    while (not IsEOF)</l>
+<l>        fread_string (FileHandle, File, IsEOF)</l>
+<l>        if (not IsEOF)</l>
+<l>            Files := [Files,File]</l>
+<l>        endif</l>
+<l>    endwhile</l>
+<l>    close_file (FileHandle)</l>
+<l>endif</l>
+<l>delete_file (FileName)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_tmp_dir">
+<interface>
+<oc>
+<par name="LocalTemp" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_environment ('TEMP', LocalTemp)</l>
+<l>if (LocalTemp == '')</l>
+<l>    tuple_environment ('TMP', LocalTemp)</l>
+<l>    if (LocalTemp == '')</l>
+<l>        file_exists ('/tmp', FileExists)</l>
+<l>        if (FileExists)</l>
+<l>            LocalTemp := '/tmp'</l>
+<l>        else</l>
+<l>            LocalTemp := './'</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_tmp_dir">
+<parameters>
+<parameter id="LocalTemp"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

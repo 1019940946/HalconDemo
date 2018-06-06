@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* fin.hdev: Detection of a fin</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Fins, 'fin' + [1:3])</l>
+<l>get_image_size (Fins, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width[0], Height[0], 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>for I := 1 to 3 by 1</l>
+<l>    select_obj (Fins, Fin, I)</l>
+<l>    dev_display (Fin)</l>
+<l>    binary_threshold (Fin, Background, 'max_separability', 'light', UsedThreshold)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_line_width (4)</l>
+<l>    dev_display (Background)</l>
+<l>    disp_continue_message (WindowID, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    closing_circle (Background, ClosedBackground, 250)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (ClosedBackground)</l>
+<l>    disp_continue_message (WindowID, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    difference (ClosedBackground, Background, RegionDifference)</l>
+<l>    opening_rectangle1 (RegionDifference, FinRegion, 5, 5)</l>
+<l>    dev_display (Fin)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (FinRegion)</l>
+<l>    area_center (FinRegion, FinArea, Row, Column)</l>
+<l>    if (I &lt; 3)</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

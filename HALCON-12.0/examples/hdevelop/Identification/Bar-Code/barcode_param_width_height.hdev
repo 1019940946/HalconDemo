@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use the bar code parameters</c>
+<c>* 'barcode_height_min' and 'barcode_width_min' to narrow the</c>
+<c>* number of detected candidate regions in which possible bar</c>
+<c>* codes are searched for.</c>
+<c>* </c>
+<c>* This is especially recommended if some factors like the bar code</c>
+<c>* type, the number of encoded characters etc. are constant</c>
+<c>* throughout the application. Then, the manual adjustment of</c>
+<c>* these parameters can lead to an increasing speed and robustness.</c>
+<c>* </c>
+<c>* To illustrate the effect of the parameters, the detected</c>
+<c>* candidate regions are displayed before and after setting</c>
+<c>* each of the parameters. It is shown that the number of</c>
+<c>* potential candidate region decreases when the parameters</c>
+<c>* are manually adjusted.</c>
+<c>* ****************************************************************</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/code39/code3906')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<l>MinWidth := 280</l>
+<l>MinHeight := 60</l>
+<c>* </c>
+<c>* Display a description</c>
+<l>Message := 'This example demonstrates how to use the bar code'</l>
+<l>Message[1] := 'parameters \'barcode_height_min\' and \'barcode_width_min\''</l>
+<l>Message[2] := 'to narrow the number of detected candidate regions in'</l>
+<l>Message[3] := 'which the bar codes are searched for.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create a bar code model</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Adjust the minimal widths of the bar code elements</c>
+<c>* and find the bar code</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 39', DecodedDataStrings)</l>
+<c>* </c>
+<c>* Get all candidate regions</c>
+<l>get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'candidate_regions')</l>
+<c>* </c>
+<c>* Display all candidate regions</c>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (BarCodeObjects)</l>
+<l>Message := 'Candidate regions with default settings'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>Message := 'Adjusting the parameters \'barcode_width_min\' and'</l>
+<l>Message[1] := '\'barcode_height_min\' to decrease the number of'</l>
+<l>Message[2] := 'found candidate regions and thus to increase the'</l>
+<l>Message[3] := 'robustness of the application.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 40, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Minimal bar code width</c>
+<c>* -----------------------------</c>
+<c>* Set the minimal bar code width and search for bar codes again</c>
+<l>set_bar_code_param (BarCodeHandle, 'barcode_width_min', MinWidth)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 39', DecodedDataStrings)</l>
+<c>* </c>
+<c>* Get all candidate regions</c>
+<l>get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'candidate_regions')</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>dev_display (Image)</l>
+<l>dev_display (BarCodeObjects)</l>
+<l>Message := 'Candidate regions with adjusted parameter:'</l>
+<l>Message[1] := '  \'barcode_width_min\' = ' + MinWidth</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Minimal bar code height</c>
+<c>* -------------------------</c>
+<c>* Set the minimal bar code height and search for bar codes again</c>
+<l>set_bar_code_param (BarCodeHandle, 'barcode_height_min', MinHeight)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 39', DecodedDataStrings)</l>
+<c>* </c>
+<c>* Get all candidate regions</c>
+<l>get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'candidate_regions')</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>dev_display (Image)</l>
+<l>dev_display (BarCodeObjects)</l>
+<l>Message := 'Candidate region with adjusted parameters:'</l>
+<l>Message[1] := '  \'barcode_width_min\'  = ' + MinWidth</l>
+<l>Message[2] := '  \'barcode_height_min\' =  ' + MinHeight</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display the symbol region and the decoded string</c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (BarCodeObjects)</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_display (SymbolRegions)</l>
+<l>disp_message (WindowHandle, 'Search with adjusted parameters', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Decoded string: ' + DecodedDataStrings, 'window', 40, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['Candidate regions\n','Symbol region'], 'window', 170, 12, ['red','lime green'], 'true')</l>
+<c>* </c>
+<c>* Clear the bar code model</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

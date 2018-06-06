@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'mreut')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>diff_of_gauss (Image, DiffOfGauss, 5, 1.6)</l>
+<l>zero_crossing (DiffOfGauss, RegionCrossing1)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>laplace_of_gauss (Image, ImageLaplace, 5)</l>
+<l>zero_crossing (ImageLaplace, RegionCrossing2)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>derivate_gauss (Image, DerivGauss, 5, 'laplace')</l>
+<l>zero_crossing (DerivGauss, RegionCrossing3)</l>
+<l>stop ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

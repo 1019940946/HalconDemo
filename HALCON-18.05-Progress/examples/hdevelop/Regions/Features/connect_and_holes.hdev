@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'monkey')</l>
+<l>dev_set_color ('red')</l>
+<l>threshold (Image, Region, 128, 255)</l>
+<l>connect_and_holes (Region, NumConnected, NumHoles)</l>
+<l>dev_set_color ('green')</l>
+<l>complement (Region, RegionComplement)</l>
+<l>connect_and_holes (RegionComplement, NumConnectedComplement, NumHolesComplement)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

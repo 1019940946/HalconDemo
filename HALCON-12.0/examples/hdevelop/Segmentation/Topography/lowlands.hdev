@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of the plateaus and lowlands operators</c>
+<c>* and the relation between them.</c>
+<c>* </c>
+<l>read_image (Image, 'particle')</l>
+<l>smooth_image (Image, ImageSmooth, 'deriche2', 0.2)</l>
+<l>get_image_size (ImageSmooth, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageSmooth)</l>
+<l>dev_set_colored (12)</l>
+<c>* </c>
+<c>* Extraction of gray value plateaus in the original image.</c>
+<c>* </c>
+<l>plateaus (ImageSmooth, Plateaus)</l>
+<l>dev_display (Plateaus)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extraction of gray value lowlands in the inverted image.</c>
+<c>* </c>
+<l>invert_image (ImageSmooth, ImageInverted)</l>
+<l>lowlands (ImageInverted, Lowlands)</l>
+<l>dev_display (Lowlands)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* The extracted regions are identical.</c>
+<c>* </c>
+<l>union1 (Plateaus, PlateausUnion)</l>
+<l>union1 (Lowlands, LowlandsUnion)</l>
+<l>symm_difference (PlateausUnion, LowlandsUnion, Difference)</l>
+<l>dev_display (ImageSmooth)</l>
+<l>dev_display (Difference)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

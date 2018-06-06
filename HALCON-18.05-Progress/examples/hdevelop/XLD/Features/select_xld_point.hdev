@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows how to use select_xld_point.</c>
+<c>* </c>
+<c>* Color code:</c>
+<c>* red - test point</c>
+<c>* white - contours, selected</c>
+<c>* dim gray - contours, not selected</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>PointRow := 100.0</l>
+<l>PointCol := 100.0</l>
+<l>gen_contour_polygon_xld (Contours, [50,50,150,150,50], [50,150,150,50,50])</l>
+<l>gen_contour_polygon_xld (Contour2, [50,50,150,150,50], [200,300,300,200,200])</l>
+<l>concat_obj (Contours, Contour2, Contours)</l>
+<l>select_xld_point (Contours, SelectedContours, PointRow, PointCol)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (Contours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (SelectedContours)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Cross)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Contours that are not closed will be closed automatically.</c>
+<c>* Therefore, the selection for the open contours is exactly</c>
+<c>* the same as in the previous example.</c>
+<c>* </c>
+<l>PointRow := 100.0</l>
+<l>PointCol := 100.0</l>
+<l>gen_contour_polygon_xld (Contours, [50,50,150,150], [50,150,150,50])</l>
+<l>gen_contour_polygon_xld (Contour2, [50,50,150,150], [200,300,300,200])</l>
+<l>concat_obj (Contours, Contour2, Contours)</l>
+<l>select_xld_point (Contours, SelectedContours, PointRow, PointCol)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (Contours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (SelectedContours)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Cross)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Intersecting line segments may cause holes in a polygon. Note that</c>
+<c>* line segments in real world applications will practically never intersect.</c>
+<c>* </c>
+<l>PointRow := 200.0</l>
+<l>PointCol := 200.0</l>
+<l>gen_contour_polygon_xld (Contours, [50,50,250,250,150,150,350,350,50], [50,250,250,150,150,350,350,50,50])</l>
+<l>select_xld_point (Contours, SelectedContours, PointRow, PointCol)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (Contours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (SelectedContours)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Cross)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Points lying directly on one of the contour's line segments</c>
+<c>* cannot be classified reliably.</c>
+<c>* </c>
+<l>PointRow := 200.0</l>
+<l>PointCol := 200.0</l>
+<l>gen_contour_polygon_xld (Contours, [150,150,250,250,150], [100,200,200,100,100])</l>
+<l>gen_contour_polygon_xld (Contour2, [100,100,200,200,100], [150,250,250,150,150])</l>
+<l>concat_obj (Contours, Contour2, Contours)</l>
+<l>gen_contour_polygon_xld (Contour3, [150,150,250,250,150], [200,300,300,200,200])</l>
+<l>concat_obj (Contours, Contour3, Contours)</l>
+<l>gen_contour_polygon_xld (Contour4, [200,200,300,300,200], [150,250,250,150,150])</l>
+<l>concat_obj (Contours, Contour4, Contours)</l>
+<l>select_xld_point (Contours, SelectedContours, PointRow, PointCol)</l>
+<l>gen_cross_contour_xld (Cross, PointRow, PointCol, 6, 0.785398)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (Contours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (SelectedContours)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Cross)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

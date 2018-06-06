@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the usage of the operator compare_obj.</c>
+<c>* In particular, it shows the difference between compare_obj and</c>
+<c>* test_equal_obj. compare_obj compares objects with respect to</c>
+<c>* their actual content, whereas test_equal_obj compares images and XLDs</c>
+<c>* with respect to their location in memory.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Read input images</c>
+<l>read_image (Images, ['particle','particle','monkey'])</l>
+<l>select_obj (Images, Image1, 1)</l>
+<l>select_obj (Images, Image2, 2)</l>
+<l>select_obj (Images, Image3, 3)</l>
+<c>* </c>
+<l>TextColor := ['red','green']</l>
+<l>TestObjectIndices := [1,1,1,2,1,3]</l>
+<l>disp_compared_images (Images, TestObjectIndices, Row1, Column1, WindowHandle)</l>
+<l>disp_message (WindowHandle, 'compare_obj compares images pixelwise.\ntest_equal_obj only checks the location in memory.', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* </c>
+<c>* Test 1:</c>
+<c>* </c>
+<c>* Test the same object for equality. The results for</c>
+<c>* test_equal_obj and compare_obj are both 1.</c>
+<l>test_equal_obj (Image1, Image1, EqualObj)</l>
+<l>compare_obj (Image1, Image1, 0, CompareObj)</l>
+<l>disp_message (WindowHandle, 'test_equal_obj = ' + EqualObj, 'image', Row1[1] + 150, Column1[1] + 600, TextColor[EqualObj], 'false')</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj = ' + CompareObj, 'image', Row1[1] + 250, Column1[1] + 600, TextColor[CompareObj], 'false')</l>
+<c>* </c>
+<c>* Test 2:</c>
+<c>* </c>
+<c>* Test two different objects with identical content.</c>
+<c>* The results of the operators differ. test_equal_obj returns</c>
+<c>* the information that the two objects are located at</c>
+<c>* different locations in memory while compare_obj tells the user</c>
+<c>* that the image content is identical.</c>
+<l>test_equal_obj (Image1, Image2, EqualObj)</l>
+<l>compare_obj (Image1, Image2, 0, CompareObj)</l>
+<l>disp_message (WindowHandle, 'test_equal_obj = ' + EqualObj, 'image', Row1[3] + 150, Column1[3] + 600, TextColor[EqualObj], 'false')</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj = ' + CompareObj, 'image', Row1[3] + 250, Column1[3] + 600, TextColor[CompareObj], 'false')</l>
+<c>* </c>
+<c>* Test 3:</c>
+<c>* Test two objects with different content.</c>
+<c>* The result of both operators is 0.</c>
+<l>test_equal_obj (Image1, Image3, EqualObj)</l>
+<l>compare_obj (Image1, Image3, 0, CompareObj)</l>
+<l>disp_message (WindowHandle, 'test_equal_obj = ' + EqualObj, 'image', Row1[5] + 150, Column1[5] + 600, TextColor[EqualObj], 'false')</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj = ' + CompareObj, 'image', Row1[5] + 250, Column1[5] + 600, TextColor[CompareObj], 'false')</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* For regions, both operators compare the content.</c>
+<c>* </c>
+<l>threshold (Image1, Region1, 128, 255)</l>
+<l>threshold (Image1, Region2, 128, 255)</l>
+<l>threshold (Image3, Region3, 210, 255)</l>
+<l>concat_obj (Region1, Region2, Regions)</l>
+<l>concat_obj (Regions, Region3, Regions)</l>
+<l>disp_compared_regions (Regions, TestObjectIndices, Row1, Column1, WindowHandle)</l>
+<l>disp_message (WindowHandle, 'For regions, the results of both operators are identical.', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Test 4:</c>
+<c>* </c>
+<c>* Test the same object for equality. The results for</c>
+<c>* test_equal_obj and compare_obj are both 1.</c>
+<l>test_equal_obj (Region1, Region1, EqualObj)</l>
+<l>compare_obj (Region1, Region1, 0, CompareObj)</l>
+<l>disp_message (WindowHandle, 'test_equal_obj = ' + EqualObj, 'image', Row1[1] + 150, Column1[1] + 600, TextColor[EqualObj], 'false')</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj = ' + CompareObj, 'image', Row1[1] + 250, Column1[1] + 600, TextColor[CompareObj], 'false')</l>
+<c>* </c>
+<c>* Test 5:</c>
+<c>* </c>
+<c>* Test two different objects with identical content.</c>
+<c>* For regions, both operators compare the content.</c>
+<c>* Thus, both operators return 1 in this case.</c>
+<l>test_equal_obj (Region1, Region2, EqualObj)</l>
+<l>compare_obj (Region1, Region2, 0, CompareObj)</l>
+<l>disp_message (WindowHandle, 'test_equal_obj = ' + EqualObj, 'image', Row1[3] + 150, Column1[3] + 600, TextColor[EqualObj], 'false')</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj = ' + CompareObj, 'image', Row1[3] + 250, Column1[3] + 600, TextColor[CompareObj], 'false')</l>
+<c>* </c>
+<c>* Test 6:</c>
+<c>* Test two objects with different content.</c>
+<c>* The result of both operators is 0.</c>
+<l>test_equal_obj (Region1, Region3, EqualObj)</l>
+<l>compare_obj (Region1, Region3, 0, CompareObj)</l>
+<l>disp_message (WindowHandle, 'test_equal_obj = ' + EqualObj, 'image', Row1[5] + 150, Column1[5] + 600, TextColor[EqualObj], 'false')</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj = ' + CompareObj, 'image', Row1[5] + 250, Column1[5] + 600, TextColor[CompareObj], 'false')</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* When comparing images (or XLDs) with compare_obj,</c>
+<c>* small changes of the gray values of a pixel (or</c>
+<c>* the row or column coordinates of the XLD points)</c>
+<c>* are tolerated up to the value of the parameter</c>
+<c>* Epsilon.</c>
+<l>add_noise_white (Image1, ImageNoise15, 15)</l>
+<l>add_noise_white (Image1, ImageNoise30, 30)</l>
+<l>concat_obj (Image1, ImageNoise15, ImagesNoise)</l>
+<l>concat_obj (ImagesNoise, ImageNoise30, ImagesNoise)</l>
+<l>disp_compared_images (ImagesNoise, TestObjectIndices, Row1, Column1, WindowHandle)</l>
+<l>disp_message (WindowHandle, 'When comparing images with compare_obj,\nsmall changes can be tolerated using the parameter Epsilon.', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Test 7:</c>
+<c>* </c>
+<c>* Compare similar but not identical images using Epsilon</c>
+<c>* </c>
+<c>* a) Identical images</c>
+<l>compare_obj (Image1, Image1, 0, CompareObjEps0)</l>
+<l>compare_obj (Image1, Image1, 20, CompareObjEps20)</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj ', 'image', Row1[1] + 050, Column1[1] + 600, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ' with Epsilon =  0: ' + CompareObjEps0, 'image', Row1[1] + 150, Column1[1] + 600, TextColor[CompareObjEps0], 'false')</l>
+<l>disp_message (WindowHandle, ' with Epsilon = 20: ' + CompareObjEps20, 'image', Row1[1] + 250, Column1[1] + 600, TextColor[CompareObjEps20], 'false')</l>
+<c>* </c>
+<c>* b) 20 pixels gray value difference</c>
+<l>compare_obj (Image1, ImageNoise15, 0, CompareObjEps0)</l>
+<l>compare_obj (Image1, ImageNoise15, 20, CompareObjEps20)</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj (Noise = 15):', 'image', Row1[3] + 050, Column1[3] + 600, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ' with Epsilon =  0: ' + CompareObjEps0, 'image', Row1[3] + 150, Column1[3] + 600, TextColor[CompareObjEps0], 'false')</l>
+<l>disp_message (WindowHandle, ' with Epsilon = 20: ' + CompareObjEps20, 'image', Row1[3] + 250, Column1[3] + 600, TextColor[CompareObjEps20], 'false')</l>
+<c>* </c>
+<c>* b) 40 pixels gray value difference</c>
+<l>compare_obj (Image1, ImageNoise30, 0, CompareObjEps0)</l>
+<l>compare_obj (Image1, ImageNoise30, 20, CompareObjEps20)</l>
+<l>disp_message (WindowHandle, 'compare_equal_obj (Noise = 30):', 'image', Row1[5] + 050, Column1[5] + 600, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ' with Epsilon =  0: ' + CompareObjEps0, 'image', Row1[5] + 150, Column1[5] + 600, TextColor[CompareObjEps0], 'false')</l>
+<l>disp_message (WindowHandle, ' with Epsilon = 20: ' + CompareObjEps20, 'image', Row1[5] + 250, Column1[5] + 600, TextColor[CompareObjEps20], 'false')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_compared_images">
+<interface>
+<io>
+<par name="Images" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="TestObjectIndices" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Column1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Display test images</c>
+<c>* </c>
+<l>gen_empty_obj (RegionsDisp)</l>
+<l>for I := 1 to |TestObjectIndices| by 1</l>
+<l>    select_obj (Images, ObjectSelected, TestObjectIndices[I - 1])</l>
+<l>    concat_obj (RegionsDisp, ObjectSelected, RegionsDisp)</l>
+<l>endfor</l>
+<l>Row1 := [500,500,1150,1150,1800,1800]</l>
+<l>Column1 := [150,700,150,700,150,700]</l>
+<l>Color1 := 'cyan'</l>
+<l>Color2 := 'yellow'</l>
+<l>Color3 := 'magenta'</l>
+<l>Color := [Color1,Color1,Color1,Color2,Color1,Color3]</l>
+<c>* </c>
+<l>gen_rectangle1 (Rectangle, Row1, Column1, Row1 + 512, Column1 + 512)</l>
+<l>Height := max(Row1) + 2 * min(Column1) + 512</l>
+<l>Width := 1.2 * Height</l>
+<l>tile_images_offset (RegionsDisp, TiledImage, Row1, Column1, [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], Width, Height)</l>
+<c>* </c>
+<c>* Initialization of the graphics window.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (TiledImage, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color (Color)</l>
+<l>dev_display (Rectangle)</l>
+<l>for I := 0 to |TestObjectIndices| - 1 by 1</l>
+<l>    disp_message (WindowHandle, 'Image ' + TestObjectIndices[I], 'image', Row1[I] - 100, Column1[I], Color[I], 'false')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="disp_compared_images">
+<parameters>
+<parameter id="Column1"/>
+<parameter id="Images"/>
+<parameter id="Row1"/>
+<parameter id="TestObjectIndices"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_compared_regions">
+<interface>
+<io>
+<par name="Regions" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="RegionTestIndices" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Column1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Display test regions</c>
+<c>* </c>
+<l>Row1 := [500,500,1150,1150,1800,1800]</l>
+<l>Column1 := [150,700,150,700,150,700]</l>
+<l>gen_empty_obj (RegionsDisp)</l>
+<l>for I := 1 to |RegionTestIndices| by 1</l>
+<l>    select_obj (Regions, ObjectSelected, RegionTestIndices[I - 1])</l>
+<l>    move_region (ObjectSelected, RegionMoved, Row1[I - 1], Column1[I - 1])</l>
+<l>    concat_obj (RegionsDisp, RegionMoved, RegionsDisp)</l>
+<l>endfor</l>
+<l>Color1 := 'cyan'</l>
+<l>Color2 := 'yellow'</l>
+<l>Color3 := 'magenta'</l>
+<l>Color := [Color1,Color1,Color1,Color2,Color1,Color3]</l>
+<l>gen_rectangle1 (Rectangle, Row1, Column1, Row1 + 512, Column1 + 512)</l>
+<l>Height := max(Row1) + 2 * min(Column1) + 512</l>
+<l>Width := 1.2 * Height</l>
+<c>* </c>
+<c>* Initialization of the graphics window.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Rectangle)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color (Color)</l>
+<l>dev_display (RegionsDisp)</l>
+<l>for I := 0 to |RegionTestIndices| - 1 by 1</l>
+<l>    disp_message (WindowHandle, 'Region ' + RegionTestIndices[I], 'image', Row1[I] - 100, Column1[I], Color[I], 'false')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="disp_compared_regions">
+<parameters>
+<parameter id="Column1"/>
+<parameter id="RegionTestIndices"/>
+<parameter id="Regions"/>
+<parameter id="Row1"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'progres')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowID)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_rectangle1 (Rectangle, 260, 90, 360, 350)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>threshold (ImageReduced, Dark, 0, 150)</l>
+<l>connection (Dark, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10, 100)</l>
+<l>elliptic_axis (SelectedRegions, Ra, Rb, Phi)</l>
+<l>area_center (SelectedRegions, Area, Row, Column)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<l>* dev_set_colored (12)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SelectedRegions)</l>
+<l>MeanRadius := sum(Ra) / |Ra|</l>
+<l>VarianceRadius := sum(Ra * Ra - MeanRadius * MeanRadius) / (|Ra| - 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

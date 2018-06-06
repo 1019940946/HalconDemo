@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* During the bonding process every pad on a chip gets connected</c>
+<c>* to the pins on the lead frame using thin wires (of gold).</c>
+<c>* To make sure the process was successful, every pad on the chip</c>
+<c>* as well as every pin on the lead frame is tested visually for the</c>
+<c>* presence of the (ball) bond. In this example the optical inspection</c>
+<c>* of the lead frame is demonstrated.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>Path := 'bonds/ball_bond_lead_frame_'</l>
+<l>read_image (Image, Path + '01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('store_empty_region', 'false')</l>
+<c>* </c>
+<l>NumImages := 8</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, Path + Index$'02')</l>
+<c>    * </c>
+<c>    * Find lead pins</c>
+<l>    var_threshold (Image, Region, 300, 300, 0.6, 2, 'light')</l>
+<l>    closing_circle (Region, RegionClosing, 5)</l>
+<l>    connection (RegionClosing, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, ['height','width'], 'and', [250,300], [500,800])</l>
+<l>    select_gray (SelectedRegions, Image, SelectedRegionsGray, 'mean', 'and', 100, 255)</l>
+<l>    fill_up (SelectedRegionsGray, RegionFillUp)</l>
+<c>    * </c>
+<c>    * Determine ball bonds</c>
+<l>    closing_circle (RegionFillUp, RegionClosing1, 35)</l>
+<l>    fill_up (RegionClosing1, RegionFillUp1)</l>
+<l>    difference (RegionFillUp1, RegionClosing1, BallBonds)</l>
+<l>    dilation_circle (BallBonds, RegionDilation1, 8)</l>
+<l>    union1 (RegionDilation1, RegionUnion)</l>
+<c>    * </c>
+<c>    * Determine wire</c>
+<l>    difference (RegionClosing1, RegionFillUp, RegionDifference1)</l>
+<l>    connection (RegionDifference1, ConnectedRegions1)</l>
+<l>    select_shape_proto (ConnectedRegions1, RegionUnion, SelectedRegions1, 'overlaps_rel', 1, 13)</l>
+<l>    opening_rectangle1 (SelectedRegions1, RegionOpening1, 57, 7)</l>
+<l>    skeleton (RegionOpening1, Wire)</l>
+<c>    * </c>
+<c>    * Evaluate and display results</c>
+<l>    shape_trans (RegionFillUp1, LeadPin, 'rectangle1')</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (LeadPin)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (BallBonds)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Wire)</l>
+<l>    select_shape_proto (LeadPin, BallBonds, SelectedRegions2, 'overlaps_rel', 0, 1)</l>
+<l>    area_center (SelectedRegions2, Area, Row, Column)</l>
+<l>    if (|Area| &gt; 0)</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (SelectedRegions2)</l>
+<l>        disp_message (WindowHandle, 'No Bond', 'image', Row - 30, Column - 100, 'red', 'true')</l>
+<l>    endif</l>
+<l>    dev_display_caption (WindowHandle)</l>
+<c>    * </c>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_display_caption">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<l>dev_set_draw ('fill')</l>
+<l>NextRow := 30</l>
+<l>disp_message (WindowHandle, '   Ball Bond', 'image', NextRow - 5, 40, 'black', 'true')</l>
+<l>dev_set_color ('green')</l>
+<l>disp_rectangle1 (WindowHandle, NextRow, 55, NextRow + 30, 85)</l>
+<c>* </c>
+<l>NextRow := NextRow + 50</l>
+<l>disp_message (WindowHandle, '   Bond Wire', 'image', NextRow - 5, 40, 'black', 'true')</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_rectangle1 (WindowHandle, NextRow, 55, NextRow + 30, 85)</l>
+<c>* </c>
+<l>NextRow := NextRow + 50</l>
+<l>disp_message (WindowHandle, '   Lead Pin ', 'image', NextRow - 5, 40, 'black', 'true')</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('black')</l>
+<l>disp_rectangle1 (WindowHandle, NextRow, 55, NextRow + 30, 85)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="dev_display_caption">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

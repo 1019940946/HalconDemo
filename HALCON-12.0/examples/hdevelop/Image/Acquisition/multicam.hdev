@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Benchmark example for the usage of a Euresys MultiCam board</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* You can get the actual values with 'info_framegrabber(...,'info_boards',...)'.</c>
+<c>* </c>
+<c>*     Example for Alpha</c>
+<l>MyConfigurationFile := 'Alpha_Y:CS8530_P30SM'</l>
+<l>MyDeviceId := '0'</l>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'info_boards', Information, ValueList)</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<c>* start your frame grabber to grab images all the time :</c>
+<l>* set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>Num := 100</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* </c>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to Num by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>for i := 1 to Num by 1</l>
+<l>    sobel_amp (Image, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds3)</l>
+<l>for i := 1 to Num by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    sobel_amp (Image, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds4)</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>TimeGrab := (Seconds2 - Seconds1) / 100</l>
+<l>TimeSobel := (Seconds3 - Seconds2) / 100</l>
+<l>TimeAll := (Seconds4 - Seconds3) / 100</l>
+<l>Overhead := TimeAll - TimeSobel</l>
+<l>stop ()</l>
+<c>* </c>
+<l>while (1)</l>
+<l>*     grab_image_async (Image, AcqHandle, -1)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

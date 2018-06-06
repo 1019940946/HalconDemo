@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>*    Robust circle fitting</c>
+<c>* </c>
+<l>read_image (Image, 'earth')</l>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowHandle)</l>
+<l>threshold (GrayImage, Region, 60, 255)</l>
+<l>closing_circle (Region, Region, 10.5)</l>
+<l>gen_contour_region_xld (Region, Contour, 'border')</l>
+<l>dev_display (Image)</l>
+<c>* Algebraic distance measure</c>
+<l>fit_circle_contour_xld (Contour, 'atukey', -1, 2, 0, 10, 1, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('magenta')</l>
+<l>gen_circle_contour_xld (ContCircle, Row, Column, Radius, 0, 4 * acos(0), 'positive', 1)</l>
+<c>* Geometric distance measure</c>
+<l>fit_circle_contour_xld (Contour, 'geotukey', -1, 2, 0, 10, 1, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('cyan')</l>
+<l>gen_circle_contour_xld (ContCircle, Row, Column, Radius, 0, 4 * acos(0), 'positive', 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

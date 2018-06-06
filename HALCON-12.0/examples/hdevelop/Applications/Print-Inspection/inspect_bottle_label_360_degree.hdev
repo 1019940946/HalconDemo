@@ -1,0 +1,1825 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This HDevelop example program shows how to create one single</c>
+<c>* mosaic image that shows the unrolled label of a bottle.</c>
+<c>* For this, images from at least four cameras are required that</c>
+<c>* completely cover the part of the bottle where the label is placed.</c>
+<c>* In a first step, the position and orientation of the bottle is</c>
+<c>* estimated from its silhouette. Then, the images of the individual</c>
+<c>* cameras are rectified such that they show the bottle's surface</c>
+<c>* unrolled. Finally, the individual rectified images are stitched</c>
+<c>* together to provide a 360 degree mosaic image of the bottle, which</c>
+<c>* can be used to perform various inspection tasks.</c>
+<c>* </c>
+<c>* Global variables used for visualization of intermediate results</c>
+<l>global def tuple DisplayIntermediateResults</l>
+<l>global def tuple WindowWidthLimit</l>
+<l>global def tuple WindowHeightLimit</l>
+<c>* </c>
+<c>* Standard control parameters</c>
+<c>* - Specify the final mosaic image</c>
+<l>PixelSizeInMM := 0.2</l>
+<l>ColorMosaic := true</l>
+<l>HighImageQuality := true</l>
+<c>* - Specify the kind of background to control the cylinder pose extraction</c>
+<l>BackgroundMayContainTexture := false</l>
+<c>* - Define if the region to be unrolled is defined interactivly</c>
+<l>InteractivelyDefineRegion := false</l>
+<c>* - Control if intermediate results are visualized</c>
+<l>DisplayIntermediateResults := false</l>
+<c>* </c>
+<c>* Control parameters for fine tuning</c>
+<c>* - Parameters for the fine tuning of the fine adjustment</c>
+<l>PerformFineAdjustment := true</l>
+<l>FineAdjustmentMatchingWidth := 30</l>
+<l>FineAdjustmentMaxShift := 30</l>
+<l>BlendingSeam := 10</l>
+<c>* - Parameters for the fine tuning of the silhouette extraction</c>
+<l>SilhouetteMeasureDistance := 10</l>
+<l>SilhouetteMeasureLength2 := 30</l>
+<l>SilhouetteMeasureSigma := 0.5</l>
+<l>SilhouetteMeasureThreshold := 5</l>
+<l>SilhouetteMaxTilt := rad(10)</l>
+<c>* </c>
+<c>* Control the graphics output</c>
+<l>WindowWidthLimit := 800</l>
+<l>WindowHeightLimit := 600</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Set some search paths</c>
+<l>PathCsm := 'inspect_bottle_camera_setup_model.csm'</l>
+<l>PathImg := 'bottle_label'</l>
+<c>* </c>
+<c>* Read one image to determine the image size</c>
+<l>list_image_files (PathImg, 'default', [], ImageFiles)</l>
+<l>read_image (Image, ImageFiles[0])</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, WindowWidthLimit, WindowHeightLimit, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read in the calibration information</c>
+<l>read_camera_setup_model (PathCsm, CameraSetupModel)</l>
+<c>* </c>
+<c>* Ensure that the origin of the camera setup model lies in the</c>
+<c>* projection center of camera 0</c>
+<l>get_camera_setup_param (CameraSetupModel, 0, 'pose', CamPose0)</l>
+<l>set_camera_setup_param (CameraSetupModel, 'general', 'coord_transf_pose', CamPose0)</l>
+<c>* </c>
+<c>* </c>
+<c>* Loop over all objects and select the suitable data</c>
+<l>Objects := ['jever','freixenet','got2b','wala']</l>
+<l>for Obj := 0 to |Objects| - 1 by 1</l>
+<c>    * </c>
+<l>    Object := Objects[Obj]</l>
+<l>    LabelMinCol := -1</l>
+<l>    LabelMaxCol := -1</l>
+<c>    * Select the object-specific radii and ROI</c>
+<l>    if (Object == 'jever')</l>
+<l>        CylinderRadiusInMM := 30.04</l>
+<l>        LabelMinCol := 100</l>
+<l>        LabelMaxCol := 1250</l>
+<l>    elseif (Object == 'freixenet')</l>
+<l>        CylinderRadiusInMM := 31.3</l>
+<l>        LabelMinCol := 600</l>
+<l>        LabelMaxCol := 1150</l>
+<l>    elseif (Object == 'got2b')</l>
+<l>        CylinderRadiusInMM := 24.935</l>
+<l>        LabelMinCol := 375</l>
+<l>        LabelMaxCol := 1025</l>
+<l>    elseif (Object == 'wala')</l>
+<l>        CylinderRadiusInMM := 15.35</l>
+<l>        LabelMinCol := 660</l>
+<l>        LabelMaxCol := 1160</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Convert control parameters into meters</c>
+<l>    PixelSize := 0.001 * PixelSizeInMM</l>
+<l>    CylinderRadius := 0.001 * CylinderRadiusInMM</l>
+<c>    * </c>
+<c>    * Load the information about the amount of cameras and the amount of image sets</c>
+<l>    PathExpression := Object + '_'</l>
+<l>    tuple_regexp_select (ImageFiles, PathExpression, ImageSelection)</l>
+<l>    LastTuple := split(ImageSelection[|ImageSelection| - 1],'/')</l>
+<l>    LastTupleParts := split(LastTuple,'_')</l>
+<c>    * </c>
+<l>    NumSetsStr := LastTupleParts[|LastTupleParts| - 3]</l>
+<l>    NumCamsStr := split(LastTupleParts[|LastTupleParts| - 1],'.')[0]</l>
+<c>    * </c>
+<c>    * Recursive procedure to remove the leading zeros, otherwise casting a string</c>
+<c>    * with leading zeros in a number, the base will be octal</c>
+<l>    remove_leading_zeros (chr(ords(NumSetsStr)), NumSets)</l>
+<l>    remove_leading_zeros (chr(ords(NumCamsStr)), NumCams)</l>
+<c>    * </c>
+<c>    * Specify the left and right borders of the image part that should be</c>
+<c>    * used for mosaic creation interactivly</c>
+<l>    if (InteractivelyDefineRegion)</l>
+<l>        read_image (FirstImage, ImageSelection[0])</l>
+<l>        SetLabelRegionInteractively := true</l>
+<l>        if (SetLabelRegionInteractively or round(min([LabelMinCol,LabelMaxCol])))</l>
+<l>            dev_resize_window_fit_image (FirstImage, 0, 0, WindowWidthLimit, WindowHeightLimit)</l>
+<l>            dev_display (FirstImage)</l>
+<l>            disp_message (WindowHandle, ['Define the part of the bottle to be unrolled.','Note that only the left and right border of','the rectangle is used.'], 'window', 12, 12, 'black', 'true')</l>
+<l>            if (min([LabelMinCol,LabelMaxCol]) &lt; 0)</l>
+<l>                draw_rectangle1 (WindowHandle, Row1, LabelMinCol, Row2, LabelMaxCol)</l>
+<l>            else</l>
+<l>                draw_rectangle1_mod (WindowHandle, 100, LabelMinCol, Height - 101, LabelMaxCol, Row1, LabelMinCol, Row2, LabelMaxCol)</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>        LabelMinCol := max([0,LabelMinCol])</l>
+<l>        LabelMaxCol := min([Width - 1,LabelMaxCol])</l>
+<l>    endif</l>
+<l>    BorderLeft := LabelMinCol</l>
+<l>    BorderRight := Width - 1 - LabelMaxCol</l>
+<c>    * </c>
+<c>    * Prepare measures for silhouette extraction</c>
+<l>    MeasureHandles := []</l>
+<l>    for Col := LabelMinCol to LabelMaxCol by SilhouetteMeasureDistance</l>
+<l>        gen_measure_rectangle2 (Height / 2, Col, rad(90), Height / 2, SilhouetteMeasureLength2, Width, Height, 'nearest_neighbor', MeasureHandle)</l>
+<l>        MeasureHandles := [MeasureHandles,MeasureHandle]</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Create rectification maps for the elimination of the radial distortion</c>
+<c>    * and create a camera setup model for the rectified images</c>
+<l>    prepare_distortion_removal (RectificationMaps, CameraSetupModel, CameraSetupModelZeroDist, NumCameras)</l>
+<c>    * </c>
+<c>    * Determine an approximate pose of the cylinder</c>
+<c>    * assuming that it stands upright in the center of the cameras.</c>
+<l>    determine_approximate_cylinder_pose_in_center_of_cameras (CameraSetupModelZeroDist, NumCameras, PoseCylinderApprox, HomMat3DCylinderApprox)</l>
+<c>    * </c>
+<c>    * Determine approximately the required size (height) of the 3D model</c>
+<c>    * of the cylinder such that it covers the area between the given borders</c>
+<l>    determine_required_cylinder_model_extent (BorderLeft, BorderRight, Width, Height, CameraSetupModelZeroDist, NumCameras, HomMat3DCylinderApprox, PixelSize, MinZ, MaxZ)</l>
+<c>    * </c>
+<c>    * Determine the minumal and maximal distances between the opposite silhouttes</c>
+<l>    determine_min_max_silhouette_distance (CameraSetupModelZeroDist, NumCameras, PoseCylinderApprox, CylinderRadius, MinZ, MaxZ, Height, MinPairDist, MaxPairDist)</l>
+<c>    * </c>
+<c>    * Create the 3D object model of the cylinder and get the 3D points</c>
+<l>    gen_cylinder_model (PixelSize, CylinderRadius, MinZ, MaxZ, NumSlices, NumPointsPerSlice, MinZI, MaxZI, ActualPixelSize, CylinderPointsX, CylinderPointsY, CylinderPointsZ)</l>
+<l>    ActualPixelSizeInMM := 1000.0 * ActualPixelSize</l>
+<c>    * </c>
+<c>    * Determine the size of the final mosaic image</c>
+<l>    MosaicHeight := NumSlices</l>
+<l>    MosaicWidth := NumPointsPerSlice</l>
+<c>    * </c>
+<c>    * Step through every set and select the suiting images</c>
+<l>    for Set := 1 to NumSets by 1</l>
+<c>        * </c>
+<c>        * Select and read images</c>
+<l>        tuple_regexp_select (ImageSelection, '_' + Set$'02d' + '_cam', ImageSet)</l>
+<c>        * Validity check</c>
+<l>        if (|ImageSet| != NumCams)</l>
+<l>            throw ('Number of images found in set ' + Set$'02d' + ' is not equal the amount of cameras')</l>
+<l>        endif</l>
+<l>        read_image (Images, ImageSet)</l>
+<c>        * </c>
+<c>        * Start time keeping</c>
+<l>        count_seconds (Seconds1)</l>
+<c>        * </c>
+<c>        * Determine if color output is possible</c>
+<l>        if (ColorMosaic)</l>
+<l>            select_obj (Images, ObjectSelected, 1)</l>
+<l>            count_channels (ObjectSelected, Channels)</l>
+<l>            if (Channels == 1)</l>
+<l>                ColorMosaic := false</l>
+<l>            elseif (Channels != 3)</l>
+<c>                * Wrong number of channels: Must be 1 or 3</c>
+<l>                stop ()</l>
+<l>            endif</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Eliminate distortions from the images and reduce color images to single channel images</c>
+<l>        eliminate_radial_distortions (Images, RectificationMaps, ImagesRectified, ImagesGrayRectified, NumCameras)</l>
+<c>        * </c>
+<c>        * Determine the pose of the rotation axis in 3D and create an additional camera setup model</c>
+<c>        * with the origin on the rotation axis</c>
+<l>        determine_rotation_axis_3d (ImagesRectified, ImagesGrayRectified, CylinderRadius, BackgroundMayContainTexture, MeasureHandles, Width, Height, CameraSetupModelZeroDist, NumCameras, MinPairDist, MaxPairDist, SilhouetteMeasureSigma, SilhouetteMeasureThreshold, SilhouetteMaxTilt, 0.1 * PixelSize, PoseCylinder, Quality, CameraSetupModelZeroDistInCylinderOrigin, RadiusEstimated)</l>
+<c>        * </c>
+<c>        * Determine approximately, which areas of the cylinder are seen best from which camera</c>
+<l>        determine_source_cameras_for_mosaic_parts (Regions, CameraSetupModelZeroDistInCylinderOrigin, NumCameras, CylinderPointsX, CylinderPointsY, CylinderPointsZ, NumPointsPerSlice, MinZI, MosaicWidth, MosaicHeight)</l>
+<c>        * </c>
+<c>        * Stich the images together</c>
+<l>        stitch_images (Regions, ImagesRectified, ImagesGrayRectified, FinalMosaic, WindowHandle, ColorMosaic, HighImageQuality, PerformFineAdjustment, FineAdjustmentMaxShift, FineAdjustmentMatchingWidth, BlendingSeam, CameraSetupModelZeroDistInCylinderOrigin, NumCameras, MosaicWidth, MosaicHeight, CylinderPointsX, CylinderPointsY, CylinderPointsZ, NumSlices, NumPointsPerSlice, CylinderRadius, LabelMinCol, LabelMaxCol)</l>
+<c>        * </c>
+<c>        * Stop time keeping</c>
+<l>        count_seconds (Seconds2)</l>
+<l>        TimeMS := (Seconds2 - Seconds1) * 1000.0</l>
+<c>        * </c>
+<c>        * Show the final mosaic image</c>
+<l>        dev_resize_window_fit_image (FinalMosaic, 0, 0, WindowWidthLimit, WindowHeightLimit)</l>
+<l>        dev_display (FinalMosaic)</l>
+<l>        Message := '360 degree mosaic'</l>
+<l>        if (not DisplayIntermediateResults)</l>
+<l>            Message[1] := 'Runtime: ' + TimeMS$'.0f' + 'ms'</l>
+<l>        endif</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        if (Obj &lt; |Objects| - 1 or Set &lt; NumSets)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        endif</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<l>    for Index1 := 0 to |MeasureHandles| - 1 by 1</l>
+<l>        close_measure (MeasureHandles[Index1])</l>
+<l>    endfor</l>
+<l>    clear_camera_setup_model (CameraSetupModelZeroDist)</l>
+<l>    clear_camera_setup_model (CameraSetupModelZeroDistInCylinderOrigin)</l>
+<l>endfor</l>
+<l>clear_camera_setup_model (CameraSetupModel)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="cross_product">
+<interface>
+<ic>
+<par name="V1" base_type="ctrl" dimension="0"/>
+<par name="V2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="CrossProduct" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Determine the cross product of the two given vectors</c>
+<c>* Note that only the first three values of the given vectors are taken into account</c>
+<l>CrossProduct := [V1[1] * V2[2] - V1[2] * V2[1],V1[2] * V2[0] - V1[0] * V2[2],V1[0] * V2[1] - V1[1] * V2[0]]</l>
+<l>return ()</l>
+</body>
+<docu id="cross_product">
+<chapters lang="en_US">
+<item>Math</item>
+<item>Vector</item>
+</chapters>
+<short lang="en_US">Calculates the cross product of the two 3d vectors given in V1 and V2</short>
+<parameters>
+<parameter id="CrossProduct"/>
+<parameter id="V1"/>
+<parameter id="V2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_cylinder_model">
+<interface>
+<ic>
+<par name="PixelSize" base_type="ctrl" dimension="0"/>
+<par name="CylinderRadius" base_type="ctrl" dimension="0"/>
+<par name="MinZ" base_type="ctrl" dimension="0"/>
+<par name="MaxZ" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="NumSlices" base_type="ctrl" dimension="0"/>
+<par name="NumPointsPerSlice" base_type="ctrl" dimension="0"/>
+<par name="MinZI" base_type="ctrl" dimension="0"/>
+<par name="MaxZI" base_type="ctrl" dimension="0"/>
+<par name="ActualPixelSize" base_type="ctrl" dimension="0"/>
+<par name="PxSampled" base_type="ctrl" dimension="0"/>
+<par name="PySampled" base_type="ctrl" dimension="0"/>
+<par name="PzSampled" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>global tuple DisplayIntermediateResults</l>
+<c>* </c>
+<c>* Determine the number of points per slice</c>
+<l>Circumference := 2.0 * CylinderRadius * 3.1415926</l>
+<l>NumPointsPerSlice := int(Circumference / PixelSize) + 1</l>
+<l>ActualPixelSize := Circumference / NumPointsPerSlice</l>
+<l>AngleStep := ActualPixelSize / CylinderRadius</l>
+<l>FullAngle := AngleStep * (NumPointsPerSlice - 1)</l>
+<l>Angles := -0.5 * FullAngle - AngleStep + cumul(gen_tuple_const(NumPointsPerSlice,AngleStep))</l>
+<c>* </c>
+<c>* Determine the number of slices</c>
+<l>MinZI := (int(fabs(MinZ) / ActualPixelSize) + 1) * sgn(MinZ)</l>
+<l>MaxZI := (int(fabs(MaxZ) / ActualPixelSize) + 1) * sgn(MaxZ)</l>
+<l>NumSlices := abs(MinZI) + abs(MaxZI) + 1</l>
+<c>* </c>
+<l>NumNM := NumSlices * NumPointsPerSlice</l>
+<l>PxSampled := gen_tuple_const(NumNM,0)</l>
+<l>PySampled := gen_tuple_const(NumNM,0)</l>
+<l>PzSampled := gen_tuple_const(NumNM,0)</l>
+<l>TupleOnes := gen_tuple_const(|Angles|,1)</l>
+<l>for I := 0 to NumSlices - 1 by 1</l>
+<l>    Indices := [I * NumPointsPerSlice:((I + 1) * NumPointsPerSlice) - 1]</l>
+<l>    PxSampled[Indices] := cos(Angles) * CylinderRadius</l>
+<l>    PySampled[Indices] := sin(Angles) * CylinderRadius</l>
+<l>    PzSampled[Indices] := (MaxZI - I) * ActualPixelSize * TupleOnes</l>
+<l>endfor</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="gen_cylinder_model">
+<parameters>
+<parameter id="ActualPixelSize"/>
+<parameter id="CylinderRadius"/>
+<parameter id="MaxZ"/>
+<parameter id="MaxZI"/>
+<parameter id="MinZ"/>
+<parameter id="MinZI"/>
+<parameter id="NumPointsPerSlice"/>
+<parameter id="NumSlices"/>
+<parameter id="PixelSize"/>
+<parameter id="PxSampled"/>
+<parameter id="PySampled"/>
+<parameter id="PzSampled"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_rotation_axis_3d">
+<interface>
+<io>
+<par name="ImagesRectified" base_type="iconic" dimension="0"/>
+<par name="ImagesGrayRectified" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="CylinderRadius" base_type="ctrl" dimension="0"/>
+<par name="BackgroundMayContainTexture" base_type="ctrl" dimension="0"/>
+<par name="MeasureHandles" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="CameraSetupModelZeroDist" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+<par name="MinPairDist" base_type="ctrl" dimension="0"/>
+<par name="MaxPairDist" base_type="ctrl" dimension="0"/>
+<par name="SilhouetteMeasureSigma" base_type="ctrl" dimension="0"/>
+<par name="SilhouetteMeasureThreshold" base_type="ctrl" dimension="0"/>
+<par name="SilhouetteMaxTilt" base_type="ctrl" dimension="0"/>
+<par name="MaxError" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PoseCylinder" base_type="ctrl" dimension="0"/>
+<par name="Quality" base_type="ctrl" dimension="0"/>
+<par name="CameraSetupModelZeroDistInCylinderOrigin" base_type="ctrl" dimension="0"/>
+<par name="RadiusEstimated" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>global tuple DisplayIntermediateResults</l>
+<l>global tuple WindowWidthLimit</l>
+<l>global tuple WindowHeightLimit</l>
+<c>* </c>
+<c>* Determine approximate pose of the cylinder</c>
+<c>* assuming that it stands upright in the center of the cameras.</c>
+<l>XCam := []</l>
+<l>YCam := []</l>
+<l>ZCam := []</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDist, Cam, 'pose', CamPose)</l>
+<l>    XCam[Cam] := CamPose[0]</l>
+<l>    YCam[Cam] := CamPose[1]</l>
+<l>    ZCam[Cam] := CamPose[2]</l>
+<l>endfor</l>
+<l>CylinderPointApprox := [mean(XCam),mean(YCam),mean(ZCam)]</l>
+<l>LenI := 1.0 / sqrt(sum(CylinderPointApprox * CylinderPointApprox))</l>
+<l>CylinderXTmp := CylinderPointApprox * LenI</l>
+<l>fit_plane (XCam, YCam, ZCam, NX, NY, NZ, C)</l>
+<l>CylinderZTmp := [NX,NY,NZ]</l>
+<c>* Fix the orientation of the cylinder axis, if necessary</c>
+<l>get_camera_setup_param (CameraSetupModelZeroDist, 0, 'pose', CamPose)</l>
+<l>pose_to_hom_mat3d (CamPose, HomMat3DCamPose0)</l>
+<l>DirTest := sum(CylinderZTmp * HomMat3DCamPose0[[0,4,7]])</l>
+<l>if (DirTest &gt; 0)</l>
+<l>    CylinderZTmp := -CylinderZTmp</l>
+<l>endif</l>
+<c>* Create the pose from two estimated axes</c>
+<l>cross_product (CylinderZTmp, CylinderXTmp, CylinderYTmp)</l>
+<l>HomMat3DCylinderApprox := [CylinderXTmp[0],CylinderYTmp[0],CylinderZTmp[0],CylinderPointApprox[0],CylinderXTmp[1],CylinderYTmp[1],CylinderZTmp[1],CylinderPointApprox[1],CylinderXTmp[2],CylinderYTmp[2],CylinderZTmp[2],CylinderPointApprox[2]]</l>
+<l>hom_mat3d_to_pose (HomMat3DCylinderApprox, PoseCylinderApprox)</l>
+<c>* </c>
+<c>* Set origin of camera setup model to approximate cylinder pose</c>
+<l>serialize_camera_setup_model (CameraSetupModelZeroDist, SerializedItemHandle)</l>
+<l>deserialize_camera_setup_model (SerializedItemHandle, CameraSetupModelZeroDistCylApprox)</l>
+<l>clear_serialized_item (SerializedItemHandle)</l>
+<l>set_camera_setup_param (CameraSetupModelZeroDistCylApprox, 'general', 'coord_transf_pose', PoseCylinderApprox)</l>
+<c>* </c>
+<c>* Collect possible silhouette points from all images</c>
+<l>A2x := []</l>
+<l>A2y := []</l>
+<l>A2z := []</l>
+<l>B2x := []</l>
+<l>B2y := []</l>
+<l>B2z := []</l>
+<c>* Collect image coordinates for visualization and analysis</c>
+<l>SilhRow := []</l>
+<l>SilhCol := []</l>
+<l>SilhCam := []</l>
+<c>* </c>
+<l>SilhRowElim := []</l>
+<l>SilhColElim := []</l>
+<l>SilhCamElim := []</l>
+<c>* </c>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    select_obj (ImagesRectified, ImageRectified, Cam + 1)</l>
+<l>    select_obj (ImagesGrayRectified, GrayImage, Cam + 1)</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDistCylApprox, Cam, 'params', CamParam)</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDistCylApprox, Cam, 'pose', CamPose)</l>
+<c>    * </c>
+<l>    Row := []</l>
+<l>    Column := []</l>
+<l>    create_funct_1d_pairs ([MinPairDist[Cam] - 10,MinPairDist[Cam],MaxPairDist[Cam] / cos(SilhouetteMaxTilt),MaxPairDist[Cam] / cos(SilhouetteMaxTilt) + 10], [0,1,1,0], FuzzyFunction)</l>
+<l>    for I := 0 to |MeasureHandles| - 1 by 1</l>
+<l>        set_fuzzy_measure (MeasureHandles[I], 'size', FuzzyFunction)</l>
+<l>        fuzzy_measure_pairing (GrayImage, MeasureHandles[I], SilhouetteMeasureSigma, SilhouetteMeasureThreshold, 0.5, 'all', 'no_restriction', 0, RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, RowPairCenter, ColumnPairCenter, FuzzyScore, IntraDistance)</l>
+<l>        if (BackgroundMayContainTexture)</l>
+<c>            * Use all extracted edges</c>
+<l>            Row := [Row,RowEdgeFirst,RowEdgeSecond]</l>
+<l>            Column := [Column,ColumnEdgeFirst,ColumnEdgeSecond]</l>
+<l>        else</l>
+<c>            * Select only first and last edge if the background can be assumed</c>
+<c>            * to be textureless</c>
+<l>            if (|RowEdgeFirst| &gt; 0)</l>
+<l>                SIF := sort_index(-RowEdgeFirst)[0]</l>
+<l>                SIS := sort_index(RowEdgeSecond)[0]</l>
+<l>                Row := [Row,RowEdgeFirst[SIF],RowEdgeSecond[SIS]]</l>
+<l>                Column := [Column,ColumnEdgeFirst[SIF],ColumnEdgeSecond[SIS]]</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    if (DisplayIntermediateResults)</l>
+<l>        dev_get_window (WindowHandle)</l>
+<l>        Border := 300</l>
+<l>        get_image_size (GrayImage, ImgWidth, ImgHeight)</l>
+<l>        dev_resize_window_fit_size (0, 0, ImgWidth, ImgHeight + Border, WindowWidthLimit, WindowHeightLimit)</l>
+<l>        dev_set_part (-Border, 0, ImgHeight, ImgWidth)</l>
+<l>        gen_cross_contour_xld (Cross, Row, Column, 6, 0.785398)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (GrayImage)</l>
+<l>        dev_display (Cross)</l>
+<l>        Message := 'Points used for the estimation of the bottle\'s pose. Note that enough points must lie on the silhouette of the bottle.'</l>
+<l>        MessageWrapped := regexp_replace(Message + ' ',['(.{0,45})\\s','replace_all'],'$1\n')</l>
+<l>        disp_message (WindowHandle, ['Camera ' + (Cam + 1) + ':',MessageWrapped], 'window', 12, 12, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Only for visualization of selected points</c>
+<l>    SilhRow := [SilhRow,Row]</l>
+<l>    SilhCol := [SilhCol,Column]</l>
+<c>    * </c>
+<c>    * For visualization and check of the distribution of the remaining points</c>
+<l>    SilhCam := [SilhCam,gen_tuple_const(|Row|,Cam)]</l>
+<c>    * </c>
+<l>    get_line_of_sight (Row, Column, CamParam, PX, PY, PZ, QX, QY, QZ)</l>
+<l>    pose_to_hom_mat3d (CamPose, HomMat3D)</l>
+<l>    PX0 := HomMat3D[3]</l>
+<l>    PY0 := HomMat3D[7]</l>
+<l>    PZ0 := HomMat3D[11]</l>
+<l>    affine_trans_point_3d (HomMat3D, QX, QY, QZ, QX0, QY0, QZ0)</l>
+<l>    A2x := [A2x,gen_tuple_const(|Row|,PX0)]</l>
+<l>    A2y := [A2y,gen_tuple_const(|Row|,PY0)]</l>
+<l>    A2z := [A2z,gen_tuple_const(|Row|,PZ0)]</l>
+<l>    B2x := [B2x,QX0 - PX0]</l>
+<l>    B2y := [B2y,QY0 - PY0]</l>
+<l>    B2z := [B2z,QZ0 - PZ0]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Determine the number of points from each camera</c>
+<l>for CamI := 0 to NumCameras - 1 by 1</l>
+<l>    NumPoints[CamI] := sum(find(SilhCam,CamI) [!=] -1)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Initial values for the cylinder axis (x := A1 + t*B1)</c>
+<l>A1x := 0.0</l>
+<l>A1y := 0.0</l>
+<l>A1z := 0</l>
+<l>B1x := 0.0</l>
+<l>B1y := 0.0</l>
+<l>B1z := 1</l>
+<l>Dx := 99999</l>
+<l>ErrorLog := []</l>
+<l>Iter := 0</l>
+<l>IterInter := 0</l>
+<l>MaxIter := 100</l>
+<l>MaxIterInter := 5</l>
+<l>LastError := 99999</l>
+<l>SDevFactor := 5.0</l>
+<l>while (Iter &lt; MaxIter)</l>
+<c>    * </c>
+<l>    distance_skew_lines (A1x, A1y, A1z, B1x, B1y, B1z, A2x, A2y, A2z, B2x, B2y, B2z, Dist)</l>
+<l>    E := CylinderRadius - Dist</l>
+<l>    ErrorLog := [ErrorLog,mean(E)]</l>
+<l>    Delta := 0.001</l>
+<l>    distance_skew_lines (A1x + Delta, A1y, A1z, B1x, B1y, B1z, A2x, A2y, A2z, B2x, B2y, B2z, DistTmp)</l>
+<l>    DistDAx := (DistTmp - Dist) / Delta</l>
+<l>    distance_skew_lines (A1x, A1y + Delta, A1z, B1x, B1y, B1z, A2x, A2y, A2z, B2x, B2y, B2z, DistTmp)</l>
+<l>    DistDAy := (DistTmp - Dist) / Delta</l>
+<l>    distance_skew_lines (A1x, A1y, A1z, B1x + Delta, B1y, B1z, A2x, A2y, A2z, B2x, B2y, B2z, DistTmp)</l>
+<l>    DistDBx := (DistTmp - Dist) / Delta</l>
+<l>    distance_skew_lines (A1x, A1y, A1z, B1x, B1y + Delta, B1z, A2x, A2y, A2z, B2x, B2y, B2z, DistTmp)</l>
+<l>    DistDBy := (DistTmp - Dist) / Delta</l>
+<c>    * </c>
+<l>    create_matrix (|A2x|, 4, 0, A)</l>
+<l>    SeqR := [0:|A2x| - 1]</l>
+<l>    SeqC := gen_tuple_const(|A2x|,0)</l>
+<l>    set_value_matrix (A, SeqR, SeqC, DistDAx)</l>
+<l>    set_value_matrix (A, SeqR, SeqC + 1, DistDAy)</l>
+<l>    set_value_matrix (A, SeqR, SeqC + 2, DistDBx)</l>
+<l>    set_value_matrix (A, SeqR, SeqC + 3, DistDBy)</l>
+<c>    * </c>
+<l>    create_matrix (|A2x|, 1, 0, y)</l>
+<l>    set_value_matrix (y, SeqR, SeqC, CylinderRadius - Dist)</l>
+<c>    * </c>
+<c>    * Solve the least squares equation system (x := (ATA)^-1*ATy)</c>
+<l>    solve_matrix (A, 'general', 0, y, X)</l>
+<l>    get_full_matrix (X, Values)</l>
+<l>    A1x := A1x + Values[0]</l>
+<l>    A1y := A1y + Values[1]</l>
+<l>    B1x := B1x + Values[2]</l>
+<l>    B1y := B1y + Values[3]</l>
+<c>    * </c>
+<c>    * Free allocated memory</c>
+<l>    clear_matrix (A)</l>
+<l>    clear_matrix (y)</l>
+<l>    clear_matrix (X)</l>
+<c>    * </c>
+<l>*     stop ()</l>
+<l>    Iter := Iter + 1</l>
+<l>    IterInter := IterInter + 1</l>
+<c>    * Eliminate gross errors</c>
+<l>    if (|ErrorLog| &gt; 3)</l>
+<l>        if (deviation(ErrorLog[|ErrorLog| - 3:|ErrorLog| - 1]) &lt; 1e-5 or IterInter &gt;= MaxIterInter)</l>
+<l>            IterInter := 0</l>
+<l>            if (fabs(ErrorLog[|ErrorLog| - 1]) &lt; MaxError and fabs(LastError - ErrorLog[|ErrorLog| - 1]) &lt; 1e-5 and SDevFactor &lt;= 3.0)</l>
+<c>                * Quit least squares estimation loop</c>
+<l>                MaxIter := -1</l>
+<l>                continue</l>
+<l>            endif</l>
+<l>            LastError := ErrorLog[|ErrorLog| - 1]</l>
+<c>            * </c>
+<c>            * Determine gross errors and eliminate them</c>
+<l>            SDevE := deviation(fabs(E))</l>
+<l>            SDevFactor := max([3.0,SDevFactor - 0.5])</l>
+<l>            MaskUse := fabs(E) [&lt;] SDevFactor * SDevE</l>
+<c>            * Ensure that some errors are eliminated</c>
+<l>            while (min(MaskUse) == 1 and SDevFactor &gt; 3.0)</l>
+<l>                SDevFactor := max([3.0,SDevFactor - 0.1])</l>
+<l>                MaskUse := fabs(E) [&lt;] SDevFactor * SDevE</l>
+<l>            endwhile</l>
+<c>            * </c>
+<c>            * Ensure that there are at least 20% of the initial points in at least three cameras</c>
+<l>            SilhCamTmp := select_mask(SilhCam,MaskUse)</l>
+<l>            CamOk := gen_tuple_const(NumCameras,0)</l>
+<l>            for CamI := 0 to NumCameras - 1 by 1</l>
+<l>                NumPointsRemaining[CamI] := sum(find(SilhCamTmp,CamI) [!=] -1)</l>
+<l>            endfor</l>
+<l>            if (sum(NumPointsRemaining / real(NumPoints) [&gt;=] 0.3) &lt;= 3)</l>
+<c>                * Quit least squares estimation loop because the distribution of the points would be bad</c>
+<l>                MaxIter := -1</l>
+<l>                continue</l>
+<l>            endif</l>
+<c>            * </c>
+<l>            A2x := select_mask(A2x,MaskUse)</l>
+<l>            A2y := select_mask(A2y,MaskUse)</l>
+<l>            A2z := select_mask(A2z,MaskUse)</l>
+<l>            B2x := select_mask(B2x,MaskUse)</l>
+<l>            B2y := select_mask(B2y,MaskUse)</l>
+<l>            B2z := select_mask(B2z,MaskUse)</l>
+<c>            * </c>
+<l>            SilhRowElim := [SilhRowElim,select_mask(SilhRow,1 - MaskUse)]</l>
+<l>            SilhColElim := [SilhColElim,select_mask(SilhCol,1 - MaskUse)]</l>
+<l>            SilhCamElim := [SilhCamElim,select_mask(SilhCam,1 - MaskUse)]</l>
+<l>            SilhRow := select_mask(SilhRow,MaskUse)</l>
+<l>            SilhCol := select_mask(SilhCol,MaskUse)</l>
+<l>            SilhCam := SilhCamTmp</l>
+<c>            * </c>
+<l>        endif</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>get_camera_setup_param (CameraSetupModelZeroDistCylApprox, 0, 'pose', CamPose0)</l>
+<l>point_to_line_perpendicular_foot (CamPose0[0:2], [A1x,A1y,A1z], [B1x,B1y,B1z], Foot)</l>
+<l>XAxis := Foot - CamPose0[0:2]</l>
+<l>XAxis := XAxis / sqrt(sum(XAxis * XAxis))</l>
+<l>ZAxis := [B1x,B1y,B1z]</l>
+<l>ZAxis := ZAxis / sqrt(sum(ZAxis * ZAxis))</l>
+<l>cross_product (ZAxis, XAxis, YAxis)</l>
+<l>HomMat3DCylinderEst := [XAxis[0],YAxis[0],ZAxis[0],A1x,XAxis[1],YAxis[1],ZAxis[1],A1y,XAxis[2],YAxis[2],ZAxis[2],A1z]</l>
+<l>hom_mat3d_to_pose (HomMat3DCylinderEst, PoseCylinderEst)</l>
+<c>* Convert cylinder pose into a homogeneous transformation matrix</c>
+<l>pose_compose (PoseCylinderEst, [0,0,0,0,0,0,0], PoseCylinder)</l>
+<c>* Create a copy of the camera setup model with the origin set to the origin of the cylinder</c>
+<l>serialize_camera_setup_model (CameraSetupModelZeroDistCylApprox, SerializedItemHandle)</l>
+<l>deserialize_camera_setup_model (SerializedItemHandle, CameraSetupModelZeroDistInCylinderOrigin)</l>
+<l>set_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, 'general', 'coord_transf_pose', PoseCylinder)</l>
+<c>* Free allocated memory</c>
+<l>clear_serialized_item (SerializedItemHandle)</l>
+<l>clear_camera_setup_model (CameraSetupModelZeroDistCylApprox)</l>
+<c>* </c>
+<c>* Visualize projection of cylinder into the images</c>
+<l>if (DisplayIntermediateResults)</l>
+<l>    WL := 400</l>
+<l>    HL := 300</l>
+<l>    WH := []</l>
+<l>    gen_cylinder_object_model_3d ([0,0,0,0,0,0,0], CylinderRadius, -0.1, 0.1, ObjectModel3DCylinder)</l>
+<l>    for Cam := 0 to NumCameras - 1 by 1</l>
+<l>        select_obj (ImagesRectified, Image, Cam + 1)</l>
+<l>        dev_open_window_fit_image (GrayImage, Cam / 2 * (HL + 63), Cam % 2 * (WL + 12), WL, HL, WindowHandleI)</l>
+<l>        set_display_font (WindowHandleI, 16, 'mono', 'true', 'false')</l>
+<l>        WH[Cam] := WindowHandleI</l>
+<l>        get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'params', CamParam)</l>
+<l>        get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'pose', CamPose)</l>
+<l>        pose_invert (CamPose, PoseInvert)</l>
+<l>        render_object_model_3d (ImageCyl, ObjectModel3DCylinder, CamParam, PoseInvert, [], [])</l>
+<l>        threshold (ImageCyl, Region, 0, 0)</l>
+<l>        gen_contour_region_xld (Region, Contours, 'border')</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_color ('blue')</l>
+<l>        dev_display (Contours)</l>
+<c>        * </c>
+<l>        UsedId := find(SilhCam,Cam)</l>
+<l>        RejectedId := find(SilhCamElim,Cam)</l>
+<l>        if (UsedId != -1)</l>
+<l>            dev_set_color ('green')</l>
+<l>            gen_cross_contour_xld (CrossUsed, subset(SilhRow,UsedId), subset(SilhCol,UsedId), 6, 0.785398)</l>
+<l>            dev_display (CrossUsed)</l>
+<l>        endif</l>
+<l>        if (RejectedId != -1)</l>
+<l>            dev_set_color ('red')</l>
+<l>            gen_cross_contour_xld (CrossUsed, subset(SilhRowElim,RejectedId), subset(SilhColElim,RejectedId), 6, 0.785398)</l>
+<l>            dev_display (CrossUsed)</l>
+<l>        endif</l>
+<l>        disp_message (WindowHandleI, 'Camera ' + (Cam + 1) + ':', 'window', 12, 12, 'black', 'true')</l>
+<l>    endfor</l>
+<l>    dev_open_window (0, 2 * (WL + 12), WL, HL, 'black', WindowHandleI)</l>
+<l>    set_display_font (WindowHandleI, 16, 'mono', 'true', 'false')</l>
+<l>    disp_message (WindowHandleI, ['green: accepted points\n       (assumed to lie on the\n       silhouette)','red:   rejected points','blue:  estimated silhouette'], 'window', 12, 12, ['green','green','green','red','blue'], 'false')</l>
+<l>    stop ()</l>
+<l>    clear_object_model_3d (ObjectModel3DCylinder)</l>
+<l>    for Cam := 0 to NumCameras - 1 by 1</l>
+<l>        dev_set_window (WH[Cam])</l>
+<l>        dev_close_window ()</l>
+<l>    endfor</l>
+<l>    dev_set_window (WindowHandleI)</l>
+<l>    dev_close_window ()</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="determine_rotation_axis_3d">
+<parameters>
+<parameter id="BackgroundMayContainTexture"/>
+<parameter id="CameraSetupModelZeroDist"/>
+<parameter id="CameraSetupModelZeroDistInCylinderOrigin"/>
+<parameter id="CylinderRadius"/>
+<parameter id="Height"/>
+<parameter id="ImagesGrayRectified"/>
+<parameter id="ImagesRectified"/>
+<parameter id="MaxError"/>
+<parameter id="MaxPairDist"/>
+<parameter id="MeasureHandles"/>
+<parameter id="MinPairDist"/>
+<parameter id="NumCameras"/>
+<parameter id="PoseCylinder"/>
+<parameter id="Quality"/>
+<parameter id="RadiusEstimated"/>
+<parameter id="SilhouetteMaxTilt"/>
+<parameter id="SilhouetteMeasureSigma"/>
+<parameter id="SilhouetteMeasureThreshold"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="stitch_images">
+<interface>
+<io>
+<par name="Regions" base_type="iconic" dimension="0"/>
+<par name="ImagesRectified" base_type="iconic" dimension="0"/>
+<par name="ImagesGrayRectified" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="FinalMosaic" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ColorMosaic" base_type="ctrl" dimension="0"/>
+<par name="HighImageQuality" base_type="ctrl" dimension="0"/>
+<par name="PerformFineAdjustment" base_type="ctrl" dimension="0"/>
+<par name="FineAdjustmentMaxShift" base_type="ctrl" dimension="0"/>
+<par name="FineAdjustmentMatchingWidth" base_type="ctrl" dimension="0"/>
+<par name="BlendingSeam" base_type="ctrl" dimension="0"/>
+<par name="CameraSetupModelZeroDistInCylinderOrigin" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+<par name="MosaicWidth" base_type="ctrl" dimension="0"/>
+<par name="MosaicHeight" base_type="ctrl" dimension="0"/>
+<par name="CylinderPointsX" base_type="ctrl" dimension="0"/>
+<par name="CylinderPointsY" base_type="ctrl" dimension="0"/>
+<par name="CylinderPointsZ" base_type="ctrl" dimension="0"/>
+<par name="NumSlices" base_type="ctrl" dimension="0"/>
+<par name="NumPointsPerSlice" base_type="ctrl" dimension="0"/>
+<par name="CylinderRadius" base_type="ctrl" dimension="0"/>
+<par name="LabelMinCol" base_type="ctrl" dimension="0"/>
+<par name="LabelMaxCol" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>global tuple DisplayIntermediateResults</l>
+<l>global tuple WindowWidthLimit</l>
+<l>global tuple WindowHeightLimit</l>
+<c>* </c>
+<c>* Determine the part of the cylinder that must be used according to the</c>
+<c>* given area of the label in the first image</c>
+<l>Indices := [0,cumul(gen_tuple_const(NumSlices - 1,NumPointsPerSlice))]</l>
+<l>SamplePX := CylinderPointsX[Indices]</l>
+<l>SamplePY := CylinderPointsY[Indices]</l>
+<l>SamplePZ := CylinderPointsZ[Indices]</l>
+<l>get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, 0, 'params', CamParam0)</l>
+<l>get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, 0, 'pose', CamPose0)</l>
+<l>pose_to_hom_mat3d (CamPose0, HomMat3D0)</l>
+<l>hom_mat3d_invert (HomMat3D0, HomMat3D0Invert)</l>
+<l>affine_trans_point_3d (HomMat3D0Invert, SamplePX, SamplePY, SamplePZ, Qx, Qy, Qz)</l>
+<l>project_3d_point (Qx, Qy, Qz, CamParam0, ImageSampleRow, ImageSampleColumn)</l>
+<l>MinSlice := max([find(sgn(ImageSampleColumn - LabelMinCol),1)[0],0])</l>
+<l>MaxSlice := min([find(sgn(ImageSampleColumn - LabelMaxCol),1)[0],NumSlices - 1])</l>
+<c>* </c>
+<l>MosaicHeight := MaxSlice - MinSlice + 1</l>
+<l>CylinderPointsX := CylinderPointsX[MinSlice * NumPointsPerSlice:MaxSlice * NumPointsPerSlice + NumPointsPerSlice - 1]</l>
+<l>CylinderPointsY := CylinderPointsY[MinSlice * NumPointsPerSlice:MaxSlice * NumPointsPerSlice + NumPointsPerSlice - 1]</l>
+<l>CylinderPointsZ := CylinderPointsZ[MinSlice * NumPointsPerSlice:MaxSlice * NumPointsPerSlice + NumPointsPerSlice - 1]</l>
+<c>* </c>
+<l>if (not PerformFineAdjustment)</l>
+<c>    * </c>
+<l>    if (ColorMosaic)</l>
+<l>        gen_image_const (ImageMosaicR, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>        gen_image_const (ImageMosaicG, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>        gen_image_const (ImageMosaicB, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>        compose3 (ImageMosaicR, ImageMosaicG, ImageMosaicB, ImageMosaic)</l>
+<l>    else</l>
+<l>        gen_image_const (ImageMosaic, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    clip_region (Regions, Regions, 0, 0, MosaicHeight - 1, MosaicWidth - 1)</l>
+<c>    * </c>
+<l>    for Cam := 0 to NumCameras - 1 by 1</l>
+<l>        get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'params', CamParam)</l>
+<l>        ImageWidth := CamParam[|CamParam| - 2]</l>
+<l>        ImageHeight := CamParam[|CamParam| - 1]</l>
+<l>        get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'pose', CamPose)</l>
+<l>        pose_to_hom_mat3d (CamPose, HomMat3D)</l>
+<l>        hom_mat3d_invert (HomMat3D, HomMat3DInvert)</l>
+<l>        select_obj (Regions, Region, Cam + 1)</l>
+<l>        get_region_points (Region, Rows, Columns)</l>
+<l>        LinCoord := Rows * NumPointsPerSlice + Columns</l>
+<c>        * </c>
+<l>        affine_trans_point_3d (HomMat3DInvert, subset(CylinderPointsX,LinCoord), subset(CylinderPointsY,LinCoord), subset(CylinderPointsZ,LinCoord), Qx, Qy, Qz)</l>
+<l>        project_3d_point (Qx, Qy, Qz, CamParam, ImageRow, ImageColumn)</l>
+<c>        * </c>
+<l>        Mask := ImageRow [&gt;=] 0 and ImageRow [&lt;=] ImageHeight - 1 and ImageColumn [&gt;=] 0 and ImageColumn [&lt;=] ImageWidth - 1</l>
+<l>        ImageRowSub := select_mask(ImageRow,Mask)</l>
+<l>        ImageColumnSub := select_mask(ImageColumn,Mask)</l>
+<c>        * </c>
+<l>        if (ColorMosaic)</l>
+<l>            select_obj (ImagesRectified, ObjectSelected, Cam + 1)</l>
+<l>            decompose3 (ObjectSelected, ImageR, ImageG, ImageB)</l>
+<c>            * </c>
+<l>            if (HighImageQuality)</l>
+<l>                BicubicInterpolation := true</l>
+<l>                if (BicubicInterpolation)</l>
+<l>                    get_grayval_interpolated (ImageR, ImageRowSub, ImageColumnSub, 'bicubic', Grayval)</l>
+<l>                    set_grayval (ImageMosaicR, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                    get_grayval_interpolated (ImageG, ImageRowSub, ImageColumnSub, 'bicubic', Grayval)</l>
+<l>                    set_grayval (ImageMosaicG, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                    get_grayval_interpolated (ImageB, ImageRowSub, ImageColumnSub, 'bicubic', Grayval)</l>
+<l>                    set_grayval (ImageMosaicB, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                else</l>
+<l>                    get_grayval_interpolated (ImageR, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                    set_grayval (ImageMosaicR, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                    get_grayval_interpolated (ImageG, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                    set_grayval (ImageMosaicG, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                    get_grayval_interpolated (ImageB, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                    set_grayval (ImageMosaicB, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                endif</l>
+<l>            else</l>
+<l>                get_grayval (ObjectSelected, ImageRowSub, ImageColumnSub, Grayval1)</l>
+<l>                set_grayval (ImageMosaic, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval1)</l>
+<l>            endif</l>
+<l>        else</l>
+<l>            select_obj (ImagesGrayRectified, ImageGray, Cam + 1)</l>
+<c>            * </c>
+<l>            if (HighImageQuality)</l>
+<l>                get_grayval_interpolated (ImageGray, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                set_grayval (ImageMosaic, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>            else</l>
+<l>                get_grayval (ImageGray, ImageRowSub, ImageColumnSub, Grayval1)</l>
+<l>                set_grayval (ImageMosaic, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval1)</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    copy_image (ImageMosaic, FinalMosaic)</l>
+<l>else</l>
+<c>    * </c>
+<c>    * Extend the regions such that they overlap each other to allow</c>
+<c>    * some matching for the fine adjustment</c>
+<l>    DilWidth := max([FineAdjustmentMatchingWidth + 2 * FineAdjustmentMaxShift,BlendingSeam + FineAdjustmentMaxShift]) / 2 * 2 + 1</l>
+<l>    dilation_rectangle1 (Regions, RegionsDilation, DilWidth, 1)</l>
+<l>    clip_region (RegionsDilation, RegionsDilation, 0, 0, MosaicHeight - 1, MosaicWidth - 1)</l>
+<c>    * </c>
+<c>    * Unrole the images from the individual cameras such that they overlap each other</c>
+<l>    gen_empty_obj (UnrolledImages)</l>
+<l>    for Cam := 0 to NumCameras - 1 by 1</l>
+<c>        * </c>
+<l>        if (ColorMosaic)</l>
+<l>            gen_image_const (ImageUnrolledR, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>            gen_image_const (ImageUnrolledG, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>            gen_image_const (ImageUnrolledB, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>        else</l>
+<l>            gen_image_const (ImageUnrolled, 'byte', MosaicWidth, MosaicHeight)</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'params', CamParam)</l>
+<l>        ImageWidth := CamParam[|CamParam| - 2]</l>
+<l>        ImageHeight := CamParam[|CamParam| - 1]</l>
+<l>        get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'pose', CamPose)</l>
+<l>        pose_to_hom_mat3d (CamPose, HomMat3D)</l>
+<l>        hom_mat3d_invert (HomMat3D, HomMat3DInvert)</l>
+<l>        select_obj (RegionsDilation, Region, Cam + 1)</l>
+<l>        get_region_points (Region, Rows, Columns)</l>
+<l>        LinCoord := Rows * NumPointsPerSlice + Columns</l>
+<c>        * </c>
+<l>        affine_trans_point_3d (HomMat3DInvert, subset(CylinderPointsX,LinCoord), subset(CylinderPointsY,LinCoord), subset(CylinderPointsZ,LinCoord), Qx, Qy, Qz)</l>
+<l>        project_3d_point (Qx, Qy, Qz, CamParam, ImageRow, ImageColumn)</l>
+<c>        * </c>
+<l>        Mask := ImageRow [&gt;=] 0 and ImageRow [&lt;=] ImageHeight - 1 and ImageColumn [&gt;=] 0 and ImageColumn [&lt;=] ImageWidth - 1</l>
+<l>        ImageRowSub := select_mask(ImageRow,Mask)</l>
+<l>        ImageColumnSub := select_mask(ImageColumn,Mask)</l>
+<c>        * </c>
+<l>        if (DisplayIntermediateResults)</l>
+<l>            gen_region_points (Region, ImageRowSub, ImageColumnSub)</l>
+<l>            for ClosingRad := 1.5 to 15.5 by 1</l>
+<l>                closing_circle (Region, RegionTrans, ClosingRad)</l>
+<l>                connection (RegionTrans, ConnectedRegions)</l>
+<l>                count_obj (ConnectedRegions, Number)</l>
+<l>                if (Number == 1)</l>
+<l>                    break</l>
+<l>                endif</l>
+<l>            endfor</l>
+<l>            select_obj (ImagesRectified, Image, Cam + 1)</l>
+<l>            copy_image (Image, ImagePart)</l>
+<l>            reduce_domain (ImagePart, RegionTrans, ImageReduced)</l>
+<l>            scale_image (ImageReduced, ImageScaled, 0.25, 150)</l>
+<l>            copy_image (Image, ImageDisp)</l>
+<l>            overpaint_gray (ImageDisp, ImageScaled)</l>
+<l>            rotate_image (ImageDisp, ImageRotate, -90, 'constant')</l>
+<l>            dev_get_window (WindowHandle)</l>
+<l>            dev_resize_window_fit_image (ImageRotate, 0, 0, WindowWidthLimit, WindowHeightLimit)</l>
+<l>            dev_display (ImageRotate)</l>
+<l>            Message := 'Image part that will be unrolled'</l>
+<l>            MessageWrapped := regexp_replace(Message + ' ',['(.{0,40})\\s','replace_all'],'$1\n')</l>
+<l>            disp_message (WindowHandle, ['Camera ' + (Cam + 1) + ':',MessageWrapped], 'window', 12, 12, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        if (ColorMosaic)</l>
+<l>            select_obj (ImagesRectified, ObjectSelected, Cam + 1)</l>
+<l>            decompose3 (ObjectSelected, ImageR, ImageG, ImageB)</l>
+<c>            * </c>
+<l>            if (HighImageQuality)</l>
+<l>                get_grayval_interpolated (ImageR, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                set_grayval (ImageUnrolledR, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                get_grayval_interpolated (ImageG, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                set_grayval (ImageUnrolledG, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                get_grayval_interpolated (ImageB, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                set_grayval (ImageUnrolledB, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>                compose3 (ImageUnrolledR, ImageUnrolledG, ImageUnrolledB, MultiChannelImage)</l>
+<l>            else</l>
+<l>                get_grayval (ObjectSelected, ImageRowSub, ImageColumnSub, Grayval1)</l>
+<l>                compose3 (ImageUnrolledR, ImageUnrolledG, ImageUnrolledB, MultiChannelImage)</l>
+<l>                set_grayval (MultiChannelImage, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval1)</l>
+<l>            endif</l>
+<l>            concat_obj (UnrolledImages, MultiChannelImage, UnrolledImages)</l>
+<l>        else</l>
+<l>            select_obj (ImagesGrayRectified, ImageGray, Cam + 1)</l>
+<c>            * </c>
+<l>            if (HighImageQuality)</l>
+<l>                get_grayval_interpolated (ImageGray, ImageRowSub, ImageColumnSub, 'bilinear', Grayval)</l>
+<l>                set_grayval (ImageUnrolled, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval)</l>
+<l>            else</l>
+<l>                get_grayval (ImageGray, ImageRowSub, ImageColumnSub, Grayval1)</l>
+<l>                set_grayval (ImageUnrolled, select_mask(Rows,Mask), select_mask(Columns,Mask), Grayval1)</l>
+<l>            endif</l>
+<l>            concat_obj (UnrolledImages, ImageUnrolled, UnrolledImages)</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        if (DisplayIntermediateResults)</l>
+<l>            count_obj (UnrolledImages, NumberUnrolled)</l>
+<l>            select_obj (UnrolledImages, UnrolledOut, NumberUnrolled)</l>
+<l>            gen_region_points (RegionMaskOut, select_mask(Rows,Mask), select_mask(Columns,Mask))</l>
+<l>            get_domain (UnrolledOut, DomainUnrolledOut)</l>
+<l>            difference (DomainUnrolledOut, RegionMaskOut, RegionDifference)</l>
+<l>            if (ColorMosaic)</l>
+<l>                FillColor := [255,255,255]</l>
+<l>            else</l>
+<l>                FillColor := 255</l>
+<l>            endif</l>
+<l>            overpaint_region (UnrolledOut, RegionDifference, FillColor, 'fill')</l>
+<l>            dev_resize_window_fit_image (UnrolledOut, 0, 0, WindowWidthLimit, WindowHeightLimit)</l>
+<l>            dev_display (UnrolledOut)</l>
+<l>            Message := 'Unrolled image'</l>
+<l>            MessageWrapped := regexp_replace(Message + ' ',['(.{0,40})\\s','replace_all'],'$1\n')</l>
+<l>            disp_message (WindowHandle, ['Camera ' + (Cam + 1) + ':',MessageWrapped], 'window', 12, 12, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Determine the images that overlap each other</c>
+<l>    smallest_rectangle1 (RegionsDilation, RowBB1, ColumnBB1, RowBB2, ColumnBB2)</l>
+<l>    From := sort_index(ColumnBB1)</l>
+<l>    To := [From[1:|From| - 1],From[0]]</l>
+<c>    * </c>
+<c>    * Determine the shift between the unrolled images</c>
+<l>    gen_empty_obj (UnrolledImagesShifted)</l>
+<c>    * </c>
+<c>    * Copy left part of first unrolled image because it can remain unshifted</c>
+<l>    select_obj (RegionsDilation, RegionFrom, From[0] + 1)</l>
+<l>    select_obj (UnrolledImages, ImageFrom, From[0] + 1)</l>
+<l>    copy_image (ImageFrom, ImageFrom)</l>
+<l>    connection (RegionFrom, ConnectedRegions)</l>
+<l>    count_obj (ConnectedRegions, Number)</l>
+<l>    if (Number &gt; 1)</l>
+<l>        sort_region (ConnectedRegions, SortedRegions, 'character', 'true', 'column')</l>
+<l>        select_obj (SortedRegions, ObjectSelected, 1)</l>
+<l>        reduce_domain (ImageFrom, ObjectSelected, ImageFromReduced)</l>
+<l>        concat_obj (UnrolledImagesShifted, ImageFromReduced, UnrolledImagesShifted)</l>
+<l>    endif</l>
+<l>    ShiftAccumulated := 0</l>
+<l>    hom_mat2d_identity (HomMat2DAccumulated)</l>
+<c>    * </c>
+<c>    * Determine the shift for the mosaicking</c>
+<l>    select_obj (UnrolledImages, ObjectSelected, 1)</l>
+<l>    count_channels (ObjectSelected, Channels)</l>
+<l>    gen_empty_obj (OverlappingAreas)</l>
+<l>    MaximaS := []</l>
+<l>    Maxima := []</l>
+<l>    for FT := 0 to |From| - 1 by 1</l>
+<l>        F := From[FT]</l>
+<l>        T := To[FT]</l>
+<l>        select_obj (RegionsDilation, RegionFrom, F + 1)</l>
+<l>        select_obj (RegionsDilation, RegionTo, T + 1)</l>
+<l>        select_obj (UnrolledImages, ImageFrom, F + 1)</l>
+<l>        select_obj (UnrolledImages, ImageTo, T + 1)</l>
+<l>        if (FT == |From| - 1)</l>
+<c>            * Add only right part of last image</c>
+<l>            connection (RegionTo, ConnectedRegions)</l>
+<l>            count_obj (ConnectedRegions, Number)</l>
+<l>            if (Number &gt; 1)</l>
+<l>                sort_region (ConnectedRegions, SortedRegions, 'character', 'true', 'column')</l>
+<l>                select_obj (SortedRegions, RegionTo, 2)</l>
+<l>                get_domain (ImageTo, Domain)</l>
+<l>                difference (Domain, RegionTo, RegionBlack)</l>
+<l>                overpaint_region (ImageTo, RegionBlack, [0,0,0], 'fill')</l>
+<l>            endif</l>
+<l>        endif</l>
+<c>        * Select the kind of image used for matching</c>
+<l>        if (Channels == 3)</l>
+<l>            switch (2)</l>
+<l>            case 1:</l>
+<l>                decompose3 (ImageFrom, ImageF1, ImageF2, ImageF3)</l>
+<l>                decompose3 (ImageTo, ImageT1, ImageT2, ImageT3)</l>
+<l>                convert_image_type (ImageF1, ImageFrom, 'real')</l>
+<l>                convert_image_type (ImageT1, ImageTo, 'real')</l>
+<l>                break</l>
+<l>            case 2:</l>
+<l>                rgb1_to_gray (ImageFrom, GrayFrom)</l>
+<l>                rgb1_to_gray (ImageTo, GrayTo)</l>
+<l>                convert_image_type (GrayFrom, ImageFrom, 'real')</l>
+<l>                convert_image_type (GrayTo, ImageTo, 'real')</l>
+<l>                break</l>
+<l>            endswitch</l>
+<l>        else</l>
+<l>            convert_image_type (ImageFrom, ImageFrom, 'real')</l>
+<l>            convert_image_type (ImageTo, ImageTo, 'real')</l>
+<l>        endif</l>
+<l>        intersection (RegionFrom, RegionTo, RegionIntersection)</l>
+<l>        smallest_rectangle1 (RegionIntersection, RowInters1, ColumnInters1, RowInters2, ColumnInters2)</l>
+<l>        ColumnCut := (ColumnInters1 + ColumnInters2) / 2</l>
+<l>        VisualizeMorphing := false</l>
+<c>        * Create Ncc model</c>
+<l>        Angles := [-3,3]</l>
+<l>        PaddingTopBottom := 20</l>
+<l>        gen_rectangle1 (Rectangle, PaddingTopBottom, ColumnCut - FineAdjustmentMatchingWidth / 2, MosaicHeight - 1 - PaddingTopBottom, ColumnCut + FineAdjustmentMatchingWidth / 2)</l>
+<l>        convert_image_type (ImageFrom, ImageFromB, 'byte')</l>
+<l>        reduce_domain (ImageFromB, Rectangle, ImageModel)</l>
+<l>        create_ncc_model (ImageModel, 1, rad(Angles[0]), rad(Angles[1] - Angles[0]), 'auto', 'use_polarity', ModelID)</l>
+<l>        region_features (ImageModel, ['row','column','width'], Values)</l>
+<c>        * </c>
+<c>        * Create the search image</c>
+<l>        gen_rectangle2 (RoiSearch, Values[0], Values[1], 0, FineAdjustmentMaxShift, 1)</l>
+<l>        convert_image_type (ImageTo, ImageToB, 'byte')</l>
+<l>        reduce_domain (ImageToB, RoiSearch, ImageSearch)</l>
+<c>        * </c>
+<l>        if (VisualizeMorphing)</l>
+<l>            compose3 (ImageFromB, ImageFromB, ImageToB, MultiChannelImageLocal)</l>
+<l>            dev_clear_window ()</l>
+<l>            dev_display (MultiChannelImageLocal)</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        find_ncc_model (ImageSearch, ModelID, rad(Angles[0]), rad(Angles[1] - Angles[0]), 0.3, 1, 1.0, 'true', 0, Row, Column, Angle, Score)</l>
+<l>        clear_ncc_model (ModelID)</l>
+<l>        if (|Score| == 0)</l>
+<l>            Row := Values[0]</l>
+<l>            Column := Values[1]</l>
+<l>            Angle := 0</l>
+<l>            Score := 0</l>
+<l>        endif</l>
+<l>        select_obj (UnrolledImages, ImageTo, T + 1)</l>
+<l>        ShiftAccumulated := ShiftAccumulated + (Values[1] - Column)</l>
+<c>        * </c>
+<c>        * The transformation to move the search image onto the model image</c>
+<l>        vector_angle_to_rigid (Row, Column, Angle, Values[0], Values[1], 0, HomMat2DI)</l>
+<c>        * </c>
+<c>        * Split the transformation into a translation part in column direction</c>
+<c>        * and the remainder</c>
+<l>        vector_angle_to_rigid (0, Column, 0, 0, Values[1], 0, HomMat2DITrans)</l>
+<l>        hom_mat2d_invert (HomMat2DITrans, HomMat2DITransInvert)</l>
+<l>        hom_mat2d_compose (HomMat2DI, HomMat2DITransInvert, HomMat2DRemainder)</l>
+<c>        * </c>
+<c>        * Apply the remainder of the transformation in some kind of local morphing</c>
+<c>        * such that the right image fits the left image</c>
+<l>        RowOrig := [0:MosaicHeight - 1]</l>
+<l>        ColOrig := gen_tuple_const(MosaicHeight,ColumnCut)</l>
+<l>        affine_trans_pixel (HomMat2DRemainder, RowOrig, ColOrig, RowTrans, ColTrans)</l>
+<l>        DRow := RowOrig - RowTrans</l>
+<l>        DCol := ColOrig - ColTrans</l>
+<c>        * </c>
+<l>        region_features (Regions, 'width', RegionWidth)</l>
+<l>        MorphingWidth := int(0.2 * min(RegionWidth))</l>
+<l>        MorphingExtLeft := 10</l>
+<l>        MorphingWidth2 := 2 * MorphingWidth + 1</l>
+<l>        MorphingWidth2ExtLeft := MorphingWidth2 + MorphingExtLeft</l>
+<l>        gen_image_const (ImageWR, 'real', MorphingWidth2ExtLeft, MosaicHeight)</l>
+<l>        gen_image_const (ImageWC, 'real', MorphingWidth2ExtLeft, MosaicHeight)</l>
+<l>        get_region_points (ImageWR, RowsWI, ColumnsWI)</l>
+<l>        Ramp := [gen_tuple_const(MorphingExtLeft,2.0),inverse(cumul(gen_tuple_const(MorphingWidth2 - 1,2.0 / MorphingWidth2))),0]</l>
+<l>        MorphR := gen_tuple_const(|RowsWI|,0)</l>
+<l>        MorphC := gen_tuple_const(|RowsWI|,0)</l>
+<l>        for RW := 0 to MosaicHeight - 1 by 1</l>
+<l>            MorphR[RW * MorphingWidth2ExtLeft:RW * MorphingWidth2ExtLeft + MorphingWidth2ExtLeft - 1] := Ramp * DRow[RW]</l>
+<l>            MorphC[RW * MorphingWidth2ExtLeft:RW * MorphingWidth2ExtLeft + MorphingWidth2ExtLeft - 1] := Ramp * DCol[RW]</l>
+<l>        endfor</l>
+<l>        set_grayval (ImageWR, RowsWI, ColumnsWI, MorphR)</l>
+<l>        set_grayval (ImageWC, RowsWI, ColumnsWI, MorphC)</l>
+<l>        real_to_vector_field (ImageWR, ImageWC, VectorField, 'vector_field_relative')</l>
+<l>        crop_rectangle1 (ImageTo, ImagePart, 0, ColumnCut - MorphingWidth - MorphingExtLeft, MosaicHeight - 1, ColumnCut + MorphingWidth)</l>
+<l>        if (Channels == 3)</l>
+<l>            decompose3 (ImagePart, Image1, Image2, Image3)</l>
+<l>            unwarp_image_vector_field (Image1, VectorField, ImageUnwarped1)</l>
+<l>            unwarp_image_vector_field (Image2, VectorField, ImageUnwarped2)</l>
+<l>            unwarp_image_vector_field (Image3, VectorField, ImageUnwarped3)</l>
+<l>            compose3 (ImageUnwarped1, ImageUnwarped2, ImageUnwarped3, MultiChannelImage)</l>
+<l>            concat_obj (ImageTo, MultiChannelImage, ObjectsConcat)</l>
+<l>            tile_images_offset (ObjectsConcat, MorphedImage, [0,0], [0,ColumnCut - MorphingWidth - MorphingExtLeft], [0,0], [0,0], [-1,-1], [-1,-1], MosaicWidth, MosaicHeight)</l>
+<l>        else</l>
+<l>            unwarp_image_vector_field (ImagePart, VectorField, ImageUnwarped)</l>
+<l>            concat_obj (ImageToB, ImageUnwarped, ObjectsConcat)</l>
+<l>            tile_images_offset (ObjectsConcat, MorphedImage, [0,0], [0,ColumnCut - MorphingWidth - MorphingExtLeft], [0,0], [0,0], [-1,-1], [-1,-1], MosaicWidth, MosaicHeight)</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        if (VisualizeMorphing)</l>
+<l>            affine_trans_image (MorphedImage, ImageToBShiftLocal, HomMat2DITrans, 'constant', 'false')</l>
+<l>            compose3 (ImageFromB, ImageFromB, ImageToBShiftLocal, MultiChannelImageLocal)</l>
+<l>            dev_clear_window ()</l>
+<l>            dev_display (MultiChannelImageLocal)</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        hom_mat2d_compose (HomMat2DAccumulated, HomMat2DITrans, HomMat2DAccumulated)</l>
+<l>        if (FT &lt; |From| - 1)</l>
+<l>            affine_trans_image (MorphedImage, ImageToShift, HomMat2DAccumulated, 'constant', 'false')</l>
+<l>            affine_trans_region (RegionTo, RegionToShift, HomMat2DAccumulated, 'nearest_neighbor')</l>
+<l>        else</l>
+<c>            * Because of the matching results, the final mosaic width may have changed</c>
+<l>            affine_trans_image (MorphedImage, ImageToShift, HomMat2DAccumulated, 'constant', 'true')</l>
+<l>            affine_trans_region (RegionTo, RegionToShift, HomMat2DAccumulated, 'nearest_neighbor')</l>
+<l>            get_image_size (ImageToShift, MosaicWidthExt, MosaicHeightExt)</l>
+<l>        endif</l>
+<c>        * </c>
+<l>        reduce_domain (ImageToShift, RegionToShift, ImageToShiftReduced)</l>
+<l>        concat_obj (UnrolledImagesShifted, ImageToShiftReduced, UnrolledImagesShifted)</l>
+<l>        intersection (RegionFrom, RegionToShift, RegionIntersection1)</l>
+<l>        union2 (OverlappingAreas, RegionIntersection1, OverlappingAreas)</l>
+<c>        * </c>
+<l>        if (VisualizeMorphing)</l>
+<l>            count_obj (UnrolledImagesShifted, NumberUI)</l>
+<l>            select_obj (UnrolledImagesShifted, ImageLeft, NumberUI - 1)</l>
+<l>            select_obj (UnrolledImagesShifted, ImageRight, NumberUI)</l>
+<l>            rgb1_to_gray (ImageLeft, GrayImageLeft)</l>
+<l>            rgb1_to_gray (ImageRight, GrayImageRight)</l>
+<l>            convert_image_type (GrayImageLeft, GrayImageLeftB, 'byte')</l>
+<l>            convert_image_type (GrayImageRight, GrayImageRightB, 'byte')</l>
+<l>            compose3 (GrayImageLeftB, GrayImageLeftB, GrayImageRightB, MultiChannelImage1)</l>
+<l>            dev_clear_window ()</l>
+<l>            dev_display (MultiChannelImage1)</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Adapt brightness in overlapping areas TODO: Geht so noch nicht</c>
+<c>    * - First determine the centers of the blending areas</c>
+<l>    ColumnBlendingCenter := []</l>
+<l>    count_obj (UnrolledImagesShifted, NumberUnrolledImages)</l>
+<l>    for I := 1 to NumberUnrolledImages - 1 by 1</l>
+<l>        select_obj (UnrolledImagesShifted, I1, I)</l>
+<l>        select_obj (UnrolledImagesShifted, I2, I + 1)</l>
+<l>        get_domain (I1, D1)</l>
+<l>        get_domain (I2, D2)</l>
+<l>        intersection (D1, D2, RegionIntersection)</l>
+<l>        smallest_rectangle1 (RegionIntersection, RowI1, ColumnI1, RowI2, ColumnI2)</l>
+<l>        ColumnBlendingCenter[I - 1] := int(round(0.5 * (ColumnI1 + ColumnI2)))</l>
+<l>    endfor</l>
+<l>    smallest_rectangle1 (D2, Dummy, Dummy, Dummy, RightBorder)</l>
+<l>*     stop ()</l>
+<l>    gen_empty_obj (BlendingMasks)</l>
+<l>    BSEven := BlendingSeam / 2 * 2</l>
+<l>    if (BSEven &gt; BlendingSeam)</l>
+<l>        BSEven := BSEven + 2</l>
+<l>    endif</l>
+<l>    BS2 := BSEven / 2</l>
+<l>    if (BSEven &gt;= 2)</l>
+<l>        BSStep := 1.0 / BSEven</l>
+<l>        BSLeft := cumul(gen_tuple_const(BSEven,BSStep))</l>
+<l>        BSRight := 1.0 + BSStep - BSLeft</l>
+<l>    else</l>
+<l>        BSLeft := []</l>
+<l>        BSRight := 1</l>
+<l>    endif</l>
+<c>    * - the first blending mask</c>
+<l>    MaskOneLine := [gen_tuple_const(ColumnBlendingCenter[0] - BS2,1),BSRight]</l>
+<l>    gen_image_const (ImageM1, 'real', MosaicWidthExt, 1)</l>
+<l>    set_grayval (ImageM1, gen_tuple_const(|MaskOneLine|,0), [0:|MaskOneLine| - 1], MaskOneLine)</l>
+<l>    zoom_image_size (ImageM1, ImageM, MosaicWidthExt, MosaicHeight, 'nearest_neighbor')</l>
+<l>    concat_obj (BlendingMasks, ImageM, BlendingMasks)</l>
+<c>    * - the middle blending masks</c>
+<l>    for I := 0 to |ColumnBlendingCenter| - 2 by 1</l>
+<l>        MaskOneLine := [BSLeft,gen_tuple_const(ColumnBlendingCenter[I + 1] - ColumnBlendingCenter[I] - BSEven - 1,1),BSRight]</l>
+<l>        gen_image_const (ImageM1, 'real', MosaicWidthExt, 1)</l>
+<l>        set_grayval (ImageM1, gen_tuple_const(|MaskOneLine|,0), [0:|MaskOneLine| - 1] + ColumnBlendingCenter[I] - BS2 + 1, MaskOneLine)</l>
+<l>        zoom_image_size (ImageM1, ImageM, MosaicWidthExt, MosaicHeight, 'nearest_neighbor')</l>
+<l>        concat_obj (BlendingMasks, ImageM, BlendingMasks)</l>
+<l>    endfor</l>
+<c>    * - the last blending mask</c>
+<l>    MaskOneLine := [BSLeft,gen_tuple_const(RightBorder - ColumnBlendingCenter[|ColumnBlendingCenter| - 1] + BS2 - |BSLeft|,1)]</l>
+<l>    gen_image_const (ImageM1, 'real', MosaicWidthExt, 1)</l>
+<l>    set_grayval (ImageM1, gen_tuple_const(|MaskOneLine|,0), [0:|MaskOneLine| - 1] + ColumnBlendingCenter[I] - BS2 + 1, MaskOneLine)</l>
+<l>    zoom_image_size (ImageM1, ImageM, MosaicWidthExt, MosaicHeight, 'nearest_neighbor')</l>
+<l>    concat_obj (BlendingMasks, ImageM, BlendingMasks)</l>
+<l>    if (ColorMosaic)</l>
+<l>        gen_image_const (ImageMosaicR, 'real', MosaicWidthExt, MosaicHeight)</l>
+<l>        gen_image_const (ImageMosaicG, 'real', MosaicWidthExt, MosaicHeight)</l>
+<l>        gen_image_const (ImageMosaicB, 'real', MosaicWidthExt, MosaicHeight)</l>
+<l>        compose3 (ImageMosaicR, ImageMosaicG, ImageMosaicB, ImageMosaic)</l>
+<l>    else</l>
+<l>        gen_image_const (ImageMosaic, 'real', MosaicWidthExt, MosaicHeight)</l>
+<l>    endif</l>
+<l>    gen_image_const (ImageTest, 'real', MosaicWidthExt, MosaicHeight)</l>
+<l>    for I := 1 to NumberUnrolledImages by 1</l>
+<l>        select_obj (UnrolledImagesShifted, Img, I)</l>
+<l>        if (I &lt; NumberUnrolledImages)</l>
+<l>            tile_images_offset (Img, ImgExt, 0, 0, 0, 0, MosaicHeight - 1, MosaicWidth - 1, MosaicWidthExt, MosaicHeightExt)</l>
+<l>        else</l>
+<l>            tile_images_offset (Img, ImgExt, 0, 0, 0, 0, MosaicHeight - 1, MosaicWidthExt - 1, MosaicWidthExt, MosaicHeightExt)</l>
+<l>        endif</l>
+<l>        convert_image_type (ImgExt, ImgReal, 'real')</l>
+<l>        select_obj (BlendingMasks, Mas, I)</l>
+<l>        if (Channels == 3)</l>
+<l>            compose3 (Mas, Mas, Mas, MultiChannelMask)</l>
+<l>            mult_image (ImgReal, MultiChannelMask, ImageForStitching, 1, 0)</l>
+<l>        else</l>
+<l>            mult_image (ImgReal, Mas, ImageForStitching, 1, 0)</l>
+<l>        endif</l>
+<l>        full_domain (ImageForStitching, ImageForStitching)</l>
+<l>        add_image (ImageMosaic, ImageForStitching, ImageMosaic, 1, 0)</l>
+<l>        add_image (ImageTest, Mas, ImageTest, 1, 0)</l>
+<l>    endfor</l>
+<l>    tile_images_offset (ImageMosaic, FinalMosaic, 0, 0, 0, 0, MosaicHeight - 1, RightBorder, RightBorder + 1, MosaicHeight)</l>
+<l>*     crop_rectangle1 (ImageMosaic, FinalMosaic, 0, 0, MosaicHeight - 1, RightBorder)</l>
+<c>    * </c>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="stitch_images">
+<parameters>
+<parameter id="BlendingSeam"/>
+<parameter id="CameraSetupModelZeroDistInCylinderOrigin"/>
+<parameter id="ColorMosaic"/>
+<parameter id="CylinderPointsX"/>
+<parameter id="CylinderPointsY"/>
+<parameter id="CylinderPointsZ"/>
+<parameter id="CylinderRadius"/>
+<parameter id="FinalMosaic"/>
+<parameter id="FineAdjustmentMatchingWidth"/>
+<parameter id="FineAdjustmentMaxShift"/>
+<parameter id="HighImageQuality"/>
+<parameter id="ImagesGrayRectified"/>
+<parameter id="ImagesRectified"/>
+<parameter id="LabelMaxCol"/>
+<parameter id="LabelMinCol"/>
+<parameter id="MosaicHeight"/>
+<parameter id="MosaicWidth"/>
+<parameter id="NumCameras"/>
+<parameter id="NumPointsPerSlice"/>
+<parameter id="NumSlices"/>
+<parameter id="PerformFineAdjustment"/>
+<parameter id="Regions"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_source_cameras_for_mosaic_parts">
+<interface>
+<oo>
+<par name="Regions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CameraSetupModelZeroDistInCylinderOrigin" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+<par name="CylinderPointsX" base_type="ctrl" dimension="0"/>
+<par name="CylinderPointsY" base_type="ctrl" dimension="0"/>
+<par name="CylinderPointsZ" base_type="ctrl" dimension="0"/>
+<par name="NumPointsPerSlice" base_type="ctrl" dimension="0"/>
+<par name="MinZI" base_type="ctrl" dimension="0"/>
+<par name="MosaicWidth" base_type="ctrl" dimension="0"/>
+<par name="MosaicHeight" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* - First, determine for each point of the central slice from which camera it is seen best</c>
+<l>Slice0X := CylinderPointsX[-MinZI * NumPointsPerSlice:-MinZI * NumPointsPerSlice + NumPointsPerSlice - 1]</l>
+<l>Slice0Y := CylinderPointsY[-MinZI * NumPointsPerSlice:-MinZI * NumPointsPerSlice + NumPointsPerSlice - 1]</l>
+<l>Slice0Z := CylinderPointsZ[-MinZI * NumPointsPerSlice:-MinZI * NumPointsPerSlice + NumPointsPerSlice - 1]</l>
+<l>CamAngle := gen_tuple_const(|Slice0X|,-1)</l>
+<l>BestFromCamIdx0 := gen_tuple_const(|Slice0X|,-1)</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDistInCylinderOrigin, Cam, 'pose', CamPose)</l>
+<l>    Vx := CamPose[0] - Slice0X</l>
+<l>    Vy := CamPose[1] - Slice0Y</l>
+<l>    Vz := CamPose[2] - Slice0Z</l>
+<l>    Scale := 1.0 / sqrt(Vx * Vx + Vy * Vy + Vz * Vz)</l>
+<l>    Vx := Vx * Scale</l>
+<l>    Vy := Vy * Scale</l>
+<l>    Vz := Vz * Scale</l>
+<c>    * </c>
+<l>    Angle := Slice0X * Vx + Slice0Y * Vy + Slice0Z * Vz</l>
+<c>    * </c>
+<l>    Indices := find(Angle [&gt;] CamAngle,1)</l>
+<l>    if (Indices != -1)</l>
+<l>        BestFromCamIdx0[Indices] := gen_tuple_const(|Indices|,Cam)</l>
+<l>        CamAngle[Indices] := Angle[Indices]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* - Then, determine the regions in the mosaic image that will be determined from</c>
+<c>* a particular camera image</c>
+<l>gen_image_const (ImageLabel1, 'byte', MosaicWidth, 1)</l>
+<l>set_grayval (ImageLabel1, gen_tuple_const(MosaicWidth,0), [0:MosaicWidth - 1], BestFromCamIdx0)</l>
+<l>zoom_image_size (ImageLabel1, ImageLabel, MosaicWidth, MosaicHeight, 'nearest_neighbor')</l>
+<l>label_to_region (ImageLabel, Regions)</l>
+<l>return ()</l>
+</body>
+<docu id="determine_source_cameras_for_mosaic_parts">
+<parameters>
+<parameter id="CameraSetupModelZeroDistInCylinderOrigin"/>
+<parameter id="CylinderPointsX"/>
+<parameter id="CylinderPointsY"/>
+<parameter id="CylinderPointsZ"/>
+<parameter id="MinZI"/>
+<parameter id="MosaicHeight"/>
+<parameter id="MosaicWidth"/>
+<parameter id="NumCameras"/>
+<parameter id="NumPointsPerSlice"/>
+<parameter id="Regions"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="eliminate_radial_distortions">
+<interface>
+<io>
+<par name="Images" base_type="iconic" dimension="0"/>
+<par name="RectificationMaps" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImagesRectified" base_type="iconic" dimension="0"/>
+<par name="ImagesGrayRectified" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_empty_obj (ImagesRectified)</l>
+<l>gen_empty_obj (ImagesGrayRectified)</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    select_obj (Images, Image, Cam + 1)</l>
+<l>    select_obj (RectificationMaps, Map, Cam + 1)</l>
+<l>    map_image (Image, Map, ImageRectified)</l>
+<l>    concat_obj (ImagesRectified, ImageRectified, ImagesRectified)</l>
+<l>    count_channels (ImageRectified, Channels)</l>
+<l>    if (Channels == 3)</l>
+<l>        rgb1_to_gray (ImageRectified, GrayImage)</l>
+<l>        concat_obj (ImagesGrayRectified, GrayImage, ImagesGrayRectified)</l>
+<l>    else</l>
+<l>        concat_obj (ImagesGrayRectified, ImageRectified, ImagesGrayRectified)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="eliminate_radial_distortions">
+<parameters>
+<parameter id="Images"/>
+<parameter id="ImagesGrayRectified"/>
+<parameter id="ImagesRectified"/>
+<parameter id="NumCameras"/>
+<parameter id="RectificationMaps"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="point_to_line_perpendicular_foot">
+<interface>
+<ic>
+<par name="P" base_type="ctrl" dimension="0"/>
+<par name="La" base_type="ctrl" dimension="0"/>
+<par name="Lb" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Foot" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>T0 := sum((P - La) * Lb) / sum(Lb * Lb)</l>
+<l>Foot := La + T0 * Lb</l>
+<l>return ()</l>
+</body>
+<docu id="point_to_line_perpendicular_foot">
+<parameters>
+<parameter id="Foot"/>
+<parameter id="La"/>
+<parameter id="Lb"/>
+<parameter id="P"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_required_cylinder_model_extent">
+<interface>
+<ic>
+<par name="BorderLeft" base_type="ctrl" dimension="0"/>
+<par name="BorderRight" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="CameraSetupModelZeroDist" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+<par name="HomMat3DCylinderApprox" base_type="ctrl" dimension="0"/>
+<par name="PixelSize" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MinZ" base_type="ctrl" dimension="0"/>
+<par name="MaxZ" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>MinZ := 999</l>
+<l>MaxZ := -999</l>
+<l>gen_contour_polygon_xld (ContourROI, [0,0,Height - 1,Height - 1,0], [BorderLeft,Width - BorderRight - 1,Width - BorderRight - 1,BorderLeft,BorderLeft])</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDist, Cam, 'params', CamParam)</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDist, Cam, 'pose', CamPose)</l>
+<c>    * Project the cylinder axis into the image</c>
+<l>    pose_to_hom_mat3d (CamPose, HomMat3D)</l>
+<l>    hom_mat3d_compose (HomMat3D, HomMat3DCylinderApprox, HomMat3DCompose)</l>
+<l>    affine_trans_point_3d (HomMat3DCompose, [0,0], [0,0], [-1,1], Qx, Qy, Qz)</l>
+<l>    project_3d_point (Qx, Qy, Qz, CamParam, AxisRow, AxisColumn)</l>
+<l>    intersection_line_contour_xld (ContourROI, AxisRow[0], AxisColumn[0], AxisRow[1], AxisColumn[1], IntersectionRow, IntersectionColumn, IsOverlapping)</l>
+<l>    get_line_of_sight (IntersectionRow, IntersectionColumn, CamParam, PxC, PyC, PzC, QxC, QyC, QzC)</l>
+<l>    hom_mat3d_invert (HomMat3DCompose, HomMat3DInvert)</l>
+<l>    affine_trans_point_3d (HomMat3DInvert, PxC, PyC, PzC, Px, Py, Pz)</l>
+<l>    affine_trans_point_3d (HomMat3DInvert, QxC, QyC, QzC, Qx, Qy, Qz)</l>
+<l>    skew_lines_perpendicular_foot ([0,0,0], [0,0,1], [Px[0],Py[0],Pz[0]], [Qx[0] - Px[0],Qy[0] - Py[0],Qz[0] - Pz[0]], 1, P1)</l>
+<l>    skew_lines_perpendicular_foot ([0,0,0], [0,0,1], [Px[1],Py[1],Pz[1]], [Qx[1] - Px[1],Qy[1] - Py[1],Qz[1] - Pz[1]], 1, P2)</l>
+<l>    MinZ := min([MinZ,P1[2],P2[2]])</l>
+<l>    MaxZ := max([MaxZ,P1[2],P2[2]])</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="determine_required_cylinder_model_extent">
+<parameters>
+<parameter id="BorderLeft"/>
+<parameter id="BorderRight"/>
+<parameter id="CameraSetupModelZeroDist"/>
+<parameter id="Height"/>
+<parameter id="HomMat3DCylinderApprox"/>
+<parameter id="MaxZ"/>
+<parameter id="MinZ"/>
+<parameter id="NumCameras"/>
+<parameter id="PixelSize"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_min_max_silhouette_distance">
+<interface>
+<ic>
+<par name="CameraSetupModelZeroDist" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+<par name="PoseCylinderApprox" base_type="ctrl" dimension="0"/>
+<par name="CylinderRadius" base_type="ctrl" dimension="0"/>
+<par name="MinZ" base_type="ctrl" dimension="0"/>
+<par name="MaxZ" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MinPairDist" base_type="ctrl" dimension="0"/>
+<par name="MaxPairDist" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>serialize_camera_setup_model (CameraSetupModelZeroDist, SerializedItemHandle)</l>
+<l>deserialize_camera_setup_model (SerializedItemHandle, CameraSetupModelPCA)</l>
+<l>set_camera_setup_param (CameraSetupModelPCA, 'general', 'coord_transf_pose', PoseCylinderApprox)</l>
+<l>MaxShift := 0</l>
+<l>MinDist := []</l>
+<l>MaxDist := []</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    get_camera_setup_param (CameraSetupModelPCA, Cam, 'params', CamParam)</l>
+<l>    get_camera_setup_param (CameraSetupModelPCA, Cam, 'pose', CamPose)</l>
+<l>    pose_to_hom_mat3d (CamPose, HomMat3D)</l>
+<l>    hom_mat3d_invert (HomMat3D, HomMat3DInvert)</l>
+<l>    S := 0.5 * (CamParam[|CamParam| - 5] + CamParam[|CamParam| - 6])</l>
+<c>    * </c>
+<c>    * Determine the distance of the cylinder axis from the camera and</c>
+<c>    * determine the maximum shift of the cylinder such that it is still</c>
+<c>    * completely visible in the image</c>
+<c>    * - at position MinZ</c>
+<l>    PMinCam := CamPose[0:2] - [0,0,MinZ]</l>
+<l>    DistPMinCam := sqrt(sum(PMinCam * PMinCam))</l>
+<l>    affine_trans_point_3d (HomMat3DInvert, 0, 0, MinZ, Qx, Qy, Qz)</l>
+<l>    project_3d_point (Qx, Qy, Qz, CamParam, Row, Column)</l>
+<l>    CylRadPx := CamParam[0] / DistPMinCam * CylinderRadius / S</l>
+<l>    Shift1 := (Row - CylRadPx) * S * DistPMinCam / CamParam[0]</l>
+<l>    Shift2 := (Height - (Row + CylRadPx)) * S * DistPMinCam / CamParam[0]</l>
+<l>    MaxShift := max([MaxShift,Shift1,Shift2])</l>
+<c>    * </c>
+<c>    * - at position MaxZ</c>
+<l>    PMaxCam := CamPose[0:2] - [0,0,MaxZ]</l>
+<l>    DistPMaxCam := sqrt(sum(PMaxCam * PMaxCam))</l>
+<l>    affine_trans_point_3d (HomMat3DInvert, 0, 0, MaxZ, Qx, Qy, Qz)</l>
+<l>    project_3d_point (Qx, Qy, Qz, CamParam, Row, Column)</l>
+<l>    CylRadPx := CamParam[0] / DistPMaxCam * CylinderRadius / S</l>
+<l>    Shift1 := (Row - CylRadPx) * S * DistPMaxCam / CamParam[0]</l>
+<l>    Shift2 := (Height - (Row + CylRadPx)) * S * DistPMaxCam / CamParam[0]</l>
+<l>    MaxShift := max([MaxShift,Shift1,Shift2])</l>
+<c>    * </c>
+<c>    * - at a position where the camera looks "perpendicular" to the cylinder</c>
+<l>    point_to_line_perpendicular_foot (CamPose[0:2], [0,0,0], [0,0,1], Foot)</l>
+<l>    PFootCam := CamPose[0:2] - Foot</l>
+<l>    DistPFootCam := sqrt(sum(PFootCam * PFootCam))</l>
+<l>    affine_trans_point_3d (HomMat3DInvert, 0, 0, Foot[2], Qx, Qy, Qz)</l>
+<l>    project_3d_point (Qx, Qy, Qz, CamParam, Row, Column)</l>
+<l>    CylRadPx := CamParam[0] / DistPFootCam * CylinderRadius / S</l>
+<l>    Shift1 := (Row - CylRadPx) * S * DistPFootCam / CamParam[0]</l>
+<l>    Shift2 := (Height - (Row + CylRadPx)) * S * DistPFootCam / CamParam[0]</l>
+<l>    MaxShift := max([MaxShift,Shift1,Shift2])</l>
+<c>    * </c>
+<c>    * </c>
+<l>    MinDist[Cam] := min([DistPMinCam,DistPMinCam,DistPFootCam])</l>
+<l>    MaxDist[Cam] := max([DistPMinCam,DistPMinCam,DistPFootCam])</l>
+<l>endfor</l>
+<l>MaxShift := 1.05 * MaxShift</l>
+<c>* </c>
+<c>* Approximately determine the minimum and maximum distance between the</c>
+<c>* opposite silhouettes of the cylinder in the images assuming that this</c>
+<c>* distance is measured perpendicular to the cylinder axis</c>
+<l>MinPairDist := []</l>
+<l>MaxPairDist := []</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    MinPairDist[Cam] := 2.0 * CamParam[0] / (MaxDist[Cam] + MaxShift) * CylinderRadius / S</l>
+<l>    MaxPairDist[Cam] := 2.0 * CamParam[0] / (MinDist[Cam] - MaxShift) * CylinderRadius / S</l>
+<l>endfor</l>
+<c>* Free allocated memory</c>
+<l>clear_camera_setup_model (CameraSetupModelPCA)</l>
+<l>clear_serialized_item (SerializedItemHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="determine_min_max_silhouette_distance">
+<parameters>
+<parameter id="CameraSetupModelZeroDist"/>
+<parameter id="CylinderRadius"/>
+<parameter id="Height"/>
+<parameter id="MaxPairDist"/>
+<parameter id="MaxZ"/>
+<parameter id="MinPairDist"/>
+<parameter id="MinZ"/>
+<parameter id="NumCameras"/>
+<parameter id="PoseCylinderApprox"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="prepare_distortion_removal">
+<interface>
+<oo>
+<par name="RectificationMaps" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CameraSetupModel" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="CameraSetupModelZeroDist" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>serialize_camera_setup_model (CameraSetupModel, SerializedItemHandle)</l>
+<l>deserialize_camera_setup_model (SerializedItemHandle, CameraSetupModelZeroDist)</l>
+<l>clear_serialized_item (SerializedItemHandle)</l>
+<c>* Create maps to remove the radial distortions from the images efficently</c>
+<l>get_camera_setup_param (CameraSetupModelZeroDist, 'general', 'num_cameras', NumCameras)</l>
+<l>gen_empty_obj (RectificationMaps)</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDist, Cam, 'params', CamParIn)</l>
+<c>    * Calculate camera parameters for the distortion-free images</c>
+<l>    get_camera_setup_param (CameraSetupModelZeroDist, Cam, 'type', CameraType)</l>
+<l>    tuple_regexp_test (CameraType, '_polynomial$', IsPolynomial)</l>
+<l>    if (IsPolynomial)</l>
+<l>        change_radial_distortion_cam_par ('fixed', CamParIn, [0.0,0.0,0.0,0.0,0.0], CamParOut)</l>
+<l>    else</l>
+<l>        change_radial_distortion_cam_par ('fixed', CamParIn, 0.0, CamParOut)</l>
+<l>    endif</l>
+<c>    * Set these new parameter in the setup</c>
+<l>    set_camera_setup_param (CameraSetupModelZeroDist, Cam, 'params', CamParOut)</l>
+<c>    * Prepare the rectification maps</c>
+<l>    gen_radial_distortion_map (Map, CamParIn, CamParOut, 'bilinear')</l>
+<l>    concat_obj (RectificationMaps, Map, RectificationMaps)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="prepare_distortion_removal">
+<parameters>
+<parameter id="CameraSetupModel"/>
+<parameter id="CameraSetupModelZeroDist"/>
+<parameter id="NumCameras"/>
+<parameter id="RectificationMaps"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="fit_plane">
+<interface>
+<ic>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="NX" base_type="ctrl" dimension="0"/>
+<par name="NY" base_type="ctrl" dimension="0"/>
+<par name="NZ" base_type="ctrl" dimension="0"/>
+<par name="C" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* number of points</c>
+<l>Num := |X|</l>
+<c>* </c>
+<c>* center of gravity of all points</c>
+<l>XM := mean(X)</l>
+<l>YM := mean(Y)</l>
+<l>ZM := mean(Z)</l>
+<c>* </c>
+<c>* symmetric matrix M(A)</c>
+<l>DX := X - XM</l>
+<l>DY := Y - YM</l>
+<l>DZ := Z - ZM</l>
+<l>MA11 := sum(DX * DX)</l>
+<l>MA22 := sum(DY * DY)</l>
+<l>MA33 := sum(DZ * DZ)</l>
+<l>MA12 := sum(DX * DY)</l>
+<l>MA13 := sum(DX * DZ)</l>
+<l>MA23 := sum(DY * DZ)</l>
+<l>create_matrix (3, 3, [MA11,MA12,MA13,MA12,MA22,MA23,MA13,MA23,MA33], MatrixID)</l>
+<c>* </c>
+<c>* the normal vector is the eigenvector that belongs to the smallest</c>
+<c>* eigenvalue auf the matrix MatrixID</c>
+<l>eigenvalues_symmetric_matrix (MatrixID, 'true', EigenvaluesID, EigenvectorsID)</l>
+<l>get_value_matrix (EigenvectorsID, 0, 0, NX)</l>
+<l>get_value_matrix (EigenvectorsID, 1, 0, NY)</l>
+<l>get_value_matrix (EigenvectorsID, 2, 0, NZ)</l>
+<l>clear_matrix (MatrixID)</l>
+<l>clear_matrix (EigenvaluesID)</l>
+<l>clear_matrix (EigenvectorsID)</l>
+<c>* </c>
+<c>* the constant of the normal-constant form of the plane (n*P = c)</c>
+<l>C := NX * XM + NY * YM + NZ * ZM</l>
+<l>if (C &lt; 0.0)</l>
+<l>    NX := -NX</l>
+<l>    NY := -NY</l>
+<l>    NZ := -NZ</l>
+<l>    C := -C</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="fit_plane">
+<chapters lang="en_US">
+<item>Math</item>
+<item>Fitting</item>
+</chapters>
+<short lang="en_US">Fit a plane to the given 3D points</short>
+<parameters>
+<parameter id="C"/>
+<parameter id="NX"/>
+<parameter id="NY"/>
+<parameter id="NZ"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="skew_lines_perpendicular_foot">
+<interface>
+<ic>
+<par name="L1a" base_type="ctrl" dimension="0"/>
+<par name="L1b" base_type="ctrl" dimension="0"/>
+<par name="L2a" base_type="ctrl" dimension="0"/>
+<par name="L2b" base_type="ctrl" dimension="0"/>
+<par name="FootOnLine" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="P" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>switch (FootOnLine)</l>
+<l>case 1:</l>
+<l>    a1 := L1a</l>
+<l>    b1 := L1b</l>
+<l>    a2 := L2a</l>
+<l>    b2 := L2b</l>
+<l>    break</l>
+<l>case 2:</l>
+<l>    a1 := L2a</l>
+<l>    b1 := L2b</l>
+<l>    a2 := L1a</l>
+<l>    b2 := L1b</l>
+<l>    break</l>
+<l>default:</l>
+<l>    throw ('Wrong value of FootOnLine: ' + FootOnLine)</l>
+<l>    break</l>
+<l>endswitch</l>
+<c>* </c>
+<l>da := a1 - a2</l>
+<l>cross_product (b1, b2, b1cb2)</l>
+<l>cross_product (b1cb2, b2, b1cb2cb2)</l>
+<l>nom := sum(da * b1cb2cb2)</l>
+<l>den := sum(b1 * b1cb2cb2)</l>
+<l>if (fabs(den) &lt; 1e-20)</l>
+<c>    * Lines are parallel</c>
+<l>    P := a1</l>
+<l>else</l>
+<c>    * Foot point exists</c>
+<l>    t := -nom / den</l>
+<l>    P := a1 + t * b1</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="skew_lines_perpendicular_foot">
+<abstract lang="en_US">Calculate the foot point of the perpendicular from one skew line to another skew line.
+
+The two lines are given in the form x = a + t*b</abstract>
+<chapters lang="en_US">
+<item>Math</item>
+<item>Geometry</item>
+</chapters>
+<short lang="en_US">Calculate the foot point of the perpendicular from one skew line to another skew line.</short>
+<parameters>
+<parameter id="FootOnLine"/>
+<parameter id="L1a"/>
+<parameter id="L1b"/>
+<parameter id="L2a"/>
+<parameter id="L2b"/>
+<parameter id="P"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="distance_skew_lines">
+<interface>
+<ic>
+<par name="A1x" base_type="ctrl" dimension="0"/>
+<par name="A1y" base_type="ctrl" dimension="0"/>
+<par name="A1z" base_type="ctrl" dimension="0"/>
+<par name="B1x" base_type="ctrl" dimension="0"/>
+<par name="B1y" base_type="ctrl" dimension="0"/>
+<par name="B1z" base_type="ctrl" dimension="0"/>
+<par name="A2x" base_type="ctrl" dimension="0"/>
+<par name="A2y" base_type="ctrl" dimension="0"/>
+<par name="A2z" base_type="ctrl" dimension="0"/>
+<par name="B2x" base_type="ctrl" dimension="0"/>
+<par name="B2y" base_type="ctrl" dimension="0"/>
+<par name="B2z" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Dist" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>DAx := A1x - A2x</l>
+<l>DAy := A1y - A2y</l>
+<l>DAz := A1z - A2z</l>
+<l>BCBx := B1y * B2z - B1z * B2y</l>
+<l>BCBy := B1z * B2x - B1x * B2z</l>
+<l>BCBz := B1x * B2y - B1y * B2x</l>
+<l>Dist := fabs(DAx * BCBx + DAy * BCBy + DAz * BCBz) / sqrt(BCBx * BCBx + BCBy * BCBy + BCBz * BCBz)</l>
+<l>return ()</l>
+</body>
+<docu id="distance_skew_lines">
+<parameters>
+<parameter id="A1x"/>
+<parameter id="A1y"/>
+<parameter id="A1z"/>
+<parameter id="A2x"/>
+<parameter id="A2y"/>
+<parameter id="A2z"/>
+<parameter id="B1x"/>
+<parameter id="B1y"/>
+<parameter id="B1z"/>
+<parameter id="B2x"/>
+<parameter id="B2y"/>
+<parameter id="B2z"/>
+<parameter id="Dist"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="determine_approximate_cylinder_pose_in_center_of_cameras">
+<interface>
+<ic>
+<par name="CameraSetupModelZeroDist" base_type="ctrl" dimension="0"/>
+<par name="NumCameras" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PoseCylinderApprox" base_type="ctrl" dimension="0"/>
+<par name="HomMat3DCylinderApprox" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>XCam := []</l>
+<l>YCam := []</l>
+<l>ZCam := []</l>
+<l>for Cam := 0 to NumCameras - 1 by 1</l>
+<l>    get_camera_setup_param (CameraSetupModelZeroDist, Cam, 'pose', CamPose)</l>
+<l>    XCam[Cam] := CamPose[0]</l>
+<l>    YCam[Cam] := CamPose[1]</l>
+<l>    ZCam[Cam] := CamPose[2]</l>
+<l>endfor</l>
+<l>CylinderPointApprox := [mean(XCam),mean(YCam),mean(ZCam)]</l>
+<l>LenI := 1.0 / sqrt(sum(CylinderPointApprox * CylinderPointApprox))</l>
+<l>CylinderXTmp := CylinderPointApprox * LenI</l>
+<l>fit_plane (XCam, YCam, ZCam, NX, NY, NZ, C)</l>
+<l>CylinderZTmp := [NX,NY,NZ]</l>
+<l>cross_product (CylinderZTmp, CylinderXTmp, CylinderYTmp)</l>
+<l>HomMat3DCylinderApprox := [CylinderXTmp[0],CylinderYTmp[0],CylinderZTmp[0],CylinderPointApprox[0],CylinderXTmp[1],CylinderYTmp[1],CylinderZTmp[1],CylinderPointApprox[1],CylinderXTmp[2],CylinderYTmp[2],CylinderZTmp[2],CylinderPointApprox[2]]</l>
+<l>hom_mat3d_to_pose (HomMat3DCylinderApprox, PoseCylinderApprox)</l>
+<l>return ()</l>
+</body>
+<docu id="determine_approximate_cylinder_pose_in_center_of_cameras">
+<parameters>
+<parameter id="CameraSetupModelZeroDist"/>
+<parameter id="HomMat3DCylinderApprox"/>
+<parameter id="NumCameras"/>
+<parameter id="PoseCylinderApprox"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="remove_leading_zeros">
+<interface>
+<ic>
+<par name="InputStringTuple" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="OutputStringTuple" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (InputStringTuple[0] == '0')</l>
+<l>    remove_leading_zeros (InputStringTuple[1:|InputStringTuple| - 1], OutputStringTuple)</l>
+<l>else</l>
+<l>    OutputStringTuple := number(sum(InputStringTuple))</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="remove_leading_zeros">
+<parameters>
+<parameter id="InputStringTuple">
+<default_type>string</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="OutputStringTuple">
+<default_type>integer</default_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

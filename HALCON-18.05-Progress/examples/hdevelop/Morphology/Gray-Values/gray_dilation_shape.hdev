@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use gray_dilation_shape.  It performs</c>
+<c>* a gray value dilation with different mask sizes, using as well integer as float</c>
+<c>* values for the mask size. Then the complementary gray value erosion is shown,</c>
+<c>* and how the concatenation of both operations performs a gray value closing.</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* </c>
+<l>Step := 0.1</l>
+<l>Start := 1</l>
+<l>End := 13</l>
+<l>Shape := ['rhombus','octagon','rectangle']</l>
+<c>* </c>
+<c>* The input image is dilated with increasingly growing mask sizes.</c>
+<c>* The gaps between the odd integer values are filled with float values. Subsequently,</c>
+<c>* the result of the last dilation is eroded in a similar manner, thus finally performing</c>
+<c>* a gray scale closing.</c>
+<l>for CurShape := 0 to |Shape| - 1 by 1</l>
+<l>    for Int := Start to End by 2</l>
+<l>        gray_dilation_shape (Image, ImageMax, Int, Int, Shape[CurShape])</l>
+<l>        for Float := Int + Step to Int + 2 - Step by Step</l>
+<l>            gray_dilation_shape (Image, ImageMax, Float, Float, Shape[CurShape])</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<c>    * </c>
+<l>    for Int := Start to End by 2</l>
+<l>        gray_erosion_shape (ImageMax, ImageMin, Int, Int, Shape[CurShape])</l>
+<l>        for Float := Int + Step to Int + 2 - Step by Step</l>
+<l>            gray_erosion_shape (ImageMax, ImageMin, Float, Float, Shape[CurShape])</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<c>    * </c>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<c>* For the shape 'rectangle' (and ONLY for 'rectangle') the mask may have</c>
+<c>* different width and height.</c>
+<l>for Float := Start to End by Step</l>
+<l>    gray_dilation_shape (Image, ImageMax, 1.0, Float, 'rectangle')</l>
+<l>endfor</l>
+<c>* </c>
+<l>for Float := Start to End by Step</l>
+<l>    gray_erosion_shape (ImageMax, ImageMin, 1.0, Float, 'rectangle')</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* For even mask sizes the results are different depending on whether the</c>
+<c>* mask size was passed as an integer or a float!</c>
+<l>gray_dilation_shape (Image, ImageMaxInteger, 12, 12, 'rhombus')</l>
+<l>gray_dilation_shape (Image, ImageMaxFloat, 12.0, 12.0, 'rhombus')</l>
+<l>sub_image (ImageMaxInteger, ImageMaxFloat, ImageSub, 1, 128)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

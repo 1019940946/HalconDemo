@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'ic')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_rectangle1 (Region, 360, 198, 369, 226)</l>
+<l>gen_empty_region (EmptyRegion)</l>
+<l>learn_ndim_norm (Region, EmptyRegion, Image, 'euclid', 10, 0.01, Radius, Center, Quality)</l>
+<l>dev_set_color ('blue')</l>
+<l>class_ndim_norm (Image, Regions, 'euclid', 'multiple', Radius, Center)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Regions)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

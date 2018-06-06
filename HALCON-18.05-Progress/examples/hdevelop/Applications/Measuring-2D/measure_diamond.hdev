@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to detect the edges of a diamond</c>
+<c>* with subpixel accuracy and how to determine the position</c>
+<c>* of the diamond's vertex.</c>
+<c>* First, we segment the diamond using a threshold image and</c>
+<c>* extract a thin region around the edges of the diamond</c>
+<c>* by using morphology operations. Then, the edges are</c>
+<c>* extracted with subpixel accuracy and fitted to straight</c>
+<c>* lines. The position of the culet of the diamond is</c>
+<c>* subsequently determined by intersecting the fitted edges.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'diamond/diamond_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<l>NumImages := 5</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'diamond/diamond_' + Index$'.2')</l>
+<c>    * </c>
+<c>    * Segment diamond region</c>
+<l>    threshold (Image, Region, 128, 255)</l>
+<l>    clip_region_rel (Region, RegionClipped, 0, 290, 0, 0)</l>
+<l>    shape_trans (RegionClipped, RegionTrans, 'convex')</l>
+<l>    dilation_rectangle1 (RegionTrans, RegionDilation, 5, 1)</l>
+<l>    erosion_rectangle1 (RegionTrans, RegionErosion, 5, 1)</l>
+<l>    difference (RegionDilation, RegionErosion, RegionDifference)</l>
+<l>    reduce_domain (Image, RegionDifference, ImageReduced)</l>
+<c>    * </c>
+<c>    * Subpixel accurate fitting of the edges</c>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 3, 5, 5)</l>
+<l>    union_collinear_contours_xld (Edges, UnionContours, 100, 10, 4, rad(10), 'attr_keep')</l>
+<l>    select_contours_xld (UnionContours, SelectedContours, 'contour_length', 50, 2000, 0, 0)</l>
+<l>    fit_line_contour_xld (SelectedContours, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<c>    * </c>
+<c>    * Sort the edge contours and determine their intersection</c>
+<l>    tuple_sort_index (RowBegin, Indices)</l>
+<l>    RowBegin := subset(RowBegin,Indices)</l>
+<l>    RowEnd := subset(RowEnd,Indices)</l>
+<l>    ColBegin := subset(ColBegin,Indices)</l>
+<l>    ColEnd := subset(ColEnd,Indices)</l>
+<l>    Nr := subset(Nr,Indices)</l>
+<l>    Nc := subset(Nc,Indices)</l>
+<l>    Dist := subset(Dist,Indices)</l>
+<l>    gen_contour_polygon_xld (LineEdge1, [Dist[0] / Nr[0],0], [0,Dist[0] / Nc[0]])</l>
+<l>    gen_contour_polygon_xld (LineEdge2, [Dist[1] / Nr[1],Width - 1], [0,(Dist[1] - (Width - 1) * Nr[1]) / Nc[1]])</l>
+<l>    intersection_lines (RowBegin[0], ColBegin[0], RowEnd[0], ColEnd[0], RowBegin[1], ColBegin[1], RowEnd[1], ColEnd[1], RowTip, ColTip, IsOverlapping)</l>
+<l>    gen_cross_contour_xld (Cross, RowTip, ColTip, 20, rad(45))</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (LineEdge1)</l>
+<l>    dev_display (LineEdge2)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Cross)</l>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

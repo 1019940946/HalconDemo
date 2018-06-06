@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a DirectShow compatible capture device</c>
+<c>* (usage of exposure)</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* open first camera device with current video settings:</c>
+<l>open_framegrabber ('DirectShow', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* grab and display one image:</c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* query the range of possible exposure values:</c>
+<l>get_framegrabber_param (AcqHandle, 'exposure_range', ExposureRange)</l>
+<c>* </c>
+<c>* if exposure is supported by the capture device, i.e.</c>
+<l>if (|ExposureRange| &gt; 0)</l>
+<c>    * remember the current exposure value</c>
+<l>    get_framegrabber_param (AcqHandle, 'exposure', CurrentExposure)</l>
+<c>    * </c>
+<c>    * loop over all possible exposure values and grab some images</c>
+<l>    for Exposure := ExposureRange[0] to ExposureRange[1] by ExposureRange[2]</l>
+<l>        set_framegrabber_param (AcqHandle, 'exposure', Exposure)</l>
+<l>        for ImageIndex := 1 to 15 by 1</l>
+<l>            grab_image (Image, AcqHandle)</l>
+<l>            dev_display (Image)</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * if automatic exposure adjustment is supported, i.e.</c>
+<l>    if (|ExposureRange| == 5)</l>
+<l>        set_framegrabber_param (AcqHandle, 'exposure', ExposureRange[4])</l>
+<l>        for ImageIndex := 1 to 15 by 1</l>
+<l>            grab_image (Image, AcqHandle)</l>
+<l>            dev_display (Image)</l>
+<l>        endfor</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * restore the remembered exposure value</c>
+<l>    set_framegrabber_param (AcqHandle, 'exposure', CurrentExposure)</l>
+<l>endif</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

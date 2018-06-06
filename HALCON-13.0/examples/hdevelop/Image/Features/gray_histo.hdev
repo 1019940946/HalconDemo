@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the gray value distribution of two regions of an image</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<c>* Create two rectangles parallel to the coordinate axes</c>
+<l>gen_rectangle1 (Rectangle1, 351, 289, 407, 340)</l>
+<l>dev_set_color ('green')</l>
+<l>gen_rectangle1 (Rectangle2, 78, 178, 144, 244)</l>
+<l>gray_histo (Rectangle1, Image, AbsoluteHisto1, RelativeHisto1)</l>
+<l>gray_histo (Rectangle2, Image, AbsoluteHisto2, RelativeHisto2)</l>
+<l>dev_set_color ('red')</l>
+<c>* Convert a histogram created with gray_histo into a region</c>
+<l>gen_region_histo (Histo1, AbsoluteHisto1, 255, 255, 1)</l>
+<l>dev_set_color ('green')</l>
+<l>gen_region_histo (Histo2, AbsoluteHisto2, 255, 255, 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

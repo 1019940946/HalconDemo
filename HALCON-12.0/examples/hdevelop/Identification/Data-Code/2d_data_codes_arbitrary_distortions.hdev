@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows problematic images with distorted</c>
+<c>* symbols of the type ECC200 where some symbols can not be read.</c>
+<c>* First, the program trys to find and decode the 2d data code</c>
+<c>* symbols. Then, for all candidates for 2d data code symbols that</c>
+<c>* could not be identified or decoded, the status of the candidates</c>
+<c>* and thus the reason why the search and decoding were not</c>
+<c>* succesful are displayed.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Read and display the image</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_distorted_003')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, Width, Height, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>Message := 'This program demonstrates problematic images'</l>
+<l>Message[1] := 'with distorted symbols of the type ECC200'</l>
+<l>Message[2] := 'where some symbols can not be read.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the data code model, i.e., PDF417, QR Code, or Data Matrix ECC200.</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Set the parameters so that intermediate results are stored</c>
+<c>* persistently and the search is done with enhanced recognition.</c>
+<l>set_data_code_2d_param (DataCodeHandle, 'persistence', 1)</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'default_parameters', 'enhanced_recognition')</l>
+<l>NumSymbols := 6</l>
+<l>ImageNames := 'datacode/ecc200/ecc200_distorted_'</l>
+<l>for Index := 3 to 5 by 1</l>
+<l>    read_image (Image, ImageNames + Index$'.3d')</l>
+<l>    if (Index == 3)</l>
+<l>        Message := 'Image ' + (Index - 2) + ':'</l>
+<l>        Message[1] := 'The polarity changes within some of the symbols'</l>
+<l>        Message[2] := 'because of reflections caused by bad lighting'</l>
+<l>        Message[3] := 'conditions. In most cases a change of the appearance'</l>
+<l>        Message[4] := 'of the modules inside a symbol cannot be coped with.'</l>
+<l>    elseif (Index == 4)</l>
+<l>        Message := 'Image ' + (Index - 2) + ':'</l>
+<l>        Message[1] := 'The paper is crumpled, so that distortions occur to'</l>
+<l>        Message[2] := 'the symbols. Because the distortions are arbitrary and'</l>
+<l>        Message[3] := 'irregular, no preprocessing step can be proposed.'</l>
+<l>    elseif (Index == 5)</l>
+<l>        Message := 'Image ' + (Index - 2) + ':'</l>
+<l>        Message[1] := 'The reflections are so strong that for some parts of'</l>
+<l>        Message[2] := 'the symbols the contrast approaches 0. Thus, the'</l>
+<l>        Message[3] := 'symbols cannot be reconstructed by preprocessing.'</l>
+<l>    endif</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Find and decode the symbols. To enable the search for more</c>
+<c>    * than one symbol in the image, the parameter GenParamNames</c>
+<c>    * is set to 'stop_after_result_num' together with the number</c>
+<c>    * of requested symbols NumSymbols. For every successfully decoded</c>
+<c>    * symbol the surrounding XLD contour is returned.</c>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, 'stop_after_result_num', NumSymbols, ResultHandles, DecodedDataStrings)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    disp_message (WindowHandle, 'Succesfully decoded symbols', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Query and display general results</c>
+<l>    GenResultNames := ['result_num','candidate_num','undecoded_num','aborted_num','min_search_level','max_search_level','pass_num']</l>
+<l>    GenResultValues := []</l>
+<l>    get_data_code_2d_results (DataCodeHandle, 'general', GenResultNames, GenResultValues)</l>
+<l>    GenResult := GenResultNames + ': ' + GenResultValues</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Initialize variables with number of:</c>
+<l>    ResultNum := GenResultValues[0]</l>
+<l>    UndecodedNum := GenResultValues[2]</l>
+<l>    AbortedNum := GenResultValues[3]</l>
+<c>    * </c>
+<c>    * If there are 2d data code symbols that were detected, but</c>
+<c>    * could not be read</c>
+<l>    if (UndecodedNum &gt; 0)</l>
+<c>        * </c>
+<c>        * For all detected 2D data code symbols of the last call of</c>
+<c>        * 'find_data_code_2d', that could not be decoded, query the</c>
+<c>        * reason why they could not be decoded.</c>
+<l>        get_data_code_2d_results (DataCodeHandle, 'all_undecoded', 'status', UndecodedCandidates)</l>
+<l>        get_data_code_2d_results (DataCodeHandle, 'all_undecoded', 'handle', HandlesUndecoded)</l>
+<c>        * </c>
+<c>        * Query and display the status of each detected 2d data code</c>
+<c>        * symbol together with the XLD contour. Then display</c>
+<c>        * the modules for foreground and background</c>
+<l>        for J := 0 to |HandlesUndecoded| - 1 by 1</l>
+<c>            * </c>
+<c>            * Get status and XLD contour of the detected 2d data code symbols</c>
+<l>            dev_display (Image)</l>
+<l>            get_data_code_2d_results (DataCodeHandle, HandlesUndecoded[J], 'status', StatusValue)</l>
+<l>            disp_message (WindowHandle, 'Undecoded 2d data code symbol: ' + (J + 1) + ' of ' + |HandlesUndecoded|, 'window', 12, 12, 'black', 'true')</l>
+<l>            disp_message (WindowHandle, 'Status:\n' + StatusValue, 'window', 40, -1, 'black', 'true')</l>
+<l>            get_data_code_2d_objects (DataCodeObject, DataCodeHandle, HandlesUndecoded[J], 'candidate_xld')</l>
+<l>            dev_set_color ('cyan')</l>
+<l>            dev_display (DataCodeObject)</l>
+<c>            * </c>
+<c>            * Get the modules classified as foreground and background</c>
+<c>            * and display them.</c>
+<l>            dev_set_line_width (1)</l>
+<l>            dev_set_draw ('margin')</l>
+<l>            dev_set_color ('red')</l>
+<l>            get_data_code_2d_objects (Foreground, DataCodeHandle, HandlesUndecoded[J], 'module_1_rois')</l>
+<l>            dev_display (Foreground)</l>
+<l>            dev_set_color ('yellow')</l>
+<l>            get_data_code_2d_objects (Background, DataCodeHandle, HandlesUndecoded[J], 'module_0_rois')</l>
+<l>            dev_display (Background)</l>
+<l>            dev_set_line_width (3)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endfor</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * If there are candidates for 2d data code symbols that could not</c>
+<c>    * be identified as valid 2d data code symbol</c>
+<l>    if (AbortedNum &gt; 0)</l>
+<c>        * </c>
+<c>        * For all candidates of the last call of 'find_data_code_2d' that</c>
+<c>        * could not be identified as valid 2D data code symbols, query</c>
+<c>        * the reason why the processing was aborted</c>
+<l>        get_data_code_2d_results (DataCodeHandle, 'all_aborted', 'status', AbortedCandidates)</l>
+<l>        get_data_code_2d_results (DataCodeHandle, 'all_aborted', 'handle', HandlesAborted)</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (Image)</l>
+<l>        Message := 'Number of invalid 2d data code candidates: ' + |HandlesAborted|</l>
+<l>        Message[1] := 'The first 3 candidates are...'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        get_data_code_2d_objects (DataCodeObjects, DataCodeHandle, 'all_aborted', 'candidate_xld')</l>
+<c>        * </c>
+<c>        * Query and display the status and XLD contour of the candidates</c>
+<l>        for J := 0 to |HandlesAborted| - 1 by 1</l>
+<c>            * </c>
+<c>            * Get status</c>
+<l>            get_data_code_2d_results (DataCodeHandle, HandlesAborted[J], 'status', StatusValue)</l>
+<l>            get_string_extents (WindowHandle, StatusValue, Ascent, Descent, TWidth, THeight)</l>
+<l>            if (TWidth &gt;= Width)</l>
+<l>                tuple_regexp_replace (StatusValue, [': ','replace_all'], '\n', StatusValue)</l>
+<l>            endif</l>
+<l>            dev_display (Image)</l>
+<l>            if (J &lt; 3)</l>
+<l>                disp_message (WindowHandle, 'Candidate: ' + (J + 1) + ' of ' + |HandlesAborted| + '\nStatus:\n' + StatusValue, 'window', 12, 12, 'black', 'true')</l>
+<l>            endif</l>
+<c>            * </c>
+<c>            * Get and display the XLD contours of the symbol candidates</c>
+<l>            get_data_code_2d_objects (DataCodeObject, DataCodeHandle, HandlesAborted[J], 'candidate_xld')</l>
+<l>            dev_display (DataCodeObject)</l>
+<l>            if (J &lt; 3)</l>
+<l>                disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>                stop ()</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_display (DataCodeObjects)</l>
+<l>        disp_message (WindowHandle, 'All ' + |HandlesAborted| + ' invalid candidates for 2d data code symbols', 'window', 12, 12, 'black', 'true')</l>
+<l>        if (Index &lt; 5)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        endif</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clear the data code model</c>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

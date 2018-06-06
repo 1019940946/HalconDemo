@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'monkey')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>threshold (Image, Region, 128, 255)</l>
+<l>euler_number (Region, EulerNumber)</l>
+<l>dev_set_color ('green')</l>
+<l>get_system ('clip_region', Information)</l>
+<l>set_system ('clip_region', 'true')</l>
+<l>complement (Region, RegionComplement)</l>
+<l>euler_number (RegionComplement, EulerNumberComplement)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>complement (Region, RegionComplementInf)</l>
+<l>euler_number (RegionComplementInf, EulerNumberComplementInf)</l>
+<l>set_system ('clip_region', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

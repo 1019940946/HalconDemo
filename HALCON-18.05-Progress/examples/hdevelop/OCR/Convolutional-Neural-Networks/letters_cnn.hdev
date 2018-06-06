@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use a simple CNN-based OCR classifier.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'letters')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Read classifier.</c>
+<l>read_ocr_class_cnn ('Universal_Rej.occ', OCRHandle)</l>
+<c>* Segment characters.</c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold1)</l>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<c>* Classify.</c>
+<l>do_ocr_multi_class_cnn (Characters, Image, OCRHandle, Class, Confidence)</l>
+<c>* </c>
+<c>* Display results.</c>
+<l>area_center (Characters, Area, Row, Column)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 16, 'sans', 'true', 'false')</l>
+<l>dev_disp_text (Class, 'image', Row - 16, Column + 8, 'orange red', 'box', 'false')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_disp_text ('Classification result with pretrained CNN font', 'window', 12, 12, 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

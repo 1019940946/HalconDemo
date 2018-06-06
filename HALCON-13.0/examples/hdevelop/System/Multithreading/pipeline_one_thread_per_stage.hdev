@@ -1,0 +1,880 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to implement a pipeline pattern, i.e.,</c>
+<c>* a processing pattern that uses parallel tasks, which communicate</c>
+<c>* via message queues.</c>
+<c>* This example builds on the example inspect_bottle_mouth.hdev,</c>
+<c>* which shows the processing steps for the inspection task in detail.</c>
+<c>* </c>
+<c>* A pipeline consists of (multiple) producer/consumer stages, i.e.,</c>
+<c>* pairs of tasks that run in parallel and where the producer sends</c>
+<c>* its results via a message queue to the consumer.</c>
+<c>* </c>
+<c>* Pipeline patterns are especially useful, to process data from a</c>
+<c>* real-time data stream, like images from a camera over a conveyor</c>
+<c>* belt, where the camera is triggered by objects passing by.</c>
+<c>* </c>
+<c>* Set processing parameters.</c>
+<l>MessageQueueMaxMessageNum := 200</l>
+<l>NumAOPThreads := 1</l>
+<l>NumAOPThreadsForImageProcessing := 1</l>
+<c>* </c>
+<c>* Determine a rough estimate of the possible mean acquisition interval.</c>
+<l>estimate_image_processing_time (0.0025, NumAOPThreadsForImageProcessing, EstimatedImageProcessingTime)</l>
+<l>MeanAcquisitionInterval := EstimatedImageProcessingTime</l>
+<c>* </c>
+<l>set_system ('thread_num', NumAOPThreads)</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('store_empty_region', 'true')</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create the message queues that deliver the data from one stage to the next stage</c>
+<c>* and limit their size.</c>
+<c>* - Message queue that delivers the original images from the image acquisition stage</c>
+<c>*   to the image processing stage.</c>
+<l>create_message_queue (QueueOriginalImage)</l>
+<l>set_message_queue_param (QueueOriginalImage, 'max_message_num', MessageQueueMaxMessageNum)</l>
+<c>* - Message queue that delivers the image processing results from the image processing stage</c>
+<c>*   to the result evaluation stage.</c>
+<l>create_message_queue (QueueImageProcessingResult)</l>
+<l>set_message_queue_param (QueueImageProcessingResult, 'max_message_num', MessageQueueMaxMessageNum)</l>
+<c>* </c>
+<c>* Prepare data used to terminate the pipeline.</c>
+<c>* - Create event used to stop the image acquisition.</c>
+<l>create_event ('', '', StopAcq)</l>
+<c>* - Define message key that indicates the termination of the pipeline.</c>
+<l>TerminationKey := 'terminate'</l>
+<c>* </c>
+<c>* Start threads that perform image acquisition, image processing, and result evaluation.</c>
+<l>par_start&lt;AcquisitionThread&gt; : acquire_images (MeanAcquisitionInterval, StopAcq, TerminationKey, QueueOriginalImage)</l>
+<l>par_start&lt;ImageProcessingThread&gt; : process_images (QueueOriginalImage, NumAOPThreadsForImageProcessing, TerminationKey, QueueImageProcessingResult)</l>
+<l>par_start&lt;ResultEvaluationThread&gt; : evaluate_results (QueueImageProcessingResult, TerminationKey, WindowHandle)</l>
+<c>* </c>
+<c>* Let the program run for some time, then stop the acquisition stage and</c>
+<c>* thus terminate the pipeline.</c>
+<l>wait_seconds (max([5,720 * MeanAcquisitionInterval * 1.5]))</l>
+<l>signal_event (StopAcq)</l>
+<c>* </c>
+<c>* Wait until all threads are finished.</c>
+<l>par_join ([AcquisitionThread,ImageProcessingThread,ResultEvaluationThread])</l>
+<c>* </c>
+<c>* Release memory.</c>
+<l>clear_message_queue ([QueueOriginalImage,QueueImageProcessingResult])</l>
+<c>* </c>
+<c>* Reset system parameters</c>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="acquire_images">
+<interface>
+<ic>
+<par name="MeanAcquisitionInterval" base_type="ctrl" dimension="0"/>
+<par name="StopAcq" base_type="ctrl" dimension="0"/>
+<par name="TerminationKey" base_type="ctrl" dimension="0"/>
+<par name="QueueOut" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Procedure implementing/simulating the image acquisition.</c>
+<c>* </c>
+<c>* Pre-read the images to allow very short acquisition intervals even</c>
+<c>* when reading from remote or network drives.</c>
+<l>NumImages := 16</l>
+<l>gen_empty_obj (Images)</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'bottles/bottle_mouth_' + Index$'.02')</l>
+<l>    concat_obj (Images, Image, Images)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Proceed until the stop acquisition event is signaled.</c>
+<l>ImageId := 0</l>
+<l>count_seconds (LastAcquisitionTime)</l>
+<l>repeat</l>
+<c>    * </c>
+<c>    * Simulate a non-trivial acquisition time ("wait just a little bit"),</c>
+<c>    * such that the mean interval between acquired images is approximately</c>
+<c>    * equal to the value given in MeanAcquisitionInterval.</c>
+<l>    wait_to_simulate_non_trivial_acquisition_time (MeanAcquisitionInterval, ImageId, LastAcquisitionTime, LastAcquisitionTime)</l>
+<c>    * </c>
+<c>    * "Acquire" a random image and determine its acquisition time.</c>
+<l>    acquire_random_image (Images, Image)</l>
+<l>    count_seconds (AcquisitionTime)</l>
+<c>    * </c>
+<c>    * Create a message and store the acquired image in it.</c>
+<l>    create_message (MessageImg)</l>
+<l>    set_message_obj (Image, MessageImg, 'image')</l>
+<c>    * </c>
+<c>    * Add an image ID to the message to identify the image.</c>
+<l>    set_message_tuple (MessageImg, 'image_id', ImageId)</l>
+<l>    ImageId := ImageId + 1</l>
+<c>    * </c>
+<c>    * Add the time stamp to the message to allow determination of response time.</c>
+<l>    set_message_tuple (MessageImg, 'acquisition_time', AcquisitionTime)</l>
+<c>    * </c>
+<c>    * Try to enqueue the message.</c>
+<l>    enqueue_message_to_limited_queue (MessageImg, QueueOut, 'throw_exception', 'true')</l>
+<c>    * </c>
+<c>    * Check the stop event status.</c>
+<l>    try_wait_event (StopAcq, Busy)</l>
+<c>    * </c>
+<l>until (not Busy)</l>
+<c>* </c>
+<c>* Send termination message to output queue.</c>
+<l>create_message (TerminationMessage)</l>
+<l>set_message_tuple (TerminationMessage, TerminationKey, 'true')</l>
+<l>enqueue_message_to_limited_queue (TerminationMessage, QueueOut, 'wait', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="acquire_images">
+<parameters>
+<parameter id="MeanAcquisitionInterval">
+<default_type>real</default_type>
+<default_value>0.005</default_value>
+<description lang="en_US">Mean time interval between the acquisition of images.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+<values>
+<item>0.0005</item>
+<item>0.001</item>
+<item>0.005</item>
+<item>0.01</item>
+</values>
+</parameter>
+<parameter id="QueueOut">
+<default_type>integer</default_type>
+<description lang="en_US">Message queue that contains the acquired images.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>message_queue</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="StopAcq">
+<default_type>integer</default_type>
+<description lang="en_US">Event used to stop the image acquisition.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>event</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="TerminationKey">
+<default_type>string</default_type>
+<default_value>'terminate'</default_value>
+<description lang="en_US">Key that indicates messages used to terminate the pipeline.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="process_images">
+<interface>
+<ic>
+<par name="QueueIn" base_type="ctrl" dimension="0"/>
+<par name="NumAOPThreads" base_type="ctrl" dimension="0"/>
+<par name="TerminationKey" base_type="ctrl" dimension="0"/>
+<par name="QueueOut" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Set image processing parameters.</c>
+<l>SmoothX := 501</l>
+<l>PolarResolution := 640</l>
+<l>RingSize := 70</l>
+<c>* </c>
+<c>* Set number of threads to be used for automatic operator parallelization (AOP)</c>
+<l>set_system ('tsp_thread_num', NumAOPThreads)</l>
+<c>* </c>
+<c>* Processing loop.</c>
+<l>while (1)</l>
+<c>    * Get next message.</c>
+<l>    dequeue_message (QueueIn, [], [], MessageHandle)</l>
+<c>    * </c>
+<c>    * Check if the pipeline must be terminated.</c>
+<l>    get_message_param (MessageHandle, 'key_exists', TerminationKey, Terminate)</l>
+<l>    if (Terminate)</l>
+<c>        * Send termination message to output queue</c>
+<l>        enqueue_message_to_limited_queue (MessageHandle, QueueOut, 'wait', 'true')</l>
+<l>        break</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Get the image from the message.</c>
+<l>    get_message_obj (Image, MessageHandle, 'image')</l>
+<c>    * </c>
+<c>    * Add a time stamp to the message to allow determination of image processing time.</c>
+<l>    count_seconds (Seconds)</l>
+<l>    set_message_tuple (MessageHandle, 'start_processing_time', Seconds)</l>
+<c>    * </c>
+<c>    * Process the image (taken from the HDevelop example program inspect_bottle_mouth.hdev)</c>
+<l>    image_processing (Image, ImageReduced, RegionUnion, RingSize, PolarResolution, SmoothX, Number)</l>
+<c>    * </c>
+<c>    * Add a time stamp to the message to allow determination of response time.</c>
+<l>    count_seconds (Seconds)</l>
+<l>    set_message_tuple (MessageHandle, 'finish_processing_time', Seconds)</l>
+<c>    * </c>
+<c>    * Append the processing results to the message.</c>
+<l>    set_message_obj (ImageReduced, MessageHandle, 'image_reduced')</l>
+<l>    set_message_obj (RegionUnion, MessageHandle, 'defect_regions')</l>
+<l>    set_message_tuple (MessageHandle, 'num_defects', Number)</l>
+<c>    * </c>
+<c>    * Send result to next processing stage.</c>
+<l>    enqueue_message_to_limited_queue (MessageHandle, QueueOut, 'wait', 'true')</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="process_images">
+<parameters>
+<parameter id="NumAOPThreads">
+<default_type>integer</default_type>
+<default_value>1</default_value>
+<description lang="en_US">Number of AOP threads to be used for the image processing.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="QueueIn">
+<default_type>integer</default_type>
+<description lang="en_US">Message queue that contains the images to be processes.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>message_queue</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="QueueOut">
+<default_type>integer</default_type>
+<description lang="en_US">Message queue that contains the image processing results.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>message_queue</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="TerminationKey">
+<default_type>string</default_type>
+<default_value>'terminate'</default_value>
+<description lang="en_US">Key that indicates messages used to terminate the pipeline.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="enqueue_message_to_limited_queue">
+<interface>
+<ic>
+<par name="Message" base_type="ctrl" dimension="0"/>
+<par name="MessageQueue" base_type="ctrl" dimension="0"/>
+<par name="Mode" base_type="ctrl" dimension="0"/>
+<par name="ClearMessage" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Check the value of parameter Mode.</c>
+<l>if (Mode != 'wait' and Mode != 'throw_exception')</l>
+<l>    throw ('Wrong value of Mode: ' + Mode)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Try to enqueue the message.</c>
+<l>while (1)</l>
+<l>    try</l>
+<c>        * Try to enqueue the message.</c>
+<l>        enqueue_message (MessageQueue, Message, [], [])</l>
+<l>        break</l>
+<l>    catch (Exception)</l>
+<c>        * Error handling.</c>
+<l>        if (Exception[0] == 2891)</l>
+<c>            * The message queue contains already 'max_message_num' messages.</c>
+<l>            if (Mode == 'wait')</l>
+<c>                * Try to enqueue the message again.</c>
+<l>            elseif (Mode == 'throw_exception')</l>
+<l>                if (ClearMessage == 'true')</l>
+<l>                    clear_message (Message)</l>
+<l>                endif</l>
+<l>                throw (['Message queue overflow','Processing is too slow for current image acquisition interval.','Increase the image acquisition interval.'])</l>
+<l>            endif</l>
+<l>        else</l>
+<c>            * There is some other problem.</c>
+<c>            * Delete this message if required and throw an exception.</c>
+<l>            if (ClearMessage == 'true')</l>
+<l>                clear_message (Message)</l>
+<l>            endif</l>
+<l>            throw (Exception)</l>
+<l>        endif</l>
+<l>    endtry</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Delete the message if required.</c>
+<l>if (ClearMessage == 'true')</l>
+<l>    clear_message (Message)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="enqueue_message_to_limited_queue">
+<chapters lang="en_US">
+<item>System</item>
+<item>Multithreading</item>
+</chapters>
+<short lang="en_US">Enqueue a message into a message queue with limited size.</short>
+<parameters>
+<parameter id="ClearMessage">
+<default_type>string</default_type>
+<default_value>'true'</default_value>
+<description lang="en_US">Define if the message will be deleted.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'true'</item>
+<item>'false'</item>
+</value_list>
+</parameter>
+<parameter id="Message">
+<default_type>integer</default_type>
+<description lang="en_US">The message to be enqueued.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>message</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="MessageQueue">
+<default_type>integer</default_type>
+<description lang="en_US">The message queue into which the message should be enqueued.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>message_queue</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Mode">
+<default_type>string</default_type>
+<default_value>'throw_exception'</default_value>
+<description lang="en_US">Define, what to do if the message queue contains already its maximally allowed number of messages.
+
+'throw_exception': Throw an exception
+'wait': Wait until the message can be added to the message queue</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<values>
+<item>'throw_exception'</item>
+<item>'wait'</item>
+</values>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="evaluate_results">
+<interface>
+<ic>
+<par name="QueueIn" base_type="ctrl" dimension="0"/>
+<par name="TerminationKey" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Set plotting parameters</c>
+<l>PlotWidth := 721</l>
+<l>UpdateInterval := 1.0</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>count_seconds (LastUpdate)</l>
+<l>AcquisitionInterval := gen_tuple_const(PlotWidth,0)</l>
+<l>ImageProcessingTime := gen_tuple_const(PlotWidth,0)</l>
+<l>ResponseTime := gen_tuple_const(PlotWidth,0)</l>
+<l>CycleTime := gen_tuple_const(PlotWidth,0)</l>
+<l>XVal := [0:PlotWidth - 1]</l>
+<l>LastAcquisitionTime := -1</l>
+<l>LastFinishingTime := -1</l>
+<l>FirstLoop := 1</l>
+<l>dev_set_window (WindowHandle)</l>
+<c>* </c>
+<c>* Evaluation loop.</c>
+<l>while (1)</l>
+<c>    * Get next message</c>
+<l>    dequeue_message (QueueIn, [], [], MessageHandle)</l>
+<c>    * </c>
+<c>    * Check if the pipeline must be terminated.</c>
+<l>    get_message_param (MessageHandle, 'key_exists', TerminationKey, Terminate)</l>
+<l>    if (Terminate)</l>
+<l>        clear_message (MessageHandle)</l>
+<l>        break</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Get acquisition, start, and finishing time.</c>
+<l>    get_message_tuple (MessageHandle, 'acquisition_time', AcquisitionTime)</l>
+<l>    get_message_tuple (MessageHandle, 'start_processing_time', StartProcessingTime)</l>
+<l>    get_message_tuple (MessageHandle, 'finish_processing_time', FinishProcessingTime)</l>
+<l>    count_seconds (FinishingTime)</l>
+<c>    * </c>
+<c>    * Calculate response time.</c>
+<l>    RT := (FinishingTime - AcquisitionTime) * 1000.0</l>
+<l>    ResponseTime := remove([ResponseTime,RT],0)</l>
+<c>    * </c>
+<c>    * Calculate image processing time.</c>
+<l>    PT := (FinishProcessingTime - StartProcessingTime) * 1000.0</l>
+<l>    ImageProcessingTime := remove([ImageProcessingTime,PT],0)</l>
+<c>    * </c>
+<c>    * Calculate acquisition interval (= inverse data rate)</c>
+<l>    if (LastAcquisitionTime &gt; -1)</l>
+<l>        AI := (AcquisitionTime - LastAcquisitionTime) * 1000.0</l>
+<l>        AcquisitionInterval := remove([AcquisitionInterval,AI],0)</l>
+<l>    endif</l>
+<l>    LastAcquisitionTime := AcquisitionTime</l>
+<c>    * </c>
+<c>    * Calculate cycle time of the pipeline</c>
+<l>    if (LastFinishingTime &gt; -1)</l>
+<l>        CT := (FinishingTime - LastFinishingTime) * 1000.0</l>
+<l>        CycleTime := remove([CycleTime,CT],0)</l>
+<l>    endif</l>
+<l>    LastFinishingTime := FinishingTime</l>
+<c>    * </c>
+<c>    * Visualize results.</c>
+<l>    count_seconds (Seconds)</l>
+<l>    if (Seconds &gt; LastUpdate + UpdateInterval and not FirstLoop)</l>
+<l>        LastUpdate := Seconds</l>
+<c>        * </c>
+<l>        get_window_param (WindowHandle, 'flush', Flush)</l>
+<l>        set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_set_line_width (2)</l>
+<l>        round_up_to (max([ResponseTime,ImageProcessingTime,AcquisitionInterval]), 25, EndY)</l>
+<l>        plot_tuple (WindowHandle, XVal, [AcquisitionInterval,ImageProcessingTime,ResponseTime], '\nImage', 'Time [ms]', ['orange','magenta','blue'], ['start_y','end_y','axes_color'], [0,int(EndY),'black'])</l>
+<l>        Message[0] := 'Mean acquisition interval:  ' + mean(select_mask(AcquisitionInterval,AcquisitionInterval [!=] 0))$'4.1f' + ' ms'</l>
+<l>        Message[1] := 'Mean image processing time: ' + mean(select_mask(ImageProcessingTime,ImageProcessingTime [!=] 0))$'4.1f' + ' ms'</l>
+<l>        Message[2] := 'Mean response time:         ' + mean(select_mask(ResponseTime,ResponseTime [!=] 0))$'4.1f' + ' ms'</l>
+<l>        Message[3] := 'Mean cycle time:            ' + mean(select_mask(CycleTime,CycleTime [!=] 0))$'4.1f' + ' ms'</l>
+<l>        dev_disp_text (Message, 'window', 5, 250, ['orange','magenta','blue','black'], 'box', 'false')</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>        set_window_param (WindowHandle, 'flush', Flush)</l>
+<l>    endif</l>
+<l>    FirstLoop := 0</l>
+<c>    * </c>
+<c>    * Release memory.</c>
+<l>    clear_message (MessageHandle)</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="evaluate_results">
+<parameters>
+<parameter id="QueueIn">
+<default_type>integer</default_type>
+<description lang="en_US">Message queue that contains the results to be evaluated.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>message_queue</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="TerminationKey">
+<default_type>string</default_type>
+<default_value>'terminate'</default_value>
+<description lang="en_US">Key that indicates messages used to terminate the pipeline.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">Handle of the window used for output.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="image_processing">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageReduced" base_type="iconic" dimension="0"/>
+<par name="RegionUnion" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="RingSize" base_type="ctrl" dimension="0"/>
+<par name="PolarResolution" base_type="ctrl" dimension="0"/>
+<par name="SmoothX" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Number" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>auto_threshold (Image, Regions, 2)</l>
+<l>select_obj (Regions, DarkRegion, 1)</l>
+<l>opening_circle (DarkRegion, RegionOpening, 3.5)</l>
+<l>closing_circle (RegionOpening, RegionClosing, 25.5)</l>
+<l>fill_up (RegionClosing, RegionFillUp)</l>
+<l>boundary (RegionFillUp, RegionBorder, 'outer')</l>
+<l>dilation_circle (RegionBorder, RegionDilation, 3.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<c>* </c>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 0.5, 20, 40)</l>
+<l>segment_contours_xld (Edges, ContoursSplit, 'lines_circles', 5, 4, 2)</l>
+<l>union_cocircular_contours_xld (ContoursSplit, UnionContours, 0.9, 0.5, 0.5, 200, 50, 50, 'true', 1)</l>
+<l>length_xld (UnionContours, Length)</l>
+<l>select_obj (UnionContours, LongestContour, sort_index(Length)[|Length| - 1] + 1)</l>
+<l>fit_circle_contour_xld (LongestContour, 'ahuber', -1, 0, 0, 3, 2, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<c>* </c>
+<l>gen_circle (Circle, Row, Column, Radius)</l>
+<l>dilation_circle (Circle, RegionDilation, 5)</l>
+<l>erosion_circle (Circle, RegionErosion, RingSize - 5)</l>
+<l>difference (RegionDilation, RegionErosion, RegionDifference)</l>
+<l>reduce_domain (Image, RegionDifference, ImageReduced)</l>
+<l>polar_trans_image_ext (ImageReduced, ImagePolar, Row, Column, 0, rad(360), Radius - RingSize, Radius, PolarResolution, RingSize, 'nearest_neighbor')</l>
+<c>* </c>
+<l>scale_image_max (ImagePolar, ImageScaleMax)</l>
+<l>mean_image (ImageScaleMax, ImageMean, SmoothX, 3)</l>
+<l>dyn_threshold (ImageScaleMax, ImageMean, Regions1, 55, 'not_equal')</l>
+<l>connection (Regions1, Connection)</l>
+<l>select_shape (Connection, SelectedRegions, 'height', 'and', 9, 99999)</l>
+<c>* </c>
+<l>closing_rectangle1 (SelectedRegions, RegionClosing1, 10, 20)</l>
+<l>union1 (RegionClosing1, RegionUnion)</l>
+<c>* </c>
+<l>count_obj (RegionUnion, Number)</l>
+<l>return ()</l>
+</body>
+<docu id="image_processing">
+<parameters>
+<parameter id="Image">
+<description lang="en_US">Image to be processed</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="ImageReduced">
+<description lang="en_US">Image with reduced domain.</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Number">
+<default_type>integer</default_type>
+<description lang="en_US">Number of found errors.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="PolarResolution">
+<default_type>integer</default_type>
+<default_value>640</default_value>
+<description lang="en_US">Resolution along the ring to be inspected.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="RegionUnion">
+<description lang="en_US">Resulting region that contains found errors.</description>
+<multivalue>false</multivalue>
+<sem_type>region</sem_type>
+</parameter>
+<parameter id="RingSize">
+<default_type>integer</default_type>
+<default_value>70</default_value>
+<description lang="en_US">Width of the area to be inspected.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="SmoothX">
+<default_type>integer</default_type>
+<default_value>501</default_value>
+<description lang="en_US">Smoothing along the ring.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="round_up_to">
+<interface>
+<ic>
+<par name="Value" base_type="ctrl" dimension="0"/>
+<par name="RoundUpTo" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="RoundedValue" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>RoundedValue := ceil(Value / RoundUpTo) * RoundUpTo</l>
+<l>return ()</l>
+</body>
+<docu id="round_up_to">
+<parameters>
+<parameter id="RoundUpTo"/>
+<parameter id="RoundedValue"/>
+<parameter id="Value"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="estimate_image_processing_time">
+<interface>
+<ic>
+<par name="RoundUpTo" base_type="ctrl" dimension="0"/>
+<par name="NumAOPThreadsForImageProcessing" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="EstimatedImageProcessingTime" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>read_image (Image, 'bottles/bottle_mouth_01')</l>
+<l>get_system ('tsp_thread_num', ThreadNum)</l>
+<l>if (ThreadNum &lt; 1)</l>
+<l>    ThreadNum := 'default'</l>
+<l>endif</l>
+<l>set_system ('tsp_thread_num', NumAOPThreadsForImageProcessing)</l>
+<l>image_processing (Image, ImageReduced, RegionUnion, 70, 640, 501, Number)</l>
+<l>Num := 100</l>
+<l>count_seconds (Seconds1)</l>
+<l>for I := 1 to Num by 1</l>
+<l>    image_processing (ImageReduced, ImageReduced, RegionUnion, 70, 640, 501, Number)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>set_system ('tsp_thread_num', ThreadNum)</l>
+<l>MeasuredTime := real(Seconds2 - Seconds1) / Num</l>
+<c>* Add some factor to get a more conservative estimate</c>
+<l>MeasuredTimePlus := MeasuredTime * 1.25</l>
+<c>* Round up to get a smooth estimate</c>
+<l>round_up_to (MeasuredTimePlus, RoundUpTo, EstimatedImageProcessingTime)</l>
+<l>return ()</l>
+</body>
+<docu id="estimate_image_processing_time">
+<parameters>
+<parameter id="EstimatedImageProcessingTime">
+<default_type>real</default_type>
+<description lang="en_US">Estimated image processing time</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="NumAOPThreadsForImageProcessing">
+<default_type>integer</default_type>
+<default_value>1</default_value>
+<description lang="en_US">The number of AOP thread to be used for image processing.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="RoundUpTo">
+<default_type>real</default_type>
+<default_value>0.0025</default_value>
+<description lang="en_US">Round up the estimated processing time to a multiple of the given value.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="acquire_random_image">
+<interface>
+<io>
+<par name="Images" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>count_obj (Images, NumImages)</l>
+<l>Idx := int(floor(rand(1) * NumImages)) + 1</l>
+<l>select_obj (Images, Image, Idx)</l>
+<l>return ()</l>
+</body>
+<docu id="acquire_random_image">
+<parameters>
+<parameter id="Image">
+<description lang="en_US">Randomly selected image.</description>
+<multichannel>optional</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+<item>int1</item>
+<item>int2</item>
+<item>uint2</item>
+<item>int4</item>
+<item>int8</item>
+<item>real</item>
+<item>cyclic</item>
+<item>direction</item>
+<item>complex</item>
+<item>vector_field</item>
+</type_list>
+</parameter>
+<parameter id="Images">
+<description lang="en_US">Array of pre-read images.</description>
+<multichannel>optional</multichannel>
+<multivalue>optional</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+<item>int1</item>
+<item>int2</item>
+<item>uint2</item>
+<item>int4</item>
+<item>int8</item>
+<item>real</item>
+<item>cyclic</item>
+<item>direction</item>
+<item>complex</item>
+<item>vector_field</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="wait_to_simulate_non_trivial_acquisition_time">
+<interface>
+<ic>
+<par name="MeanAcquisitionInterval" base_type="ctrl" dimension="0"/>
+<par name="ImageId" base_type="ctrl" dimension="0"/>
+<par name="LastAcquisitionTime" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="LastAcquisitionTimeOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>LastAcquisitionTimeOut := LastAcquisitionTime</l>
+<l>AI := max([MeanAcquisitionInterval + 0.5 * sin(rad(ImageId)) * MeanAcquisitionInterval + 0.5 * (rand(1) - 0.5) * MeanAcquisitionInterval,0])</l>
+<l>repeat</l>
+<l>    count_seconds (AcquisitionTime)</l>
+<l>until (AcquisitionTime &gt;= LastAcquisitionTimeOut + AI)</l>
+<l>LastAcquisitionTimeOut := AcquisitionTime</l>
+<l>return ()</l>
+</body>
+<docu id="wait_to_simulate_non_trivial_acquisition_time">
+<parameters>
+<parameter id="ImageId">
+<default_type>integer</default_type>
+<description lang="en_US">Image ID of the currently acquired image.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="LastAcquisitionTime">
+<default_type>real</default_type>
+<description lang="en_US">Acquisition time of the last image</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="LastAcquisitionTimeOut">
+<default_type>real</default_type>
+<description lang="en_US">"Acquisition time" of the current image</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MeanAcquisitionInterval">
+<default_type>real</default_type>
+<default_value>0.01</default_value>
+<description lang="en_US">Mean acquisition interval.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

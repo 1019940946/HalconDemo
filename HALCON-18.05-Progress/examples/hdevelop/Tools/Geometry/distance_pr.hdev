@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the distance between one point and one region</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>dev_set_color ('black')</l>
+<l>threshold (Image, Region, 180, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10000, 100000000)</l>
+<l>RowB1 := 255</l>
+<l>ColumnB1 := 255</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (SelectedRegions)</l>
+<l>dev_set_color ('red')</l>
+<c>* Calculate the distance between any points and a region</c>
+<l>for i := 1 to 360 by 1</l>
+<l>    RowB2 := 255 + sin(rad(i)) * 200</l>
+<l>    ColumnB2 := 255 + cos(rad(i)) * 200</l>
+<l>    disp_line (WindowID, RowB1, ColumnB1, RowB2, ColumnB2)</l>
+<l>    distance_pr (SelectedRegions, RowB2, ColumnB2, DistanceMin, DistanceMax)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Pose relation of regions with regard to the coordinate axes</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('white')</l>
+<c>* Segment the image using regiongrowing</c>
+<l>regiongrowing (Image, Regions, 1, 1, 3, 400)</l>
+<l>dev_set_color ('dim grey')</l>
+<l>dev_set_color ('light grey')</l>
+<l>select_obj (Regions, ObjectSelected, 12)</l>
+<l>spatial_relation (ObjectSelected, Regions, 50, RegionIndex1, RegionIndex2, Relation1, Relation2)</l>
+<c>* Display the horizontal pose relation of regions</c>
+<l>for i := 0 to |RegionIndex2| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    select_obj (Regions, ObjectSelected, RegionIndex2[i])</l>
+<l>    area_center (ObjectSelected, Area, Row, Column)</l>
+<l>    set_tposition (WindowID, Row, Column)</l>
+<l>    dev_set_color ('red')</l>
+<l>    if (Relation1[i] == '')</l>
+<l>        write_string (WindowID, '(')</l>
+<l>    else</l>
+<l>        write_string (WindowID, '(' + Relation1[i] + ',')</l>
+<l>    endif</l>
+<l>    if (Relation2[i] == '')</l>
+<l>        write_string (WindowID, ')')</l>
+<l>    else</l>
+<l>        write_string (WindowID, Relation2[i] + ')')</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Calculate the position of two selected regions</c>
+<l>select_obj (Regions, ObjectSelected1, 6)</l>
+<l>select_obj (Regions, ObjectSelected2, 24)</l>
+<l>spatial_relation (ObjectSelected1, ObjectSelected2, 50, RegionIndex1, RegionIndex2, Relation1, Relation2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

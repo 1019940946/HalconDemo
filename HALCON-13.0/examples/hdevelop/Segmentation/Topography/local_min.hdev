@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of the loc_max and loc_min operators</c>
+<c>* and the relation between them.</c>
+<c>* </c>
+<l>read_image (Image, 'particle')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>get_system ('neighborhood', Information)</l>
+<l>set_system ('neighborhood', 4)</l>
+<c>* </c>
+<c>* Extraction of local gray value maxima in the original image.</c>
+<c>* </c>
+<l>local_max (Image, LocalMaxima)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (LocalMaxima)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extraction of local gray value minima in the inverted image.</c>
+<c>* </c>
+<l>invert_image (Image, ImageInverted)</l>
+<l>local_min (ImageInverted, LocalMinima)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (LocalMinima)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* The extracted regions are identical.</c>
+<c>* </c>
+<l>symm_difference (LocalMaxima, LocalMinima, Difference)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Difference)</l>
+<l>set_system ('neighborhood', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

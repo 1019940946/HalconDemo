@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-3DCamera interface</c>
+<c>* (calibration and rectification)</c>
+<c>* </c>
+<l>info_framegrabber ('SICK-3DCamera', 'device', Information, ValueList)</l>
+<c>* </c>
+<l>* lut_file := 'c:\\calibration_file.lut'</l>
+<l>MyDevice := ValueList[0]</l>
+<l>MyConfiguration := 'measurement'</l>
+<c>* </c>
+<c>* Please adapt the following settings to your specific configuration:</c>
+<l>ColorChannelsUsed := 0</l>
+<l>ShiftRed := 0.0</l>
+<l>ShiftBlue := 0.0</l>
+<l>ShiftGreen := 0.0</l>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'default', -1, MyConfiguration, -1, 'false', 'default', MyDevice, 0, -1, AcqHandle)</l>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c>* Set the LUT file before the calibration filter is enabled</c>
+<l>* set_framegrabber_param (AcqHandle, 'lut_file', lut_file)</l>
+<l>set_framegrabber_param (AcqHandle, 'calibration_filter', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'rectification_filter', 'enable')</l>
+<c>* </c>
+<l>if (ColorChannelsUsed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_red', ShiftRed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_blue', ShiftBlue)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_green', ShiftGreen)</l>
+<l>endif</l>
+<l>grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<l>get_framegrabber_param (AcqHandle, 'channel_names', Value)</l>
+<l>count_obj (Image, Number)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    select_obj (Image, ObjectSelected, Index)</l>
+<l>    scale_image_max (ObjectSelected, ImageScaleMax)</l>
+<l>    dev_display (ImageScaleMax)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

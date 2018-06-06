@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  Example for the application of the measure package</c>
+<c>* including a lot of visualization operators</c>
+<c>* </c>
+<l>read_image (Zeiss1, 'zeiss1')</l>
+<l>get_image_size (Zeiss1, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Zeiss1)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>* draw_circle (WindowHandle, Row, Column, Radius)</l>
+<l>Row := 275</l>
+<l>Column := 335</l>
+<l>Radius := 107</l>
+<l>AngleStart := -rad(55)</l>
+<l>AngleExtent := rad(170)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (1)</l>
+<l>get_points_ellipse (AngleStart + AngleExtent, Row, Column, 0, Radius, Radius, RowPoint, ColPoint)</l>
+<l>disp_arc (WindowHandle, Row, Column, AngleExtent, RowPoint, ColPoint)</l>
+<l>dev_set_line_width (3)</l>
+<l>gen_measure_arc (Row, Column, Radius, AngleStart, AngleExtent, 10, Width, Height, 'nearest_neighbor', MeasureHandle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>count_seconds (Seconds1)</l>
+<l>n := 10</l>
+<l>for i := 1 to n by 1</l>
+<l>    measure_pos (Zeiss1, MeasureHandle, 1, 10, 'all', 'all', RowEdge, ColumnEdge, Amplitude, Distance)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>Time := (Seconds2 - Seconds1) / n</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>* stop ()</l>
+<l>distance_pp (RowEdge[1], ColumnEdge[1], RowEdge[2], ColumnEdge[2], IntermedDist)</l>
+<l>* dev_display (Zeiss1)</l>
+<l>dev_set_color ('red')</l>
+<l>* disp_circle (WindowHandle, RowEdge, ColumnEdge, RowEdge - RowEdge + 1)</l>
+<l>disp_line (WindowHandle, RowEdge[1], ColumnEdge[1], RowEdge[2], ColumnEdge[2])</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_message (WindowHandle, 'Distance: ' + IntermedDist, 'image', 250, 80, 'yellow', 'false')</l>
+<l>* dump_window (WindowHandle, 'tiff_rgb', 'C:\\Temp\\zeiss_result')</l>
+<l>close_measure (MeasureHandle)</l>
+<l>dev_set_line_width (1)</l>
+<l>* disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

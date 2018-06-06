@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-3DCamera sensor in HALCON</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* </c>
+<c>* SICK Ranger camera calibration provides only x and r. Where r</c>
+<c>* is the range data or the distance from the sensor. Then to have</c>
+<c>* 3D coordinates, y component is missing.</c>
+<c>* </c>
+<c>* In this example, a "reverse ordinary" geometry (see SICK Ranger</c>
+<c>* manuals) has to be used, i.e. the laser illuminating the object</c>
+<c>* from right above the object - perpendicular to the direction of</c>
+<c>* movement – and the Ranger mounted at an angle. Then the x and z</c>
+<c>* positions are directly given by the in-plane calibration (x,r),</c>
+<c>* i.e. z=r, and the y position should be calculated by the</c>
+<c>* encoder counter.</c>
+<c>* </c>
+<c>* The Ranger calibration has to be performed with the same</c>
+<c>* physical configuration and using the "3D Camera Coordinator"</c>
+<c>* tool.</c>
+<c>* </c>
+<c>* The object 3D model is represented with the SICK 3D coordinate</c>
+<c>* system and the units specified in the "3D Camera Coordinator"</c>
+<c>* tool.</c>
+<c>* </c>
+<c>* The camera provides calibrated data only per line. So there is</c>
+<c>* no information about the transformation between two lines. In</c>
+<c>* this example, an artificial y image is computed. The data in</c>
+<c>* the y image must be from your used encoder or similar. Since</c>
+<c>* this information is not available, data from the x image is</c>
+<c>* used.</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<l>Device := 'default'</l>
+<c>* Connect to the SICK-3DCamera device</c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'default', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* Get image dimensions</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>DisplayWidth := 800</l>
+<l>DisplayHeight := 600</l>
+<c>* </c>
+<c>* Adapt the following settings to your specific configuration:</c>
+<l>* lut_file := 'c:\\calibration_file.lut'</l>
+<l>ColorChannelsUsed := 0</l>
+<l>ShiftRed := 0.0</l>
+<l>ShiftBlue := 0.0</l>
+<l>ShiftGreen := 0.0</l>
+<c>* </c>
+<c>* Filters settings:</c>
+<c>* </c>
+<c>* A calibration lookup-table (LUT) is required to translate from</c>
+<c>* sensor coordinates to real-world coordinates. If using a:</c>
+<c>*   - Ruler: LUT already stored in the camera’s flash memory.</c>
+<c>*   - Ranger: generate a LUT using the Coordinator tool, for your</c>
+<c>*     specific physical configuration. The LUT can be stored on</c>
+<c>*     disk (on the PC side) or in flash (on the camera side).</c>
+<c>* Note: set the LUT file before the calibration filter is enabled</c>
+<l>* set_framegrabber_param (AcqHandle, 'lut_file', lut_file)</l>
+<c>* Calibration filter: used to turn the raw data from the camera</c>
+<c>* into a set of calibrated points.</c>
+<l>set_framegrabber_param (AcqHandle, 'calibration_filter', 'enable')</l>
+<c>* Rectification filter: used to resample a set of calibrated</c>
+<c>* points to an image where the distance between two adjacent</c>
+<c>* pixels of a scan is always the same.</c>
+<l>set_framegrabber_param (AcqHandle, 'rectification_filter', 'enable')</l>
+<c>* Color filter:</c>
+<l>if (ColorChannelsUsed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_red', ShiftRed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_blue', ShiftBlue)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_green', ShiftGreen)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Other settings:</c>
+<l>* set_framegrabber_param (AcqHandle, 'grab_timeout', 8000)</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * Use grab_data[_async] to acquire all images</c>
+<c>    * Notice: a Range component must be available in the current</c>
+<c>    *         measurement configuration, otherwise</c>
+<c>    *         grab_data[_async] will fail since the calibration</c>
+<c>    *         and rectification filters are enabled.</c>
+<l>    grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<l>    count_obj (Image, NumImage)</l>
+<l>    get_framegrabber_param (AcqHandle, 'channel_names', ChannelNames)</l>
+<c>    * </c>
+<c>    * Prepare graphics windows using the image dimensions</c>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, DisplayWidth, DisplayHeight / 2, 'black', WindowID1)</l>
+<l>    dev_open_window (DisplayHeight / 2 + 5, 0, DisplayWidth, DisplayHeight / 2, 'black', WindowID2)</l>
+<c>    * </c>
+<c>    * Extract the images:</c>
+<l>    for Index := 1 to NumImage by 1</l>
+<c>        * Display current channel</c>
+<l>        dev_set_window (WindowID1)</l>
+<l>        dev_clear_window ()</l>
+<l>        select_obj (Image, ObjectSelected, Index)</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>        disp_message (WindowID1, ChannelNames[Index - 1] + ' - Image', 'window', 12, 12, 'black', 'true')</l>
+<c>        * Display current channel scaled</c>
+<l>        dev_set_window (WindowID2)</l>
+<l>        dev_clear_window ()</l>
+<l>        scale_image_max (ObjectSelected, ImageScaleMax)</l>
+<l>        dev_display (ImageScaleMax)</l>
+<l>        disp_message (WindowID2, ChannelNames[Index - 1] + ' - ImageScaleMax', 'window', 12, 12, 'black', 'true')</l>
+<l>        stop ()</l>
+<c>        * Get 'Range X' image</c>
+<l>        if (ChannelNames[Index - 1] == 'Range X')</l>
+<l>            select_obj (Image, X, Index)</l>
+<l>        endif</l>
+<c>        * Get 'Range R' image</c>
+<l>        if (ChannelNames[Index - 1] == 'Range R')</l>
+<l>            select_obj (Image, R, Index)</l>
+<l>        endif</l>
+<c>        * Get 'Rectified Range' image</c>
+<l>        if (ChannelNames[Index - 1] == 'Rectified Data (Range)')</l>
+<l>            select_obj (Image, Rectified_Range, Index)</l>
+<l>        endif</l>
+<l>        if (ChannelNames[Index - 1] == 'Rectified Data (Intensity)')</l>
+<l>            select_obj (Image, Rectified_Intensity, Index)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Image representation difference between Ranger Studio and</c>
+<c>    * HALCON:</c>
+<c>    *   - SICK 3D cameras: right to left and top to down, but the</c>
+<c>    *     SICK Ranger Studio flips the images automatically.</c>
+<c>    *   - In HALCON: always left to right and top to down, thus,</c>
+<c>    *     the images, as they come from the buffers from the SICK</c>
+<c>    *     3D camera, look mirrored in comparison to the ones of</c>
+<c>    *     Ranger Studio.</c>
+<c>    * </c>
+<c>    * Prepare graphics windows using the image dimensions</c>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, DisplayWidth, DisplayHeight / 3, 'black', WindowID1)</l>
+<l>    dev_open_window (DisplayHeight / 3 + 5, 0, DisplayWidth, DisplayHeight / 3, 'black', WindowID2)</l>
+<l>    dev_open_window (2 * DisplayHeight / 3 + 10, 0, DisplayWidth, DisplayHeight / 3, 'black', WindowID3)</l>
+<l>    dev_open_window (3 * DisplayHeight / 3 + 10, 0, DisplayWidth, DisplayHeight / 3, 'black', WindowID4)</l>
+<c>    * Display X mirrored</c>
+<l>    dev_set_window (WindowID1)</l>
+<l>    mirror_image (X, X, 'column')</l>
+<l>    dev_display (X)</l>
+<l>    disp_message (WindowID1, 'Range X mirrored', 'window', 12, 12, 'black', 'true')</l>
+<c>    * Display Range mirrored</c>
+<l>    dev_set_window (WindowID2)</l>
+<l>    mirror_image (R, R, 'column')</l>
+<l>    dev_display (R)</l>
+<l>    disp_message (WindowID2, 'Range R mirrored', 'window', 12, 12, 'black', 'true')</l>
+<c>    * Display Rectified mirrored</c>
+<l>    dev_set_window (WindowID3)</l>
+<l>    mirror_image (Rectified_Range, Rectified_Range, 'column')</l>
+<l>    dev_display (Rectified_Range)</l>
+<l>    disp_message (WindowID3, 'Rectified (Range) mirrored', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowID4)</l>
+<l>    mirror_image (Rectified_Intensity, Rectified_Intensity, 'column')</l>
+<l>    dev_display (Rectified_Intensity)</l>
+<l>    disp_message (WindowID4, 'Rectified (Intensity) mirrored', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<c>    * </c>
+<c>    * RANGE</c>
+<c>    * Compute a scaling factor for Y from the X image</c>
+<c>    * Reduce domain taking into account that value 0 means</c>
+<c>    * missing data</c>
+<l>    threshold (R, Region, 0.0001, 255)</l>
+<l>    reduce_domain (X, Region, XReduced)</l>
+<l>    min_max_gray (Region, X, 0, Min, Max, Range)</l>
+<l>    smallest_rectangle1 (Region, Row1, Column1, Row2, Column2)</l>
+<l>    if (Column2 - Column1 == 0)</l>
+<c>        * Error: no profile found, check if laser on</c>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        ScaleFactor := (Max - Min) / (Column2 - Column1)</l>
+<c>        * Create an artificial Y image</c>
+<l>        get_image_size (X, XWidth, XHeight)</l>
+<l>        gen_image_surface_first_order (Y, 'real', ScaleFactor, 0, 0, 0, 0, XWidth, XHeight)</l>
+<c>        * </c>
+<c>        * Generate an ObjectModel3D and visualize it, press button</c>
+<c>        * to continue</c>
+<l>        xyz_to_object_model_3d (XReduced, Y, R, ObjectModel3D)</l>
+<l>        dev_open_window (0, 0, 800, 600, 'black', WindowID1)</l>
+<l>        dev_set_window (WindowID1)</l>
+<l>        dev_clear_window ()</l>
+<l>        get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>        if (NumPoints &gt; 0)</l>
+<c>            * The ObjectModel3D is represented in SICK coordinate</c>
+<c>            * system but for the visualization an appropriate pose</c>
+<c>            * is calculated to reproduce the HALCON camera</c>
+<c>            * coordinate system by rotating x and z 180º.</c>
+<l>            calculate_visualization_pose (ObjectModel3D, WindowID1, VisPose)</l>
+<l>            Instructions[0] := 'Rotate: Left button'</l>
+<l>            Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>            Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>            visualize_object_model_3d (WindowID1, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['coord_z','rainbow'], 'ObjectModel3D', [], Instructions, PoseOut)</l>
+<c>            * </c>
+<c>            * In order to create a surface triangulation from the</c>
+<c>            * ObjectModel3D, please see the following examples:</c>
+<c>            *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>            *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>            * </c>
+<l>        else</l>
+<l>            disp_message (WindowID1, 'Null 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<c>        * Clear the ObjectModel3D for the next loop</c>
+<l>        clear_object_model_3d (ObjectModel3D)</l>
+<c>        * </c>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="calculate_visualization_pose">
+<interface>
+<ic>
+<par name="ObjectModel3DID" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="VisPose" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Refactor camera parameters to fit to window size</c>
+<l>get_window_extents (WindowHandle, RowNotUsed, ColumnNotUsed, Width, Height)</l>
+<l>gen_cam_par_area_scan_division (0.06, 0, 8.5e-6, 8.5e-6, Width / 2, Height / 2, Width, Height, CamParam)</l>
+<c>* </c>
+<c>* Compute the mean of all model centers</c>
+<l>if (|ObjectModel3DID| &gt; 0)</l>
+<l>    get_object_model_3d_params (ObjectModel3DID, 'center', Center)</l>
+<l>    Indices := [0:3:|Center| - 1]</l>
+<l>    Center := [mean(Center[Indices]),mean(Center[Indices + 1]),mean(Center[Indices + 2])]</l>
+<l>else</l>
+<l>    Center := []</l>
+<l>endif</l>
+<c>* </c>
+<c>* Automatically calculate a pose that is appropriate for the</c>
+<c>* visualization. Set the initial model reference pose. The</c>
+<c>* orientation is parallel to the object coordinate system, the</c>
+<c>* position is at the center of gravity of all models.</c>
+<c>* Rotate 180º in y axis to obtain a pose in HALCON camera</c>
+<c>* coordiante system</c>
+<l>create_pose (Center[0], -Center[1], Center[2], 180, 0, 180, 'Rp+T', 'gba', 'point', PoseIn)</l>
+<c>* Determine the optimum distance of the object to obtain</c>
+<c>* a reasonable visualization</c>
+<l>ImageCoverage := 0.9</l>
+<c>* </c>
+<l>NumModels := |ObjectModel3DID|</l>
+<l>Rows := []</l>
+<l>Cols := []</l>
+<l>MinMinZ := 1e30</l>
+<l>get_object_model_3d_params (ObjectModel3DID, 'bounding_box1', BB)</l>
+<l>get_object_model_3d_params (ObjectModel3DID, 'diameter', Diameter)</l>
+<l>if (sum(abs(BB)) == 0.0)</l>
+<l>    BB := [-abs(rand(3) * 1e-20),abs(rand(3) * 1e-20)]</l>
+<l>endif</l>
+<l>if (Diameter == 0.0)</l>
+<l>    Diameter := 1e-20</l>
+<l>endif</l>
+<l>IBB := [0:6:|BB| - 1]</l>
+<l>BB0 := BB[IBB]</l>
+<l>BB1 := BB[IBB + 1]</l>
+<l>BB2 := BB[IBB + 2]</l>
+<l>BB3 := BB[IBB + 3]</l>
+<l>BB4 := BB[IBB + 4]</l>
+<l>BB5 := BB[IBB + 5]</l>
+<l>X := [BB0,BB3,BB0,BB0,BB3,BB3,BB0,BB3]</l>
+<l>Y := [BB1,BB1,BB4,BB1,BB4,BB1,BB4,BB4]</l>
+<l>Z := [BB2,BB2,BB2,BB5,BB2,BB5,BB5,BB5]</l>
+<l>PoseInter := replace(PoseIn,2,-min(Z) + 2 * max(Diameter))</l>
+<l>pose_to_hom_mat3d (PoseInter, HomMat3D)</l>
+<l>affine_trans_point_3d (HomMat3D, X, Y, Z, CX, CY, CZ)</l>
+<l>project_3d_point (CX, CY, CZ, CamParam, Rows, Cols)</l>
+<l>MinMinZ := min(CZ)</l>
+<c>* </c>
+<l>get_cam_par_data (CamParam, 'cx', Cx)</l>
+<l>get_cam_par_data (CamParam, 'cy', Cy)</l>
+<l>DR := Rows - Cy</l>
+<l>DC := Cols - Cx</l>
+<l>MaxDist := sqrt(max(DR * DR + DC * DC))</l>
+<l>get_cam_par_data (CamParam, 'image_width', ImageWidth)</l>
+<l>get_cam_par_data (CamParam, 'image_height', ImageHeight)</l>
+<l>MinImageSize := min([ImageWidth,ImageHeight])</l>
+<c>* </c>
+<l>Z := PoseInter[2]</l>
+<l>Zs := MinMinZ</l>
+<l>ZDiff := Z - Zs</l>
+<l>ScaleZ := MaxDist / (0.5 * MinImageSize * ImageCoverage)</l>
+<l>ZNew := ScaleZ * Zs + ZDiff</l>
+<l>PoseEstimated := replace(PoseInter,2,ZNew)</l>
+<c>* </c>
+<l>Sequence := [0:NumModels * 7 - 1]</l>
+<l>VisPose := PoseEstimated[Sequence % 7]</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="calculate_visualization_pose">
+<parameters>
+<parameter id="ObjectModel3DID"/>
+<parameter id="VisPose"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

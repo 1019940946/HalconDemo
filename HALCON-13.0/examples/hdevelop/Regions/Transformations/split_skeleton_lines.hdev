@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>sobel_amp (Image, EdgeAmplitude, 'sum_abs', 7)</l>
+<l>threshold (EdgeAmplitude, Edges, 40, 255)</l>
+<l>skeleton (Edges, Skeleton)</l>
+<l>junctions_skeleton (Skeleton, EndPoints, JuncPoints)</l>
+<l>difference (Skeleton, JuncPoints, RegionDifference)</l>
+<l>connection (RegionDifference, ConnectedRegions)</l>
+<l>split_skeleton_lines (ConnectedRegions, 5, BeginRow, BeginCol, EndRow, EndCol)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (6)</l>
+<l>disp_line (WindowID, BeginRow, BeginCol, EndRow, EndCol)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

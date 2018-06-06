@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<l>read_image (Angio, 'angio-part')</l>
+<l>get_image_size (Angio, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Angio)</l>
+<l>disp_message (WindowID, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>calculate_lines_gauss_parameters (8, [12,0], Sigma, Low, High)</l>
+<l>lines_gauss (Angio, Lines, Sigma, Low, High, 'dark', 'true', 'parabolic', 'true')</l>
+<l>select_contours_xld (Lines, RelLines, 'length', 5.0, 999, 0, 0)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Angio)</l>
+<l>dev_display (RelLines)</l>
+<l>disp_message (WindowID, 'Extracted lines', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>count_obj (RelLines, Number)</l>
+<l>sort_contours_xld (RelLines, RelLines, 'lower_left', 'true', 'row')</l>
+<l>gen_empty_obj (PrintedLines)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    dev_display (Angio)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (PrintedLines)</l>
+<l>    select_obj (RelLines, Line, I)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Line)</l>
+<l>    concat_obj (PrintedLines, Line, PrintedLines)</l>
+<l>    get_contour_xld (Line, Row, Col)</l>
+<l>    meanRow := sum(Row) / |Row|</l>
+<l>    meanCol := sum(Col) / |Col|</l>
+<l>    get_contour_attrib_xld (Line, 'width_left', WidthL)</l>
+<l>    get_contour_attrib_xld (Line, 'width_right', WidthR)</l>
+<l>    get_contour_attrib_xld (Line, 'contrast', Contrast)</l>
+<l>    meanContrast := sum(Contrast) / |Contrast|</l>
+<c>    * To display the lines widths, the point at which the gray value drops</c>
+<c>    * to 25% of the contrast between the line and the background will be</c>
+<c>    * displayed.  This point is given by sqrt(3/4) for the parabolic line</c>
+<c>    * model.</c>
+<l>    Diameter := (WidthL + WidthR) * sqrt(0.75)</l>
+<l>    Diam := sum(Diameter) / |Diameter|</l>
+<l>    if (meanRow &gt; Height - 50)</l>
+<l>        disp_message (WindowID, 'diam: ' + Diam, 'image', Height - 70, meanCol, 'yellow', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowID, 'diam: ' + Diam, 'image', meanRow, meanCol, 'yellow', 'false')</l>
+<l>    endif</l>
+<l>    disp_message (WindowID, 'Diameters of line segments', 'window', 135, 60, 'black', 'true')</l>
+<l>    if (I &lt; 5)</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        wait_seconds (0.2)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

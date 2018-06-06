@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the infrared image of a harddisk, that is</c>
+<c>* tested for heat emission. The user knows beforehand, which</c>
+<c>* areas on the disk must have a specific temperature, so he can</c>
+<c>* define these regions of interest manually. Finally the emissions</c>
+<c>* are calculated in terms of mean gray values</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'infrared/harddisk_temperature')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, Width, Height, WindowHandle)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 20, 'mono', 'true', 'false')</l>
+<l>TemperatureScaling := 0.28</l>
+<c>* </c>
+<l>gen_rectangle1 (ROI1, 103, 291, 131, 320)</l>
+<l>gen_rectangle1 (ROI2, 170, 262, 189, 278)</l>
+<l>gen_rectangle1 (ROI3, 239, 258, 278, 276)</l>
+<l>intensity (ROI1, Image, Mean1, Deviation)</l>
+<l>intensity (ROI2, Image, Mean2, Deviation1)</l>
+<l>intensity (ROI3, Image, Mean3, Deviation2)</l>
+<l>area_center (ROI1, Area, Row1, Column1)</l>
+<l>area_center (ROI2, Area1, Row2, Column2)</l>
+<l>area_center (ROI3, Area2, Row3, Column3)</l>
+<c>* </c>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (ROI1)</l>
+<l>dev_display (ROI2)</l>
+<l>dev_display (ROI3)</l>
+<l>disp_message (WindowHandle, (Mean1 * TemperatureScaling)$'.4', 'window', Row1, Column1 + 30, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, (Mean2 * TemperatureScaling)$'.4', 'window', Row2, Column2 + 30, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, (Mean3 * TemperatureScaling)$'.4', 'window', Row3, Column3 + 30, 'blue', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

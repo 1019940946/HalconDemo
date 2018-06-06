@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example checks bottle necks for defects.</c>
+<c>* First, the bottle is detected with basic morphology,</c>
+<c>* edge detection and circle fitting.</c>
+<c>* Then, the neck area is transformed with a polar transformation.</c>
+<c>* After that, in the transformed image a dynamic threshold is used</c>
+<c>* to detect defects. Finally, the results are displayed.</c>
+<c>* </c>
+<c>* </c>
+<c>* tuning parameters</c>
+<l>SmoothX := 501</l>
+<l>ThresholdOffset := 25</l>
+<l>MinDefectSize := 50</l>
+<c>* </c>
+<c>* initialization</c>
+<l>PolarResolution := 640</l>
+<l>RingSize := 70</l>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('store_empty_region', 'false')</l>
+<l>read_image (Image, 'bottles/bottle_mouth_01')</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 640, 512, WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_open_window_fit_size (0, 648, RingSize, PolarResolution, 150, 512, WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('red')</l>
+<c>* </c>
+<c>* Main loop</c>
+<c>* </c>
+<c>* Detect defects in bottle necks</c>
+<l>for Index := 1 to 16 by 1</l>
+<l>    read_image (Image, 'bottles/bottle_mouth_' + Index$'.02')</l>
+<c>    * </c>
+<c>    * Part 1: Use basic morphology to detect bottle</c>
+<l>    auto_threshold (Image, Regions, 2)</l>
+<l>    select_obj (Regions, DarkRegion, 1)</l>
+<l>    opening_circle (DarkRegion, RegionOpening, 3.5)</l>
+<l>    closing_circle (RegionOpening, RegionClosing, 25.5)</l>
+<l>    fill_up (RegionClosing, RegionFillUp)</l>
+<l>    boundary (RegionFillUp, RegionBorder, 'outer')</l>
+<l>    dilation_circle (RegionBorder, RegionDilation, 3.5)</l>
+<l>    reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<c>    * </c>
+<c>    * Find the bottle center by fitting a circle to extracted edges</c>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 0.5, 20, 40)</l>
+<l>    segment_contours_xld (Edges, ContoursSplit, 'lines_circles', 5, 4, 2)</l>
+<l>    union_cocircular_contours_xld (ContoursSplit, UnionContours, 0.9, 0.5, 0.5, 200, 50, 50, 'true', 1)</l>
+<l>    length_xld (UnionContours, Length)</l>
+<l>    select_obj (UnionContours, LongestContour, sort_index(Length)[|Length| - 1] + 1)</l>
+<l>    fit_circle_contour_xld (LongestContour, 'ahuber', -1, 0, 0, 3, 2, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<c>    * </c>
+<c>    * Part 2: Transform the ring-shaped bottle neck region to a rectangle</c>
+<l>    gen_circle (Circle, Row, Column, Radius)</l>
+<l>    dilation_circle (Circle, RegionDilation, 5)</l>
+<l>    erosion_circle (Circle, RegionErosion, RingSize - 5)</l>
+<l>    difference (RegionDilation, RegionErosion, RegionDifference)</l>
+<l>    reduce_domain (Image, RegionDifference, ImageReduced)</l>
+<l>    polar_trans_image_ext (ImageReduced, ImagePolar, Row, Column, 0, rad(360), Radius - RingSize, Radius, PolarResolution, RingSize, 'nearest_neighbor')</l>
+<c>    * </c>
+<c>    * Part 3: Find defects with a dynamic threshold</c>
+<c>    * Note the strong smoothing in x-direction in the transformed image.</c>
+<l>    scale_image_max (ImagePolar, ImageScaleMax)</l>
+<l>    mean_image (ImageScaleMax, ImageMean, SmoothX, 3)</l>
+<l>    dyn_threshold (ImageScaleMax, ImageMean, Regions1, 55, 'not_equal')</l>
+<l>    connection (Regions1, Connection)</l>
+<l>    select_shape (Connection, SelectedRegions, 'height', 'and', 9, 99999)</l>
+<c>    * ignore noise regions</c>
+<l>    closing_rectangle1 (SelectedRegions, RegionClosing1, 10, 20)</l>
+<l>    union1 (RegionClosing1, RegionUnion)</l>
+<c>    * re-transform defect regions for visualization</c>
+<l>    polar_trans_region_inv (RegionUnion, XYTransRegion, Row, Column, 0, rad(360), Radius - RingSize, Radius, PolarResolution, RingSize, 1280, 1024, 'nearest_neighbor')</l>
+<c>    * </c>
+<c>    * Part 4: Display results</c>
+<c>    * display original image with results</c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (RegionDifference)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (XYTransRegion)</l>
+<c>    * display polar transformed inspected region with results</c>
+<c>    * The image and resulting region are rotated by 90 degrees</c>
+<c>    * only for visualization purposes! (I.e. to fit better on the screen)</c>
+<c>    * The rotation is NOT necessary for the detection algorithm.</c>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    rotate_image (ImagePolar, ImageRotate, 90, 'constant')</l>
+<l>    dev_display (ImageRotate)</l>
+<l>    count_obj (RegionUnion, Number)</l>
+<l>    if (Number &gt; 0)</l>
+<l>        mirror_region (RegionUnion, RegionMirror, 'diagonal', PolarResolution)</l>
+<l>        mirror_region (RegionMirror, RegionMirror, 'row', PolarResolution)</l>
+<l>        dev_display (RegionMirror)</l>
+<l>        disp_message (WindowHandle1, 'Not OK', 'window', -1, -1, 'red', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle1, 'OK', 'window', -1, -1, 'forest green', 'false')</l>
+<l>    endif</l>
+<l>    if (Index &lt; 16)</l>
+<l>        disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Reset system parameters</c>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

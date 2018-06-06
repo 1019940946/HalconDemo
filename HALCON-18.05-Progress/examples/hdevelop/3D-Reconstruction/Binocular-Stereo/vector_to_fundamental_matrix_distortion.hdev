@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows that the reconstruction that can be achieved with</c>
+<c>* uncalibrated stereo is only possible up to an arbitrary 3D projective</c>
+<c>* transformation if the camera undergoes a general motion that includes</c>
+<c>* rotation and translation. A projective reconstruction allows to identify</c>
+<c>* planes in the reconstruction, but does not allow to infer parallelism,</c>
+<c>* angles, or distances. This example also shows that if the camera</c>
+<c>* undergoes a pure translation, i.e., no rotation, the reconstruction is</c>
+<c>* possible up to an affine transformation. Thus, parallelism can be</c>
+<c>* identified in the reconstruction. Furthermore, this example shows that</c>
+<c>* if the principal point of the camera lies at the image center, the</c>
+<c>* reconstruction is possible up to a much more restricted ambiguity: a</c>
+<c>* similarity transformation in 3D plus an unknown scaling in the z</c>
+<c>* direction (the direction of the optical axis). Since an uncalibrated</c>
+<c>* reconstruction (even if the cameras have been calibrated internally)</c>
+<c>* in general is only possible up to a similarity transformation (a</c>
+<c>* rotation, translation, and uniform scaling), the pure translation case</c>
+<c>* only introduces a single additional degree of freedom: an additional</c>
+<c>* scaling in the direction of the optical axis. With this kind of</c>
+<c>* reconstruction, objects in the reconstruction can be identified very</c>
+<c>* easily, e.g., based on their relative depth. Since the pure translation</c>
+<c>* case occurs, for example, if a camera is mounted above a conveyor belt,</c>
+<c>* this example shows that an interesting case that occurs in industrial</c>
+<c>* applications can potentially be solved with uncalibrated cameras.</c>
+<c>* Please also refer to the HDevelop programs</c>
+<c>* match_fundamental_matrix_distortion_ransac_general.hdev and</c>
+<c>* match_fundamental_matrix_distortion_ransac_trans.hdev in this directory.</c>
+<c>* Note that although this example program uses</c>
+<c>* vector_to_fundamental_matrix_distortion, the same principles also</c>
+<c>* apply to the case where radial distortion is not taken into account,</c>
+<c>* i.e, to vector_to_fundamental_matrix.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Define the essential camera parameters that are used to simulate the</c>
+<c>* projected data.</c>
+<l>Width := 640</l>
+<l>Height := 480</l>
+<l>Focus := 500.0</l>
+<l>Kappa := 2.0e-6</l>
+<c>* Create 3D points on several "layers" (i.e., parallel planes) of a</c>
+<c>* pyramid.</c>
+<l>create_pyramid_points_3d (X, Y, Z)</l>
+<c>* Define camera parameters for the visualization of the 3D data.</c>
+<l>gen_cam_par_area_scan_division (Focus, 0.0, 1.0, 1.0, 0.5 * (Width - 1), 0.5 * (Height - 1), Width, Height, CamParDisp)</l>
+<c>* Define a pose for the visualization of the original 3D points.</c>
+<l>create_pose (0.002, -0.006, 0.027, -80.0, 0.0, 30.0, 'Rp+T', 'gba', 'point', PoseDisp)</l>
+<c>* Project the 3D points with the pose and the camera parameters.</c>
+<l>Message := 'Original 3D points'</l>
+<l>disp_points_3d_var_pose (WindowHandle, X, Y, Z, PoseDisp, CamParDisp, rad(30), rad(1.0), 'cyan', Message)</l>
+<l>project_3d_point_with_pose (CamParDisp, PoseDisp, X, Y, Z, RowsDisp, ColumnsDisp)</l>
+<c>* Display the projected 3D points to show the ground truth.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('cyan')</l>
+<l>disp_cross (WindowHandle, RowsDisp, ColumnsDisp, 6, 0)</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Define camera parameters of the simulation of a camera that takes images</c>
+<c>* of the original 3D points.</c>
+<l>gen_cam_par_area_scan_division (Focus, Kappa, 1.0, 1.0, 0.5 * (Width - 1), 0.5 * (Height - 1), Width, Height, CamParDist)</l>
+<c>* </c>
+<c>* We now turn to the pure translation case.</c>
+<c>* Define two poses of the simulation of a camera that takes images of the</c>
+<c>* 3D data. Note that in this case the poses only include a translation.</c>
+<l>create_pose (0.008, -0.002, 0.035, 0.0, 0.0, 0.0, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>create_pose (-0.012, 0.006, 0.043, 0.0, 0.0, 0.0, 'Rp+T', 'gba', 'point', Pose2)</l>
+<c>* Project the original 3D points with the poses and the camera parameters</c>
+<c>* to obtain a set of corresponding points in two simulated "images."</c>
+<l>project_3d_point_with_pose (CamParDist, Pose1, X, Y, Z, Rows1, Columns1)</l>
+<l>project_3d_point_with_pose (CamParDist, Pose2, X, Y, Z, Rows2, Columns2)</l>
+<c>* Display the two sets of projected points.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('blue')</l>
+<l>disp_cross (WindowHandle, Rows1, Columns1, 6, 0)</l>
+<l>dev_set_color ('green')</l>
+<l>disp_cross (WindowHandle, Rows2, Columns2, 6, 0)</l>
+<l>disp_message (WindowHandle, ['Corresponding 3D points in two views','under pure camera translation'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the uncalibrated 3D reconstruction for the pure camera</c>
+<c>* translation case.</c>
+<l>vector_to_fundamental_matrix_distortion (Rows1, Columns1, Rows2, Columns2, [], [], [], [], [], [], 640, 480, 'trans_gold_standard', FMatrix, Kappa, Error, XR, YR, ZR, WR)</l>
+<c>* Compute the affine transformation between the reconstructed 3D</c>
+<c>* points and the original 3D points (i.e., the ground truth). Note that,</c>
+<c>* vector_to_fundamental_matrix_distortion, in contrast to the general</c>
+<c>* motion case, returns points that have WR=1. Therefore, we can omit the</c>
+<c>* step of converting the homogeneous points into inhomogeneous points,</c>
+<c>* i.e., we omit the division by WR. Also, in contrast to the general</c>
+<c>* motion case, we compute an affine transformation with vector_to_hom_mat3d.</c>
+<l>vector_to_hom_mat3d ('affine', XR, YR, ZR, X, Y, Z, HomMat3D)</l>
+<c>* Transform the reconstructed points with the affine transformation and</c>
+<c>* compute the maximum distance of the transformed reconstructed points</c>
+<c>* to the original 3D points. This error is extremely small, which shows</c>
+<c>* that the reconstruction is correct and that the ambiguity is indeed an</c>
+<c>* affine 3D transformation (and not some other kind of transformation).</c>
+<l>affine_trans_point_3d (HomMat3D, XR, YR, ZR, XT, YT, ZT)</l>
+<l>XD := X - XT</l>
+<l>YD := Y - YT</l>
+<l>ZD := Z - ZT</l>
+<l>MaxErr := max(sqrt(XD * XD + YD * YD + ZD * ZD))</l>
+<c>* For display purposes, we extend the 3×4 matrix returned by</c>
+<c>* vector_to_hom_mat3d of the affine case to a general 4×4 matrix and we</c>
+<c>* suppress elements in the matrix that are very small so the display is</c>
+<c>* not cluttered with irrelevant data.</c>
+<l>HomMat3DDisp := gen_tuple_const(16,0.0)</l>
+<l>HomMat3DDisp[15] := 1.0</l>
+<l>for I := 0 to 11 by 1</l>
+<l>    if (abs(HomMat3D[I]) &gt;= 1e-14)</l>
+<l>        HomMat3DDisp[I] := HomMat3D[I]</l>
+<l>    else</l>
+<l>        HomMat3DDisp[I] := 0.0</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Display the relevant information about the reconstruction and the</c>
+<c>* affine 3D transformation.</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Transformation matrix from the reconstructed 3D points'</l>
+<l>Message[1] := 'to the original 3D points for pure camera translation:'</l>
+<l>Message[2] := ' '</l>
+<l>for I := 0 to 3 by 1</l>
+<l>    String := ''</l>
+<l>    for J := 0 to 3 by 1</l>
+<l>        String := String + HomMat3DDisp[I * 4 + J]$'8.4g' + ' '</l>
+<l>    endfor</l>
+<l>    Message[3 + I] := String</l>
+<l>endfor</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'Note that the last row of the matrix shows that'</l>
+<l>Message[9] := 'the reconstruction is performed up to an affine'</l>
+<l>Message[10] := 'transformation. Therefore, parallelism is preserved'</l>
+<l>Message[11] := 'in the reconstruction. Furthermore, note that the'</l>
+<l>Message[12] := 'scaling in x and y is equal and that the scaling'</l>
+<l>Message[13] := 'in z is different. This shows that the reconstruction'</l>
+<l>Message[14] := 'is only ambiguous up to a single parameter: a scaling'</l>
+<l>Message[15] := 'in z. Therefore, objects can be segmented easily in'</l>
+<l>Message[16] := 'the reconstruction.'</l>
+<l>Message[17] := ' '</l>
+<l>Message[18] := 'Maximum error between the transformed reconstructed'</l>
+<l>Message[19] := '3D points and the original 3D points:' + MaxErr$'10.4g'</l>
+<l>TextColor := replace(gen_tuple_const(|Message|,'black'),6,'forest green')</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, TextColor, 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Define a pose to visualize the projective reconstruction in the pure</c>
+<c>* translation case. Note that the same camera parameters that were used to</c>
+<c>* visualize the original points above are also used here.</c>
+<l>create_pose (-0.25, -1.2, 1.2, -80.0, 0.0, 30.0, 'Rp+T', 'gba', 'point', PoseDisp)</l>
+<l>Message := ['Reconstructed 3D points for pure camera translation:','Note that the reconstructed planes are parallel']</l>
+<l>disp_points_3d_var_pose (WindowHandle, XR, YR, ZR, PoseDisp, CamParDisp, rad(30), rad(1.0), 'cyan', Message)</l>
+<l>project_3d_point_with_pose (CamParDisp, PoseDisp, XR, YR, ZR, RowsDisp, ColumnsDisp)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('cyan')</l>
+<l>disp_cross (WindowHandle, RowsDisp, ColumnsDisp, 6, 0)</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Define two poses of the simulation of a camera that takes images of the</c>
+<c>* original 3D points. Note that the poses include a rotation as well as a</c>
+<c>* translation. Thus, these poses define a general camera motion.</c>
+<l>create_pose (0.006, -0.003, 0.043, 10.0, 20.0, 5.0, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>create_pose (-0.012, 0.005, 0.052, -20.0, -10.0, -5.0, 'Rp+T', 'gba', 'point', Pose2)</l>
+<c>* Project the original 3D points with the poses and the camera parameters</c>
+<c>* to obtain a set of corresponding points in two simulated "images."</c>
+<l>project_3d_point_with_pose (CamParDist, Pose1, X, Y, Z, Rows1, Columns1)</l>
+<l>project_3d_point_with_pose (CamParDist, Pose2, X, Y, Z, Rows2, Columns2)</l>
+<c>* Display the two sets of projected points.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('blue')</l>
+<l>disp_cross (WindowHandle, Rows1, Columns1, 6, 0)</l>
+<l>dev_set_color ('green')</l>
+<l>disp_cross (WindowHandle, Rows2, Columns2, 6, 0)</l>
+<l>disp_message (WindowHandle, ['Corresponding 3D points in two views','under general camera motion'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Perform the uncalibrated 3D reconstruction for the general camera motion</c>
+<c>* case.</c>
+<l>vector_to_fundamental_matrix_distortion (Rows1, Columns1, Rows2, Columns2, [], [], [], [], [], [], 640, 480, 'gold_standard', FMatrix, Kappa, Error, XR, YR, ZR, WR)</l>
+<c>* Convert the homogeneous points returned by</c>
+<c>* vector_to_fundamental_matrix_distortion into inhomogeneous points by</c>
+<c>* dividing by WR.</c>
+<l>XR := XR / WR</l>
+<l>YR := YR / WR</l>
+<l>ZR := ZR / WR</l>
+<c>* Compute the projective transformation between the reconstructed 3D</c>
+<c>* points and the original 3D points (i.e., the ground truth). The</c>
+<c>* resulting projective transformation matrix shows that the reconstruction</c>
+<c>* has been performed up to an ambiguity of a general projective 3D</c>
+<c>* transformation, which can be seen by the fact that the last row of</c>
+<c>* HomMat3D is not [0 0 0 1].</c>
+<l>vector_to_hom_mat3d ('projective', XR, YR, ZR, X, Y, Z, HomMat3D)</l>
+<c>* Transform the reconstructed points with the projective transformation</c>
+<c>* and compute the maximum distance of the transformed reconstructed points</c>
+<c>* to the original 3D points. This error is extremely small, which shows</c>
+<c>* that the reconstruction is correct and that the ambiguity is indeed a</c>
+<c>* projective 3D transformation (and not some other kind of transformation).</c>
+<l>projective_trans_point_3d (HomMat3D, XR, YR, ZR, XT, YT, ZT)</l>
+<l>XD := X - XT</l>
+<l>YD := Y - YT</l>
+<l>ZD := Z - ZT</l>
+<l>MaxErr := max(sqrt(XD * XD + YD * YD + ZD * ZD))</l>
+<c>* Display the relevant information about the reconstruction and the</c>
+<c>* projective 3D transformation.</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Transformation matrix from the reconstructed 3D points'</l>
+<l>Message[1] := 'to the original 3D points for general camera motion:'</l>
+<l>Message[2] := ' '</l>
+<l>for I := 0 to 3 by 1</l>
+<l>    String := '   '</l>
+<l>    for J := 0 to 3 by 1</l>
+<l>        String := String + HomMat3D[I * 4 + J]$'8.4f' + ' '</l>
+<l>    endfor</l>
+<l>    Message := [Message,String]</l>
+<l>endfor</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'Note that the last row of the matrix is not [0 0 0 1],'</l>
+<l>Message[9] := 'that means, the reconstruction can only be performed'</l>
+<l>Message[10] := 'up to a general 3D projective transformation.'</l>
+<l>Message[11] := 'Therefore, parallelism is not preserved in the'</l>
+<l>Message[12] := 'reconstruction.'</l>
+<l>Message[13] := ' '</l>
+<l>Message[14] := 'Maximum error between the transformed reconstructed'</l>
+<l>Message[15] := '3D points and the original 3D points:  ' + MaxErr$'10.4g'</l>
+<l>TextColor := replace(gen_tuple_const(|Message|,'black'),6,'red')</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, TextColor, 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Define a pose to visualize the projective reconstruction in the general</c>
+<c>* motion case. Note that the same camera parameters that were used to</c>
+<c>* visualize the original points above are also used here.</c>
+<l>create_pose (0.06, -0.055, 0.1, 130.0, 40.0, 160.0, 'Rp+T', 'gba', 'point', PoseDisp)</l>
+<l>Message := ['Reconstructed 3D points for general camera motion:','Note that the reconstructed planes are not parallel','and that the squares of the pyramid are reconstructed','as general quadrilaterals.']</l>
+<l>disp_points_3d_var_pose (WindowHandle, XR, YR, ZR, PoseDisp, CamParDisp, rad(30), rad(1.0), 'cyan', Message)</l>
+<l>project_3d_point_with_pose (CamParDisp, PoseDisp, XR, YR, ZR, RowsDisp, ColumnsDisp)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('cyan')</l>
+<l>disp_cross (WindowHandle, RowsDisp, ColumnsDisp, 6, 0)</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_pyramid_points_3d">
+<interface>
+<oc>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ExtentXY := 0.003</l>
+<l>ExtentZ := 0.002</l>
+<l>Num := 800</l>
+<l>X := gen_tuple_const(Num,0.0)</l>
+<l>Y := gen_tuple_const(Num,0.0)</l>
+<l>Z := gen_tuple_const(Num,0.0)</l>
+<l>for I := 0 to Num - 1 by 1</l>
+<l>    S := I / 200 + 1</l>
+<l>    J := I % 200</l>
+<l>    Q := J / 50</l>
+<l>    K := J % 50</l>
+<l>    if (Q == 0)</l>
+<l>        X[I] := S * ExtentXY</l>
+<l>        Y[I] := S * ExtentXY * (K - 25) / 25</l>
+<l>        Z[I] := S * ExtentZ</l>
+<l>    elseif (Q == 1)</l>
+<l>        X[I] := -S * ExtentXY * (K - 25) / 25</l>
+<l>        Y[I] := S * ExtentXY</l>
+<l>        Z[I] := S * ExtentZ</l>
+<l>    elseif (Q == 2)</l>
+<l>        X[I] := -S * ExtentXY</l>
+<l>        Y[I] := -S * ExtentXY * (K - 25) / 25</l>
+<l>        Z[I] := S * ExtentZ</l>
+<l>    elseif (Q == 3)</l>
+<l>        X[I] := S * ExtentXY * (K - 25) / 25</l>
+<l>        Y[I] := -S * ExtentXY</l>
+<l>        Z[I] := S * ExtentZ</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="create_pyramid_points_3d">
+<parameters>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="project_3d_point_with_pose">
+<interface>
+<ic>
+<par name="CamPar" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_cam_par_data (CamPar, 'kappa', Kappa)</l>
+<l>if (Kappa == 0)</l>
+<c>    * If the distortion is 0, this operator sequence is more efficient.</c>
+<l>    cam_par_pose_to_hom_mat3d (CamPar, Pose, ProjMat)</l>
+<l>    project_point_hom_mat3d (ProjMat, X, Y, Z, Column, Row)</l>
+<l>else</l>
+<c>    * If the distortion is not 0, we must use this operator sequence.</c>
+<l>    pose_to_hom_mat3d (Pose, HomMat)</l>
+<l>    affine_trans_point_3d (HomMat, X, Y, Z, XT, YT, ZT)</l>
+<l>    project_3d_point (XT, YT, ZT, CamPar, Row, Column)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="project_3d_point_with_pose">
+<parameters>
+<parameter id="CamPar"/>
+<parameter id="Column"/>
+<parameter id="Pose"/>
+<parameter id="Row"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_points_3d_var_pose">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+<par name="PoseCenter" base_type="ctrl" dimension="0"/>
+<par name="CamPar" base_type="ctrl" dimension="0"/>
+<par name="AngleDelta" base_type="ctrl" dimension="0"/>
+<par name="AngleIncr" base_type="ctrl" dimension="0"/>
+<par name="Color" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Time available for the complete visualization</c>
+<l>OverallTime := 4.0</l>
+<c>* </c>
+<c>* Open a buffer window</c>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>open_window (Row, Column, Width, Height, 0, 'buffer', '', WindowHandleBuffer)</l>
+<l>set_part (WindowHandleBuffer, Row1, Column1, Row2, Column2)</l>
+<l>set_display_font (WindowHandleBuffer, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Compute the spherical coordinates of the camera in the world</c>
+<l>pose_to_hom_mat3d (PoseCenter, HomMat3DDisp)</l>
+<l>hom_mat3d_invert (HomMat3DDisp, HomMat3DInvert)</l>
+<l>CamCenterX := HomMat3DInvert[3]</l>
+<l>CamCenterY := HomMat3DInvert[7]</l>
+<l>CamCenterZ := HomMat3DInvert[11]</l>
+<l>CamLookAtX := HomMat3DInvert[2] + CamCenterX</l>
+<l>CamLookAtY := HomMat3DInvert[6] + CamCenterY</l>
+<l>CamLookAtZ := HomMat3DInvert[10] + CamCenterZ</l>
+<l>PX := mean(X)</l>
+<l>PY := mean(Y)</l>
+<l>PZ := mean(Z)</l>
+<l>DX := CamLookAtX - CamCenterX</l>
+<l>DY := CamLookAtY - CamCenterY</l>
+<l>DZ := CamLookAtZ - CamCenterZ</l>
+<l>WX := PX - CamCenterX</l>
+<l>WY := PY - CamCenterY</l>
+<l>WZ := PZ - CamCenterZ</l>
+<l>Lamda := WX * DX + WY * DY + WZ * DZ</l>
+<l>DX := Lamda * DX</l>
+<l>DY := Lamda * DY</l>
+<l>DZ := Lamda * DZ</l>
+<l>CamLookAtX := CamCenterX + DX</l>
+<l>CamLookAtY := CamCenterY + DY</l>
+<l>CamLookAtZ := CamCenterZ + DZ</l>
+<c>* </c>
+<c>* Compute the camera roll angle</c>
+<l>ProjX := -HomMat3DInvert[6]</l>
+<l>ProjY := HomMat3DInvert[2]</l>
+<l>ProjLenInv := 1.0 / sqrt(ProjX * ProjX + ProjY * ProjY)</l>
+<l>ProjX := ProjX * ProjLenInv</l>
+<l>ProjY := ProjY * ProjLenInv</l>
+<l>CamRoll := acos(ProjX * HomMat3DInvert[0] + ProjY * HomMat3DInvert[4]) + rad(180)</l>
+<c>* </c>
+<c>* Display the points while slightly varying the pose</c>
+<l>convert_point_3d_cart_to_spher (-DX, -DY, -DZ, 'z', '-x', Longitude, Latitude, Radius)</l>
+<l>set_color (WindowHandleBuffer, Color)</l>
+<l>NumStep := 4 * AngleDelta / AngleIncr</l>
+<l>DeltaStep := rad(360) / NumStep</l>
+<l>TimePerLoop := OverallTime / NumStep</l>
+<l>for Index := 0 to NumStep - 1 by 1</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    IndexAngle := Index * DeltaStep</l>
+<l>    AngleDeltaI := AngleDelta * sin(IndexAngle)</l>
+<l>    LongitudeI := Longitude + AngleDeltaI</l>
+<l>    LatitudeI := max([min([Latitude + 0.5 * AngleDeltaI,rad(90)]),rad(-90)])</l>
+<l>    convert_point_3d_spher_to_cart (LongitudeI, LatitudeI, Radius, 'z', '-x', DiffRotX, DiffRotY, DiffRotZ)</l>
+<l>    CamCenterRotX := CamLookAtX + DiffRotX</l>
+<l>    CamCenterRotY := CamLookAtY + DiffRotY</l>
+<l>    CamCenterRotZ := CamLookAtZ + DiffRotZ</l>
+<l>    create_cam_pose_look_at_point (CamCenterRotX, CamCenterRotY, CamCenterRotZ, CamLookAtX, CamLookAtY, CamLookAtZ, 'z', CamRoll, CamPose)</l>
+<l>    project_3d_point_with_pose (CamPar, CamPose, X, Y, Z, RowsDisp, ColumnsDisp)</l>
+<l>    IdxVisible := find((-sgn(RowsDisp - Height + 1) - sgn(ColumnsDisp - Width + 1) + sgn(RowsDisp) + sgn(ColumnsDisp)) / 4,1)</l>
+<l>    RowsDisp := subset(RowsDisp,IdxVisible)</l>
+<l>    ColumnsDisp := subset(ColumnsDisp,IdxVisible)</l>
+<l>    clear_window (WindowHandleBuffer)</l>
+<l>    disp_cross (WindowHandleBuffer, RowsDisp, ColumnsDisp, 6, 0)</l>
+<l>    disp_message (WindowHandleBuffer, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    copy_rectangle (WindowHandleBuffer, WindowHandle, 0, 0, Height - 1, Width - 1, 0, 0)</l>
+<c>    * </c>
+<c>    * Obtain similar visualization speed on different machines</c>
+<l>    count_seconds (Seconds2)</l>
+<l>    DeltaTime := Seconds2 - Seconds1</l>
+<l>    wait_seconds (TimePerLoop - DeltaTime)</l>
+<l>endfor</l>
+<l>close_window (WindowHandleBuffer)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_points_3d_var_pose">
+<parameters>
+<parameter id="AngleDelta"/>
+<parameter id="AngleIncr"/>
+<parameter id="CamPar"/>
+<parameter id="Color"/>
+<parameter id="Message"/>
+<parameter id="PoseCenter"/>
+<parameter id="WindowHandle"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the distance between one line segment and one region</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>threshold (Image, Region, 180, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<c>* Select a region from image</c>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 100000000)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('black')</l>
+<l>dev_display (SelectedRegions)</l>
+<l>dev_set_color ('red')</l>
+<l>Row1 := 100</l>
+<l>Row2 := 400</l>
+<l>n := 0</l>
+<c>* Calculate the distance between the segment lines</c>
+<c>* and the displayed region</c>
+<l>for Col := 50 to 400 by 5</l>
+<l>    distance_sr (SelectedRegions, Row1 + n, Col, Row2 - n, Col + 100, DistanceMin, DistanceMax)</l>
+<l>    if (DistanceMin &lt;= 0)</l>
+<l>        dev_set_color ('green')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>    endif</l>
+<l>    disp_line (WindowID, Row1 + n, Col, Row2 - n, Col + 100)</l>
+<l>    n := n + 5</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

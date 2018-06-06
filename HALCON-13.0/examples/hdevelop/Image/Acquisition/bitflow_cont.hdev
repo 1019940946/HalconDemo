@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the parameterization of a BitFlow frame grabber board</c>
+<c>* (set up of 'continuous grabbing')</c>
+<c>* </c>
+<c>* Note, that you have to configure your board (via the tools of the BitFlow SDK) appropriately.</c>
+<c>* Please see also the HTML documentation of the HALCON BitFlow interface!</c>
+<c>* </c>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, 1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>set_framegrabber_param (AcqHandle, 'num_buffers', 5)</l>
+<l>set_framegrabber_param (AcqHandle, 'overwrite_method', 'ignore')</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c>* </c>
+<l>grab_image (Image1, AcqHandle)</l>
+<l>grab_image (Image2, AcqHandle)</l>
+<l>grab_image (Image3, AcqHandle)</l>
+<l>grab_image (Image4, AcqHandle)</l>
+<l>grab_image (Image5, AcqHandle)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'disable')</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

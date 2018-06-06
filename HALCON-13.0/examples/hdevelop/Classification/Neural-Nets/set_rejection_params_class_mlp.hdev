@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use a rejection class for</c>
+<c>* a MLP for classifying two-dimensional data.  2D data is used because</c>
+<c>* it can easily be visualized as regions and images.</c>
+<c>* Before training the MLP the operator set_rejection_params_class_mlp is</c>
+<c>* called to switch on the generation of a background class samples.</c>
+<c>* After training, the MLP is used for evaluation to determine the</c>
+<c>* probabilities of each class in the complete 2D feature space.  This is used to</c>
+<c>* create three probability images.  Furthermore, each point in the feature space</c>
+<c>* is classified to determine the most probable class for each point.</c>
+<c>* It can be seen that points that lie outside the convex hull of the training</c>
+<c>* samples will be assigned to the rejection class.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 199)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* Generate three ellipses as the regions from which the training samples are drawn.</c>
+<l>gen_ellipse (RegionClass1, 60, 60, rad(-45), 40, 20)</l>
+<l>gen_ellipse (RegionClass2, 70, 130, rad(-145), 40, 20)</l>
+<l>gen_ellipse (RegionClass3, 140, 100, rad(100), 35, 20)</l>
+<c>* Sample feature points from each region by segmenting a different noisy image</c>
+<c>* for each region and intersecting the segmented region with the class region.</c>
+<l>gen_image_const (Image, 'byte', 200, 200)</l>
+<l>add_noise_white (Image, ImageNoise1, 60)</l>
+<l>add_noise_white (Image, ImageNoise2, 60)</l>
+<l>add_noise_white (Image, ImageNoise3, 60)</l>
+<l>threshold (ImageNoise1, RegionNoise1, 40, 255)</l>
+<l>threshold (ImageNoise2, RegionNoise2, 40, 255)</l>
+<l>threshold (ImageNoise3, RegionNoise3, 40, 255)</l>
+<l>intersection (RegionClass1, RegionNoise1, SamplesClass1)</l>
+<l>intersection (RegionClass2, RegionNoise2, SamplesClass2)</l>
+<l>intersection (RegionClass3, RegionNoise3, SamplesClass3)</l>
+<c>* Display the samples of each class.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (SamplesClass1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SamplesClass2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (SamplesClass3)</l>
+<l>Message := 'Training samples of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Read out the sample points and add them as training samples to the MLP.</c>
+<l>concat_obj (SamplesClass1, SamplesClass2, Samples)</l>
+<l>concat_obj (Samples, SamplesClass3, Samples)</l>
+<c>* When creating the mlp classifier, an additional class must be added for</c>
+<c>* the rejection class. Thus, the NumOutput is set to 4 and not 3.</c>
+<l>create_class_mlp (2, 5, 4, 'softmax', 'normalization', 1, 42, MLPHandle)</l>
+<l>for Class := 0 to 2 by 1</l>
+<l>    select_obj (Samples, SamplesClass, Class + 1)</l>
+<l>    get_region_points (SamplesClass, Rows, Cols)</l>
+<l>    for J := 0 to |Rows| - 1 by 1</l>
+<l>        add_sample_class_mlp (MLPHandle, real([Rows[J],Cols[J]]), Class)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>get_sample_num_class_mlp (MLPHandle, NumSamples)</l>
+<c>* Set the rejection class sampling strategy to 'hyperbox_around_all_classes'.</c>
+<c>* It is instructive to try out different parameters of the rejection class.</c>
+<l>set_rejection_params_class_mlp (MLPHandle, 'sampling_strategy', 'hyperbox_around_all_classes')</l>
+<l>* set_rejection_params_class_mlp (MLPHandle, 'rejection_class_index', 3)</l>
+<l>* set_rejection_params_class_mlp (MLPHandle, 'hyperbox_tolerance', 0.1)</l>
+<l>* set_rejection_params_class_mlp (MLPHandle, 'rejection_sample_factor', 1.0)</l>
+<c>* Train the MLP.</c>
+<l>train_class_mlp (MLPHandle, 300, 0.01, 0.01, Error, ErrorLog)</l>
+<l>stop ()</l>
+<c>* Now determine the probability for the occurrence of each class for all points in</c>
+<c>* the 2D feature space and accumulate them in three real images.  Furthermore,</c>
+<c>* store the most likely class in a class label image.</c>
+<l>gen_image_const (ProbClass1, 'real', 200, 200)</l>
+<l>gen_image_const (ProbClass2, 'real', 200, 200)</l>
+<l>gen_image_const (ProbClass3, 'real', 200, 200)</l>
+<l>gen_image_const (LabelClass, 'byte', 200, 200)</l>
+<l>for R := 0 to 199 by 1</l>
+<l>    for C := 0 to 199 by 1</l>
+<l>        Features := real([R,C])</l>
+<l>        evaluate_class_mlp (MLPHandle, Features, Prob)</l>
+<l>        classify_class_mlp (MLPHandle, Features, 1, Class, Confidence)</l>
+<l>        set_grayval (ProbClass1, R, C, Prob[0])</l>
+<l>        set_grayval (ProbClass2, R, C, Prob[1])</l>
+<l>        set_grayval (ProbClass3, R, C, Prob[2])</l>
+<l>        set_grayval (LabelClass, R, C, Class)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>label_to_region (LabelClass, Classes)</l>
+<l>compose3 (ProbClass1, ProbClass2, ProbClass3, Probs)</l>
+<c>* Display the probabilities of each class.</c>
+<l>dev_display (ProbClass1)</l>
+<l>Message := 'Probability of class 1'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ProbClass2)</l>
+<l>Message := 'Probability of class 2'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ProbClass3)</l>
+<l>Message := 'Probability of class 3'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>stop ()</l>
+<c>* Display the probabilities of the three classes as an RGB image.</c>
+<l>dev_display (Probs)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClass1)</l>
+<l>dev_display (RegionClass2)</l>
+<l>dev_display (RegionClass3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>Message := 'Probabilities of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the most likely class for each point in the feature space.</c>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Classes)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClass1)</l>
+<l>dev_display (RegionClass2)</l>
+<l>dev_display (RegionClass3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>Message := 'Most probable classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>clear_class_mlp (MLPHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

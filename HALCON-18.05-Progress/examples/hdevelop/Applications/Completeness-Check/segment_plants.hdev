@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example segments plants in images taken under uncontrolled</c>
+<c>* conditions with varying background.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'plants/plants_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* Main loop</c>
+<l>NumImages := 6</l>
+<l>for I := 1 to NumImages by 1</l>
+<c>    * Read RGB image and transform to CIELab color space.</c>
+<l>    read_image (Image, 'plants/plants_' + I$'02')</l>
+<l>    decompose3 (Image, Red, Green, Blue)</l>
+<l>    trans_from_rgb (Red, Green, Blue, L, A, B, 'cielab')</l>
+<c>    * Segment stable regions in the a-channel</c>
+<c>    * (which corresponds to red-green variations within the image).</c>
+<c>    * 'may_touch_border' is set to 'true' to enable the extraction of plants</c>
+<c>    * at the image border.</c>
+<l>    segment_image_mser (A, MSERDark, MSERLight, 'dark', 60, 600000, 1, 'may_touch_border', 1)</l>
+<c>    * Only use regions with at least a little fraction of green.</c>
+<l>    threshold (A, TmpRegion1, 20, 110)</l>
+<l>    threshold (Green, TmpRegion2, 30, 255)</l>
+<l>    intersection (TmpRegion1, TmpRegion2, RegionGreen)</l>
+<l>    intersection (MSERDark, RegionGreen, RegionIntersection)</l>
+<c>    * Filter out noise.</c>
+<l>    select_shape (RegionIntersection, SelectedRegions, ['area','compactness'], 'or', [2500,0], [2500000,10])</l>
+<c>    * Eliminate overlaps.</c>
+<l>    union1 (SelectedRegions, RegionUnion)</l>
+<l>    connection (RegionUnion, RegionPlants)</l>
+<c>    * Display results.</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (RegionPlants)</l>
+<l>    dev_disp_text ('Segment plants ' + I + '/' + NumImages, 'window', 12, 12, 'black', [], [])</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

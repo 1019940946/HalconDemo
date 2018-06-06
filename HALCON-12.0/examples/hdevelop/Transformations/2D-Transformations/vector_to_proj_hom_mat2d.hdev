@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to rectify a part of an image using</c>
+<c>* vector_to_proj_hom_mat2d.  This is done by extracting the four</c>
+<c>* corners of a soccer field from an oblique view of a stadium.  The four</c>
+<c>* corners define a quadrilateral, which is then mapped to a rectangle</c>
+<c>* that has the correct aspect ratio.  If the dimensions of the field were</c>
+<c>* known metrically, the program could be extended to perform metric</c>
+<c>* measurements on the soccer field and stadium track.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'olympic_stadium')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Oblique view of stadium track and field', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Segment the field based on its green color and its shape.  This is done</c>
+<c>* most easily by using the Hue channel of the HSV transform of the image.</c>
+<l>decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<l>trans_from_rgb (ImageR, ImageG, ImageB, ImageH, ImageS, ImageV, 'hsv')</l>
+<l>threshold (ImageH, GreenRegion, 60, 90)</l>
+<l>connection (GreenRegion, ConnectedRegions)</l>
+<c>* Select the field region based on the fact that it is the largest component</c>
+<c>* that roughly looks like a rotated rectangle.</c>
+<l>select_shape_std (ConnectedRegions, RectangleRegions, 'rectangle2', 80)</l>
+<l>select_shape_std (RectangleRegions, Field, 'max_area', 90)</l>
+<c>* Construct a ROI for the color edge extraction from the boundary of the</c>
+<c>* segmented field.</c>
+<l>shape_trans (Field, FieldConvex, 'convex')</l>
+<l>boundary (FieldConvex, FieldBorder, 'inner')</l>
+<l>dilation_rectangle1 (FieldBorder, FieldDilation, 7, 7)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (FieldDilation)</l>
+<l>dev_set_draw ('fill')</l>
+<l>disp_message (WindowHandle, 'Field ROI based on color segmentation', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the color edge extraction.</c>
+<l>reduce_domain (Image, FieldDilation, ImageReduced)</l>
+<l>edges_color_sub_pix (ImageReduced, Edges, 'canny', 1.5, 20, 40)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Edges)</l>
+<l>disp_message (WindowHandle, 'Extracted color edges', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now select straight edges from the extracted edges and group them into</c>
+<c>* the four sides of the quadrilateral.</c>
+<l>select_shape_xld (Edges, SelectedEdges, 'contlength', 'and', 15, 500)</l>
+<c>* We first need to segment the edges into straight lines because the</c>
+<c>* extracted edges may represent more than one side of the quadrilateral.</c>
+<l>segment_contours_xld (SelectedEdges, ContoursSplit, 'lines', 5, 4, 2)</l>
+<l>regress_contours_xld (ContoursSplit, RegressContours, 'no', 1)</l>
+<c>* Weed out edges that are not straight enough.</c>
+<l>select_contours_xld (RegressContours, SelectedContours, 'curvature', 0, 0.5, 0, 0)</l>
+<c>* Select edges that are long enough to provide meaningful direction information.</c>
+<l>select_shape_xld (SelectedContours, SelectedEdges, 'contlength', 'and', 15, 500)</l>
+<c>* Group the straight lines into the quadrilateral's sides.</c>
+<l>union_collinear_contours_xld (SelectedEdges, UnionContours, 30, 1, 4, 0.1, 'attr_forget')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (UnionContours)</l>
+<l>disp_message (WindowHandle, 'Selected straight edges', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now we need to determine the order of the sides because we want to</c>
+<c>* intersect the sides to get the corners of the quadrilateral.  First, we</c>
+<c>* separate the sides into roughly horizontal and roughly vertical sides.</c>
+<l>select_shape_xld (UnionContours, HorizontalEdges, 'phi', 'and', rad(-20), rad(20))</l>
+<l>select_shape_xld (UnionContours, VerticalEdges, ['phi','phi'], 'or', [rad(-90),rad(60)], [rad(-60),rad(90)])</l>
+<c>* Now we need to order the sides.  The horizontal sides are sorted based on</c>
+<c>* their row coordinates, while the vertical sides are sorted based on their</c>
+<c>* column coordinates.</c>
+<l>fit_line_contour_xld (HorizontalEdges, 'tukey', -1, 0, 10, 2, RowBegHor, ColBegHor, RowEndHor, ColEndHor, NrHor, NcHor, DistHor)</l>
+<l>IndexHor := sort_index(RowBegHor)</l>
+<l>fit_line_contour_xld (VerticalEdges, 'tukey', -1, 0, 10, 2, RowBegVer, ColBegVer, RowEndVer, ColEndVer, NrVer, NcVer, DistVer)</l>
+<l>IndexVer := sort_index(ColBegVer)</l>
+<c>* After we have sorted the sides, we can intersect the appropriate sides</c>
+<c>* to get the four corners of the quadrilateral.</c>
+<l>intersection_lines (RowBegHor[IndexHor[0]], ColBegHor[IndexHor[0]], RowEndHor[IndexHor[0]], ColEndHor[IndexHor[0]], RowBegVer[IndexVer[0]], ColBegVer[IndexVer[0]], RowEndVer[IndexVer[0]], ColEndVer[IndexVer[0]], RowUL, ColUL, IsOverlapping)</l>
+<l>intersection_lines (RowBegHor[IndexHor[0]], ColBegHor[IndexHor[0]], RowEndHor[IndexHor[0]], ColEndHor[IndexHor[0]], RowBegVer[IndexVer[1]], ColBegVer[IndexVer[1]], RowEndVer[IndexVer[1]], ColEndVer[IndexVer[1]], RowUR, ColUR, IsOverlapping)</l>
+<l>intersection_lines (RowBegHor[IndexHor[1]], ColBegHor[IndexHor[1]], RowEndHor[IndexHor[1]], ColEndHor[IndexHor[1]], RowBegVer[IndexVer[0]], ColBegVer[IndexVer[0]], RowEndVer[IndexVer[0]], ColEndVer[IndexVer[0]], RowLL, ColLL, IsOverlapping)</l>
+<l>intersection_lines (RowBegHor[IndexHor[1]], ColBegHor[IndexHor[1]], RowEndHor[IndexHor[1]], ColEndHor[IndexHor[1]], RowBegVer[IndexVer[1]], ColBegVer[IndexVer[1]], RowEndVer[IndexVer[1]], ColEndVer[IndexVer[1]], RowLR, ColLR, IsOverlapping)</l>
+<c>* For visualization, we generate a contour that represents the fitted</c>
+<c>* quadrilateral, i.e., the field border.</c>
+<l>gen_contour_polygon_xld (FieldBorder, [RowUL,RowUR,RowLR,RowLL,RowUL], [ColUL,ColUR,ColLR,ColLL,ColUL])</l>
+<l>dev_display (Image)</l>
+<l>dev_display (FieldBorder)</l>
+<l>disp_message (WindowHandle, 'Fitted field borders (quadrilateral)', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now we can determine a projective transformation that will map our extracted</c>
+<c>* quadrilateral to a rectangle of given dimensions.  Note that we have to</c>
+<c>* add 0.5 to the coordinates to make the extracted pixel positions fit the</c>
+<c>* coordinate system that is used by perspective_trans_image.</c>
+<l>vector_to_proj_hom_mat2d ([RowUL,RowUR,RowLR,RowLL] + 0.5, [ColUL,ColUR,ColLR,ColLL] + 0.5, [160,160,340,340] + 0.5, [250,550,550,250] + 0.5, 'normalized_dlt', [], [], [], [], [], [], HomMat2D, Covariance)</l>
+<c>* Note that we could also use the following call to determine the transformation:</c>
+<l>* hom_vector_to_proj_hom_mat2d ([RowUL,RowUR,RowLR,RowLL] + 0.5, [ColUL,ColUR,ColLR,ColLL] + 0.5, [1,1,1,1], [160,160,340,340] + 0.5, [250,550,550,250] + 0.5, [1,1,1,1], 'normalized_dlt', HomMat2D)</l>
+<c>* Now we can map the image and the quadrilateral.</c>
+<l>projective_trans_image_size (Image, TransImage, HomMat2D, 'bilinear', 800, 500, 'false')</l>
+<l>projective_trans_contour_xld (FieldBorder, FieldBorderTrans, HomMat2D)</l>
+<l>dev_set_window_extents (-1, -1, 800, 500)</l>
+<l>dev_display (TransImage)</l>
+<l>dev_display (FieldBorderTrans)</l>
+<l>disp_message (WindowHandle, 'Rectified track and field:', 'image', 20, 10, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'virtual overhead view', 'image', 45, 10, 'black', 'true')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

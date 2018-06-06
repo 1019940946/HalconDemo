@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for accessing an OPC Classic device with the OPC_Classic I/O interface</c>
+<c>* (open an I/O device read the parameters of a node)</c>
+<c>* </c>
+<c>* This example demonstrates how to get information of the variables on the OPC</c>
+<c>* Server.</c>
+<c>* </c>
+<c>* The example uses the Kepware KEPServerEx Simulation driver. For your own server</c>
+<c>* access please adapt the following lines to specify your configuration. Please</c>
+<c>* check your OPC server for the current address where you can connect to it.</c>
+<l>MyOpcServerHost := 'localhost'</l>
+<l>MyOpcProgID := 'Kepware.KEPServerEX.V5'</l>
+<c>* </c>
+<l>MyOpcServer := 'opcda://' + MyOpcServerHost + '/' + MyOpcProgID</l>
+<c>* </c>
+<c>* Query the I/O interface version</c>
+<l>query_io_interface ('OPC_Classic', 'revision', GenParamValue)</l>
+<c>* </c>
+<c>* Open the connection to the server</c>
+<l>open_io_device ('OPC_Classic', MyOpcServer, [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* To access an OPC Classic variable, you need to open an I/O channel for it. In</c>
+<c>* order to open the I/O channel, you need to know the node Id. Here the sine wave</c>
+<c>* from the Kepware KEPServerEX Simulation Examples will be used.</c>
+<l>IOChannelName := 'Simulation Examples.Functions.Sine1'</l>
+<l>open_io_channel (IoDeviceHandle, IOChannelName, [], [], IoChannelHandle)</l>
+<l>get_io_channel_param (IoChannelHandle, 'param_name', GenParamName)</l>
+<c>* </c>
+<c>* Open a window handle to show the parameters and the values</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, max([512,(14 * |GenParamName|) + 20]), 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 11, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>for Index := 0 to |GenParamName| - 1 by 1</l>
+<l>    get_io_channel_param (IoChannelHandle, GenParamName[Index], InfoVar)</l>
+<c>    * </c>
+<l>    set_tposition (WindowHandle, (14 * Index) + 2, 10)</l>
+<l>    dev_set_color ('white')</l>
+<c>    * </c>
+<l>    write_string (WindowHandle, Index + ') ' + GenParamName[Index])</l>
+<l>    dev_set_color ('green')</l>
+<l>    write_string (WindowHandle, ': ' + InfoVar)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Close the connection to the channel</c>
+<l>close_io_channel (IoChannelHandle)</l>
+<c>* </c>
+<c>* Close the connection again</c>
+<l>close_io_device (IoDeviceHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

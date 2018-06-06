@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* close all active graphics windows</c>
+<c>* </c>
+<l>for i := 1 to 10 by 1</l>
+<l>    dev_close_window ()</l>
+<l>endfor</l>
+<l>read_image (For5, 'for5')</l>
+<c>* Access the pointer of a channel</c>
+<l>get_image_size (For5, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* Displays image objects in the current graphics window</c>
+<l>dev_display (For5)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

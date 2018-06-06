@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Extract depth using multiple focus levels</c>
+<c>* </c>
+<l>Names := []</l>
+<l>dev_close_window ()</l>
+<l>for i := 1 to 10 by 1</l>
+<l>    Names := [Names,'dff/focus_' + (i$'.2')]</l>
+<l>endfor</l>
+<l>read_image (Image, Names)</l>
+<l>channels_to_image (Image, Image)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* Access a channel of a multichannel image</c>
+<l>for i := 1 to 10 by 1</l>
+<l>    access_channel (Image, Image1, i)</l>
+<l>endfor</l>
+<l>depth_from_focus (Image, Depth, Confidence, 'highpass', 'next_maximum')</l>
+<c>* Smooth by averaging</c>
+<l>mean_image (Depth, DepthHighConf, 11, 11)</l>
+<l>scale_image_max (DepthHighConf, ImageScaleMax)</l>
+<l>mean_image (ImageScaleMax, DepthMean, 51, 51)</l>
+<l>threshold (DepthMean, Resistor, 158, 255)</l>
+<l>connection (Resistor, ConnectedRes)</l>
+<c>* Select regions of a given shape</c>
+<l>select_shape_std (ConnectedRes, FinalRes, 'max_area', 0)</l>
+<l>threshold (DepthMean, Solder, 125, 158)</l>
+<l>connection (Solder, ConnectedSol)</l>
+<l>select_shape_std (ConnectedSol, SelectedSol, 'max_area', 0)</l>
+<c>* Fill up holes</c>
+<l>fill_up (SelectedSol, FinalSol)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (FinalSol)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (FinalRes)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

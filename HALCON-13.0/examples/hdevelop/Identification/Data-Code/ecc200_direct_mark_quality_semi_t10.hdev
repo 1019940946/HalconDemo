@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***************************************************************</c>
+<c>* Example program that demonstrates the direct mark</c>
+<c>* quality values of an ECC 200 data code based on the</c>
+<c>* standard SEMI T10-0701.</c>
+<c>* ***************************************************************</c>
+<c>* For the 2D data code ECC 200, the direct mark quality is</c>
+<c>* described in a tuple with 21 elements:</c>
+<c>* - Coordinates of four data matrix corner points</c>
+<c>* - Number of rows</c>
+<c>* - Number of columns</c>
+<c>* - Symbol Contrast</c>
+<c>* - Symbol Contrast SNR</c>
+<c>* - Horizontal Mark Growth</c>
+<c>* - Vertical Mark Growth</c>
+<c>* - Data Matrix Cell Width</c>
+<c>* - Data Matrix Cell Height</c>
+<c>* - Horizontal Mark Misplacement</c>
+<c>* - Vertical Mark Misplacement</c>
+<c>* - Cell Defects</c>
+<c>* - Finder Pattern Defects</c>
+<c>* - Unused Error Correction</c>
+<c>* </c>
+<c>* This program adapts the image in several iteration steps to</c>
+<c>* simulate various qualities and investigates some of the</c>
+<c>* mentioned elements.</c>
+<c>* ****************************************************************</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Open the window in an appropriate size</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_print_quality_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Short description</c>
+<l>Message := 'This program demonstrates the'</l>
+<l>Message[1] := 'direct mark quality values of'</l>
+<l>Message[2] := 'ECC 200 data codes based on the'</l>
+<l>Message[3] := 'standard SEMI T10-0701.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Constants for quality value access</c>
+<c>* The values correspond to the position of the elements in the tuple</c>
+<l>CONTRAST := 10</l>
+<l>CONTRAST_SNR := 11</l>
+<l>CELL_WIDTH := 14</l>
+<l>HORIZONTAL_MARK := 16</l>
+<l>CELL_DEFECTS := 18</l>
+<l>FP_DEFECTS := 19</l>
+<l>UEC := 20</l>
+<l>Wait := .5</l>
+<c>* </c>
+<c>* Create a model of a 2D data code class</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Set the parameters to enhanced recognition mode</c>
+<l>set_data_code_2d_param (DataCodeHandle, 'default_parameters', 'enhanced_recognition')</l>
+<c>* Get the value labels of the direct mark quality elements (e.g., 'Contrast')</c>
+<l>get_data_code_2d_results (DataCodeHandle, 'general', 'quality_semi_t10_labels', Labels)</l>
+<c>* </c>
+<l>find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_semi_t10_values', QualityValues)</l>
+<l>RowP1 := int(QualityValues[0])</l>
+<l>ColumnP1 := int(QualityValues[1])</l>
+<l>dev_display (Image)</l>
+<l>Message := 'ECC 200 data matrix corner points:'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SymbolXLDs)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_cross_contour_xld (Cross, QualityValues[0], QualityValues[1], 20, 0.785398)</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'P1', 'image', QualityValues[0] - 15, QualityValues[1] - 20, 'black', 'true')</l>
+<l>gen_cross_contour_xld (Cross, QualityValues[2], QualityValues[3], 20, 0.785398)</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'P2', 'image', QualityValues[2] + 5, QualityValues[3] - 20, 'black', 'true')</l>
+<l>gen_cross_contour_xld (Cross, QualityValues[4], QualityValues[5], 20, 0.785398)</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'P3', 'image', QualityValues[4] + 5, QualityValues[5] + 5, 'black', 'true')</l>
+<l>gen_cross_contour_xld (Cross, QualityValues[6], QualityValues[7], 20, 0.785398)</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'P4', 'image', QualityValues[6] - 15, QualityValues[7] + 5, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Contrast:</c>
+<c>* ---------</c>
+<c>* Range between minimal and maximal pixel intensity</c>
+<l>for Index := 1 to 10 by 1</l>
+<c>    * Reduce the contrast in each iteration step a little more</c>
+<c>    * by scaling the gray values of the image</c>
+<l>    scale_image (Image, ImageScaled, 1.0 / Index * 1.15, Index * 20 - 50)</l>
+<c>    * Find the 2D data code symbol in the image with reduced contrast</c>
+<l>    find_data_code_2d (ImageScaled, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current direct mark quality values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_semi_t10_values', QualityValues)</l>
+<l>    dev_display (ImageScaled)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Display a message with the current contrast value</c>
+<l>    Message := Labels[CONTRAST] + ':  ' + QualityValues[CONTRAST]$'.2f' + '%'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Contrast SNR:</c>
+<c>* -------------</c>
+<c>* Measures the symbol contrast SNR of the amplitudes of the modules inside the symbol.</c>
+<c>* A high contrast SNR means big amplitudes and better assignment of modules.</c>
+<c>* </c>
+<c>* Define a rectangle in which the defect in the image is imitated</c>
+<l>gen_rectangle1 (Defect, 160, 220, 320, 335)</l>
+<c>* </c>
+<l>for Offset := 0 to 110 by 10</l>
+<c>    * Brighten the image in each iteration step a little more</c>
+<l>    scale_image (Image, ImageScaled, 1, Offset)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (ImageScaled)</l>
+<c>    * </c>
+<c>    * Reduce the domain of the brightened image to the predefined</c>
+<c>    * rectangle and then paint its gray values into the original</c>
+<c>    * image. This generates an image containing a rectangle in</c>
+<c>    * which the gray values become more and more brighter with</c>
+<c>    * every iteration step.</c>
+<l>    reduce_domain (ImageScaled, Defect, ImageReduced)</l>
+<l>    paint_gray (ImageReduced, Image, ImageModulation)</l>
+<c>    * Find the data code symbols in the generated image</c>
+<l>    find_data_code_2d (ImageModulation, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current direct mark quality values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_semi_t10_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageModulation)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Display a message with the current contrast SNR value</c>
+<l>    Message := Labels[CONTRAST_SNR] + ':  ' + QualityValues[CONTRAST_SNR]$'.2f'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Horizontal Mark Misplacement:</c>
+<c>* -----------------------------</c>
+<c>* Shift the horizontal alternating pattern and measure the horizontal mark misplacement</c>
+<l>hom_mat2d_identity (HomMat2D)</l>
+<l>copy_image (Image, ImageDeformed)</l>
+<c>* </c>
+<c>* Create a homogeneous 2D transformation matrix to translate the horizontal alternating pattern</c>
+<l>gen_rectangle1 (Rectangle, 127, 0, 137, Width)</l>
+<l>reduce_domain (ImageDeformed, Rectangle, ImageDeformed)</l>
+<l>hom_mat2d_translate (HomMat2D, 0.0, 0.5, HomMat2D)</l>
+<l>for Trans := 1 to 14 by 1</l>
+<l>    projective_trans_image (ImageDeformed, ImageDeformed, HomMat2D, 'bilinear', 'false', 'true')</l>
+<l>    paint_gray (ImageDeformed, Image, ImageDefect)</l>
+<c>    * Find the 2d data code symbol in the image with reduced contrast</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current direct mark quality values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_semi_t10_values', QualityValues)</l>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Display a message with the current horizontal mark misplacement value</c>
+<l>    Message := Labels[HORIZONTAL_MARK] + ':  ' + QualityValues[HORIZONTAL_MARK]$'.2f' + '%'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Finder Pattern Defects:</c>
+<c>* -----------------------</c>
+<c>* Generate and investigate an image with a damage at</c>
+<c>* the L-shape of the finder pattern</c>
+<l>data_matrix_cell_width := QualityValues[CELL_WIDTH]</l>
+<l>for NumModules := 0 to 10 by 1</l>
+<c>    * Generate an image with a damaged L-shape of the finder pattern</c>
+<c>    * by first creating a rectangle parallel to the coordinate axes</c>
+<c>    * and then painting it with gray value 0 into the image</c>
+<l>    gen_rectangle1 (Defect, 375, 171, 385, NumModules * data_matrix_cell_width + 171)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code in the image with damaged finder pattern</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current direct mark quality values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_semi_t10_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Display a message with the current finder pattern defects value</c>
+<l>    Message := Labels[FP_DEFECTS] + ':  ' + QualityValues[FP_DEFECTS]$'.2f' + '%'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Unused error correction and cell defects:</c>
+<c>* -----------------------------------------</c>
+<c>* Amount of error correcting capacities that are not already used.</c>
+<c>* This reflects the reliability of the decoding process.</c>
+<l>for NumModules := 1 to 18 by 1</l>
+<c>    * Generate an image with more defects for each iteration by</c>
+<c>    * creating a white rectangle inside the image, so that in</c>
+<c>    * each iteration the amount of unused error correction decreases.</c>
+<l>    gen_rectangle1 (Defect, 270, 171, 310, NumModules * data_matrix_cell_width + 171)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code in the image with defects</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current direct mark quality values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_semi_t10_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Display a message with the current unused error correction value</c>
+<l>    Message := Labels[UEC] + ':  ' + QualityValues[UEC]$'.2f' + '%'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Display a message with the current cell defects value</c>
+<l>    Message := Labels[CELL_DEFECTS] + ':  ' + QualityValues[CELL_DEFECTS]$'.2f' + '%'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 42, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<c>* </c>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

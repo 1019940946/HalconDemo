@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON SiliconSoftware Interface.</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>Num := 100</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>if (Width &lt;= 1000)</l>
+<l>    dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>else</l>
+<l>    dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>endif</l>
+<l>dev_display (Image)</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to Num by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>for i := 1 to Num by 1</l>
+<l>    sobel_amp (Image, EdgeAmplitude, 'sum_abs', 5)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds3)</l>
+<l>for i := 1 to Num by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    sobel_amp (Image, EdgeAmplitude, 'sum_abs', 5)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds4)</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>TimeGrab := (Seconds2 - Seconds1) / Num</l>
+<l>TimeSobel := (Seconds3 - Seconds2) / Num</l>
+<l>TimeAll := (Seconds4 - Seconds3) / Num</l>
+<l>Overhead := TimeAll - TimeSobel</l>
+<l>stop ()</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_image (Image, AcqHandle)</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

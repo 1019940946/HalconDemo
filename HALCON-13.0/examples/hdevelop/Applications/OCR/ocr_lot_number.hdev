@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the automatic text reader to detect and read dot print text.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image, 'ocr/lot_number_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* Create text model with dot print classifier and set parameter 'contains_dot_print' to</c>
+<c>* 'true' in order to find dot printed text.</c>
+<l>create_text_model_reader ('auto', 'Universal_0-9A-Z_Rej', TextModel)</l>
+<l>set_text_model_param (TextModel, 'dot_print', 'true')</l>
+<c>* </c>
+<c>* Increase min_contrast to eliminate the characters in the background</c>
+<c>* which show a lower contrast.</c>
+<l>set_text_model_param (TextModel, 'min_contrast', 40)</l>
+<c>* </c>
+<l>for Index := 1 to 12 by 1</l>
+<l>    read_image (Image, 'ocr/lot_number_' + Index$'.2')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Segmentation and classification of characters.</c>
+<l>    find_text (Image, TextModel, TextResultID)</l>
+<l>    get_text_object (Characters, TextResultID, 'all_lines')</l>
+<l>    get_text_result (TextResultID, 'class', Class)</l>
+<l>    clear_text_result (TextResultID)</l>
+<c>    * </c>
+<c>    * Display result.</c>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (Characters)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    disp_message (WindowHandle, 'Lot number: ' + sum(Class), 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index &lt; 12)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<l>clear_text_model (TextModel)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

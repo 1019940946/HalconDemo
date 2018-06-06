@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* clip.hdev: Orientation of clips</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Clip, 'clip')</l>
+<l>get_image_size (Clip, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>dev_display (Clip)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>binary_threshold (Clip, Dark, 'max_separability', 'dark', UsedThreshold)</l>
+<l>connection (Dark, Single)</l>
+<l>select_shape (Single, Selected, 'area', 'and', 5000, 10000)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Selected)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Clip)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Selected)</l>
+<l>orientation_region (Selected, Phi)</l>
+<l>area_center (Selected, Area, Row, Column)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>Length := 80</l>
+<l>dev_set_color ('blue')</l>
+<l>disp_arrow (WindowID, Row, Column, Row - Length * sin(Phi), Column + Length * cos(Phi), 4)</l>
+<l>disp_message (WindowID, deg(Phi)$'3.1f' + ' deg', 'image', Row, Column - 100, 'black', 'false')</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

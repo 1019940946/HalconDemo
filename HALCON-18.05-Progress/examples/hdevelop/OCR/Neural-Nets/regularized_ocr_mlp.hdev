@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows the benefits of regularizing an MLP and of the</c>
+<c>* automatic determination of the regularization parameters. It creates two</c>
+<c>* MLPs with too many hidden units to make the MLPs prone to overfitting.</c>
+<c>* The first MLP is trained without regularization, while the second MLP is</c>
+<c>* trained with regularization and the automatic determination of the</c>
+<c>* regularization parameters. Note that training the regularized MLP may</c>
+<c>* take more than 30 minutes, depending on the number of cores and speed of</c>
+<c>* your computer. The program will create test samples with heavy</c>
+<c>* distortions that are far outside the range of trained distortions to</c>
+<c>* test the generalization capabilities of the MLP and the regularized MLP.</c>
+<c>* If the respective MLP classifies the sample correctly, the class and its</c>
+<c>* confidence will be displayed. If the sample is classified incorrectly,</c>
+<c>* the first two classes and their confidences are displayed. You will see</c>
+<c>* that the unregularized MLP makes more errors than the regularized MLP.</c>
+<c>* Furthermore, when the unregularized MLP makes an error, the confidence</c>
+<c>* of the wrong result will often be very high. This indicates an</c>
+<c>* overfitting of the unregularized MLP. On the other hand, when the</c>
+<c>* regularized MLP makes an error, it typically returns an intuitive</c>
+<c>* confidence for the first and second class and the true class will be</c>
+<c>* contained in the first two classes. This indicates a much better</c>
+<c>* generalization capability of the regularized MLP.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 570, 600, 'black', WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>get_tmp_dir (TmpDir)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'This program shows the benefits of'</l>
+<l>Message[1] := 'regularizing an MLP and of the automatic'</l>
+<l>Message[2] := 'determination of the regularization'</l>
+<l>Message[3] := 'parameters. It creates two MLPs with too'</l>
+<l>Message[4] := 'many hidden units to make the MLPs prone'</l>
+<l>Message[5] := 'to overfitting. The first MLP is trained'</l>
+<l>Message[6] := 'without regularization, while the second'</l>
+<l>Message[7] := 'MLP is trained with regularization and'</l>
+<l>Message[8] := 'the automatic determination of the'</l>
+<l>Message[9] := 'regularization parameters. The program'</l>
+<l>Message[10] := 'will then test the generalization'</l>
+<l>Message[11] := 'capabilities of both MLPs based on'</l>
+<l>Message[12] := 'heavily distorted test samples.'</l>
+<l>Warning := 'Warning: F5 will start the regularization.'</l>
+<l>Warning[1] := ' '</l>
+<l>Warning[2] := 'This may take a while (up to hours)!'</l>
+<l>Warning[3] := 'On an Intel i5 (4 cores, 3.3GHz) expect'</l>
+<l>Warning[4] := 'about 15 minutes of calculation time.'</l>
+<l>Warning[5] := ' '</l>
+<l>Warning[6] := 'If you don\'t have the time now, please'</l>
+<l>Warning[7] := 'cancel the program and come back later.'</l>
+<l>Warning[8] := ' '</l>
+<l>Warning[9] := 'If you want to continue, press F5.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, Warning, 'window', 320, 12, 'white', 'red')</l>
+<l>stop ()</l>
+<l>TrainFile := TmpDir + '/letters.trf'</l>
+<l>TrainFileBig := TmpDir + '/letters_big1.trf'</l>
+<c>* Create the original training samples and store them in a train file.</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Creating initial samples... ', 'window', 12, 12, 'white', 'false')</l>
+<l>gen_initial_trainfile (TrainFile)</l>
+<c>* Now modify the original training samples to create a larger training set.</c>
+<l>disp_message (WindowHandle, 'Creating modified samples... ', 'window', 42, 12, 'white', 'false')</l>
+<l>read_ocr_trainf_names (TrainFile, CharClasses, CharCount)</l>
+<l>read_ocr_trainf (Characters, TrainFile, CharClassesSingle)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainFileBig)</l>
+<l>dev_set_check ('give_error')</l>
+<l>count_obj (Characters, NumChars)</l>
+<l>for J := 0 to NumChars - 1 by 1</l>
+<l>    select_obj (Characters, Char, J + 1)</l>
+<l>    Class := CharClassesSingle[J]</l>
+<l>    full_domain (Char, CharFull)</l>
+<l>    get_image_size (CharFull, Width, Height)</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    append_ocr_trainf (CharFull, CharFull, Class, TrainFileBig)</l>
+<l>    append_ocr_translated (CharFull, 1, 1, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, 1, 0, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, 1, -1, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, 0, -1, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, -1, -1, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, -1, 0, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, -1, 1, TrainFileBig, Class)</l>
+<l>    append_ocr_translated (CharFull, 0, 1, TrainFileBig, Class)</l>
+<l>    append_ocr_rotated (CharFull, 3, TrainFileBig, Class)</l>
+<l>    append_ocr_rotated (CharFull, -3, TrainFileBig, Class)</l>
+<l>    append_ocr_rotated (CharFull, 5, TrainFileBig, Class)</l>
+<l>    append_ocr_rotated (CharFull, -5, TrainFileBig, Class)</l>
+<l>    append_ocr_rotated (CharFull, 8, TrainFileBig, Class)</l>
+<l>    append_ocr_rotated (CharFull, -8, TrainFileBig, Class)</l>
+<l>    append_ocr_eroded (CharFull, 1.2, TrainFileBig, Class)</l>
+<l>    append_ocr_eroded (CharFull, 1.5, TrainFileBig, Class)</l>
+<l>    append_ocr_dilated (CharFull, 1.2, TrainFileBig, Class)</l>
+<l>    append_ocr_dilated (CharFull, 1.5, TrainFileBig, Class)</l>
+<l>endfor</l>
+<c>* Train the MLP classifiers.</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Training MLP... ', 'window', 12, 12, 'white', 'false')</l>
+<l>create_ocr_class_mlp (8, 10, 'constant', 'pixel_invar', CharClasses, 30, 'none', 10, 42, OCRHandleMLP)</l>
+<l>count_seconds (S1)</l>
+<l>trainf_ocr_class_mlp (OCRHandleMLP, TrainFileBig, 200, 1, 0.01, Error, ErrorLog)</l>
+<l>count_seconds (S2)</l>
+<l>disp_message (WindowHandle, 'Training MLP... ' + (S2 - S1)$'5.2f' + 's', 'window', 12, 12, 'green', 'false')</l>
+<l>disp_message (WindowHandle, 'Training regularized MLP... ', 'window', 50, 12, 'white', 'false')</l>
+<l>create_ocr_class_mlp (8, 10, 'constant', 'pixel_invar', CharClasses, 30, 'none', 10, 42, OCRHandleMLPReg)</l>
+<l>set_regularization_params_ocr_class_mlp (OCRHandleMLPReg, 'weight_prior', [0.01,0.01,0.01,0.01])</l>
+<l>set_regularization_params_ocr_class_mlp (OCRHandleMLPReg, 'num_outer_iterations', 5)</l>
+<l>count_seconds (S1)</l>
+<c>* Train the classifier.</c>
+<l>trainf_ocr_class_mlp (OCRHandleMLPReg, TrainFileBig, 200, 1, 0.01, Error, ErrorLog)</l>
+<c>* Read out the regularization parameters</c>
+<l>get_regularization_params_ocr_class_mlp (OCRHandleMLPReg, 'weight_prior', WeightPrior)</l>
+<l>count_seconds (S2)</l>
+<l>disp_message (WindowHandle, 'Training regularized MLP... ' + (S2 - S1)$'5.2f' + 's', 'window', 50, 12, 'green', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'The program will now create test samples'</l>
+<l>Message[1] := 'with heavy distortions that are far'</l>
+<l>Message[2] := 'outside the range of trained distortions'</l>
+<l>Message[3] := 'to test the generalization capabilities'</l>
+<l>Message[4] := 'of the MLP and the regularized MLP. If'</l>
+<l>Message[5] := 'the respective MLP classifies the sample'</l>
+<l>Message[6] := 'correctly, the class and its confidence'</l>
+<l>Message[7] := 'will be displayed. If the sample is'</l>
+<l>Message[8] := 'classified incorrectly, the first two'</l>
+<l>Message[9] := 'classes and their confidences are'</l>
+<l>Message[10] := 'displayed. You will see that the'</l>
+<l>Message[11] := 'unregularized MLP makes more errors than'</l>
+<l>Message[12] := 'the regularized MLP. Furthermore, when'</l>
+<l>Message[13] := 'the unregularized MLP makes an error, the'</l>
+<l>Message[14] := 'confidence of the wrong result will often'</l>
+<l>Message[15] := 'be very high. This indicates an'</l>
+<l>Message[16] := 'overfitting of the unregularized MLP. On'</l>
+<l>Message[17] := 'the other hand, when the regularized MLP'</l>
+<l>Message[18] := 'makes an error, it typically returns an'</l>
+<l>Message[19] := 'intuitive confidence for the first and'</l>
+<l>Message[20] := 'second class and the true class will be'</l>
+<l>Message[21] := 'contained in the first two classes. This'</l>
+<l>Message[22] := 'indicates a much better generalization'</l>
+<l>Message[23] := 'capability of the regularized MLP.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now introduce heavy distortions into the characters and determine the</c>
+<c>* error rates.</c>
+<l>NumDistort := 10</l>
+<l>ErrorsMLP := 0</l>
+<l>ErrorsMLPR := 0</l>
+<l>for J := 0 to NumChars - 1 by 1</l>
+<l>    select_obj (Characters, Char, J + 1)</l>
+<l>    Class := CharClassesSingle[J]</l>
+<l>    full_domain (Char, CharFull)</l>
+<l>    get_image_size (CharFull, Width, Height)</l>
+<l>    Num := max([J * NumDistort,1])</l>
+<l>    gen_empty_obj (Chars)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        gen_distorted_character (CharFull, CharDistort)</l>
+<l>        concat_obj (Chars, CharDistort, Chars)</l>
+<l>    endfor</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        Error := false</l>
+<l>        select_obj (Chars, CharDistort, K)</l>
+<l>        dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>        dev_display (CharDistort)</l>
+<l>        do_ocr_single_class_mlp (CharDistort, CharDistort, OCRHandleMLP, 2, ClassRes, Confidence)</l>
+<l>        if (ClassRes[0] != Class)</l>
+<l>            ErrorsMLP := ErrorsMLP + 1</l>
+<l>            Error := true</l>
+<l>            disp_message (WindowHandle, 'MLP:      ' + ClassRes[0] + ' (' + Confidence[0]$'5.3f' + ') ' + ClassRes[1] + ' (' + Confidence[1]$'5.3f' + ')', 'window', 12, 12, 'white', 'red')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle, 'MLP:      ' + ClassRes[0] + ' (' + Confidence[0]$'5.3f' + ')', 'window', 12, 12, 'white', 'forest green')</l>
+<l>        endif</l>
+<l>        do_ocr_single_class_mlp (CharDistort, CharDistort, OCRHandleMLPReg, 2, ClassRes, Confidence)</l>
+<l>        if (ClassRes[0] != Class)</l>
+<l>            ErrorsMLPR := ErrorsMLPR + 1</l>
+<l>            Error := true</l>
+<l>            disp_message (WindowHandle, 'Reg. MLP: ' + ClassRes[0] + ' (' + Confidence[0]$'5.3f' + ') ' + ClassRes[1] + ' (' + Confidence[1]$'5.3f' + ')', 'window', 50, 12, 'white', 'red')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle, 'Reg. MLP: ' + ClassRes[0] + ' (' + Confidence[0]$'5.3f' + ')', 'window', 50, 12, 'white', 'forest green')</l>
+<l>        endif</l>
+<l>        if (Error)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        else</l>
+<l>            wait_seconds (0.02)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>Num := NumChars * NumDistort</l>
+<l>disp_message (WindowHandle, 'MLP:      Errors: ' + (real(ErrorsMLP) / Num * 100)$'5.3f' + '%', 'window', 12, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, 'Reg. MLP: Errors: ' + (real(ErrorsMLPR) / Num * 100)$'5.3f' + '%', 'window', 50, 12, 'white', 'false')</l>
+<l>stop ()</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainFile)</l>
+<l>delete_file (TrainFileBig)</l>
+<l>dev_set_check ('give_error')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="append_ocr_translated">
+<interface>
+<io>
+<par name="Character" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="FileName" base_type="ctrl" dimension="0"/>
+<par name="Class" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, Row, Column, HomMat2DTranslate)</l>
+<l>affine_trans_image (Character, CharacterTrans, HomMat2DTranslate, 'constant', 'false')</l>
+<l>expand_domain_gray (CharacterTrans, CharacterExpanded, 1)</l>
+<l>append_ocr_trainf (CharacterExpanded, CharacterExpanded, Class, FileName)</l>
+<l>return ()</l>
+</body>
+<docu id="append_ocr_translated">
+<parameters>
+<parameter id="Character"/>
+<parameter id="Class"/>
+<parameter id="Column"/>
+<parameter id="FileName"/>
+<parameter id="Row"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="append_ocr_rotated">
+<interface>
+<io>
+<par name="Character" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Rot" base_type="ctrl" dimension="0"/>
+<par name="TrainFile" base_type="ctrl" dimension="0"/>
+<par name="Class" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>rotate_image (Character, CharacterRotated, Rot, 'weighted')</l>
+<l>expand_domain_gray (CharacterRotated, CharacterExpanded, 2)</l>
+<l>append_ocr_trainf (CharacterExpanded, CharacterExpanded, Class, TrainFile)</l>
+<l>return ()</l>
+</body>
+<docu id="append_ocr_rotated">
+<parameters>
+<parameter id="Character"/>
+<parameter id="Class"/>
+<parameter id="Rot"/>
+<parameter id="TrainFile"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="append_ocr_dilated">
+<interface>
+<io>
+<par name="Character" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="MaskSize" base_type="ctrl" dimension="0"/>
+<par name="TrainFile" base_type="ctrl" dimension="0"/>
+<par name="Class" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gray_dilation_shape (Character, CharacterDilated, MaskSize, MaskSize, 'rhombus')</l>
+<l>append_ocr_trainf (CharacterDilated, CharacterDilated, Class, TrainFile)</l>
+<l>return ()</l>
+</body>
+<docu id="append_ocr_dilated">
+<parameters>
+<parameter id="Character"/>
+<parameter id="Class"/>
+<parameter id="MaskSize"/>
+<parameter id="TrainFile"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="append_ocr_eroded">
+<interface>
+<io>
+<par name="Character" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="MaskSize" base_type="ctrl" dimension="0"/>
+<par name="TrainFile" base_type="ctrl" dimension="0"/>
+<par name="Class" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gray_erosion_shape (Character, CharacterEroded, MaskSize, MaskSize, 'rhombus')</l>
+<l>append_ocr_trainf (CharacterEroded, CharacterEroded, Class, TrainFile)</l>
+<l>return ()</l>
+</body>
+<docu id="append_ocr_eroded">
+<parameters>
+<parameter id="Character"/>
+<parameter id="Class"/>
+<parameter id="MaskSize"/>
+<parameter id="TrainFile"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_distorted_character">
+<interface>
+<io>
+<par name="Char" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="CharDistort" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_image_size (Char, Width, Height)</l>
+<l>EroDil := rand(1) * 4 - 2</l>
+<l>if (EroDil &lt; 0)</l>
+<l>    gray_erosion_shape (Char, CharEroDil, 1 - EroDil, 1 - EroDil, 'rhombus')</l>
+<l>else</l>
+<l>    gray_dilation_shape (Char, CharEroDil, 1 + EroDil, 1 + EroDil, 'rhombus')</l>
+<l>endif</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(rand(1) * 20 - 10), Height / 2, Width / 2, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, rand(1) * 2 - 1, rand(1) * 2 - 1, HomMat2DTranslate)</l>
+<l>affine_trans_image (CharEroDil, CharTrans, HomMat2DTranslate, 'constant', 'false')</l>
+<l>expand_domain_gray (CharTrans, CharExpanded, 2)</l>
+<l>gen_image_proto (CharExpanded, ImageBlank, 128)</l>
+<l>add_noise_white (ImageBlank, ImageNoise, 60)</l>
+<l>smooth_image (ImageNoise, ImageSmooth, 'gauss', 1)</l>
+<l>scale_image (ImageSmooth, ImageScaled, 3, -256)</l>
+<l>add_image (CharExpanded, ImageScaled, CharDistort, 1, -128)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_distorted_character">
+<parameters>
+<parameter id="Char"/>
+<parameter id="CharDistort"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_initial_trainfile">
+<interface>
+<ic>
+<par name="TrainFileName" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>read_image (Image, 'letters')</l>
+<c>* Segment the image.</c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>* Connect the i's and j's with their dots.</c>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<c>* Compute the correct connected components.</c>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<c>* Reduce each connected component (character) to its original shape.</c>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<c>* Sort the characters line-by-line.</c>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<c>* Compute the true class of each character.</c>
+<l>count_obj (Characters, Number)</l>
+<l>Classes := []</l>
+<l>for J := 0 to 25 by 1</l>
+<l>    Classes := [Classes,gen_tuple_const(20,chr(ord('a') + J))]</l>
+<l>endfor</l>
+<l>Classes := [Classes,gen_tuple_const(20,'.')]</l>
+<c>* Construct the necessary training file from the segmented characters.</c>
+<l>write_ocr_trainf (Characters, Image, Classes, TrainFileName)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_initial_trainfile">
+<parameters>
+<parameter id="TrainFileName"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_tmp_dir">
+<interface>
+<oc>
+<par name="LocalTemp" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_environment ('TEMP', LocalTemp)</l>
+<l>if (LocalTemp == '')</l>
+<l>    tuple_environment ('TMP', LocalTemp)</l>
+<l>    if (LocalTemp == '')</l>
+<l>        file_exists ('/tmp', FileExists)</l>
+<l>        if (FileExists)</l>
+<l>            LocalTemp := '/tmp'</l>
+<l>        else</l>
+<l>            LocalTemp := './'</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_tmp_dir">
+<parameters>
+<parameter id="LocalTemp"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

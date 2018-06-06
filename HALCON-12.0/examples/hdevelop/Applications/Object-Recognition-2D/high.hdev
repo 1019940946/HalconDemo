@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Different methods to extract high objects</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<c>* Read DTM and gray image</c>
+<l>read_image (Mreut, 'mreut_y')</l>
+<l>get_image_size (Mreut, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>read_image (MreutDem, 'mreut_dgm_2.0')</l>
+<l>scale_image_max (MreutDem, ImageScaleMax)</l>
+<c>* Initialize parameters</c>
+<l>get_system ('clip_region', Information)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<c>* Method 1: dual rank</c>
+<l>dual_rank (ImageScaleMax, ImageRank, 'circle', 15, 10, 'mirrored')</l>
+<l>sub_image (ImageScaleMax, ImageRank, ImageSubRank, 1, 0)</l>
+<l>threshold (ImageSubRank, High, 7, 255)</l>
+<l>zoom_region (High, HighZoomed, 8, 8)</l>
+<l>move_region (HighZoomed, HighZoomedMoved, -250, -600)</l>
+<l>clip_region (HighZoomedMoved, HighAreas, 0, 0, 511, 511)</l>
+<l>dev_display (Mreut)</l>
+<l>dev_display (HighAreas)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Method 2: top hat</c>
+<l>gen_disc_se (SE, 'real', 30, 30, 0)</l>
+<l>gray_tophat (MreutDem, SE, ImageTopHat)</l>
+<l>threshold (ImageTopHat, High, 4, 1000)</l>
+<l>zoom_region (High, HighZoomed, 8, 8)</l>
+<l>move_region (HighZoomed, HighZoomedMoved, -250, -600)</l>
+<l>clip_region (HighZoomedMoved, HighAreas, 0, 0, 511, 511)</l>
+<l>dev_display (Mreut)</l>
+<l>dev_display (HighAreas)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Method 3: dynamic threshold</c>
+<l>mean_image (ImageScaleMax, ImageMean, 51, 51)</l>
+<l>dyn_threshold (ImageScaleMax, ImageMean, High, 4, 'light')</l>
+<l>zoom_region (High, HighZoomed, 8, 8)</l>
+<l>move_region (HighZoomed, HighZoomedMoved, -250, -600)</l>
+<l>clip_region (HighZoomedMoved, HighAreas, 0, 0, 511, 511)</l>
+<l>dev_display (Mreut)</l>
+<l>dev_display (HighAreas)</l>
+<l>set_system ('clip_region', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

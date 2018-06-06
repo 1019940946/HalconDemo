@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program for the usage of the operators</c>
+<c>* set_bar_code_param_specific and get_bar_code_param_specific.</c>
+<c>* </c>
+<c>* In this example we want to decode two bar codes in one</c>
+<c>* image simultaneously but we demand that the EAN-13 code</c>
+<c>* is approximately vertical whereas the Code 39 code is</c>
+<c>* approximately horizontal.</c>
+<c>* </c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Create bar code reader model</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Define example images to use</c>
+<l>ExampleImage := 'barcode/mixed/barcode_mixed_02'</l>
+<c>* </c>
+<c>* Read and show the image, set a few display parameters</c>
+<l>read_image (Image, ExampleImage)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Set the decoding parameters</c>
+<l>CodeTypes := ['EAN-13','Code 39']</l>
+<l>AllowedOrientations := [90.0,0.0]</l>
+<l>AllowedOrientationsWrong := [45.0,0.0]</l>
+<c>* </c>
+<c>* As we supply two bar code types and two allowed</c>
+<c>* orientations we set the allowed orientations for both bar</c>
+<c>* code types differently</c>
+<l>set_bar_code_param_specific (BarCodeHandle, CodeTypes, 'orientation', AllowedOrientations)</l>
+<c>* </c>
+<c>* As we supply two bar code types but only one value, we set the</c>
+<c>* tolerance for the orientation to the same value for both</c>
+<c>* types</c>
+<l>set_bar_code_param_specific (BarCodeHandle, CodeTypes, 'orientation_tol', 10.0)</l>
+<c>* </c>
+<c>* Find bar codes with the specified orientations only</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeTypes, DecodedDataStrings)</l>
+<l>dev_display (SymbolRegions)</l>
+<c>* </c>
+<c>* For demonstration, read out the allowed orientations again</c>
+<c>* (the result should correspond to the orientations set before)</c>
+<l>get_bar_code_param_specific (BarCodeHandle, CodeTypes, 'orientation', AllowedOrientationsGot)</l>
+<l>get_bar_code_param_specific (BarCodeHandle, CodeTypes, 'orientation_tol', AllowedTolerancesGot)</l>
+<c>* </c>
+<c>* Display which orientations were allowed</c>
+<l>disp_message (WindowHandle, 'Allowed orientations (correct orientation for both bar codes)', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, CodeTypes[0] + ' ' + AllowedOrientationsGot[0] + '(+-' + AllowedTolerancesGot[0] + ') degrees', 'image', 70, 500, 'black', 'true')</l>
+<l>disp_message (WindowHandle, CodeTypes[1] + ' ' + AllowedOrientationsGot[1] + '(+-' + AllowedTolerancesGot[1] + ') degrees', 'image', 360, 20, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Now simulate the case that the orientations do not fit</c>
+<l>set_bar_code_param_specific (BarCodeHandle, CodeTypes, 'orientation', AllowedOrientationsWrong)</l>
+<c>* </c>
+<c>* Find bar codes with the specified orientations only. The EAN-13 code</c>
+<c>* does not have an orientation of 45 degrees and will not be decoded</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeTypes, DecodedDataStrings)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SymbolRegions)</l>
+<c>* </c>
+<c>* Display which orientations were allowed</c>
+<l>disp_message (WindowHandle, 'Allowed orientations (wrong orientation of EAN-13 code)', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, CodeTypes[0] + ' ' + AllowedOrientationsWrong[0] + '(+-' + AllowedTolerancesGot[0] + ') degrees', 'image', 70, 500, 'black', 'true')</l>
+<l>disp_message (WindowHandle, CodeTypes[1] + ' ' + AllowedOrientationsGot[1] + '(+-' + AllowedTolerancesGot[1] + ') degrees', 'image', 360, 20, 'black', 'true')</l>
+<c>* </c>
+<c>* Close the bar code reader</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example compares the performance of pretrained</c>
+<c>* MLP and CNN fonts on artificially distorted characters.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'letters')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>read_ocr_class_mlp ('Industrial_NoRej', OCRHandleMLP)</l>
+<l>read_ocr_class_cnn ('Universal_NoRej.occ', OCRHandleCNN)</l>
+<c>* </c>
+<c>* Segment characters.</c>
+<l>binary_threshold (Image, DarkRegion, 'max_separability', 'dark', UsedThreshold)</l>
+<l>dilation_circle (DarkRegion, CharRegion, 2.500000)</l>
+<l>connection (CharRegion, CharConnected)</l>
+<l>intersection (CharConnected, DarkRegion, CharOrig)</l>
+<l>sort_region (CharOrig, Characters, 'character', 'true', 'row')</l>
+<c>* </c>
+<c>* Compute the true class of each character.</c>
+<l>count_obj (Characters, Number)</l>
+<l>Length := Number / 27</l>
+<l>Classes := []</l>
+<l>for J := 0 to 25 by 1</l>
+<l>    Classes := [Classes,gen_tuple_const(Length,chr(ord('a') + J))]</l>
+<l>endfor</l>
+<l>Classes := [Classes,gen_tuple_const(Length,'.')]</l>
+<c>* </c>
+<c>* Display original characters before distortion.</c>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_display (Characters)</l>
+<l>dev_disp_text (['Read distorted variants of the shown characters','with pretrained MLP and CNN fonts.'], 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<c>* Now introduce heavy distortions into the characters and determine the error</c>
+<c>* rates and classification times.</c>
+<l>NumDistort := 10</l>
+<l>ErrorsCNN := 0</l>
+<l>ErrorsMLP := 0</l>
+<l>TimeCNN := 0</l>
+<l>TimeMLP := 0</l>
+<l>Num := 0</l>
+<l>for J := 0 to |Classes| - 1 by 1</l>
+<c>    * Introduce distortions to selected character.</c>
+<l>    select_obj (Characters, Char, J + 1)</l>
+<l>    shape_trans (Char, RegionTrans, 'rectangle1')</l>
+<l>    dilation_rectangle1 (RegionTrans, RegionDilation, 5, 5)</l>
+<l>    reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>    crop_domain (ImageReduced, ImageChar)</l>
+<l>    Class := Classes[J]</l>
+<l>    get_image_size (ImageChar, Width, Height)</l>
+<l>    gen_empty_obj (CharRegions)</l>
+<l>    gen_empty_obj (CharImages)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        gen_distorted_character (ImageChar, ImageCharDistort)</l>
+<l>        concat_obj (CharImages, ImageCharDistort, CharImages)</l>
+<l>        binary_threshold (ImageCharDistort, DarkRegion, 'max_separability', 'dark', UsedThreshold)</l>
+<l>        concat_obj (CharRegions, DarkRegion, CharRegions)</l>
+<l>    endfor</l>
+<c>    * Read distorted characters with CNN font.</c>
+<l>    ErrorBefore := ErrorsCNN</l>
+<l>    count_seconds (S1)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        select_obj (CharImages, CharImage, K)</l>
+<l>        select_obj (CharRegions, CharRegion, K)</l>
+<l>        do_ocr_word_cnn (CharRegion, CharImage, OCRHandleCNN, '[a-z.]', 3, 2, ClassRead, Confidence, ClassCorrectedReadCNN, Score)</l>
+<l>        if (ClassCorrectedReadCNN != Class)</l>
+<l>            ErrorsCNN := ErrorsCNN + 1</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    if (ErrorBefore == ErrorsCNN)</l>
+<l>        ColorCNN := 'forest green'</l>
+<l>    else</l>
+<l>        ColorCNN := 'red'</l>
+<l>    endif</l>
+<l>    TimeCNN := TimeCNN + S2 - S1</l>
+<c>    * Read distorted characters with MLP font.</c>
+<l>    ErrorBefore := ErrorsMLP</l>
+<l>    count_seconds (S1)</l>
+<l>    for K := 1 to NumDistort by 1</l>
+<l>        select_obj (CharImages, CharImage, K)</l>
+<l>        select_obj (CharRegions, CharRegion, K)</l>
+<l>        do_ocr_word_mlp (CharRegion, CharImage, OCRHandleMLP, '[a-z.]', 3, 2, ClassRead, Confidence, ClassCorrectedReadMLP, Score)</l>
+<l>        if (ClassCorrectedReadMLP != Class)</l>
+<l>            ErrorsMLP := ErrorsMLP + 1</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    count_seconds (S2)</l>
+<l>    if (ErrorBefore == ErrorsMLP)</l>
+<l>        ColorMLP := 'forest green'</l>
+<l>    else</l>
+<l>        ColorMLP := 'red'</l>
+<l>    endif</l>
+<l>    TimeMLP := TimeMLP + S2 - S1</l>
+<c>    * </c>
+<c>    * Display results.</c>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (ImageCharDistort)</l>
+<l>    dev_set_part (0, 0, 499, 499)</l>
+<l>    Num := Num + NumDistort</l>
+<l>    Text := 'Classifier    Mean reading time    Errors'</l>
+<l>    Text[1] := ' CNN ' + (TimeCNN / Num * 1000)$'15.2f' + ' ms ' + (real(ErrorsCNN) / Num * 100)$'15.2f' + ' %'</l>
+<l>    Text[2] := ' MLP ' + (TimeMLP / Num * 1000)$'15.2f' + ' ms ' + (real(ErrorsMLP) / Num * 100)$'15.2f' + ' %'</l>
+<l>    dev_disp_text (Text, 'window', 'top', 'left', ['black',ColorCNN,ColorMLP], [], [])</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>Text := ['Final result:\n',Text]</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>stop ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_distorted_character">
+<interface>
+<io>
+<par name="ImageChar" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageCharDistort" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_image_size (ImageChar, Width, Height)</l>
+<l>EroDil := rand(1) * 4 - 2</l>
+<l>if (EroDil &lt; 0)</l>
+<l>    gray_erosion_shape (ImageChar, CharEroDil, 1 - EroDil, 1 - EroDil, 'rhombus')</l>
+<l>else</l>
+<l>    gray_dilation_shape (ImageChar, CharEroDil, 1 + EroDil, 1 + EroDil, 'rhombus')</l>
+<l>endif</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(rand(1) * 20 - 10), Height / 2, Width / 2, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, rand(1) * 2 - 1, rand(1) * 2 - 1, HomMat2DTranslate)</l>
+<l>affine_trans_image (CharEroDil, CharTrans, HomMat2DTranslate, 'constant', 'false')</l>
+<l>expand_domain_gray (CharTrans, CharExpanded, 2)</l>
+<l>gen_image_proto (CharExpanded, ImageBlank, 128)</l>
+<l>add_noise_white (ImageBlank, ImageNoise, 60)</l>
+<l>smooth_image (ImageNoise, ImageSmooth, 'gauss', 1)</l>
+<l>scale_image (ImageSmooth, ImageScaled, 3, -256)</l>
+<l>add_image (CharExpanded, ImageScaled, ImageCharDistort, 1, -128)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_distorted_character">
+<parameters>
+<parameter id="ImageChar">
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="ImageCharDistort">
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

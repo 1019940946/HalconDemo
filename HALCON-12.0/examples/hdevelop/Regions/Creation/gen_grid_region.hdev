@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Create a region from lines or pixels</c>
+<c>* </c>
+<l>read_image (Image, 'particle')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>Gap := 10</l>
+<l>gen_grid_region (RegionGrid, Gap, Gap, 'lines', Width, Height)</l>
+<c>* Reduce the domain of the image</c>
+<l>reduce_domain (Image, RegionGrid, ImageReduced)</l>
+<c>* Select gray values lying within an interval</c>
+<l>threshold (ImageReduced, Region, 100, 255)</l>
+<l>dilation_rectangle1 (Region, RegionDilation, Gap, Gap)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced2)</l>
+<l>threshold (ImageReduced2, Region, 100, 255)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

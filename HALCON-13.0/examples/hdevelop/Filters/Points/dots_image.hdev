@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use dots_image to segment a dot print.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'needle1')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* Since the needle1 image would be fairly easy to segment, we will make life a</c>
+<c>* little harder by adding a background texture to the image.</c>
+<l>read_image (ImageNoise, 'angio-part')</l>
+<l>crop_part (ImageNoise, ImagePart, 0, 0, Width, Height)</l>
+<l>mult_image (Image, ImagePart, ImageResult, 0.015, 0)</l>
+<c>* Use dots_image to enhance the dot print.</c>
+<l>dots_image (ImageResult, DotImage, 5, 'dark', 2)</l>
+<l>threshold (DotImage, Region, 80, 255)</l>
+<c>* The following code connects the individual dots into characters.</c>
+<l>closing_rectangle1 (Region, RegionClosing1, 1, 5)</l>
+<l>closing_rectangle1 (RegionClosing1, RegionClosing2, 5, 1)</l>
+<l>gen_rectangle2 (Rectangle, 10, 10, rad(45), 3, 0)</l>
+<l>closing (RegionClosing2, Rectangle, RegionClosing3)</l>
+<l>gen_rectangle2 (Rectangle, 10, 10, rad(135), 3, 0)</l>
+<l>closing (RegionClosing3, Rectangle, RegionClosing4)</l>
+<l>connection (RegionClosing4, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['area','height'], 'and', [100,20], [700,40])</l>
+<c>* Since the closings may have resulted in merged characters, we need to</c>
+<c>* separate them again.</c>
+<l>partition_dynamic (SelectedRegions, Partitioned, 25, 20)</l>
+<c>* Finally, we compute the characters' original shapes.</c>
+<l>intersection (Partitioned, Region, Characters)</l>
+<l>dev_display (ImageResult)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Characters)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'dot_print_slanted')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width * 3, Height * 3, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (3)</l>
+<l>for J := 0 to 1 by 1</l>
+<l>    set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>    if (J == 1)</l>
+<c>        * Correct slant</c>
+<l>        text_line_slant (Image, Image, 50, rad(-45), rad(45), SlantAngle)</l>
+<l>        hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>        hom_mat2d_slant (HomMat2DIdentity, -SlantAngle, 'x', 0, 0, HomMat2DSlant)</l>
+<l>        affine_trans_image (Image, ImageRectified, HomMat2DSlant, 'constant', 'true')</l>
+<l>    else</l>
+<l>        copy_obj (Image, ImageRectified, 1, 1)</l>
+<l>    endif</l>
+<c>    * Segment characters</c>
+<l>    threshold (ImageRectified, Region, 0, 100)</l>
+<l>    erosion_circle (Region, RegionErosion, 1.5)</l>
+<l>    dilation_rectangle1 (RegionErosion, RegionDilation, 1, 20)</l>
+<l>    connection (RegionDilation, ConnectedRegions)</l>
+<l>    intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<l>    partition_dynamic (RegionIntersection, Characters, 30, 20)</l>
+<l>    smallest_rectangle1 (Characters, Row1, Column1, Row2, Column2)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRectified)</l>
+<l>    gen_rectangle1 (CharRectangles, Row1, Column1, Row2, Column2)</l>
+<l>    dev_display (CharRectangles)</l>
+<l>    if (J == 1)</l>
+<l>        disp_message (WindowHandle, 'Segmentation with slant correction', 'window', 12, 12, 'forest green', 'true')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Segmentation without slant correction', 'window', 12, 12, 'red', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

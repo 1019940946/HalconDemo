@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates how to read bar codes of</c>
+<c>* type Code 32 using the HALCON bar code reader for Code 39</c>
+<c>* in combination with the procedure convert_code39_to_code32.</c>
+<c>* </c>
+<c>* 1. Step: Find and decode the bar code with the HALCON</c>
+<c>*          bar code reader for type 'Code 39'.</c>
+<c>* 2. Step: Convert the decoded bar code from type 'Code 39' to</c>
+<c>*          the corresponding 'Code 32' decoding using the</c>
+<c>*          procedure convert_code39_to_code32.</c>
+<c>* </c>
+<c>* Initialize image and visual settings</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'barcode/code32/code32_01.png')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* Display a short description</c>
+<l>Message := 'Read a bar code of type \'Code 32\' with the bar code reader for'</l>
+<l>Message[1] := '\'Code 39\' and convert the decoded string to the corresponding'</l>
+<l>Message[2] := '\'Code 32\' decoding.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Create a bar code model and read the bar code with the</c>
+<c>* 'Code 39' reader</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 39', DecodedDataStrings)</l>
+<c>* </c>
+<c>* Display the result</c>
+<l>disp_message (WindowHandle, 'Decoded string \'Code 39\': ' + DecodedDataStrings, 'window', 95, 12, 'black', 'true')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SymbolRegions)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Convert the decoded 'Code 39' to the corresponding decoded</c>
+<c>* 'Code 32' bar code</c>
+<l>convert_decoded_string_code39_to_code32 (DecodedDataStrings, Code32)</l>
+<c>* </c>
+<c>* Display the result</c>
+<l>dev_display (Image)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Decoded string \'Code 39\': ' + DecodedDataStrings, 'window', 95, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Converted string \'Code 32\': ' + Code32, 'window', 120, 12, 'black', 'true')</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

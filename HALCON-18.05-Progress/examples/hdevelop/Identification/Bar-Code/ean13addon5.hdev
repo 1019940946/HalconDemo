@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read bar code of type EAN-13 Add-On 5</c>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 120, 300, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_min', 1.5)</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_max', 16)</l>
+<l>read_image (Image, 'barcode/ean13addon5/ean13addon501')</l>
+<l>dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'EAN-13 Add-On 5', DecodedDataStrings)</l>
+<l>area_center (SymbolRegions, Area, Row, Column)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>disp_message (WindowHandle, DecodedDataStrings, 'image', Row - 30, Column - 90, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

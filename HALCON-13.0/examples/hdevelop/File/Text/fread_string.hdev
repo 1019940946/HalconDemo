@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Note: Before starting this example</c>
+<c>* execute the example program</c>
+<c>* 'open_file.hdev' in order to create</c>
+<c>* the file 'area.dat' to read.</c>
+<c>* </c>
+<l>open_file ('area.dat', 'input', FileHandle)</l>
+<l>fread_string (FileHandle, Number, IsEOF)</l>
+<l>Number := number(Number)</l>
+<l>IsEOF := 0</l>
+<l>while (IsEOF == 0)</l>
+<l>    fread_string (FileHandle, Index, IsEOF)</l>
+<l>    fread_string (FileHandle, Area, IsEOF)</l>
+<l>endwhile</l>
+<l>close_file (FileHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

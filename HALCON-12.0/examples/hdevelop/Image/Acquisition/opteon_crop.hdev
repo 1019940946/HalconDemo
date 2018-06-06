@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a Opteon imaging system</c>
+<c>* (grabbing image parts of size 256x256)</c>
+<c>* </c>
+<c>* </c>
+<l>open_framegrabber ('Opteon', 1, 1, 256, 256, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'gain', 10.0)</l>
+<l>* get_framegrabber_param (AcqHandle, 'gain', Value)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    for StartRow := 0 to 224 by 16</l>
+<l>        set_framegrabber_param (AcqHandle, 'start_row', StartRow)</l>
+<l>        for StartCol := 0 to 384 by 16</l>
+<l>            set_framegrabber_param (AcqHandle, 'start_column', StartCol)</l>
+<l>            grab_image_async (Image, AcqHandle, -1)</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>endwhile</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

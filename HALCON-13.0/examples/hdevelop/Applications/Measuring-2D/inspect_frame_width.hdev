@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to calculate the pointwise</c>
+<c>* distance of two contours to inspect the camera frame</c>
+<c>* of a phone housing.</c>
+<c>* </c>
+<c>* It uses the operator distance_contours_xld to calculate</c>
+<c>* the distance between the inner and outer contour of the</c>
+<c>* frame and the operator segment_contour_attrib_xld</c>
+<c>* to extract the defects for visualization.</c>
+<c>* </c>
+<c>* Set the thresholds for the allowed distances in pixels</c>
+<l>MinWidth := 30</l>
+<l>MaxWidth := 35</l>
+<l>SmoothnessTolerance := .2</l>
+<c>* </c>
+<c>* Initialize visualization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'plastic_parts/phone_camera_frame_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>Colors := ['white','green','yellow','orange','red']</l>
+<l>Legend := 'Legend:'</l>
+<l>Legend[1] := 'Extracted contours'</l>
+<l>Legend[2] := 'Frame too narrow'</l>
+<l>Legend[3] := 'Frame too wide'</l>
+<l>Legend[4] := 'Contour defect'</l>
+<c>* </c>
+<c>* Main loop:</c>
+<c>* Inspect the camera frame</c>
+<c>* </c>
+<l>NumImages := 2</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'plastic_parts/phone_camera_frame_' + I$'02')</l>
+<c>    * </c>
+<c>    * Extract frame edges</c>
+<c>    * </c>
+<c>    * Select the frame region</c>
+<l>    threshold (Image, Region, 100, 255)</l>
+<l>    dilation_rectangle1 (Region, RegionDilation, 15, 15)</l>
+<l>    reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<c>    * Extract edges in the reduced image domain</c>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 0.7, 10, 60)</l>
+<l>    union_adjacent_contours_xld (Edges, UnionContours, 7, 7, 'attr_keep')</l>
+<l>    select_shape_xld (UnionContours, SelectedContours, 'contlength', 'and', 700, 99999)</l>
+<c>    * Select the inner and the outer contour</c>
+<l>    length_xld (SelectedContours, Length)</l>
+<l>    tuple_sort_index (Length, Indices)</l>
+<l>    select_obj (SelectedContours, InnerContour, Indices[0] + 1)</l>
+<l>    select_obj (SelectedContours, OuterContour, Indices[3] + 1)</l>
+<c>    * </c>
+<c>    * Calculate the distances between the inner and outer contour.</c>
+<c>    * The distances are stored as an attribute to the output contour.</c>
+<l>    distance_contours_xld (InnerContour, OuterContour, OuterContourWithWidth, 'point_to_segment')</l>
+<c>    * Get the contour parts that lie outside of the tolerances</c>
+<l>    segment_contour_attrib_xld (OuterContourWithWidth, OuterContourPartToNarrow, 'distance', 'or', 0, MinWidth)</l>
+<l>    segment_contour_attrib_xld (OuterContourWithWidth, OuterContourPartToWide, 'distance', 'or', MaxWidth, 10000)</l>
+<c>    * </c>
+<c>    * Check, if the contours are sufficiently smooth by</c>
+<c>    * comparing each contour with a smoothed version of itself</c>
+<l>    smooth_contours_xld (OuterContour, OuterContourSmooth, 11)</l>
+<l>    smooth_contours_xld (InnerContour, InnerContourSmooth, 11)</l>
+<l>    distance_contours_xld (OuterContour, OuterContourSmooth, OuterContourWithDistance, 'point_to_segment')</l>
+<l>    distance_contours_xld (InnerContour, InnerContourSmooth, InnerContourWithDistance, 'point_to_segment')</l>
+<c>    * Get the contour parts that lie outside of the tolerances</c>
+<l>    segment_contour_attrib_xld (OuterContourWithDistance, OuterContourDefect, 'distance', 'or', SmoothnessTolerance, 100)</l>
+<l>    segment_contour_attrib_xld (InnerContourWithDistance, InnerContourDefect, 'distance', 'or', SmoothnessTolerance, 100)</l>
+<c>    * </c>
+<c>    * Get pointwise distances for debugging</c>
+<l>    get_contour_attrib_xld (OuterContourWithWidth, 'distance', FrameWidth)</l>
+<l>    get_contour_attrib_xld (OuterContourWithDistance, 'distance', InnerDistances)</l>
+<l>    get_contour_attrib_xld (InnerContourWithDistance, 'distance', OuterDistances)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Inspect frame of phone camera (image ' + I + '/' + NumImages + ')', 'window', 12, 12, 'black', 'true')</l>
+<l>    count_obj (OuterContourPartToNarrow, NumTooNarrow)</l>
+<l>    count_obj (OuterContourPartToWide, NumTooWide)</l>
+<l>    count_obj (OuterContourDefect, NumInnerDefects)</l>
+<l>    count_obj (InnerContourDefect, NumOuterDefects)</l>
+<l>    if (NumTooNarrow + NumTooWide + NumInnerDefects + NumOuterDefects == 0)</l>
+<l>        OK := 1</l>
+<l>        disp_message (WindowHandle, 'Frame OK', 'window', 50, 12, 'forest green', 'true')</l>
+<l>    else</l>
+<l>        OK := 0</l>
+<l>        disp_message (WindowHandle, 'Frame not OK', 'window', 50, 12, 'red', 'true')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_set_color (Colors[1])</l>
+<l>    dev_display (OuterContour)</l>
+<l>    dev_display (InnerContour)</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_set_color (Colors[2])</l>
+<l>    dev_display (OuterContourPartToNarrow)</l>
+<l>    dev_set_color (Colors[3])</l>
+<l>    dev_display (OuterContourPartToWide)</l>
+<l>    dev_set_color (Colors[4])</l>
+<l>    dev_display (OuterContourDefect)</l>
+<l>    dev_set_color (Colors[4])</l>
+<l>    dev_display (InnerContourDefect)</l>
+<l>    disp_message (WindowHandle, Legend, 'window', 500, 12, Colors, 'false')</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

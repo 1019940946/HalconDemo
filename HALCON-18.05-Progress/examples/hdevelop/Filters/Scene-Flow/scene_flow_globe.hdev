@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of the two operators</c>
+<c>* scene_flow_uncalib and scene_flow_calib to calculate the</c>
+<c>* scene flow between two consecutive rectified stereo</c>
+<c>* image pairs.</c>
+<c>* The scene flow is the three-dimensional position and motion</c>
+<c>* of surface points in a dynamic scene. The movement in the</c>
+<c>* images can be caused by objects that move in the world or by</c>
+<c>* a movement of the camera (or both) between the acquisition of</c>
+<c>* the two image pairs.</c>
+<c>* The example program demonstrates how the 3D scene flow can be</c>
+<c>* used to recover a rigid motion in 3D. For this, it uses stereo</c>
+<c>* image pairs of a rotating globe. First, the uncalibrated</c>
+<c>* scene flow, i.e., the optical flow and the disparity change</c>
+<c>* is used to segment the globe. Then, the calibrated scene flow,</c>
+<c>* i.e., the 3D position and motion of the surface points is used</c>
+<c>* to calculate the movement of the globe, which in this case is</c>
+<c>* defined by the 3D rotation axis and the rotation angle.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Calibrated camera parameters</c>
+<l>gen_cam_par_area_scan_division (0.00600532, -2506.22, 4.96835e-006, 5.3e-006, 317.839, 228.795, 640, 480, CamParamL)</l>
+<l>gen_cam_par_area_scan_division (0.00602268, -2314.94, 4.97045e-006, 5.3e-006, 326.022, 232.059, 640, 480, CamParamR)</l>
+<c>* Relative pose of the cameras</c>
+<l>create_pose (-0.0079576, 0.202734, 0.0372651, 20.163, 0.795608, 184.056, 'Rp+T', 'gba', 'point', RelPose)</l>
+<c>* Generate the rectification maps</c>
+<l>gen_binocular_rectification_map (MapL, MapR, CamParamL, CamParamR, RelPose, 1, 'geometric', 'bilinear', CamParamRectL, CamParamRectR, CamPoseRectL, CamPoseRectR, RelPoseRect)</l>
+<c>* Obtain image sizes</c>
+<l>get_image_size (MapL, WidthL, Height)</l>
+<l>get_image_size (MapR, WidthR, Height)</l>
+<c>* Initialize window handles</c>
+<l>dev_open_window_fit_size (0, 0, WidthL, Height, -1, -1, WindowHandle1)</l>
+<l>get_window_extents (WindowHandle1, Row, Column, WidthW1, HeightW1)</l>
+<l>dev_open_window_fit_size (0, WidthW1 + 5, WidthR, Height, -1, -1, WindowHandle2)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read in all images and rectify them</c>
+<l>gen_empty_obj (ImagesL)</l>
+<l>gen_empty_obj (ImagesR)</l>
+<l>gen_empty_obj (ImagesRectL)</l>
+<l>gen_empty_obj (ImagesRectR)</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    read_image (ImageL, 'stereo/globe/globe_l_' + Index$'02')</l>
+<l>    read_image (ImageR, 'stereo/globe/globe_r_' + Index$'02')</l>
+<l>    concat_obj (ImagesL, ImageL, ImagesL)</l>
+<l>    concat_obj (ImagesR, ImageR, ImagesR)</l>
+<l>    map_image (ImageL, MapL, ImageRectL)</l>
+<l>    map_image (ImageR, MapR, ImageRectR)</l>
+<l>    concat_obj (ImagesRectL, ImageRectL, ImagesRectL)</l>
+<l>    concat_obj (ImagesRectR, ImageRectR, ImagesRectR)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display the sequence of rectified stereo image pairs</c>
+<c>* that is used for the calculation of the scene flow</c>
+<l>for Index := 1 to 5 by 1</l>
+<l>    select_obj (ImagesRectL, ImageRectL, Index)</l>
+<l>    select_obj (ImagesRectR, ImageRectR, Index)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (ImageRectL)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (ImageRectR)</l>
+<l>    disp_message (WindowHandle1, 'Sequence of rectified stereo images\nof a rotating globe', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle1, 'Image pair ' + Index + ' of 5', 'window', 70, 12, 'black', 'true')</l>
+<l>    wait_seconds (1.0)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Two image pairs are used for the scene flow calculation</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'For the calculation of the scene flow, two corresponding stereo image pairs as well as the disparity image that belongs to the first stereo image pair are required. The disparity image can be obtained, e.g., with the operator binocular_disparity.'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,40})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandle1, MessageWrapped, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Loop over the different image pairs</c>
+<l>for Index := 1 to 4 by 1</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<l>    Message := 'Calculate the scene flow between the rectified stereo image pair ' + Index + ' and the rectified stereo image pair ' + (Index + 1) + '.'</l>
+<l>    MessageWrapped := regexp_replace(Message + ' ',['(.{0,40})\\s','replace_all'],'$1\n')</l>
+<l>    disp_message (WindowHandle1, MessageWrapped, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Read images</c>
+<l>    select_obj (ImagesL, ImageL1, Index)</l>
+<l>    select_obj (ImagesR, ImageR1, Index)</l>
+<l>    select_obj (ImagesL, ImageL2, Index + 1)</l>
+<l>    select_obj (ImagesR, ImageR2, Index + 1)</l>
+<l>    select_obj (ImagesRectL, ImageRectL1, Index)</l>
+<l>    select_obj (ImagesRectR, ImageRectR1, Index)</l>
+<l>    select_obj (ImagesRectL, ImageRectL2, Index + 1)</l>
+<l>    select_obj (ImagesRectR, ImageRectR2, Index + 1)</l>
+<c>    * Display the stereo image pairs</c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRectL1)</l>
+<l>    disp_message (WindowHandle1, 'Stereo image pair ' + Index$'1i' + ', left image', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRectR1)</l>
+<l>    disp_message (WindowHandle2, 'Stereo image pair ' + Index$'1i' + ', right image', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (ImageRectL2)</l>
+<l>    disp_message (WindowHandle1, 'Stereo image pair ' + (Index + 1)$'1i' + ', left image', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (ImageRectR2)</l>
+<l>    disp_message (WindowHandle2, 'Stereo image pair ' + (Index + 1)$'1i' + ', right image', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Compute disparity for image pair 1</c>
+<l>    binocular_disparity (ImageRectL1, ImageRectR1, Disparity1, Score1, 'ncc', 11, 11, 0, -150, 150, 1, 0.7, 'left_right_check', 'interpolation')</l>
+<c>    * Select parts of the disparity on the object</c>
+<l>    disparity_image_to_xyz (Disparity1, X1, Y1, Z1, CamParamRectL, CamParamRectR, RelPoseRect)</l>
+<l>    threshold (Z1, Regions, 0.44361, 0.50799)</l>
+<l>    connection (Regions, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 1e10)</l>
+<l>    reduce_domain (Z1, SelectedRegions, Z1Reduced)</l>
+<c>    * </c>
+<l>    if (Index == 1)</l>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (Disparity1)</l>
+<l>        disp_message (WindowHandle1, 'Disparity image for pair ' + Index$'1i', 'window', 12, 12, 'black', 'true')</l>
+<l>        dev_set_window (WindowHandle2)</l>
+<l>        dev_clear_window ()</l>
+<l>        disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Fit a sphere into the reconstructed points</c>
+<l>    xyz_to_object_model_3d (X1, Y1, Z1Reduced, OM3DReconstructedScene)</l>
+<l>    get_region_points (Z1Reduced, Rows, Columns)</l>
+<l>    get_grayval (ImageRectL1, Rows, Columns, Grayvals)</l>
+<l>    set_object_model_3d_attrib_mod (OM3DReconstructedScene, '&amp;gray', 'points', Grayvals)</l>
+<l>    fit_primitives_object_model_3d (OM3DReconstructedScene, ['primitive_type','min_radius','max_radius'], ['sphere',0.06,0.1], OM3DSphereMatched)</l>
+<l>    copy_object_model_3d (OM3DSphereMatched, 'primitives_all', OM3DSphereOnly)</l>
+<l>    get_object_model_3d_params (OM3DSphereOnly, 'primitive_parameter', SphereParameters)</l>
+<l>    SphereCenter := SphereParameters[0:2]</l>
+<l>    SphereRadius := SphereParameters[3]</l>
+<c>    * </c>
+<c>    * Compute scene flow</c>
+<l>    scene_flow_uncalib (ImageRectL1, ImageRectR1, ImageRectL2, ImageRectR2, Disparity1, OpticalFlow, DisparityChange, 15, 60, 'default_parameters', 'accurate')</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRectL1)</l>
+<l>    dev_display (OpticalFlow)</l>
+<l>    disp_message (WindowHandle1, 'Uncalibrated scene flow:\nOptical flow and ...', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_part (266, 211, 367, 284)</l>
+<l>    dev_display (ImageRectL1)</l>
+<l>    dev_display (OpticalFlow)</l>
+<l>    disp_message (WindowHandle2, ' \n... detail of optical flow', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_set_part (0, 0, -1, -1)</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (DisparityChange)</l>
+<l>    disp_message (WindowHandle2, ' \n... disparity change', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Unwarp the second image and compare with first image for the</c>
+<c>    * first image pairs</c>
+<l>    if (Index == 1)</l>
+<l>        unwarp_image_vector_field (ImageRectL2, OpticalFlow, ImageUnwarped)</l>
+<l>        abs_diff_image (ImageRectL1, ImageUnwarped, DifferenceImage, 1)</l>
+<l>        scale_image_range (DifferenceImage, DifferenceImageScaled, 0, 30)</l>
+<c>        * </c>
+<l>        Message := 'To verify the results, the left image of pair ' + (Index + 1)$'1i' + ' is unwarped with the vector field that represents the optical flow. Then, it is compared with the left image of pair ' + Index$'1i' + '.'</l>
+<l>        MessageWrapped := regexp_replace(Message + ' ',['(.{0,40})\\s','replace_all'],'$1\n')</l>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_set_window (WindowHandle2)</l>
+<l>        dev_clear_window ()</l>
+<l>        disp_message (WindowHandle1, MessageWrapped, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>        stop ()</l>
+<c>        * For flicker-free visualization</c>
+<l>        full_domain (ImageUnwarped, ImageUnwarpedFull)</l>
+<l>        full_domain (ImageRectL1, ImageRectL1Full)</l>
+<l>        NumDisp := 5</l>
+<l>        for IndexDisp := 1 to NumDisp by 1</l>
+<l>            dev_set_window (WindowHandle1)</l>
+<l>            dev_display (ImageRectL1Full)</l>
+<l>            disp_message (WindowHandle1, 'Original image (pair ' + Index$'1i' + ', left image)', 'window', 12, 12, 'black', 'true')</l>
+<l>            disp_progress_bar (WindowHandle1, real(2 * IndexDisp - 1) / real(NumDisp * 2))</l>
+<l>            wait_seconds (0.5)</l>
+<c>            * </c>
+<l>            dev_set_window (WindowHandle1)</l>
+<l>            dev_display (ImageUnwarpedFull)</l>
+<l>            disp_message (WindowHandle1, 'Unwarped image (pair ' + (Index + 1)$'1i' + ', left image)', 'window', 12, 12, 'black', 'true')</l>
+<l>            disp_progress_bar (WindowHandle1, real(2 * IndexDisp) / real(NumDisp * 2))</l>
+<l>            wait_seconds (0.5)</l>
+<l>        endfor</l>
+<l>        dev_set_window (WindowHandle2)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (DifferenceImageScaled)</l>
+<l>        disp_message (WindowHandle2, 'Photo consistency between original \nand unwarped image (scaled)', 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * Compute the calibrated scene flow</c>
+<c>    * Find points on the sphere</c>
+<l>    distance_object_model_3d (OM3DReconstructedScene, OM3DSphereOnly, [], 0, [], [])</l>
+<l>    select_points_object_model_3d (OM3DReconstructedScene, '&amp;distance', 0, 0.005, OM3DPointsOnSphere)</l>
+<l>    get_object_model_3d_params (OM3DPointsOnSphere, 'mapping_row', Rows)</l>
+<l>    get_object_model_3d_params (OM3DPointsOnSphere, 'mapping_col', Cols)</l>
+<l>    gen_region_points (Region, Rows, Cols)</l>
+<l>    reduce_domain (Disparity1, Region, DisparityReduced)</l>
+<c>    * Find points with good photo consistency</c>
+<l>    reduce_domain (DisparityReduced, SelectedRegions, DisparityReduced)</l>
+<l>    threshold (DifferenceImage, RegionGoodDifferenceImage, 0, 10)</l>
+<c>    * Remove singular points</c>
+<l>    dilation_circle (RegionGoodDifferenceImage, RegionDilation, 1.5)</l>
+<l>    erosion_circle (RegionDilation, RegionErosion, 3.5)</l>
+<l>    reduce_domain (DisparityReduced, RegionGoodDifferenceImage, DisparityReduced)</l>
+<c>    * Compute the scene flow</c>
+<l>    scene_flow_calib (ImageRectL1, ImageRectR1, ImageRectL2, ImageRectR2, DisparityReduced, 15, 60, 'default_parameters', 'accurate', CamParamRectL, CamParamRectR, RelPoseRect, ObjectModel3D)</l>
+<c>    * Vector field illustration</c>
+<c>    * Showing all vectors is too much clutter</c>
+<l>    select_points_object_model_3d (ObjectModel3D, '&amp;flow_x', 0.002, 1, OM3DSelected)</l>
+<l>    sample_object_model_3d (OM3DSelected, 'fast', SphereRadius * 0.05, [], [], OM3DSampled)</l>
+<l>    get_object_model_3d_params (OM3DSampled, '&amp;flow_x', FlowX)</l>
+<l>    get_object_model_3d_params (OM3DSampled, '&amp;flow_y', FlowY)</l>
+<l>    get_object_model_3d_params (OM3DSampled, '&amp;flow_z', FlowZ)</l>
+<l>    get_object_model_3d_params (OM3DSampled, 'point_coord_x', X)</l>
+<l>    get_object_model_3d_params (OM3DSampled, 'point_coord_y', Y)</l>
+<l>    get_object_model_3d_params (OM3DSampled, 'point_coord_z', Z)</l>
+<l>    get_object_model_3d_params (OM3DSampled, 'num_points', NumberPoints)</l>
+<l>    lineIndex := gen_tuple_const(3 * NumberPoints,2)</l>
+<l>    temp := [1:3:3 * NumberPoints]</l>
+<l>    lineIndex[temp] := [0:NumberPoints - 1]</l>
+<l>    temp := [2:3:3 * NumberPoints]</l>
+<l>    lineIndex[temp] := [NumberPoints:2 * NumberPoints - 1]</l>
+<l>    FlowLength := sqrt(FlowX * FlowX + FlowY * FlowY + FlowZ * FlowZ)</l>
+<l>    set_object_model_3d_attrib_mod (OM3DSampled, '&amp;flow_length', 'vertices', FlowLength)</l>
+<l>    gen_object_model_3d_from_points ([X,X + FlowX], [Y,Y + FlowY], [Z,Z + FlowZ], OM3DFlowVectors)</l>
+<l>    set_object_model_3d_attrib_mod (OM3DFlowVectors, 'lines', 'lines', lineIndex)</l>
+<l>    Instructions[0] := 'Rotate: Left button'</l>
+<l>    Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>    Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>    visualize_object_model_3d (WindowHandle1, [OM3DSampled,OM3DFlowVectors], [], [], ['color_attrib_0','lut_0','disp_background'], ['&amp;flow_length','temperature','false'], 'Calibrated scene flow:\nPoints and vectors in 3D', [], Instructions, PoseOut)</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<c>    * Fit the axis and calculate the rotation angle</c>
+<l>    if (Index == 1)</l>
+<l>        Message := 'One possible application is to calculate the rotation axis and the rotation angle of the rotating globe'</l>
+<l>        MessageWrapped := regexp_replace(Message + ' ',['(.{0,40})\\s','replace_all'],'$1\n')</l>
+<l>        disp_message (WindowHandle1, MessageWrapped, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Note that scene_flow_calib stores the flow vectors as extended attributes</c>
+<c>    * '&amp;flow_x' etc.</c>
+<l>    get_object_model_3d_params (OM3DSelected, '&amp;flow_x', FlowX)</l>
+<l>    get_object_model_3d_params (OM3DSelected, '&amp;flow_y', FlowY)</l>
+<l>    get_object_model_3d_params (OM3DSelected, '&amp;flow_z', FlowZ)</l>
+<l>    get_object_model_3d_params (OM3DSelected, 'point_coord_x', X)</l>
+<l>    get_object_model_3d_params (OM3DSelected, 'point_coord_y', Y)</l>
+<l>    get_object_model_3d_params (OM3DSelected, 'point_coord_z', Z)</l>
+<c>    * Use the flow to compute a matching rigid transformation</c>
+<l>    vector_to_hom_mat3d ('rigid', X, Y, Z, X + FlowX, Y + FlowY, Z + FlowZ, HomMat3D)</l>
+<c>    * Compute the rotation angle and the direction of the rotation axis</c>
+<l>    hom_mat3d_to_axis_angle (HomMat3D, Angle, Axis, FixedPoint)</l>
+<c>    * Find a point on the fixed-point line which is closest to the sphere center</c>
+<l>    compute_closest_point_on_line (SphereCenter, FixedPoint, Axis, PointOnAxis)</l>
+<c>    * Create a nice 'arrow' to visualize the rotation axis</c>
+<l>    SphereAxis := PointOnAxis + Axis * SphereRadius</l>
+<l>    OutAxis := PointOnAxis + Axis * (SphereRadius * 1.5)</l>
+<l>    gen_object_model_3d_from_points ([PointOnAxis[0],SphereAxis[0]], [PointOnAxis[1],SphereAxis[1]], [PointOnAxis[2],SphereAxis[2]], OM3DAxisInside)</l>
+<l>    set_object_model_3d_attrib_mod (OM3DAxisInside, 'lines', [], [2,0,1])</l>
+<l>    gen_object_model_3d_from_points ([SphereAxis[0],OutAxis[0]], [SphereAxis[1],OutAxis[1]], [SphereAxis[2],OutAxis[2]], OM3DAxisOutside)</l>
+<l>    set_object_model_3d_attrib_mod (OM3DAxisOutside, 'lines', [], [2,0,1])</l>
+<c>    * Create a visualization of the rotation angle</c>
+<l>    gen_rotation_angle_visualization (SphereCenter, SphereRadius, SphereAxis, Axis, HomMat3D, OM3DMeridian1, OM3DMeridian2)</l>
+<c>    * Visualize the rotation axis and angle</c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (ImageRectL1)</l>
+<l>    disp_object_model_3d (WindowHandle1, [OM3DAxisInside,OM3DAxisOutside], CamParamRectL, [0,0,0,0,0,0,0], ['disp_background','color_0','color_1','line_width'], ['true','dark green','green',5.0])</l>
+<l>    disp_object_model_3d (WindowHandle1, [OM3DMeridian1,OM3DMeridian2], CamParamRectL, [0,0,0,0,0,0,0], ['disp_background','color_0','color_1','line_width'], ['true','red','red',1.0])</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRectR1)</l>
+<l>    pose_invert (RelPoseRect, RectRPosRectL)</l>
+<l>    disp_object_model_3d (WindowHandle2, [OM3DAxisInside,OM3DAxisOutside], CamParamRectR, RectRPosRectL, ['disp_background','color_0','color_1','line_width'], ['true','dark green','green',5.0])</l>
+<l>    disp_object_model_3d (WindowHandle2, [OM3DMeridian1,OM3DMeridian2], CamParamRectR, RectRPosRectL, ['disp_background','color_0','color_1','line_width'], ['true','red','red',1.0])</l>
+<l>    disp_message (WindowHandle1, 'Rotation axes fitted into flow vectors.\nRotation angle: ' + Angle$'2.1f' + '°', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Visualize in 3D</c>
+<c>    * </c>
+<l>    gen_sphere_object_model_3d_center (SphereCenter[0], SphereCenter[1], SphereCenter[2], 0.995 * SphereRadius, OM3DSphereForVis)</l>
+<l>    triangulate_object_model_3d (OM3DSphereForVis, 'greedy', 'greedy_radius_value', 0.04, OM3DSphereTriangulatedForVis, Information)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    visualize_object_model_3d (WindowHandle1, [OM3DReconstructedScene,OM3DAxisInside,OM3DAxisOutside,OM3DSphereTriangulatedForVis], [], [], ['color_attrib_0','color_attrib_start_0','color_attrib_end_0','color_1','color_2','color_3','alpha_3','disp_background','line_width_1','line_width_2','disp_lines_3','line_color_3'], ['&amp;gray',0,255,'dark green','green','medium blue',1.0,'false',5.0,5.0,'true','blue'], 'Reconstructed points and rotation axis', [], Instructions, PoseOut2)</l>
+<l>endfor</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="hom_mat3d_to_axis_angle">
+<interface>
+<ic>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Angle" base_type="ctrl" dimension="0"/>
+<par name="Axis" base_type="ctrl" dimension="0"/>
+<par name="FixedPoint" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>hom_mat3d_to_pose (HomMat3D, Pose)</l>
+<c>* Use the rodruigez representation of the pose to compute the</c>
+<c>* rotation angle and axis direction</c>
+<l>convert_pose_type (Pose, 'Rp+T', 'rodriguez', 'point', PoseOut)</l>
+<l>RotationPart := PoseOut[3:5]</l>
+<l>Angle := deg(2 * atan(sqrt(sum(RotationPart * RotationPart))))</l>
+<c>* Normalize the axis direction</c>
+<l>Axis := RotationPart / sqrt(sum(RotationPart * RotationPart))</l>
+<c>* </c>
+<c>* Compute the rotation axis by finding a fixed point of the pose</c>
+<c>*    Rx+T=x  &lt;=&gt; (R-I)x = -T  &lt;=&gt;  x = -(R-I)^(-1) T</c>
+<c>* since R-I might not have full rank, use a robust solver</c>
+<l>R := HomMat3D[[0,1,2,4,5,6,8,9,10]]</l>
+<l>R_minus_I := R - [1,0,0,0,1,0,0,0,1]</l>
+<l>create_matrix (3, 3, R_minus_I, MatrixLHS)</l>
+<l>create_matrix (3, 1, -HomMat3D[[3,7,11]], MatrixRHS)</l>
+<l>solve_matrix (MatrixLHS, 'general', 0.001, MatrixRHS, MatrixResultID)</l>
+<l>get_full_matrix (MatrixResultID, FixedPoint)</l>
+<l>return ()</l>
+<c>* </c>
+</body>
+<docu id="hom_mat3d_to_axis_angle">
+<abstract lang="en_US">This procedure takes a 3D hom mat, which has to represent a rigid 3D transformation, and computes the corresponding rotation angle and the rotation axis. The axis is returned as a fixed point on the axis and the axis' direction.</abstract>
+<short lang="en_US">Compute the rotation angle and rotation axis from a 3D transformation matrix.</short>
+<parameters>
+<parameter id="Angle">
+<description lang="en_US">Rotation angle of HomMat3D.</description>
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="Axis">
+<description lang="en_US">Direction of the axis of the rotation of HomMat3D.</description>
+</parameter>
+<parameter id="FixedPoint">
+<description lang="en_US">FixedPoint of the axis of the rotation of HomMat3D.</description>
+</parameter>
+<parameter id="HomMat3D">
+<description lang="en_US">3D hom mat, representing a rigid transformation.</description>
+<sem_type>hom_mat3d</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="compute_closest_point_on_line">
+<interface>
+<ic>
+<par name="Point" base_type="ctrl" dimension="0"/>
+<par name="LineFixedPoint" base_type="ctrl" dimension="0"/>
+<par name="LineDirection" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ClosestPointOnLine" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>lambda := -sum((LineFixedPoint - Point) * LineDirection) / sum(LineDirection * LineDirection)</l>
+<l>ClosestPointOnLine := LineFixedPoint + lambda * LineDirection</l>
+<l>return ()</l>
+</body>
+<docu id="compute_closest_point_on_line">
+<abstract lang="en_US">Find the point closest to 'Point' on the line defined by LineFixedPoint + lambda*LineDirection.</abstract>
+<parameters>
+<parameter id="ClosestPointOnLine">
+<description lang="en_US">The point on the line closest to 'Point'.</description>
+</parameter>
+<parameter id="LineDirection">
+<description lang="en_US">The direction of the line.</description>
+</parameter>
+<parameter id="LineFixedPoint">
+<description lang="en_US">A point on the line.</description>
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="Point">
+<description lang="en_US">A point in 3D.</description>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_rotation_angle_visualization">
+<interface>
+<ic>
+<par name="SphereCenter" base_type="ctrl" dimension="0"/>
+<par name="SphereRadius" base_type="ctrl" dimension="0"/>
+<par name="SphereAxis" base_type="ctrl" dimension="0"/>
+<par name="Axis" base_type="ctrl" dimension="0"/>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="OM3DMeridian1" base_type="ctrl" dimension="0"/>
+<par name="OM3DMeridian2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Calculate length of sphere axis</c>
+<l>Length := 0.5 * SphereRadius</l>
+<c>* Determine orthogonal point to axis</c>
+<l>RotPoint := [1,1,-(Axis[0] + Axis[1]) * Axis[2]]</l>
+<c>* "Rotate" (transform) point</c>
+<l>affine_trans_point_3d (HomMat3D, RotPoint[0], RotPoint[1], RotPoint[2], Qx, Qy, Qz)</l>
+<c>* determine equally lenghted vectors</c>
+<l>RotDir1 := RotPoint - SphereAxis[0:2]</l>
+<l>RotDir2 := [Qx,Qy,Qz] - SphereAxis[0:2]</l>
+<l>RotDir1 := RotDir1 / sqrt(sum(RotDir1 * RotDir1))</l>
+<l>RotDir2 := RotDir2 / sqrt(sum(RotDir2 * RotDir2))</l>
+<c>* Determine meridian curves along the directions</c>
+<l>n := 20</l>
+<l>MaxAngle := 120.0</l>
+<l>sequence := [0:MaxAngle / n:MaxAngle]</l>
+<l>a := sin(rad(sequence)) * SphereRadius</l>
+<l>b := cos(rad(sequence)) * SphereRadius</l>
+<l>for i := 0 to |sequence| - 1 by 1</l>
+<l>    Q := SphereCenter[0:2] + b[i] * Axis[0:2] + a[i] * RotDir1[0:2]</l>
+<l>    Q1[i] := Q[0]</l>
+<l>    Q2[i] := Q[1]</l>
+<l>    Q3[i] := Q[2]</l>
+<l>    V := SphereCenter[0:2] + b[i] * Axis[0:2] + a[i] * RotDir2[0:2]</l>
+<l>    V1[i] := V[0]</l>
+<l>    V2[i] := V[1]</l>
+<l>    V3[i] := V[2]</l>
+<l>endfor</l>
+<l>gen_object_model_3d_from_points (Q1, Q2, Q3, OM3DMeridian1)</l>
+<l>set_object_model_3d_attrib_mod (OM3DMeridian1, 'lines', [], [|sequence|,[0:|sequence| - 1]])</l>
+<l>gen_object_model_3d_from_points (V1, V2, V3, OM3DMeridian2)</l>
+<l>set_object_model_3d_attrib_mod (OM3DMeridian2, 'lines', [], [|sequence|,[0:|sequence| - 1]])</l>
+<l>return ()</l>
+</body>
+<docu id="gen_rotation_angle_visualization">
+<abstract lang="en_US">Create a nice visualization of the rotation angle on the sphere.</abstract>
+<parameters>
+<parameter id="Axis"/>
+<parameter id="HomMat3D">
+<sem_type>hom_mat3d</sem_type>
+</parameter>
+<parameter id="OM3DMeridian1">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="OM3DMeridian2">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="SphereAxis"/>
+<parameter id="SphereCenter"/>
+<parameter id="SphereRadius"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_progress_bar">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Done" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>PBBorderPerc := 10</l>
+<l>PBHeightPerc := 0.5</l>
+<l>PBBorderH := int((Column2 - Column1) * PBBorderPerc / 100.0) + 1</l>
+<l>PBBorderV := int((Row2 - Row1) * PBBorderPerc / 100.0) + 1</l>
+<l>PBHeight := int((Row2 - Row1) * PBHeightPerc / 100.0) + 1</l>
+<l>PBWidth := Column2 - 2 * PBBorderH - 1</l>
+<l>gen_rectangle1 (Border, Row2 - PBBorderV - 1 - PBHeight, PBBorderH, Row2 - PBBorderV - 1, PBBorderH + PBWidth)</l>
+<l>gen_rectangle1 (Filling, Row2 - PBBorderV - 1 - PBHeight, PBBorderH, Row2 - PBBorderV - 1, PBBorderH + PBWidth * real(Done))</l>
+<l>dev_set_color ('#f28f26')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Border)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Filling)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_progress_bar">
+<parameters>
+<parameter id="Done"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

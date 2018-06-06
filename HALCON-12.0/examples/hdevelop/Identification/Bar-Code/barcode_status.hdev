@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example presents the bar code parameters 'status'</c>
+<c>* and 'status_id' that can be used within get_bar_code_result</c>
+<c>* to get additional information about possibly occurring</c>
+<c>* errors when reading a bar code.</c>
+<c>* </c>
+<c>* Remark: UserDefinedMessages set to false disables additional</c>
+<c>* diagnostic messages (overexposure) in this example program</c>
+<l>UserDefinedMessages := true</l>
+<l>if (UserDefinedMessages == false)</l>
+<l>    StatusID := '-1'</l>
+<l>endif</l>
+<l>dev_close_window ()</l>
+<l>dev_close_inspect_ctrl (Status)</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>ImagePrefix := 'barcode/25interleaved/25interleaved_exposure_'</l>
+<l>ImageSuffix := '.png'</l>
+<l>read_image (Image, ImagePrefix + '01' + ImageSuffix)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* If get_bar_code_result is called with the parameter 'status',</c>
+<c>* 'persistence' must be set for the bar code model</c>
+<l>create_bar_code_model ('persistence', 1, BarCodeHandle)</l>
+<c>* </c>
+<c>* For the visualization, the number of scanlines is reduced</c>
+<c>* (default is 10)</c>
+<l>set_bar_code_param (BarCodeHandle, 'num_scanlines', 5)</l>
+<l>set_bar_code_param (BarCodeHandle, 'check_char', 'present')</l>
+<c>* </c>
+<c>* </c>
+<l>CodeType := '2/5 Interleaved'</l>
+<l>Count := 5</l>
+<l>for IndexExposure := 1 to Count by 1</l>
+<l>    read_image (Image, ImagePrefix + IndexExposure$'02' + ImageSuffix)</l>
+<c>    * </c>
+<c>    * Try decoding the bar code in the input image</c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>    get_bar_code_object (CandidateRegions, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>    if (|DecodedDataStrings| &gt; 0)</l>
+<c>        * If a bar code was found, display only scanlines of</c>
+<c>        * successfully decoded regions (which are the first</c>
+<c>        * regions of all candidate regions)</c>
+<l>        count_obj (SymbolRegions, NumInterestingCand)</l>
+<l>    else</l>
+<c>        * If no bar code could be found, display the error</c>
+<c>        * information for all candidate regions</c>
+<l>        count_obj (CandidateRegions, NumInterestingCand)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Iterate over all symbol regions or candidate regions</c>
+<c>    * if no symbol could be decoded</c>
+<l>    for IndexCandidate := 0 to NumInterestingCand - 1 by 1</l>
+<c>        * </c>
+<c>        * Display valid scanlines in green, invalid</c>
+<c>        * scanlines in red</c>
+<l>        get_bar_code_object (ScanlinesAll, BarCodeHandle, IndexCandidate, 'scanlines_all')</l>
+<l>        get_bar_code_object (ScanlinesValid, BarCodeHandle, IndexCandidate, 'scanlines_valid')</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (ScanlinesAll)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (ScanlinesValid)</l>
+<c>        * </c>
+<c>        * Display the index number of the current candidate</c>
+<l>        disp_message (WindowHandle, 'Candidate ' + (IndexCandidate + 1) + ' of ' + NumInterestingCand, 'image', 72, 12, 'forest green', 'true')</l>
+<c>        * </c>
+<l>        if (UserDefinedMessages)</l>
+<c>            * </c>
+<c>            * Get a tuple of strings containing multiple status</c>
+<c>            * identifiers, separated by a semicolon</c>
+<l>            get_bar_code_result (BarCodeHandle, IndexCandidate, 'status_id', StatusID)</l>
+<c>            * </c>
+<c>            * This user-defined procedure can be modified to</c>
+<c>            * translate status identifiers to customized status</c>
+<c>            * messages</c>
+<l>            translate_bar_code_status_id (StatusID, Status)</l>
+<l>        else</l>
+<c>            * </c>
+<c>            * Get tuple of strings containing status messages</c>
+<l>            get_bar_code_result (BarCodeHandle, IndexCandidate, 'status', Status)</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Show decoded bar code data</c>
+<l>        if (|DecodedDataStrings| &gt; 0)</l>
+<l>            dev_set_color ('green')</l>
+<l>            dev_display (ScanlinesValid)</l>
+<l>            String := 'Decoded data strings: ' + DecodedDataStrings</l>
+<c>            * </c>
+<c>            * Combinations of status IDs can be combined to</c>
+<c>            * give further hints for the image acquisition,</c>
+<c>            *  e.g. about a possible overexposure</c>
+<l>            tuple_number (split(StatusID,';'), StatusIDSplit)</l>
+<l>            if (find(StatusIDSplit,1000) != -1 and find(StatusIDSplit,1004) != -1)</l>
+<l>                String := [String,'Possible overexposure detected.']</l>
+<l>            endif</l>
+<l>            disp_message (WindowHandle, String, 'image', 12, 12, 'forest green', 'true')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle, 'Could not decode bar code', 'image', 12, 12, 'red', 'true')</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Display the index number of each scanline at its center</c>
+<l>        scanline_centers (ScanlinesAll, CenterRows, CenterColumns)</l>
+<c>        * </c>
+<c>        * If the scanlines lie to close to each other, omit the</c>
+<c>        * background boxes</c>
+<l>        if (pow(CenterRows[|CenterRows| - 2] - CenterRows[|CenterRows| - 1],2) + pow(CenterColumns[|CenterColumns| - 2] - CenterColumns[|CenterColumns| - 1],2) &gt; 200 * 200)</l>
+<l>            Box := 'true'</l>
+<l>        else</l>
+<l>            Box := 'false'</l>
+<l>        endif</l>
+<l>        for IndexStatus := 0 to |Status| - 1 by 1</l>
+<l>            disp_message (WindowHandle, '' + IndexStatus, 'image', CenterRows[IndexStatus], CenterColumns[IndexStatus], 'green', Box)</l>
+<l>        endfor</l>
+<l>        dev_inspect_ctrl (Status)</l>
+<l>        if (IndexCandidate &lt; NumInterestingCand - 1 or IndexExposure &lt; Count)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Free all memory of the bar code model</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="scanline_centers">
+<interface>
+<io>
+<par name="Scanlines" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="CenterRows" base_type="ctrl" dimension="0"/>
+<par name="CenterColumns" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>count_obj (Scanlines, NumberScanlines)</l>
+<l>CenterRows := []</l>
+<l>CenterColumns := []</l>
+<l>for Index := 1 to NumberScanlines by 1</l>
+<l>    select_obj (Scanlines, Scanline, Index)</l>
+<l>    get_contour_xld (Scanline, Rows, Columns)</l>
+<l>    CenterRows := [CenterRows,0.5 * (Rows[0] + Rows[|Rows| - 1])]</l>
+<l>    CenterColumns := [CenterColumns,0.5 * (Columns[0] + Columns[|Columns| - 1])]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="scanline_centers">
+<parameters>
+<parameter id="CenterColumns"/>
+<parameter id="CenterRows"/>
+<parameter id="Scanlines"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="translate_bar_code_status_id">
+<interface>
+<ic>
+<par name="StatusID" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MessageText" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Messages := []</l>
+<l>Messages := [Messages,0,'unknown decoding status.']</l>
+<l>Messages := [Messages,1,'success.']</l>
+<l>Messages := [Messages,2,'edges: not enough edges detected.']</l>
+<l>Messages := [Messages,3,'edges: not enough edges for a start, a stop and at least one data character.']</l>
+<l>Messages := [Messages,4,'edges: too many edges detected.']</l>
+<l>Messages := [Messages,5,'edges: center of scanline not within image domain.']</l>
+<l>Messages := [Messages,6,'decoding: could not find stop character.']</l>
+<l>Messages := [Messages,7,'decoding: could not find start and stop characters.']</l>
+<l>Messages := [Messages,8,'decoding: internal error when estimating the maximum string length.']</l>
+<l>Messages := [Messages,9,'decoding: internal error when decoding a single character.']</l>
+<l>Messages := [Messages,10,'decoding: number of wide bars of a single character is not equal to 2.']</l>
+<l>Messages := [Messages,11,'decoding: invalid encoding pattern.']</l>
+<l>Messages := [Messages,12,'decoding: invalid mix of character sets.']</l>
+<l>Messages := [Messages,13,'decoding: error decoding the reference to a human readable string.']</l>
+<l>Messages := [Messages,14,'decoding: could not detect center guard pattern.']</l>
+<l>Messages := [Messages,15,'decoding: could not detect left and/or right guard patterns.']</l>
+<l>Messages := [Messages,16,'decoding: could not detect add-on guard pattern.']</l>
+<l>Messages := [Messages,17,'decoding: could not detect enough finder patterns.']</l>
+<l>Messages := [Messages,18,'decoding: no segment found.']</l>
+<l>Messages := [Messages,19,'check: checksum test failed.']</l>
+<l>Messages := [Messages,20,'check: check of add-on symbol failed.']</l>
+<l>Messages := [Messages,21,'check: detected EAN-13 bar code type instead of specified type.']</l>
+<l>Messages := [Messages,22,'check: symbol region overlaps with another symbol region.']</l>
+<l>Messages := [Messages,1000,'White spaces too wide.']</l>
+<l>Messages := [Messages,1001,'White spaces too narrow.']</l>
+<l>Messages := [Messages,1002,'Bars too wide.']</l>
+<l>Messages := [Messages,1003,'Bars too narrow.']</l>
+<l>Messages := [Messages,1004,'Possible saturation of gray values.']</l>
+<l>Messages := [Messages,1005,'No composite component found.']</l>
+<c>* </c>
+<l>for IndexStatus := 0 to |StatusID| - 1 by 1</l>
+<l>    Msg := ''</l>
+<l>    tuple_number (split(StatusID[IndexStatus],';'), StatusIDSplit)</l>
+<l>    for IndexSplit := 0 to |StatusIDSplit| - 1 by 1</l>
+<l>        IndexMessage := find(Messages,StatusIDSplit[IndexSplit])</l>
+<l>        if (IndexMessage == -1)</l>
+<c>            * This should not happen! Just in case, the default</c>
+<c>            * message for an unknown status is returned.</c>
+<l>            IndexMessage := 0</l>
+<l>        endif</l>
+<l>        Msg := Msg + Messages[IndexMessage + 1] + ' '</l>
+<l>    endfor</l>
+<c>    * Remove the leading space</c>
+<l>    MessageText[IndexStatus] := Msg{0:strlen(Msg) - 2}</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="translate_bar_code_status_id">
+<parameters>
+<parameter id="MessageText"/>
+<parameter id="StatusID"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

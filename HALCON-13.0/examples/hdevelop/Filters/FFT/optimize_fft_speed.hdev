@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use optimize_fft_speed to improve the</c>
+<c>* runtime of the FFT operators.  The same speed test is executed after</c>
+<c>* different optimizations have been performed.  You will see that sometimes</c>
+<c>* significant speed improvements are possible with the optimization.</c>
+<c>* Note that if you run this program more than once without exiting HDevelop</c>
+<c>* the runtimes of all three modes will be identical because the optimization</c>
+<c>* data is not reset when HDevelop is reset.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* We will try a 512x512 image because this is the size that is often used</c>
+<c>* with FFT algorithms.  Here, you typically may see significant differences</c>
+<c>* in the three optimization modes used below.</c>
+<l>read_image (Image, 'fabrik')</l>
+<c>* Alternatively, you may want to try a 640x480 image by activating the</c>
+<c>* following line.  Here, typically the speed increase between the modes</c>
+<c>* standard and patient will be significant.</c>
+<l>* read_image (Image, 'mosaic/pcb_03')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c>* To make the speed comparison meaningful, we convert the image to a</c>
+<c>* complex image.  This saves the overhead of doing the conversion in</c>
+<c>* fft_generic below.  Furthermore, we will set the normalization to none</c>
+<c>* and the mode to dc_edge, so that only the raw FFT needs to be</c>
+<c>* performed in fft_generic.</c>
+<l>convert_image_type (Image, ImageComplex, 'complex')</l>
+<l>Iter := 20</l>
+<c>* First, we will measure the speed without having performed any optimization.</c>
+<l>count_seconds (S1)</l>
+<l>for J := 1 to Iter by 1</l>
+<l>    fft_generic (ImageComplex, ImageFFT, 'to_freq', -1, 'none', 'dc_edge', 'complex')</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimeNoOpt := (S2 - S1) / Iter</l>
+<l>stop ()</l>
+<c>* Next, we will perform standard optimization.  The optimization will typically</c>
+<c>* take only a few seconds.</c>
+<l>optimize_fft_speed (Width, Height, 'standard')</l>
+<l>count_seconds (S1)</l>
+<l>for J := 1 to Iter by 1</l>
+<l>    fft_generic (ImageComplex, ImageFFT, 'to_freq', -1, 'none', 'dc_edge', 'complex')</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimeStandard := (S2 - S1) / Iter</l>
+<l>stop ()</l>
+<c>* Finally, we will use a patient optimization.  Typically, this may take more</c>
+<c>* than one minute.</c>
+<l>optimize_fft_speed (Width, Height, 'patient')</l>
+<l>count_seconds (S1)</l>
+<l>for J := 1 to Iter by 1</l>
+<l>    fft_generic (ImageComplex, ImageFFT, 'to_freq', -1, 'none', 'dc_edge', 'complex')</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimePatient := (S2 - S1) / Iter</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

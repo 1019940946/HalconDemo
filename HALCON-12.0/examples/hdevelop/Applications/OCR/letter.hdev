@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* OCR</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Letters, 'letters')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Letters, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Letters)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* ---------- read OCR classifier ----------</c>
+<c>* Read the classifier to use for reading the text.</c>
+<c>* It is easiest to use the pre-trained font Document_NoRej.  If you have</c>
+<c>* run the program lettert.hdev in this directory, you can activate the</c>
+<c>* second line to use the font trained with this program.</c>
+<l>read_ocr_class_mlp ('Document_NoRej', OCRHandle)</l>
+<l>* read_ocr_class_mlp ('letters', OCRHandle)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* ---------- segmentation of characters ----------</c>
+<l>binary_threshold (Letters, DarkRegion, 'max_separability', 'dark', UsedThreshold)</l>
+<l>dilation_circle (DarkRegion, CharRegion, 2.500000)</l>
+<l>connection (CharRegion, CharConnected)</l>
+<l>intersection (CharConnected, DarkRegion, CharOrig)</l>
+<l>sort_region (CharOrig, Characters, 'character', 'true', 'row')</l>
+<l>dev_display (Letters)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_display (Characters)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* ---------- interactive OCR ---------</c>
+<l>shape_trans (Characters, CharConvex, 'rectangle1')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_open_window (0, Width / 2 + 50, 128, 128, 'black', WindowChar)</l>
+<l>set_display_font (WindowChar, 26, 'mono', 'true', 'false')</l>
+<l>dev_set_window (WindowID)</l>
+<l>dev_display (Letters)</l>
+<l>DoLoop := 1</l>
+<l>while (DoLoop == 1)</l>
+<l>    dev_set_color ('red')</l>
+<l>    Message[0] := 'Select a character with the mouse'</l>
+<l>    Message[1] := 'Click right button to quit'</l>
+<l>    disp_message (WindowID, Message, 'image', 12, 12, 'black', 'true')</l>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    dev_display (Letters)</l>
+<l>    get_region_index (CharConvex, Row, Column, Index)</l>
+<l>    if (Index &gt; 0)</l>
+<l>        select_obj (Characters, SelChar, Index)</l>
+<l>        do_ocr_single_class_mlp (SelChar, Letters, OCRHandle, 1, RecChar, Confidence)</l>
+<l>        dev_set_window (WindowChar)</l>
+<l>        dev_set_part (0, 0, 127, 127)</l>
+<l>        dev_clear_window ()</l>
+<l>        disp_message (WindowChar, RecChar[0], 'image', 40, 53, 'green', 'false')</l>
+<l>        dev_set_window (WindowID)</l>
+<l>        dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    endif</l>
+<l>    if (Button == 4)</l>
+<l>        DoLoop := 0</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+<l>dev_set_shape ('original')</l>
+<l>dev_set_window (WindowChar)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowID)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

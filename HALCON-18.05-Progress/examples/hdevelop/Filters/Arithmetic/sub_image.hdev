@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to subtract two images</c>
+<c>* using the operator 'sub_image'.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Read two images and convert them</c>
+<l>read_image (Scene00, 'autobahn/scene_00')</l>
+<l>read_image (Scene01, 'autobahn/scene_01')</l>
+<l>convert_image_type (Scene00, ImageConverted1, 'int2')</l>
+<l>convert_image_type (Scene01, ImageConverted2, 'int2')</l>
+<c>* </c>
+<c>* Display the input images for the subtraction</c>
+<l>dev_open_window_fit_image (ImageConverted1, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageConverted1)</l>
+<l>disp_message (WindowHandle, 'Image 1', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageConverted2)</l>
+<l>disp_message (WindowHandle, 'Image 2', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Subtract the input images and display the resulting image</c>
+<l>sub_image (ImageConverted1, ImageConverted2, ImageSub, 1, 0)</l>
+<l>dev_display (ImageSub)</l>
+<l>disp_message (WindowHandle, 'Resulting image of the subtraction', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

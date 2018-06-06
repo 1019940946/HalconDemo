@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* **************************************************************************************************</c>
+<c>*    Projective rectification of a circuit board</c>
+<c>* **************************************************************************************************</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image1, '/stereo/uncalib/board_l')</l>
+<l>read_image (Image2, '/stereo/uncalib/board_r')</l>
+<l>scale_image_max (Image1, Image1)</l>
+<l>scale_image_max (Image2, Image2)</l>
+<l>get_image_pointer1 (Image1, Pointer, Type, Width, Height)</l>
+<l>ScaleImage := 0.4</l>
+<l>dev_open_window (0, 0, Width * ScaleImage, Height * ScaleImage, 'black', Window1)</l>
+<l>set_display_font (Window1, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image1)</l>
+<l>dev_open_window (0, Width * ScaleImage + 8, Width * ScaleImage, Height * ScaleImage, 'black', Window2)</l>
+<l>dev_display (Image2)</l>
+<l>dev_set_window (Window1)</l>
+<l>disp_message (Window1, 'Uncalibrated Stereo Image Pair', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* </c>
+<c>* Compute Fundamental Matrix</c>
+<c>* </c>
+<l>points_harris (Image1, 3, 1, 0.2, 1e5, Row1, Col1)</l>
+<l>points_harris (Image2, 3, 1, 0.2, 1e5, Row2, Col2)</l>
+<l>match_fundamental_matrix_ransac (Image1, Image2, Row1, Col1, Row2, Col2, 'ncc', 21, 0, 200, 20, 50, 0, 0.9, 'gold_standard', 0.3, 1, FMatrix, CovFMat, Error, Points1, Points2)</l>
+<l>Row1 := subset(Row1,Points1)</l>
+<l>Col1 := subset(Col1,Points1)</l>
+<l>Row2 := subset(Row2,Points2)</l>
+<l>Col2 := subset(Col2,Points2)</l>
+<c>* </c>
+<c>* </c>
+<c>* Projective Rectification</c>
+<c>* </c>
+<l>gen_binocular_proj_rectification (Map1, Map2, FMatrix, [], Width, Height, Width, Height, 1, 'bilinear_map', CovFMatRect, H1, H2)</l>
+<l>map_image (Image1, Map1, Image1)</l>
+<l>map_image (Image2, Map2, Image2)</l>
+<l>projective_trans_pixel (H1, Row1, Col1, Row1, Col1)</l>
+<l>projective_trans_pixel (H2, Row2, Col2, Row2, Col2)</l>
+<c>* </c>
+<c>* </c>
+<c>* Find the dominant plane in the images by computing the 2D homography.</c>
+<c>* Then, the left image is transformed such that points lying in this dominant plane do coincide in both images.</c>
+<c>* </c>
+<l>proj_match_points_ransac (Image1, Image2, Row1, Col1, Row2, Col2, 'ncc', 11, 0, 200, 100, 100, 0, 0.6, 'normalized_dlt', 2, 1, HomMat, Points1, Points2)</l>
+<l>projective_trans_image (Image1, Image1, HomMat, 'bilinear', 'false', 'true')</l>
+<c>* </c>
+<c>* 1. image (cyan) and the 2. image (red) overlaid:</c>
+<c>* Regions close to the dominant plane are gray, whereas regions distant to this plane are red or cyan.</c>
+<l>disp_continue_message (Window1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>compose3 (Image1, Image2, Image2, Image)</l>
+<l>get_image_pointer1 (Image, Pointer, Type, Width, Height)</l>
+<l>dev_set_window (Window2)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (Window1)</l>
+<l>dev_clear_window ()</l>
+<l>ScaleImage := 0.4</l>
+<l>dev_set_window_extents (-1, -1, Width * ScaleImage, Height * ScaleImage)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (Window1, 'Images rectified relative to the dominant plane', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* </c>
+<c>* The difference between corresponding points, also called parallax, is reciprocal to the 3D distance</c>
+<c>* from the space point the reference plane.</c>
+<c>* </c>
+<l>binocular_disparity (Image1, Image2, Disparity, Score, 'ncc', 15, 15, 5, -5, 5, 1, 0.8, 'left_right_check', 'interpolation')</l>
+<l>disp_continue_message (Window1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Disparity)</l>
+<l>disp_message (Window1, 'Disparity map', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>disp_continue_message (Window1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>threshold (Disparity, Region, 0.5, 3)</l>
+<l>gen_circle (StructElem, 10, 10, 3)</l>
+<l>opening (Region, StructElem, Region)</l>
+<l>dev_set_color ('slate blue')</l>
+<l>dev_display (Image1)</l>
+<l>dev_display (Region)</l>
+<l>disp_message (Window1, 'Segmentation of components with large height', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the optical inspection after a</c>
+<c>* ball bonding process on a chip. First, the pads are extracted.</c>
+<c>* Then, the ball bonds are searched within the pad area.</c>
+<c>* For all ball bonds that are set too close to the pad border</c>
+<c>* or pads containing no bond, an error notice is supplied.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>FileName := 'bonds/ball_bond_ccd_'</l>
+<l>read_image (Image, FileName + 1$'02')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('store_empty_region', 'false')</l>
+<c>* </c>
+<l>NumImages := 6</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, FileName + Index$'02')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Extract pads on chip</c>
+<l>    count_seconds (S1)</l>
+<l>    threshold (Image, Region, 135, 255)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, ['width','height','area'], 'and', [115,115,5000], [130,130,15000])</l>
+<l>    fill_up (SelectedRegions, RegionFillUp)</l>
+<l>    shape_trans (RegionFillUp, Pads, 'convex')</l>
+<c>    * </c>
+<c>    * Segment ball bonds on pad</c>
+<l>    difference (Pads, RegionFillUp, RegionDifference)</l>
+<l>    opening_rectangle1 (RegionDifference, BondWire, 10, 10)</l>
+<l>    shape_trans (BondWire, BallBonds, 'inner_circle')</l>
+<l>    select_shape_proto (Pads, BallBonds, MissingBonds, 'overlaps_rel', 0, 0)</l>
+<l>    count_seconds (S2)</l>
+<l>    Time := (S2 - S1) * 1000</l>
+<c>    * </c>
+<c>    * Get the contours of the pads with subpixel precision</c>
+<l>    dilation_circle (BallBonds, RegionDilation2, 10)</l>
+<l>    intersection (RegionDilation2, BondWire, RegionIntersection)</l>
+<l>    boundary (RegionIntersection, RegionBorder, 'inner')</l>
+<l>    dilation_circle (RegionBorder, RegionDilation, 3.5)</l>
+<l>    union1 (RegionDilation, RegionUnion)</l>
+<l>    reduce_domain (Image, RegionUnion, ImageReduced)</l>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 1, 20, 70)</l>
+<l>    union_adjacent_contours_xld (Edges, UnionContours, 10, 1, 'attr_keep')</l>
+<l>    select_contours_xld (UnionContours, SelectedContours, 'contour_length', 20, 20000, -0.5, 0.5)</l>
+<l>    fit_circle_contour_xld (SelectedContours, 'atukey', -1, 0, 0, 5, 7, CircleRow, CircleColumn, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>    gen_circle_contour_xld (ContCircle, CircleRow, CircleColumn, Radius, 0, 6.28318, 'positive', 1)</l>
+<c>    * </c>
+<c>    * Display the results obtained so far</c>
+<l>    count_obj (BondWire, NBonds)</l>
+<l>    gen_empty_obj (MeasureArrows)</l>
+<c>    * </c>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('cyan')</l>
+<l>    dev_display (ContCircle)</l>
+<l>    dev_set_color ('magenta')</l>
+<c>    * </c>
+<c>    * Evaluate and display the results</c>
+<l>    area_center (RegionDilation2, Area, Row, Column)</l>
+<l>    area_center (MissingBonds, AreaM, RowM, ColumnM)</l>
+<l>    select_shape_proto (Pads, BallBonds, BallTooClose, 'distance_contour', 0, 10)</l>
+<l>    area_center (BallTooClose, AreaB, RowB, ColumnB)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Pads)</l>
+<l>    if (|AreaM| &gt; 0 or |AreaB| &gt; 0)</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (MissingBonds)</l>
+<l>        dev_display (BallTooClose)</l>
+<l>        disp_message (WindowHandle, 'Ball bond\nis missing', 'image', RowM - 150, ColumnM - 110, 'red', 'true')</l>
+<l>        disp_message (WindowHandle, 'Ball bond is too\nclose to border', 'image', RowB - 150, ColumnB - 150, 'red', 'true')</l>
+<l>    endif</l>
+<l>    for IndexM := 1 to NBonds by 1</l>
+<l>        select_obj (ContCircle, ObjectSelected, IndexM)</l>
+<l>        smallest_rectangle1_xld (ObjectSelected, minY, minX, maxY, maxX)</l>
+<c>        * Draw arrow corresponding to the diameter of the fitted circle</c>
+<l>        area_center_xld (ObjectSelected, Area1, Ybb, Xbb, PointOrder1)</l>
+<l>        gen_arrow_contour_xld (Arrow, Ybb, Xbb, minY, Xbb, 12, 12)</l>
+<l>        concat_obj (MeasureArrows, Arrow, MeasureArrows)</l>
+<l>        gen_arrow_contour_xld (Arrow, Ybb, Xbb, maxY, Xbb, 12, 12)</l>
+<l>        concat_obj (MeasureArrows, Arrow, MeasureArrows)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (MeasureArrows)</l>
+<l>        select_obj (ContCircle, ObjectSelected, IndexM)</l>
+<l>        area_center_xld (ObjectSelected, Area2, Ybb, Xbb, PointOrder2)</l>
+<l>        disp_message (WindowHandle, (2 * Radius[IndexM - 1])$'.2f' + ' px', 'image', Ybb - 15, Xbb + 75, 'green', 'false')</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, |Row| + ' Ball Bond(s) detected\nin ' + Time$'.2f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Evaluate and display results</c>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Open a socket that accepts connection requests</c>
+<c>* from another HALCON-process</c>
+<c>* (start the program 'sock_send.hdev' in a second HDevelop</c>
+<c>* to see the result)</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<c>* Open a socket that accepts connection requests</c>
+<l>open_socket_accept (3000, 'protocol', 'HALCON4', AcceptingSocket)</l>
+<c>* Busy wait for an incoming connection</c>
+<l>dev_error_var (Error, 1)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>OpenStatus := 5</l>
+<l>while (OpenStatus != 2)</l>
+<l>    socket_accept_connect (AcceptingSocket, 'false', Socket)</l>
+<l>    OpenStatus := Error</l>
+<l>    wait_seconds (0.2)</l>
+<l>endwhile</l>
+<l>dev_set_check ('give_error')</l>
+<c>* Connection established</c>
+<l>get_next_socket_data_type (Socket, DataType)</l>
+<c>* Receive an image over a socket connection</c>
+<l>receive_image (Image, Socket)</l>
+<l>convert_image_type (Image, ImageInt2, 'int2')</l>
+<c>* Send an image over a socket connection</c>
+<l>send_image (ImageInt2, Socket)</l>
+<l>receive_image (ImageReal, Socket)</l>
+<l>threshold (ImageReal, Region, 0, 63)</l>
+<l>send_region (Region, Socket)</l>
+<l>receive_region (ConnectedRegions, Socket)</l>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>send_tuple (Socket, Area)</l>
+<l>send_tuple (Socket, Row)</l>
+<l>send_tuple (Socket, Column)</l>
+<l>receive_tuple (Socket, Colors)</l>
+<l>stop ()</l>
+<c>* Continue to close a socket</c>
+<l>close_socket (Socket)</l>
+<l>close_socket (AcceptingSocket)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

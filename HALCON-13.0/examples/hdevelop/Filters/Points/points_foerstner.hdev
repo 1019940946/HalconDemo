@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program illustrates how to use the Foerstner point detector.</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* </c>
+<l>SigmaGrad := 1.0</l>
+<l>SigmaInt := 2.0</l>
+<l>SigmaPoints := 3.0</l>
+<l>ThreshInhom := 400</l>
+<c>* </c>
+<l>points_foerstner (Image, SigmaGrad, SigmaInt, SigmaPoints, ThreshInhom, 0.1, 'gauss', 'false', RowJunctions, ColJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>gen_cross_contour_xld (Junctions, RowJunctions, ColJunctions, 6, rad(45))</l>
+<l>gen_cross_contour_xld (Area, RowArea, ColArea, 6, rad(45))</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Area)</l>
+<l>dev_set_color ('cyan')</l>
+<l>dev_display (Junctions)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

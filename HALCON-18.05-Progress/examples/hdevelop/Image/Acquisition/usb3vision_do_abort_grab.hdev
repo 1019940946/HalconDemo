@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This is a simple example program that demonstrates how to abort an</c>
+<c>* ongoing image acquisition in HDevelop.</c>
+<c>* </c>
+<c>* As example a camera is set to TriggerMode On, while no trigger is</c>
+<c>* expected, hence the image acquisition will run into timeout, which is</c>
+<c>* by default set to 5 s for most cameras. In the second run of this</c>
+<c>* example, the acquisition will be aborted.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>MyDevice := 'default'</l>
+<l>open_framegrabber ('USB3Vision', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', MyDevice, -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Save existing camera settings</c>
+<l>try</l>
+<l>    get_framegrabber_param (AcqHandle, 'TriggerMode', SavedTriggerMode)</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerMode', 'On')</l>
+<l>catch (Exception)</l>
+<l>    dev_disp_text ('Setting TriggerMode = On failed', 'window', 10, 10, 'red', [], [])</l>
+<l>    dev_disp_text ('This camera might not be usable for this example', 'window', 10, 10, 'red', [], [])</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Run 1: measure time for an image grab performed by a second thread.</c>
+<l>dev_disp_text ('Run 1, Standby for timeout in 5 s', 'window', 10, 10, 'black', [], [])</l>
+<l>count_seconds (T1)</l>
+<l>try</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>catch (Exception)</l>
+<l>    if (Exception[0] == 5322)</l>
+<l>        dev_disp_text ('Timeout', 'window', 30, 10, 'black', [], [])</l>
+<l>    else</l>
+<c>        * There is some other problem, throw it.</c>
+<l>        throw (Exception)</l>
+<l>    endif</l>
+<l>endtry</l>
+<l>count_seconds (T2)</l>
+<l>TimeGrab := T2 - T1</l>
+<l>dev_disp_text ('Attempted grab took ' + TimeGrab$'.2' + ' s', 'window', 50, 10, 'black', [], [])</l>
+<c>* </c>
+<c>* Run 2: abort the image grab shortly after it has been started.</c>
+<l>dev_disp_text ('Run 2, will abort the grab quickly', 'window', 80, 10, 'black', [], [])</l>
+<l>count_seconds (T1)</l>
+<l>par_start&lt;ThreadGrabImage&gt; : grab_once (Image, AcqHandle, Error)</l>
+<l>wait_seconds (0.05)</l>
+<c>* Abort the ongoing image acquisition</c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 0)</l>
+<l>par_join (ThreadGrabImage)</l>
+<l>count_seconds (T2)</l>
+<l>if (Error == 5336)</l>
+<l>    TimeGrabThreadedAbort := T2 - T1</l>
+<l>    dev_disp_text ('Aborted grab took ' + TimeGrabThreadedAbort$'.2' + ' s', 'window', 100, 10, 'black', [], [])</l>
+<l>else</l>
+<l>    dev_disp_text ('Acquisition thread returned unexpected result ' + Error, 'window', 100, 10, 'red', [], [])</l>
+<l>endif</l>
+<c>* </c>
+<c>* Restore the previously used camera settings.</c>
+<l>set_framegrabber_param (AcqHandle, 'TriggerMode', SavedTriggerMode)</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="grab_once">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Error" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_error_var (Error, 1)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_error_var (ErrorVar, 0)</l>
+<l>dev_set_check ('give_error')</l>
+<l>return ()</l>
+<c>* </c>
+</body>
+<docu id="grab_once">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="Error"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

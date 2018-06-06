@@ -1,0 +1,1379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* With this HDevelop program, you can play the Paddle Game</c>
+<c>* with either one or two players.</c>
+<c>* A paddle is created between the end points</c>
+<c>* of two separate regions. You can control a paddle by</c>
+<c>* holding, for example, two fingers sideways into the image.</c>
+<c>* </c>
+<c>* Setup</c>
+<c>* -----</c>
+<c>* 1) Position a camera such that you have a plain background,</c>
+<c>*    and adapt the open_framegrabber call. For a challenging game,</c>
+<c>*    a camera with &gt; 15 frames per second is recommended.</c>
+<c>* 2) Adapt the parameters using the user interface that is shown</c>
+<c>*    when a camera image can be grabbed and/or adapt the parameters</c>
+<c>*    at the top of this program for an ideal gaming experience.</c>
+<c>* </c>
+<c>* Adjust the look of the game</c>
+<c>* depending on your image resolution.</c>
+<c>* Set the thickness of the borders in pixel.</c>
+<l>BorderThickness := 20</l>
+<c>* Adjust how much of the area is available for the players.</c>
+<l>LegalZoneRate := 0.2</l>
+<c>* Adjust how big the area is that triggers a point.</c>
+<l>ScoreRegionRate := 0.05</l>
+<c>* Adjust how much the region representing the paddles is grown.</c>
+<l>PaddleDilation := 3.5</l>
+<c>* Show debug information</c>
+<c>* (frames per second and ball speed).</c>
+<l>Debug := 0</l>
+<c>* </c>
+<c>* Do not touch these parameters:</c>
+<c>* Initial score.</c>
+<l>ScorePlayers := [0,0]</l>
+<c>* Initial speed.</c>
+<l>TransRow := 10</l>
+<l>if (rand(1) &gt; 0.5)</l>
+<l>    TransColumn := 6</l>
+<l>else</l>
+<l>    TransColumn := -6</l>
+<l>endif</l>
+<l>ActivePlayers := [0,0]</l>
+<l>ActiveEvent := 0</l>
+<l>AvoidDoubleTouchIndex := 0</l>
+<l>RememberRegionIndex := 0</l>
+<l>Flush := 'false'</l>
+<l>DoPlayerCollisionCheck := 0</l>
+<l>FPS := 0</l>
+<l>MirrorImageLeftRight := 0</l>
+<l>MirrorImageUpDown := 0</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>set_system ('store_empty_region', 'false')</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>try</l>
+<c>    * Try to open and configure a camera.</c>
+<l>    open_framegrabber ('DirectShow', 1, 1, 0, 0, 0, 0, 'default', 8, 'gray', -1, 'false', 'default', '[0] Integrated Camera', 0, -1, AcqHandle)</l>
+<l>catch (Exception)</l>
+<l>    dev_display_instructions ()</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Configure window.</c>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, [800,1200], [600,1000], WindowHandle)</l>
+<c>* </c>
+<l>get_window_extents (WindowHandle, Row, Column, WindowWidth, WindowHeight)</l>
+<l>WindowImageRatio := WindowWidth / (1.0 * ImageWidth)</l>
+<c>* </c>
+<l>FontSize := 16</l>
+<l>set_display_font (WindowHandle, FontSize, 'mono', 'true', 'false')</l>
+<l>set_window_param (WindowHandle, 'flush', Flush)</l>
+<c>* </c>
+<l>gen_game_regions (Ball, Border, PlayerBoxes, ScoreRegions, RegionArrow, RegionDoubleBall, RegionShrinkBall, RegionAccelerateBall, InactivePlayerWall, EmergencyBorder, ImageHeight, ImageWidth, BorderThickness, LegalZoneRate, ScoreRegionRate, ActivePlayers)</l>
+<l>gen_ui_regions (Image, ButtonRegion, SwitchRegionVector, ToggleRegionVector, Labels, ButtonLabels, SwitchLabels, SwitchStates, ToggleStates, ToggleLabels)</l>
+<l>BackgroundImageSet := 0</l>
+<c>* </c>
+<c>* Begin game.</c>
+<l>TextColor := ['black','white']</l>
+<l>NormalColor := ['black','#ffffff33']</l>
+<l>HighlightColor := ['black','orange']</l>
+<l>MouseRow := 110</l>
+<l>MouseColumn := 260</l>
+<l>MouseButton := 0</l>
+<l>ShowMenu := 1</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">while (true)</l>
+<l>    if (Debug)</l>
+<l>        count_seconds (TimeStart)</l>
+<l>    endif</l>
+<c>    * Grab and adapt image.</c>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    if (MirrorImageLeftRight)</l>
+<l>        mirror_image (Image, Image, 'column')</l>
+<l>    endif</l>
+<l>    if (MirrorImageUpDown)</l>
+<l>        mirror_image (Image, Image, 'row')</l>
+<l>    endif</l>
+<c>    * Display image and player boxes.</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('#ffffff33')</l>
+<l>    dev_display (PlayerBoxes)</l>
+<l>    dev_set_color ('#ffffff77')</l>
+<l>    dev_display (Border)</l>
+<l>    dev_set_color ('#ff000077')</l>
+<l>    dev_display (ScoreRegions)</l>
+<l>    if (sum(ActivePlayers) != 2)</l>
+<l>        dev_set_color ('#ffff0077')</l>
+<l>        dev_display (InactivePlayerWall)</l>
+<l>    endif</l>
+<l>    if (BackgroundImageSet)</l>
+<l>        if (MirrorImageLeftRight)</l>
+<l>            dev_disp_text (ScorePlayers[1] + ' - ' + ScorePlayers[0], 'window', 'top', 'center', 'black', [], [])</l>
+<l>        else</l>
+<l>            dev_disp_text (ScorePlayers[0] + ' - ' + ScorePlayers[1], 'window', 'top', 'center', 'black', [], [])</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * Get data from both players.</c>
+<l>    count_obj (Ball, NumberOfBalls)</l>
+<l>    for PlayerIndex := 1 to 2 by 1</l>
+<l>        select_obj (PlayerBoxes, BoxSelected, PlayerIndex)</l>
+<l>        if ((ActivePlayers[PlayerIndex - 1] or ShowMenu) and BackgroundImageSet)</l>
+<l>            get_player_region (Image, ImageBG, BoxSelected, PlayerRegion)</l>
+<l>            count_obj (PlayerRegion, Number)</l>
+<l>            if (Number == 2)</l>
+<c>                * Display player region.</c>
+<l>                dev_set_color ('#0ff0b077')</l>
+<l>                dev_display (PlayerRegion)</l>
+<l>                get_paddle_coordinates (PlayerRegion, PlayerIndex, RowCoordinates, ColumnCoordinates)</l>
+<l>                check_legal_zone (ColumnCoordinates, LegalZoneRate, ImageWidth, PlayerIndex, InLegalZone)</l>
+<l>                if (InLegalZone)</l>
+<c>                    * Create paddle.</c>
+<l>                    gen_region_line (RegionLines, RowCoordinates[0], ColumnCoordinates[0], RowCoordinates[1], ColumnCoordinates[1])</l>
+<l>                    dilation_circle (RegionLines, Paddle, PaddleDilation)</l>
+<l>                    RememberRegionIndex := 10</l>
+<l>                    DoPlayerCollisionCheck := 1</l>
+<l>                elseif (RememberRegionIndex &gt; 0)</l>
+<l>                    RememberRegionIndex := RememberRegionIndex - 1</l>
+<l>                    DoPlayerCollisionCheck := 1</l>
+<l>                endif</l>
+<l>            elseif (RememberRegionIndex &gt; 0)</l>
+<c>                * No two regions are found,</c>
+<c>                * but a valid region existed a short time ago.</c>
+<l>                RememberRegionIndex := RememberRegionIndex - 1</l>
+<l>                DoPlayerCollisionCheck := 1</l>
+<c>                * Display faulty player region.</c>
+<l>                dev_set_color ('#ff000077')</l>
+<l>                dev_display (PlayerRegion)</l>
+<l>            elseif (Number &gt; 0)</l>
+<c>                * Display faulty player region.</c>
+<l>                dev_set_color ('#ff000077')</l>
+<l>                dev_display (PlayerRegion)</l>
+<l>                DoPlayerCollisionCheck := 0</l>
+<l>            else</l>
+<l>                DoPlayerCollisionCheck := 0</l>
+<l>            endif</l>
+<l>            if (DoPlayerCollisionCheck)</l>
+<l>                check_paddle_ball_collision (Paddle, Ball, NumberOfBalls, AvoidDoubleTouchIndex, TransRow, TransColumn, RowCoordinates, ColumnCoordinates, ImageHeight, PlayerIndex, MinSpeed, MaxSpeed, WindowHandle, TransRow, TransColumn, AvoidDoubleTouchIndex, DoPlayerCollisionCheck)</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Check for collision with InactivePlayerWall.</c>
+<l>    if (sum(ActivePlayers != 2))</l>
+<l>        for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>            select_obj (Ball, BallSelected, BallIndex)</l>
+<l>            get_ball_intersection_area (BallSelected, InactivePlayerWall, Area)</l>
+<l>            if (Area &gt; 0)</l>
+<l>                TransColumn[BallIndex - 1] := -TransColumn[BallIndex - 1]</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endif</l>
+<c>    * Check for collision with border.</c>
+<l>    for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>        select_obj (Ball, BallSelected, BallIndex)</l>
+<l>        get_ball_intersection_area (BallSelected, Border, Area)</l>
+<l>        if (Area &gt; 0)</l>
+<l>            TransRow[BallIndex - 1] := -TransRow[BallIndex - 1]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Check for collision with score areas.</c>
+<l>    ResetGame := 0</l>
+<l>    for PlayerIndex := 1 to 2 by 1</l>
+<l>        select_obj (ScoreRegions, ScoreRegionSelected, PlayerIndex)</l>
+<l>        for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>            select_obj (Ball, BallSelected, BallIndex)</l>
+<l>            get_ball_intersection_area (BallSelected, ScoreRegionSelected, Area)</l>
+<l>            if (Area &gt; 0)</l>
+<c>                * Increase score.</c>
+<l>                ScorePlayers[PlayerIndex - 1] := ScorePlayers[PlayerIndex - 1] + 1</l>
+<c>                * Show still image.</c>
+<l>                dev_set_color ('red')</l>
+<l>                dev_display (ScoreRegionSelected)</l>
+<l>                dev_set_color ('green')</l>
+<l>                dev_display (Ball)</l>
+<l>                flush_buffer (WindowHandle)</l>
+<l>                wait_seconds (2)</l>
+<l>                ResetGame := 1</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<c>    * Check for collision with emergency border (ball left game).</c>
+<l>    get_ball_intersection_area (BallSelected, EmergencyBorder, Area)</l>
+<l>    if (Area &gt; 0)</l>
+<l>        Text := 'The ball left the game due to speed reasons.'</l>
+<l>        Text[|Text|] := 'You might want to adapt the MaxSpeed.'</l>
+<l>        dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>        wait_seconds (5)</l>
+<l>        ResetGame := 1</l>
+<l>    endif</l>
+<c>    * Move ball(s).</c>
+<l>    for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>        select_obj (Ball, BallSelected, BallIndex)</l>
+<l>        move_region (BallSelected, BallSelected, TransRow[BallIndex - 1], TransColumn[BallIndex - 1])</l>
+<l>        dev_display (BallSelected)</l>
+<l>        replace_obj (Ball, BallSelected, Ball, BallIndex)</l>
+<l>    endfor</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Ball)</l>
+<c>    * </c>
+<c>    * ** Random events **</c>
+<c>    * </c>
+<l>    EventProbability := 0.01</l>
+<l>    NumExtras := 4</l>
+<l>    if (ActiveEvent == 0 and rand(1) &lt; EventProbability)</l>
+<c>        * New random event?</c>
+<l>        ActiveEvent := int(rand(1) * NumExtras) + 1</l>
+<l>        switch (ActiveEvent)</l>
+<l>        case 1:</l>
+<c>            * Move the arrow to a semi-random position.</c>
+<l>            move_region_to_random_position (RegionArrow, ExtraRegion, ImageHeight, ImageWidth)</l>
+<l>            break</l>
+<l>        case 2:</l>
+<c>            * Move the double ball region to a semi-random position.</c>
+<l>            move_region_to_random_position (RegionDoubleBall, ExtraRegion, ImageHeight, ImageWidth)</l>
+<l>            break</l>
+<l>        case 3:</l>
+<c>            * First, check that none of the balls</c>
+<c>            * is too small to be shrunk.</c>
+<l>            BallSizeOK := 1</l>
+<l>            for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>                select_obj (Ball, BallSelected, BallIndex)</l>
+<l>                area_center (BallSelected, AreaBall, RowBall, ColumnBall)</l>
+<l>                if (AreaBall &lt; 50)</l>
+<l>                    BallSizeOK := 0</l>
+<l>                endif</l>
+<l>            endfor</l>
+<l>            if (BallSizeOK)</l>
+<c>                * Move the shrink region to a semi-random position.</c>
+<l>                move_region_to_random_position (RegionShrinkBall, ExtraRegion, ImageHeight, ImageWidth)</l>
+<l>            endif</l>
+<l>            break</l>
+<l>        case 4:</l>
+<c>            * Move the accelerate ball region to a semi-random position.</c>
+<l>            move_region_to_random_position (RegionAccelerateBall, ExtraRegion, ImageHeight, ImageWidth)</l>
+<l>            break</l>
+<l>        endswitch</l>
+<l>    endif</l>
+<c>    * Display extra and check for collision.</c>
+<l>    if (ActiveEvent &gt; 0)</l>
+<l>        dev_set_color ('orange')</l>
+<l>        dev_display (ExtraRegion)</l>
+<l>        for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>            select_obj (Ball, BallSelected, BallIndex)</l>
+<l>            get_ball_intersection_area (BallSelected, ExtraRegion, Area)</l>
+<l>            if (Area &gt; 0)</l>
+<c>                * Arrow event.</c>
+<l>                switch (ActiveEvent)</l>
+<l>                case 1:</l>
+<c>                    * Change direction of ball movement.</c>
+<l>                    TransRow[BallIndex - 1] := -TransRow[BallIndex - 1] * (1 + rand(1) * 0.2)</l>
+<l>                    TransColumn[BallIndex - 1] := TransColumn[BallIndex - 1] * (1 + rand(1) * 0.2)</l>
+<l>                    break</l>
+<l>                case 2:</l>
+<c>                    * Add a new ball.</c>
+<l>                    concat_obj (Ball, BallSelected, Ball)</l>
+<l>                    TransRow := [TransRow,-TransRow[BallIndex - 1] + rand(1) * 0.2]</l>
+<l>                    TransColumn := [TransColumn,-TransColumn[BallIndex - 1] + rand(1) * 0.2]</l>
+<l>                    count_obj (Ball, Number)</l>
+<l>                    AvoidDoubleTouchIndex[Number - 1] := 0</l>
+<l>                    break</l>
+<l>                case 3:</l>
+<c>                    * Shrink the ball.</c>
+<l>                    region_features (BallSelected, 'width', WidthBall)</l>
+<l>                    RadiusErosion := WidthBall * 0.25</l>
+<l>                    erosion_circle (BallSelected, BallSelected, RadiusErosion)</l>
+<l>                    replace_obj (Ball, BallSelected, Ball, BallIndex)</l>
+<l>                    break</l>
+<l>                case 4:</l>
+<c>                    * Accelerate the ball.</c>
+<l>                    TransRow := TransRow * (1.1 + rand(1) * 0.2)</l>
+<l>                    TransColumn := TransColumn * (1.1 + rand(1) * 0.2)</l>
+<l>                    break</l>
+<l>                endswitch</l>
+<l>                ActiveEvent := 0</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endif</l>
+<l>    if (ShowMenu)</l>
+<l>        ButtonPressed := -1</l>
+<l>        try</l>
+<l>            get_mposition (WindowHandle, MouseRow, MouseColumn, MouseButton)</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>        get_user_interaction (ButtonRegion, SwitchRegionVector, ToggleRegionVector, WindowHandle, MouseRow, MouseColumn, MouseButton, HighlightColor, NormalColor, Labels, ButtonLabels, SwitchLabels, SwitchStates, ToggleStates, ToggleLabels, WindowImageRatio, SwitchStates, ToggleStates, ButtonPressed)</l>
+<c>        * Modify settings.</c>
+<l>        MirrorImageLeftRight := SwitchStates[0]</l>
+<l>        MirrorImageUpDown := SwitchStates[1]</l>
+<l>        MinSpeed := 6 * (find(ToggleStates,1) + 1)</l>
+<l>        MaxSpeed := 9 * (find(ToggleStates,1) + 1)</l>
+<l>        limit_ball_speed (TransRow, TransColumn, MinSpeed, MaxSpeed, TransRow, TransColumn)</l>
+<l>        if (ButtonPressed == 0)</l>
+<c>            * Set background image.</c>
+<l>            copy_obj (Image, ImageBG, 1, 1)</l>
+<l>            BackgroundImageSet := 1</l>
+<l>            ResetGame := 1</l>
+<l>        endif</l>
+<c>        * Start game?</c>
+<l>        if (ButtonPressed &gt; 0 and BackgroundImageSet)</l>
+<c>            * Set players active.</c>
+<l>            switch (ButtonPressed)</l>
+<l>            case 1:</l>
+<l>                ActivePlayers := [1,0]</l>
+<l>                break</l>
+<l>            case 2:</l>
+<l>                ActivePlayers := [1,1]</l>
+<l>                break</l>
+<l>            endswitch</l>
+<l>            gen_game_regions (Ball, Border, PlayerBoxes, ScoreRegions, RegionArrow, RegionDoubleBall, RegionShrinkBall, RegionAccelerateBall, InactivePlayerWall, EmergencyBorder, ImageHeight, ImageWidth, BorderThickness, LegalZoneRate, ScoreRegionRate, ActivePlayers)</l>
+<c>            * Start game</c>
+<l>            ShowMenu := 0</l>
+<l>            ResetGame := 1</l>
+<l>        elseif (ButtonPressed &gt; 0 and not BackgroundImageSet)</l>
+<l>            dev_disp_text ('Please set a background image before starting the game.', 'window', 'center', 'center', 'black', [], [])</l>
+<l>            wait_seconds (3)</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * If the score area is hit, reset the game.</c>
+<l>    if (ResetGame)</l>
+<l>        reset_game (Ball, Ball, ImageHeight, ImageWidth, NumberOfBalls, TransColumn, TransRow, MinSpeed, MaxSpeed, BallIndex, PlayerIndex, TransColumn, TransRow, ActiveEvent)</l>
+<l>    endif</l>
+<l>    if (Debug)</l>
+<l>        count_seconds (TimeEnd)</l>
+<l>        FPS := round(1 / (TimeEnd - TimeStart))</l>
+<l>        set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>        dev_disp_text (['FPS: ' + FPS,'TransRow: ' + TransRow$'.2f','TransColumn: ' + TransColumn$'.2f','CurrentSpeed: ' + sqrt(TransRow * TransRow + TransColumn * TransColumn),'MinSpeed: ' + MinSpeed,'MaxSpeed: ' + MaxSpeed], 'window', 'top', 'right', 'white', 'box', 'false')</l>
+<l>        set_display_font (WindowHandle, FontSize, 'mono', 'true', 'false')</l>
+<l>    endif</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_ball_intersection_area">
+<interface>
+<io>
+<par name="Ball" base_type="iconic" dimension="0"/>
+<par name="Region" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="Area" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>intersection (Ball, Region, RegionIntersection)</l>
+<l>area_center (RegionIntersection, Area, Row, Column)</l>
+<l>return ()</l>
+</body>
+<docu id="get_ball_intersection_area">
+<parameters>
+<parameter id="Area"/>
+<parameter id="Ball"/>
+<parameter id="Region"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="move_region_to_random_position">
+<interface>
+<io>
+<par name="Region" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="RegionMoved" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Row := ImageHeight * 0.5 + ((rand(1) - 0.5) * (ImageHeight * 0.5))</l>
+<l>Column := ImageWidth * 0.5 + ((rand(1) - 0.5) * (ImageWidth * 0.2))</l>
+<l>move_region (Region, RegionMoved, Row, Column)</l>
+<l>return ()</l>
+</body>
+<docu id="move_region_to_random_position">
+<parameters>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="Region"/>
+<parameter id="RegionMoved"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="check_legal_zone">
+<interface>
+<ic>
+<par name="ColumnCoordinates" base_type="ctrl" dimension="0"/>
+<par name="LegalZoneRate" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="PlayerIndex" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="InLegalZone" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (PlayerIndex == 1)</l>
+<l>    if (ColumnCoordinates[0] &lt;= (ImageWidth * LegalZoneRate + 1) and ColumnCoordinates[1] &lt;= ImageWidth * LegalZoneRate + 1)</l>
+<l>        InLegalZone := 1</l>
+<l>    else</l>
+<l>        InLegalZone := 0</l>
+<l>    endif</l>
+<l>else</l>
+<l>    if (ColumnCoordinates[0] &gt;= (ImageWidth * (1 - LegalZoneRate) - 1) and ColumnCoordinates[1] &gt;= (ImageWidth * (1 - LegalZoneRate) - 1))</l>
+<l>        InLegalZone := 1</l>
+<l>    else</l>
+<l>        InLegalZone := 0</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="check_legal_zone">
+<parameters>
+<parameter id="ColumnCoordinates"/>
+<parameter id="ImageWidth"/>
+<parameter id="InLegalZone"/>
+<parameter id="LegalZoneRate"/>
+<parameter id="PlayerIndex"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_player_region">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="ImageBG" base_type="iconic" dimension="0"/>
+<par name="BoxSelected" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="PlayerRegion" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>reduce_domain (ImageBG, BoxSelected, ImageBGReduced)</l>
+<l>reduce_domain (Image, BoxSelected, ImageReduced)</l>
+<l>abs_diff_image (ImageReduced, ImageBGReduced, ImageAbsDiff, 1)</l>
+<l>binary_threshold (ImageAbsDiff, Region, 'max_separability', 'light', UsedThreshold)</l>
+<l>if (UsedThreshold &gt; 15)</l>
+<l>    opening_circle (Region, RegionOpening, 3.5)</l>
+<l>    closing_circle (RegionOpening, PlayerRegion, 7.5)</l>
+<l>    connection (PlayerRegion, PlayerRegion)</l>
+<l>else</l>
+<l>    gen_empty_region (PlayerRegion)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_player_region">
+<parameters>
+<parameter id="BoxSelected"/>
+<parameter id="Image"/>
+<parameter id="ImageBG"/>
+<parameter id="PlayerRegion"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_paddle_coordinates">
+<interface>
+<io>
+<par name="PlayerRegion" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="PlayerIndex" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="RowCoordinates" base_type="ctrl" dimension="0"/>
+<par name="ColumnCoordinates" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>RowCoordinates := []</l>
+<l>ColumnCoordinates := []</l>
+<l>for Index := 1 to 2 by 1</l>
+<l>    select_obj (PlayerRegion, ObjectSelected, Index)</l>
+<l>    get_region_points (ObjectSelected, Rows, Columns)</l>
+<l>    if (PlayerIndex == 1)</l>
+<l>        tuple_max (Columns, MaxMinValue)</l>
+<l>    else</l>
+<l>        tuple_min (Columns, MaxMinValue)</l>
+<l>    endif</l>
+<l>    tuple_find (Columns, MaxMinValue, Index1)</l>
+<l>    tuple_median (Index1, Median)</l>
+<l>    RowCoordinates[Index - 1] := Rows[Median]</l>
+<l>    ColumnCoordinates[Index - 1] := Columns[Median]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="get_paddle_coordinates">
+<parameters>
+<parameter id="ColumnCoordinates"/>
+<parameter id="PlayerIndex"/>
+<parameter id="PlayerRegion"/>
+<parameter id="RowCoordinates"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="limit_ball_speed">
+<interface>
+<ic>
+<par name="TransRow" base_type="ctrl" dimension="0"/>
+<par name="TransColumn" base_type="ctrl" dimension="0"/>
+<par name="MinSpeed" base_type="ctrl" dimension="0"/>
+<par name="MaxSpeed" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TransRowOut" base_type="ctrl" dimension="0"/>
+<par name="TransColumnOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>TransColumnOut := TransColumn</l>
+<l>TransRowOut := TransRow</l>
+<l>CurrentSpeed := sqrt(TransRow * TransRow + TransColumn * TransColumn)</l>
+<l>Factor := 1.0</l>
+<l>if (CurrentSpeed &gt; MaxSpeed)</l>
+<l>    Factor := MaxSpeed / CurrentSpeed</l>
+<l>elseif (CurrentSpeed &lt; MinSpeed)</l>
+<l>    Factor := MinSpeed / CurrentSpeed</l>
+<l>endif</l>
+<l>TransRowOut := TransRowOut * Factor</l>
+<l>TransColumnOut := TransColumnOut * Factor</l>
+<l>return ()</l>
+</body>
+<docu id="limit_ball_speed">
+<parameters>
+<parameter id="MaxSpeed"/>
+<parameter id="MinSpeed"/>
+<parameter id="TransColumn"/>
+<parameter id="TransColumnOut"/>
+<parameter id="TransRow"/>
+<parameter id="TransRowOut"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_ball_translation_after_paddle_collision">
+<interface>
+<io>
+<par name="BallSelected" base_type="iconic" dimension="0"/>
+<par name="Paddle" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="TransRow" base_type="ctrl" dimension="0"/>
+<par name="TransColumn" base_type="ctrl" dimension="0"/>
+<par name="RowCoordinates" base_type="ctrl" dimension="0"/>
+<par name="ColumnCoordinates" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="PlayerIndex" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TransRowOut" base_type="ctrl" dimension="0"/>
+<par name="TransColumnOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<l>area_center (BallSelected, AreaBall, RowBall, ColumnBall)</l>
+<l>angle_ll (RowBall, ColumnBall, RowBall + TransRow, ColumnBall + TransColumn, RowCoordinates[0], ColumnCoordinates[0], RowCoordinates[1], ColumnCoordinates[1], Angle)</l>
+<l>Length := sqrt((TransRow * TransRow) + (TransColumn * TransColumn))</l>
+<c>* Accelerate ball based on paddle length.</c>
+<l>region_features (Paddle, 'max_diameter', MaxDiameter)</l>
+<l>Acceleration := (ImageHeight / MaxDiameter) / 4</l>
+<l>Sign := -pow(-1,PlayerIndex)</l>
+<l>TransRowOut := cos(Angle) * Length * Acceleration</l>
+<l>TransColumnOut := sin(Angle) * Length * Acceleration</l>
+<l>return ()</l>
+</body>
+<docu id="get_ball_translation_after_paddle_collision">
+<parameters>
+<parameter id="BallSelected"/>
+<parameter id="ColumnCoordinates"/>
+<parameter id="ImageHeight"/>
+<parameter id="Paddle"/>
+<parameter id="PlayerIndex"/>
+<parameter id="RowCoordinates"/>
+<parameter id="TransColumn"/>
+<parameter id="TransColumnOut"/>
+<parameter id="TransRow"/>
+<parameter id="TransRowOut"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_instructions">
+<interface/>
+<body>
+<l>dev_open_window (0, 0, 800, 600, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Text := 'HDevelop Paddle Game'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'With this HDevelop program, you can play the Paddle Game'</l>
+<l>Text[|Text|] := 'with either one or two players.'</l>
+<l>Text[|Text|] := 'A paddle is created between the end points'</l>
+<l>Text[|Text|] := 'of two separate regions. You can control a paddle by'</l>
+<l>Text[|Text|] := 'holding, for example, two fingers sideways into the image.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Setup'</l>
+<l>Text[|Text|] := '-----'</l>
+<l>Text[|Text|] := '1) Position a camera such that you have a plain background,'</l>
+<l>Text[|Text|] := '   and adapt the open_framegrabber call. For a challenging game,'</l>
+<l>Text[|Text|] := '   a camera with &gt; 15 frames per second is recommended.'</l>
+<l>Text[|Text|] := '2) Adapt the parameters using the user interface that is shown'</l>
+<l>Text[|Text|] := '   when a camera image can be grabbed and/or adapt the parameters'</l>
+<l>Text[|Text|] := '   at the top of this program for an ideal gaming experience.'</l>
+<l>Index := |Text|</l>
+<l>Text[|Text|] := ''</l>
+<l>Color := gen_tuple_const(|Text|, 'white')</l>
+<l>Text[|Text|] := 'Camera could not be initialized.'</l>
+<l>Text[|Text|] := 'Please connect a camera and adapt the open_framegrabber operator call.'</l>
+<l>Color := [Color, gen_tuple_const(|Text| - |Color|, 'yellow')]</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', Color, 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_instructions">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_pong_arrow">
+<interface>
+<oo>
+<par name="Arrow" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Row1 := 0.7 * Scale</l>
+<l>Column1 := 0.1 * Scale</l>
+<l>Row2 := 0.1 * Scale</l>
+<l>Column2 := 0.5 * Scale</l>
+<l>Row3 := 0.8 * Scale</l>
+<l>Column3 := 0.9 * Scale</l>
+<l>Width := 0.05 * Scale</l>
+<l>Phi := atan2(Row1 - Row2,Column2 - Column1)</l>
+<l>distance_pp (Row1, Column1, Row2, Column2, Distance)</l>
+<l>gen_rectangle2 (Rectangle, (Row1 + Row2) / 2, (Column1 + Column2) / 2, Phi, Distance / 2, Width)</l>
+<l>gen_circle (Circle, Row2, Column2, Width)</l>
+<l>gen_cross_contour_xld (Cross, [Row2,Row3], [Column2,Column3], 46, Phi)</l>
+<l>gen_arrow_region (ArrowTmp, Row2, Column2, Row3, Column3, Width)</l>
+<l>union2 (Rectangle, Circle, RegionUnion)</l>
+<l>union2 (RegionUnion, ArrowTmp, Arrow)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_pong_arrow">
+<parameters>
+<parameter id="Arrow"/>
+<parameter id="Scale"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_arrow_region">
+<interface>
+<oo>
+<par name="Arrow" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Column1" base_type="ctrl" dimension="0"/>
+<par name="Row2" base_type="ctrl" dimension="0"/>
+<par name="Column2" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>distance_pp (Row1, Column1, Row2, Column2, Distance)</l>
+<l>HeadLength := 2 * Width * sqrt(2)</l>
+<l>Phi := atan2(Row1 - Row2,Column2 - Column1)</l>
+<l>Row2a := Row1 + (Distance - HeadLength) * sin(-Phi)</l>
+<l>Column2a := Column1 + (Distance - HeadLength) * cos(-Phi)</l>
+<l>RowC := (Row1 + Row2a) / 2</l>
+<l>ColumnC := (Column1 + Column2a) / 2</l>
+<l>Length := (Distance - HeadLength) / 2</l>
+<l>gen_rectangle2 (Rectangle, RowC, ColumnC, Phi, Length, Width)</l>
+<l>gen_rectangle2 (Rectangle1, RowC, ColumnC, Phi, Length, 3 * Width)</l>
+<l>gen_rectangle2 (Rectangle2, Row2a, Column2a, Phi + rad(45), 2 * Width, 2 * Width)</l>
+<c>* </c>
+<l>difference (Rectangle2, Rectangle1, ArrowHead1)</l>
+<l>union2 (Rectangle, ArrowHead1, Arrow)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_arrow_region">
+<parameters>
+<parameter id="Arrow"/>
+<parameter id="Column1"/>
+<parameter id="Column2"/>
+<parameter id="Row1"/>
+<parameter id="Row2"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_inactive_player_wall">
+<interface>
+<oo>
+<par name="InactivePlayerWall" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ActivePlayers" base_type="ctrl" dimension="0"/>
+<par name="ScoreRegionRate" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="BorderThickness" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (sum(ActivePlayers) != 2)</l>
+<l>    if (ActivePlayers[0] == 0)</l>
+<l>        gen_rectangle1 (InactivePlayer1Wall, 0, ScoreRegionRate * ImageWidth, ImageHeight - 1, (ScoreRegionRate * ImageWidth) + BorderThickness)</l>
+<l>    endif</l>
+<l>    if (ActivePlayers[1] == 0)</l>
+<l>        gen_rectangle1 (InactivePlayer2Wall, 0, ((1 - ScoreRegionRate) * ImageWidth) - BorderThickness, ImageHeight - 1, (1 - ScoreRegionRate) * ImageWidth)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (sum(ActivePlayers) == 0)</l>
+<l>        concat_obj (InactivePlayer1Wall, InactivePlayer2Wall, InactivePlayerWall)</l>
+<l>    elseif (not ActivePlayers[0])</l>
+<l>        InactivePlayerWall := InactivePlayer1Wall</l>
+<l>    else</l>
+<l>        InactivePlayerWall := InactivePlayer2Wall</l>
+<l>    endif</l>
+<l>else</l>
+<l>    gen_empty_obj (InactivePlayerWall)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="gen_inactive_player_wall">
+<parameters>
+<parameter id="ActivePlayers"/>
+<parameter id="BorderThickness"/>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="InactivePlayerWall"/>
+<parameter id="ScoreRegionRate"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_game_regions">
+<interface>
+<oo>
+<par name="Ball" base_type="iconic" dimension="0"/>
+<par name="Border" base_type="iconic" dimension="0"/>
+<par name="PlayerBoxes" base_type="iconic" dimension="0"/>
+<par name="ScoreRegions" base_type="iconic" dimension="0"/>
+<par name="RegionArrow" base_type="iconic" dimension="0"/>
+<par name="RegionDoubleBall" base_type="iconic" dimension="0"/>
+<par name="RegionShrinkBall" base_type="iconic" dimension="0"/>
+<par name="RegionAccelerateBall" base_type="iconic" dimension="0"/>
+<par name="InactivePlayerWall" base_type="iconic" dimension="0"/>
+<par name="EmergencyBorder" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="BorderThickness" base_type="ctrl" dimension="0"/>
+<par name="LegalZoneRate" base_type="ctrl" dimension="0"/>
+<par name="ScoreRegionRate" base_type="ctrl" dimension="0"/>
+<par name="ActivePlayers" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Generate ball.</c>
+<l>gen_circle (Ball, ImageHeight / 2, ImageWidth / 2, 19.5)</l>
+<c>* Generate player boxes.</c>
+<l>gen_rectangle1 (BoxPlayer1, 0, 0, ImageHeight - 1, (ImageWidth * LegalZoneRate) - 1)</l>
+<l>gen_rectangle1 (BoxPlayer2, 0, ImageWidth * (1 - LegalZoneRate), ImageHeight - 1, ImageWidth - 1)</l>
+<c>* </c>
+<l>concat_obj (BoxPlayer1, BoxPlayer2, PlayerBoxes)</l>
+<c>* Generate top and bottom border.</c>
+<l>gen_rectangle1 (TopBorder, 0, ImageWidth * ScoreRegionRate, BorderThickness, (ImageWidth - 1) - ImageWidth * ScoreRegionRate)</l>
+<l>gen_rectangle1 (BottomBorder, ImageHeight - BorderThickness - 1, ImageWidth * ScoreRegionRate, ImageHeight - 1, (ImageWidth - 1) - (ImageWidth * ScoreRegionRate))</l>
+<l>union2 (TopBorder, BottomBorder, Border)</l>
+<c>* Generate score regions.</c>
+<c>* Player 1:</c>
+<l>gen_rectangle1 (RectangleT, 0, 0, BorderThickness, (ImageWidth * ScoreRegionRate) - 1)</l>
+<l>gen_rectangle1 (RectangleM, 0, 0, ImageHeight - 1, BorderThickness)</l>
+<l>gen_rectangle1 (RectangleB, ImageHeight - BorderThickness - 1, 0, ImageHeight - 1, (ImageWidth * ScoreRegionRate) - 1)</l>
+<l>union2 (RectangleT, RectangleM, RectangleTM)</l>
+<l>union2 (RectangleTM, RectangleB, ScoreRegionPlayer1)</l>
+<c>* Player 2:</c>
+<l>gen_rectangle1 (RectangleT, 0, ((ImageWidth - 1) - ImageWidth * ScoreRegionRate) + 1, BorderThickness, ImageWidth - 1)</l>
+<l>gen_rectangle1 (RectangleM, 0, ImageWidth - BorderThickness - 1, ImageHeight - 1, ImageWidth - 1)</l>
+<l>gen_rectangle1 (RectangleB, ImageHeight - 1 - BorderThickness - 1, ((ImageWidth - 1) - (ImageWidth * ScoreRegionRate)) + 1, ImageHeight - 1, ImageWidth - 1)</l>
+<l>union2 (RectangleT, RectangleM, RectangleTM)</l>
+<l>union2 (RectangleTM, RectangleB, ScoreRegionPlayer2)</l>
+<c>* </c>
+<l>concat_obj (ScoreRegionPlayer1, ScoreRegionPlayer2, ScoreRegions)</l>
+<c>* </c>
+<l>Size := ImageWidth * 0.05</l>
+<c>* Generate arrow region.</c>
+<l>gen_pong_arrow (ArrowTmp, Size)</l>
+<l>area_center (ArrowTmp, Area1, Row1, Column1)</l>
+<l>move_region (ArrowTmp, RegionArrow, -Row1, -Column1)</l>
+<c>* </c>
+<c>* Generate double ball region.</c>
+<l>gen_double_ball (DoubleBallTmp, Size)</l>
+<l>area_center (DoubleBallTmp, Area1, Row1, Column1)</l>
+<l>move_region (DoubleBallTmp, RegionDoubleBall, -Row1, -Column1)</l>
+<c>* </c>
+<c>* Generate shrink ball region.</c>
+<l>gen_shrink_ball (ShrinkBallRegionTmp, Size)</l>
+<l>area_center (ShrinkBallRegionTmp, Area1, Row1, Column1)</l>
+<l>move_region (ShrinkBallRegionTmp, RegionShrinkBall, -Row1, -Column1)</l>
+<c>* </c>
+<c>* Generate accelerate ball region.</c>
+<l>gen_accelerate_ball (AccelerateBallRegionTmp, Size)</l>
+<l>area_center (AccelerateBallRegionTmp, Area1, Row1, Column1)</l>
+<l>move_region (AccelerateBallRegionTmp, RegionAccelerateBall, -Row1, -Column1)</l>
+<c>* </c>
+<c>* Generate walls for inactive players.</c>
+<l>gen_inactive_player_wall (InactivePlayerWall, ActivePlayers, ScoreRegionRate, ImageWidth, ImageHeight, BorderThickness)</l>
+<c>* </c>
+<c>* Generate emergency border.</c>
+<l>gen_rectangle1 (EmergencyBorderRect, -100, -100, ImageHeight + 100, ImageWidth + 100)</l>
+<l>get_region_contour (EmergencyBorderRect, Rows, Columns)</l>
+<l>gen_region_points (Region1, Rows, Columns)</l>
+<l>dilation_circle (Region1, EmergencyBorder, 30.5)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_game_regions">
+<parameters>
+<parameter id="ActivePlayers"/>
+<parameter id="Ball"/>
+<parameter id="Border"/>
+<parameter id="BorderThickness"/>
+<parameter id="EmergencyBorder"/>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="InactivePlayerWall"/>
+<parameter id="LegalZoneRate"/>
+<parameter id="PlayerBoxes"/>
+<parameter id="RegionAccelerateBall"/>
+<parameter id="RegionArrow"/>
+<parameter id="RegionDoubleBall"/>
+<parameter id="RegionShrinkBall"/>
+<parameter id="ScoreRegionRate"/>
+<parameter id="ScoreRegions"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_shrink_ball">
+<interface>
+<oo>
+<par name="ShrinkBall" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Row1 := .5 * Scale</l>
+<l>Column1 := .2 * Scale</l>
+<l>Row2 := .5 * Scale</l>
+<l>Column2 := .9 * Scale</l>
+<l>Radius1 := .2 * Scale</l>
+<l>Radius2 := .1 * Scale</l>
+<l>Width := 0.03 * Scale</l>
+<l>gen_circle (Circle1, Row1, Column1, Radius1)</l>
+<l>gen_circle (Circle2, Row2, Column2, Radius2)</l>
+<l>gen_arrow_region (Arrow, Row1, Column1 + Radius1 + Width, Row2, Column2 - Radius2 - Width, Width)</l>
+<l>concat_obj (Circle1, Circle2, ObjectsConcat)</l>
+<l>concat_obj (ObjectsConcat, Arrow, ShrinkBall)</l>
+<l>union1 (ShrinkBall, ShrinkBall)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_shrink_ball">
+<parameters>
+<parameter id="Scale"/>
+<parameter id="ShrinkBall"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_double_ball">
+<interface>
+<oo>
+<par name="DoubleBall" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Row1 := 0.5 * Scale</l>
+<l>Column1 := 0.2 * Scale</l>
+<l>Row2 := 0.2 * Scale</l>
+<l>Column2 := 0.8 * Scale</l>
+<l>Row3 := 0.8 * Scale</l>
+<l>Column3 := 0.8 * Scale</l>
+<l>Width := .02 * Scale</l>
+<l>Radius := 0.2 * Scale</l>
+<c>* </c>
+<l>PhiA := atan2(Row1 - Row2,Column2 - Column1)</l>
+<l>Row1A := Row1 + (Radius + Width) * sin(-PhiA)</l>
+<l>Column1A := Column1 + (Radius + Width) * cos(-PhiA)</l>
+<l>Row2A := Row2 - (Radius + Width) * sin(-PhiA)</l>
+<l>Column2A := Column2 - (Radius + Width) * cos(-PhiA)</l>
+<c>* </c>
+<l>PhiB := atan2(Row1 - Row3,Column3 - Column1)</l>
+<l>Row1B := Row1 + (Radius + Width) * sin(-PhiB)</l>
+<l>Column1B := Column1 + (Radius + Width) * cos(-PhiB)</l>
+<l>Row3B := Row3 - (Radius + Width) * sin(-PhiB)</l>
+<l>Column3B := Column3 - (Radius + Width) * cos(-PhiB)</l>
+<c>* </c>
+<l>gen_circle (Circle, [Row1,Row2,Row3], [Column1,Column2,Column3], gen_tuple_const(3,Radius))</l>
+<l>gen_arrow_region (Arrow1, Row1A, Column1A, Row2A, Column2A, Width)</l>
+<l>gen_arrow_region (Arrow2, Row1B, Column1B, Row3B, Column3B, Width)</l>
+<l>concat_obj (Circle, Arrow1, ObjectsConcat)</l>
+<l>concat_obj (ObjectsConcat, Arrow2, DoubleBall)</l>
+<l>union1 (DoubleBall, DoubleBall)</l>
+<l>gen_cross_contour_xld (Circle, [Row1,Row2,Row3], [Column1,Column2,Column3], 15, 0)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="gen_double_ball">
+<parameters>
+<parameter id="DoubleBall"/>
+<parameter id="Scale"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_accelerate_ball">
+<interface>
+<oo>
+<par name="AccelerateBall" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Row1 := 0.5 * Scale</l>
+<l>Column1 := 0.7 * Scale</l>
+<l>Radius := .3 * Scale</l>
+<l>Height := 0.05 * Scale</l>
+<c>* </c>
+<l>Rows1 := [Row1 - Radius,Row1 - Height / 2,Row1 + Radius - Height]</l>
+<l>Rows2 := Rows1 + Height</l>
+<l>Columns1 := [0,0,0]</l>
+<l>Columns2 := [Column1 - Radius - Height,Column1 - 4 * Height - Radius,Column1 - Radius - Height]</l>
+<l>gen_circle (Circle, Row1, Column1, Radius)</l>
+<l>gen_rectangle1 (Rectangle, Rows1, Columns1, Rows2, Columns2)</l>
+<c>* </c>
+<l>concat_obj (Circle, Rectangle, AccelerateBall)</l>
+<l>union1 (AccelerateBall, AccelerateBall)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_accelerate_ball">
+<parameters>
+<parameter id="AccelerateBall"/>
+<parameter id="Scale"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_ui_regions">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ButtonRegion" base_type="iconic" dimension="0"/>
+<par name="SwitchRegionVector" base_type="iconic" dimension="1"/>
+<par name="ToggleRegionVector" base_type="iconic" dimension="1"/>
+</oo>
+<oc>
+<par name="Labels" base_type="ctrl" dimension="1"/>
+<par name="ButtonLabels" base_type="ctrl" dimension="0"/>
+<par name="SwitchLabels" base_type="ctrl" dimension="0"/>
+<par name="SwitchStates" base_type="ctrl" dimension="0"/>
+<par name="ToggleStates" base_type="ctrl" dimension="0"/>
+<par name="ToggleLabels" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<l>Scale := Width / 1400.0</l>
+<l>ButtonWidth := 300 * Scale</l>
+<l>ButtonGap := 20 * Scale</l>
+<l>ButtonRow := Height * 0.3</l>
+<l>ButtonHeight := 60 * Scale</l>
+<l>SwitchRow := ButtonRow + (140 * Scale)</l>
+<l>SwitchWidth := 200 * Scale</l>
+<l>SwitchHeight := 50 * Scale</l>
+<l>ToggleWidth := SwitchWidth</l>
+<l>ToggleHeight := SwitchHeight</l>
+<l>ToggleRow := SwitchRow</l>
+<l>LabelOffset := 40 * Scale</l>
+<l>UIWidth := 2 * SwitchWidth + ButtonGap + 3 * ToggleWidth</l>
+<l>LeftColumn := (Width - UIWidth) * 0.5</l>
+<l>Labels := {[ButtonRow - LabelOffset,LeftColumn,'Please set a blank background image.'],[SwitchRow - LabelOffset,LeftColumn,'Mirror image:'],[SwitchRow - LabelOffset,LeftColumn + 2 * SwitchWidth + ButtonGap,'Ball speed:']}</l>
+<l>Buttons := {[ButtonRow,LeftColumn,ButtonRow + ButtonHeight,LeftColumn + ButtonWidth,'Set BG image'],[ButtonRow,LeftColumn + ButtonWidth + ButtonGap,ButtonRow + ButtonHeight,LeftColumn + 2 * ButtonWidth + ButtonGap,'One Player Game'],[ButtonRow,LeftColumn + 2 * ButtonWidth + 2 * ButtonGap,ButtonRow + ButtonHeight,LeftColumn + 3 * ButtonWidth + 2 * ButtonGap,'Two Player Game']}</l>
+<l>Switches := {[SwitchRow,LeftColumn,SwitchRow + SwitchHeight,LeftColumn + SwitchWidth,'left/right',0],[SwitchRow,LeftColumn + SwitchWidth + 2,SwitchRow + SwitchHeight,LeftColumn + 2 * SwitchWidth,'up/down',0]}</l>
+<l>Toggles := {[ToggleRow,LeftColumn + 2 * SwitchWidth + ButtonGap,ToggleRow + ToggleHeight,LeftColumn + 3 * SwitchWidth + ButtonGap,'Slow',0],[ToggleRow,LeftColumn + 3 * SwitchWidth + ButtonGap + 2,ToggleRow + ToggleHeight,LeftColumn + 4 * SwitchWidth + ButtonGap,'Medium',1],[ToggleRow,LeftColumn + 4 * SwitchWidth + ButtonGap + 2,ToggleRow + ToggleHeight,LeftColumn + 5 * SwitchWidth + ButtonGap,'Fast',0]}</l>
+<c>* </c>
+<l>gen_empty_obj (ButtonRegion)</l>
+<l>for I := 0 to Buttons.length() - 1 by 1</l>
+<l>    gen_rectangle1 (Rectangle, Buttons.at(I)[0], Buttons.at(I)[1], Buttons.at(I)[2], Buttons.at(I)[3])</l>
+<l>    concat_obj (ButtonRegion, Rectangle, ButtonRegion)</l>
+<l>    ButtonLabels[I] := Buttons.at(I)[4]</l>
+<l>endfor</l>
+<c>* </c>
+<l>gen_empty_obj (SwitchRegionOff)</l>
+<l>for I := 0 to Switches.length() - 1 by 1</l>
+<l>    gen_rectangle1 (Rectangle, Switches.at(I)[0], Switches.at(I)[1], Switches.at(I)[2], Switches.at(I)[3])</l>
+<l>    concat_obj (SwitchRegionOff, Rectangle, SwitchRegionOff)</l>
+<l>    SwitchLabels[I] := Switches.at(I)[4]</l>
+<l>    SwitchStates[I] := Switches.at(I)[5]</l>
+<l>endfor</l>
+<l>erosion_rectangle1 (SwitchRegionOff, SwitchRegionOn, 5, 5)</l>
+<l>SwitchRegionVector := {SwitchRegionOff,SwitchRegionOn}</l>
+<c>* </c>
+<l>gen_empty_obj (ToggleRegionOff)</l>
+<l>for I := 0 to Toggles.length() - 1 by 1</l>
+<l>    gen_rectangle1 (Rectangle, Toggles.at(I)[0], Toggles.at(I)[1], Toggles.at(I)[2], Toggles.at(I)[3])</l>
+<l>    concat_obj (ToggleRegionOff, Rectangle, ToggleRegionOff)</l>
+<l>    ToggleLabels[I] := Toggles.at(I)[4]</l>
+<l>    ToggleStates[I] := Toggles.at(I)[5]</l>
+<l>endfor</l>
+<l>erosion_rectangle1 (ToggleRegionOff, ToggleRegionOn, 5, 5)</l>
+<l>ToggleRegionVector := {ToggleRegionOff,ToggleRegionOn}</l>
+<l>return ()</l>
+</body>
+<docu id="gen_ui_regions">
+<parameters>
+<parameter id="ButtonLabels"/>
+<parameter id="ButtonRegion"/>
+<parameter id="Image"/>
+<parameter id="Labels"/>
+<parameter id="SwitchLabels"/>
+<parameter id="SwitchRegionVector"/>
+<parameter id="SwitchStates"/>
+<parameter id="ToggleLabels"/>
+<parameter id="ToggleRegionVector"/>
+<parameter id="ToggleStates"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_user_interaction">
+<interface>
+<io>
+<par name="ButtonRegion" base_type="iconic" dimension="0"/>
+<par name="SwitchRegionVector" base_type="iconic" dimension="1"/>
+<par name="ToggleRegionVector" base_type="iconic" dimension="1"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="MouseRow" base_type="ctrl" dimension="0"/>
+<par name="MouseColumn" base_type="ctrl" dimension="0"/>
+<par name="MouseButton" base_type="ctrl" dimension="0"/>
+<par name="HighlightColor" base_type="ctrl" dimension="0"/>
+<par name="NormalColor" base_type="ctrl" dimension="0"/>
+<par name="Labels" base_type="ctrl" dimension="1"/>
+<par name="ButtonLabels" base_type="ctrl" dimension="0"/>
+<par name="SwitchLabels" base_type="ctrl" dimension="0"/>
+<par name="SwitchStatesIn" base_type="ctrl" dimension="0"/>
+<par name="ToggleStatesIn" base_type="ctrl" dimension="0"/>
+<par name="ToggleLabels" base_type="ctrl" dimension="0"/>
+<par name="WindowImageRatio" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="SwitchStatesOut" base_type="ctrl" dimension="0"/>
+<par name="ToggleStatesOut" base_type="ctrl" dimension="0"/>
+<par name="ButtonPressed" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>SwitchStatesOut := SwitchStatesIn</l>
+<l>ToggleStatesOut := ToggleStatesIn</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Draw</c>
+<c>* Buttons</c>
+<l>for I := 0 to |ButtonLabels| - 1 by 1</l>
+<l>    select_obj (ButtonRegion, ButtonSelected, I + 1)</l>
+<l>    test_region_point (ButtonSelected, MouseRow, MouseColumn, IsInside)</l>
+<l>    if (IsInside and MouseButton == 1)</l>
+<l>        ButtonPressed := I</l>
+<l>        TextColor := HighlightColor[0]</l>
+<l>        ButtonColor := HighlightColor[1]</l>
+<l>        DrawMode := 'fill'</l>
+<l>    elseif (IsInside)</l>
+<l>        TextColor := NormalColor[0]</l>
+<l>        ButtonColor := HighlightColor[1]</l>
+<l>        DrawMode := 'fill'</l>
+<l>    else</l>
+<l>        TextColor := NormalColor[0]</l>
+<l>        ButtonColor := NormalColor[1]</l>
+<l>        DrawMode := 'fill'</l>
+<l>    endif</l>
+<l>    get_string_extents (WindowHandle, ButtonLabels[I], Ascent, Descent, TextWidth, TextHeight)</l>
+<l>    height_width_ratio (ButtonSelected, ButtonHeight, ButtonWidth, Ratio)</l>
+<l>    smallest_rectangle1 (ButtonSelected, Row1, Column1, Row2, Column2)</l>
+<l>    TextRow := Row1 * WindowImageRatio + (ButtonHeight * WindowImageRatio - TextHeight) / 2</l>
+<l>    TextColumn := Column1 * WindowImageRatio + ((ButtonWidth * WindowImageRatio - TextWidth) / 2)</l>
+<l>    dev_set_draw (DrawMode)</l>
+<l>    dev_set_color (ButtonColor)</l>
+<l>    dev_display (ButtonSelected)</l>
+<l>    dev_disp_text (ButtonLabels[I], 'window', TextRow, TextColumn, TextColor, 'box', 'false')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Switch</c>
+<l>for I := 0 to |SwitchLabels| - 1 by 1</l>
+<l>    TextColor := NormalColor[0]</l>
+<l>    select_obj (SwitchRegionVector.at(0), SwitchSelectedOff, I + 1)</l>
+<l>    select_obj (SwitchRegionVector.at(1), SwitchSelectedOn, I + 1)</l>
+<l>    test_region_point (SwitchSelectedOff, MouseRow, MouseColumn, IsInside)</l>
+<l>    if (IsInside and MouseButton == 1)</l>
+<l>        SwitchStatesOut[I] := 1 - SwitchStatesOut[I]</l>
+<l>        wait_seconds (.2)</l>
+<l>    endif</l>
+<l>    if (IsInside)</l>
+<l>        SwitchColor := HighlightColor[1]</l>
+<l>    else</l>
+<l>        SwitchColor := NormalColor[1]</l>
+<l>    endif</l>
+<l>    get_string_extents (WindowHandle, SwitchLabels[I], Ascent, Descent, TextWidth, TextHeight)</l>
+<l>    height_width_ratio (SwitchSelectedOff, SwitchHeight, SwitchWidth, Ratio)</l>
+<l>    smallest_rectangle1 (SwitchSelectedOff, Row1, Column1, Row2, Column2)</l>
+<l>    TextRow := Row1 * WindowImageRatio + (SwitchHeight * WindowImageRatio - TextHeight) / 2</l>
+<l>    TextColumn := Column1 * WindowImageRatio + (SwitchWidth * WindowImageRatio - TextWidth) / 2</l>
+<c>    * </c>
+<l>    dev_set_color (SwitchColor)</l>
+<l>    dev_display (SwitchSelectedOff)</l>
+<l>    if (SwitchStatesOut[I])</l>
+<l>        dev_set_color (HighlightColor[1])</l>
+<l>        dev_set_draw ('fill')</l>
+<l>        dev_display (SwitchSelectedOn)</l>
+<l>        TextColor := HighlightColor[0]</l>
+<l>    endif</l>
+<l>    dev_disp_text (SwitchLabels[I], 'window', TextRow, TextColumn, TextColor, 'box', 'false')</l>
+<c>    * </c>
+<l>endfor</l>
+<c>* Toggle</c>
+<c>* </c>
+<l>for I := 0 to |ToggleLabels| - 1 by 1</l>
+<l>    TextColor := NormalColor[0]</l>
+<l>    select_obj (ToggleRegionVector.at(0), ToggleSelectedOff, I + 1)</l>
+<l>    select_obj (ToggleRegionVector.at(1), ToggleSelectedOn, I + 1)</l>
+<l>    test_region_point (ToggleSelectedOff, MouseRow, MouseColumn, IsInside)</l>
+<l>    if (IsInside and MouseButton == 1)</l>
+<l>        ToggleStatesOut := ToggleStatesOut * 0</l>
+<l>        ToggleStatesOut[I] := 1</l>
+<l>        wait_seconds (.2)</l>
+<l>    endif</l>
+<l>    if (IsInside)</l>
+<l>        ToggleColor := HighlightColor[1]</l>
+<l>    else</l>
+<l>        ToggleColor := NormalColor[1]</l>
+<l>    endif</l>
+<l>    get_string_extents (WindowHandle, ToggleLabels[I], Ascent, Descent, TextWidth, TextHeight)</l>
+<l>    height_width_ratio (ToggleSelectedOff, ToggleHeight, ToggleWidth, Ratio)</l>
+<l>    smallest_rectangle1 (ToggleSelectedOff, ToggleRow1, ToggleColumn1, ToggleRow2, ToggleColumn2)</l>
+<l>    TextRow := ToggleRow1 * WindowImageRatio + (ToggleHeight * WindowImageRatio - TextHeight) / 2</l>
+<l>    TextColumn := ToggleColumn1 * WindowImageRatio + (ToggleWidth * WindowImageRatio - TextWidth) / 2</l>
+<c>    * </c>
+<l>    dev_set_color (ToggleColor)</l>
+<l>    dev_display (ToggleSelectedOff)</l>
+<l>    if (ToggleStatesOut[I])</l>
+<l>        dev_set_color (HighlightColor[1])</l>
+<l>        dev_set_draw ('fill')</l>
+<l>        dev_display (ToggleSelectedOn)</l>
+<l>        TextColor := HighlightColor[0]</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    dev_disp_text (ToggleLabels[I], 'window', TextRow, TextColumn, TextColor, 'box', 'false')</l>
+<l>endfor</l>
+<l>for I := 0 to Labels.length() - 1 by 1</l>
+<l>    dev_disp_text (Labels.at(I)[2], 'window', Labels.at(I)[0] * WindowImageRatio, Labels.at(I)[1] * WindowImageRatio, 'white', 'box', 'false')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="get_user_interaction">
+<parameters>
+<parameter id="ButtonLabels"/>
+<parameter id="ButtonPressed"/>
+<parameter id="ButtonRegion"/>
+<parameter id="HighlightColor"/>
+<parameter id="Labels"/>
+<parameter id="MouseButton"/>
+<parameter id="MouseColumn"/>
+<parameter id="MouseRow"/>
+<parameter id="NormalColor"/>
+<parameter id="SwitchLabels"/>
+<parameter id="SwitchRegionVector"/>
+<parameter id="SwitchStatesIn"/>
+<parameter id="SwitchStatesOut"/>
+<parameter id="ToggleLabels"/>
+<parameter id="ToggleRegionVector"/>
+<parameter id="ToggleStatesIn"/>
+<parameter id="ToggleStatesOut"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowImageRatio"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="reset_game">
+<interface>
+<io>
+<par name="Ball" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="BallOut" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="NumberOfBalls" base_type="ctrl" dimension="0"/>
+<par name="TransColumn" base_type="ctrl" dimension="0"/>
+<par name="TransRow" base_type="ctrl" dimension="0"/>
+<par name="MinSpeed" base_type="ctrl" dimension="0"/>
+<par name="MaxSpeed" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="BallIndex" base_type="ctrl" dimension="0"/>
+<par name="PlayerIndex" base_type="ctrl" dimension="0"/>
+<par name="TransColumnOut" base_type="ctrl" dimension="0"/>
+<par name="TransRowOut" base_type="ctrl" dimension="0"/>
+<par name="ActiveEvent" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Reset ball position.</c>
+<l>select_obj (Ball, Ball, 1)</l>
+<l>area_center (Ball, AreaBall, RowBall, ColumnBall)</l>
+<l>Radius := sqrt(AreaBall / 3.14)</l>
+<l>DilationBackToNormal := round(12.5 - Radius)</l>
+<l>if (DilationBackToNormal &gt; 0)</l>
+<l>    dilation_circle (Ball, Ball, DilationBackToNormal)</l>
+<l>endif</l>
+<l>RowOffset := ImageHeight / 2 - RowBall</l>
+<l>ColumnOffset := ImageWidth / 2 - ColumnBall</l>
+<l>move_region (Ball, BallOut, RowOffset, ColumnOffset)</l>
+<c>* Since the game is reset, the other balls</c>
+<c>* are not computed any more.</c>
+<l>BallIndex := NumberOfBalls + 1</l>
+<l>PlayerIndex := 3</l>
+<c>* Invert column direction of ball.</c>
+<c>* Player that scores the point</c>
+<c>* gets first contact.</c>
+<l>TransColumn := -TransColumn[0]</l>
+<l>TransRow := TransRow[0]</l>
+<c>* Slow down ball if necessary.</c>
+<l>limit_ball_speed (TransRow, TransColumn, MinSpeed, MaxSpeed * 0.6, TransRowOut, TransColumnOut)</l>
+<c>* Reset random events.</c>
+<l>ActiveEvent := 0</l>
+<l>return ()</l>
+</body>
+<docu id="reset_game">
+<parameters>
+<parameter id="ActiveEvent"/>
+<parameter id="Ball"/>
+<parameter id="BallIndex"/>
+<parameter id="BallOut"/>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="MaxSpeed"/>
+<parameter id="MinSpeed"/>
+<parameter id="NumberOfBalls"/>
+<parameter id="PlayerIndex"/>
+<parameter id="TransColumn"/>
+<parameter id="TransColumnOut"/>
+<parameter id="TransRow"/>
+<parameter id="TransRowOut"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="check_paddle_ball_collision">
+<interface>
+<io>
+<par name="Paddle" base_type="iconic" dimension="0"/>
+<par name="Ball" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="NumberOfBalls" base_type="ctrl" dimension="0"/>
+<par name="AvoidDoubleTouchIndex" base_type="ctrl" dimension="0"/>
+<par name="TransRow" base_type="ctrl" dimension="0"/>
+<par name="TransColumn" base_type="ctrl" dimension="0"/>
+<par name="RowCoordinates" base_type="ctrl" dimension="0"/>
+<par name="ColumnCoordinates" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="PlayerIndex" base_type="ctrl" dimension="0"/>
+<par name="MinSpeed" base_type="ctrl" dimension="0"/>
+<par name="MaxSpeed" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TransRowOut" base_type="ctrl" dimension="0"/>
+<par name="TransColumnOut" base_type="ctrl" dimension="0"/>
+<par name="AvoidDoubleTouchIndexOut" base_type="ctrl" dimension="0"/>
+<par name="DoPlayerCollisionCheck" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>AvoidDoubleTouchIndexOut := AvoidDoubleTouchIndex</l>
+<l>TransColumnOut := TransColumn</l>
+<l>TransRowOut := TransRow</l>
+<l>dev_set_color ('#0c94b9')</l>
+<l>dev_display (Paddle)</l>
+<c>* Check for collision with paddle.</c>
+<l>for BallIndex := 1 to NumberOfBalls by 1</l>
+<l>    select_obj (Ball, BallSelected, BallIndex)</l>
+<l>    get_ball_intersection_area (BallSelected, Paddle, Area)</l>
+<l>    if (Area &gt; 0 and AvoidDoubleTouchIndexOut[BallIndex - 1] == 0)</l>
+<c>        * Check whether ball could pass through paddle.</c>
+<l>        BallMoveDistance := sqrt((TransRowOut[BallIndex - 1] * TransRowOut[BallIndex - 1]) + (TransColumnOut[BallIndex - 1] * TransColumnOut[BallIndex - 1]))</l>
+<l>        region_features (Paddle, 'rb', PaddleRadius)</l>
+<l>        region_features (BallSelected, 'width', BallWidth)</l>
+<l>        if (BallWidth + 2 * PaddleRadius &lt; BallMoveDistance)</l>
+<l>            Text := 'The ball left is getting so fast that it might'</l>
+<l>            Text[|Text|] := 'pass through the paddles.'</l>
+<l>            Text[|Text|] := 'You might want to adapt the PaddleDilation or MaxSpeed.'</l>
+<l>            dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>            flush_buffer (WindowHandle)</l>
+<l>            wait_seconds (10)</l>
+<l>        endif</l>
+<c>        * Get translation for paddle - ball collision.</c>
+<l>        get_ball_translation_after_paddle_collision (BallSelected, Paddle, TransRowOut[BallIndex - 1], TransColumnOut[BallIndex - 1], RowCoordinates, ColumnCoordinates, ImageHeight, PlayerIndex, TransRowTmp, TransColumnTmp)</l>
+<l>        limit_ball_speed (TransRowTmp, TransColumnTmp, MinSpeed, MaxSpeed, TransRowTmp, TransColumnTmp)</l>
+<l>        TransRowOut[BallIndex - 1] := TransRowTmp</l>
+<l>        TransColumnOut[BallIndex - 1] := TransColumnTmp</l>
+<c>        * In the next 25 frames, it will not be possible</c>
+<c>        * to touch this ball again.</c>
+<l>        AvoidDoubleTouchIndexOut[BallIndex - 1] := 25</l>
+<l>    elseif (AvoidDoubleTouchIndexOut[BallIndex - 1] &gt; 0)</l>
+<l>        AvoidDoubleTouchIndexOut[BallIndex - 1] := AvoidDoubleTouchIndexOut[BallIndex - 1] - 1</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>DoPlayerCollisionCheck := 0</l>
+<l>return ()</l>
+</body>
+<docu id="check_paddle_ball_collision">
+<parameters>
+<parameter id="AvoidDoubleTouchIndex"/>
+<parameter id="AvoidDoubleTouchIndexOut"/>
+<parameter id="Ball"/>
+<parameter id="ColumnCoordinates"/>
+<parameter id="DoPlayerCollisionCheck"/>
+<parameter id="ImageHeight"/>
+<parameter id="MaxSpeed"/>
+<parameter id="MinSpeed"/>
+<parameter id="NumberOfBalls"/>
+<parameter id="Paddle"/>
+<parameter id="PlayerIndex"/>
+<parameter id="RowCoordinates"/>
+<parameter id="TransColumn"/>
+<parameter id="TransColumnOut"/>
+<parameter id="TransRow"/>
+<parameter id="TransRowOut"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

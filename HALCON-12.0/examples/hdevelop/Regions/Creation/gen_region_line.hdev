@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Store input lines as regions</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>Row := 320</l>
+<l>Col := 270</l>
+<l>dev_update_off ()</l>
+<l>for phi := 0 to 359 by 1</l>
+<c>    * Create lines as regions</c>
+<l>    gen_region_line (Line, Row, Col, Row + 100 * sin(rad(phi)), Col + 100 * cos(rad(phi)))</l>
+<l>    intensity (Line, Image, Mean, Deviation)</l>
+<l>    set_gray (WindowID, round(255 - Mean))</l>
+<c>    * Display created regions</c>
+<l>    dev_display (Line)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates the usage of the system</c>
+<c>* setting 'cancel_draw_result' to enable user-defined</c>
+<c>* actions when a draw operation is being canceled.</c>
+<c>* </c>
+<c>* Save the previous state of the system parameter 'cancel_draw_result'</c>
+<l>get_system ('cancel_draw_result', PrevCancelDrawResult)</l>
+<c>* </c>
+<c>* Display background image</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'monkey')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Do not show an exception handling dialog in HDevelop</c>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* If one of the draw operators is canceled by the user</c>
+<c>* HALCON can return the error code true ('true') or</c>
+<c>* throw an exception ('exception'). Its error code will</c>
+<c>* be 9023 for all draw operators</c>
+<l>set_system ('cancel_draw_result', 'exception')</l>
+<c>* </c>
+<c>* Initialize the operator error code with 'true' (2)</c>
+<l>ErrorCode := 2</l>
+<l>while (ErrorCode != 9023)</l>
+<l>    disp_message (WindowHandle, 'Draw a rectangle', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_abort_message (WindowHandle, 'black', 'true')</l>
+<l>    dev_set_color ('red')</l>
+<c>    * The user is asked to draw a rectangle. The user can quit the</c>
+<c>    * application by pressing the right mouse button before clicking</c>
+<c>    * the left mouse button.</c>
+<l>    try</l>
+<l>        draw_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>    catch (Exception)</l>
+<l>        dev_get_exception_data (Exception, 'error_code', ErrorCode)</l>
+<l>        if (ErrorCode != 9023)</l>
+<c>            * If not the 'Draw operator has been canceled' error is returned...</c>
+<l>            throw (Exception)</l>
+<l>        endif</l>
+<c>        * ErrorCode 9023 ('Draw operator has been canceled'): Quit the loop</c>
+<l>        break</l>
+<l>    endtry</l>
+<l>    dev_display (Image)</l>
+<l>    gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Rectangle)</l>
+<c>    * Do something with the user-defined region, e.g., some calculations</c>
+<l>    Area := (Row2 - Row1) * (Column2 - Column1)</l>
+<l>    disp_message (WindowHandle, 'Area: ' + Area, 'window', Row1 + 12, Column1 + 12, 'black', 'true')</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Restore the previous state of the system parameter 'cancel_draw_result'</c>
+<l>set_system ('cancel_draw_result', PrevCancelDrawResult)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_abort_message">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Color" base_type="ctrl" dimension="0"/>
+<par name="Box" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* display a message at the lower right corner of the window</c>
+<l>AbortMessage := ['Press right mouse button before clicking','the left mouse button to exit']</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_string_extents (WindowHandle, ' ' + AbortMessage[0] + ' ', Ascent, Descent, TextWidth1, TextHeight1)</l>
+<l>get_string_extents (WindowHandle, ' ' + AbortMessage[1] + ' ', Ascent, Descent, TextWidth2, TextHeight2)</l>
+<l>TextWidth := max([TextWidth1,TextWidth2])</l>
+<l>disp_message (WindowHandle, AbortMessage, 'window', Height - TextHeight1 - TextHeight2 - 10, Width - TextWidth - 10, Color, Box)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_abort_message">
+<abstract lang="en_US">Displays the message
+'Press right mouse button to exit'
+at the lower right corner of the window.
+</abstract>
+<short lang="de_DE">Displays a message at the lower right corner of the window</short>
+<short lang="en_US">Displays a message at the lower right corner of the window</short>
+<parameters>
+<parameter id="Box">
+<default_type>string</default_type>
+<default_value>'true'</default_value>
+<description lang="en_US">If set to 'true', the text is written within a white box.</description>
+<multivalue>false</multivalue>
+<sem_type>attribute.value</sem_type>
+<values>
+<item>'true'</item>
+<item>'false'</item>
+</values>
+</parameter>
+<parameter id="Color">
+<default_type>string</default_type>
+<default_value>''</default_value>
+<description lang="en_US">Defines the color of the text as string.</description>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>color</sem_type>
+<values>
+<item>'black'</item>
+<item>'blue'</item>
+<item>'yellow'</item>
+<item>'red'</item>
+<item>'green'</item>
+<item>'cyan'</item>
+<item>'magenta'</item>
+<item>'forest green'</item>
+<item>'lime green'</item>
+<item>'coral'</item>
+<item>'slate blue'</item>
+</values>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">The window handle of the graphics window, where the message should be displayed.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

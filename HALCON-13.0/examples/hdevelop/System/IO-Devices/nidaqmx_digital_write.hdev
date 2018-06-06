@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example to demonstrate how to open a digital I/O device from NIDAQmx and</c>
+<c>* how to write values to a digital output</c>
+<c>* </c>
+<c>* </c>
+<c>* Query the revision</c>
+<l>query_io_interface ('NIDAQmx', 'revision', IoRevision)</l>
+<c>* </c>
+<c>* Query currently installed I/O devices</c>
+<l>query_io_interface ('NIDAQmx', 'io_device_names', DeviceNames)</l>
+<c>* </c>
+<c>* Open the first device.</c>
+<l>open_io_device ('NIDAQmx', DeviceNames[0], [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* Get the device name</c>
+<l>get_io_device_param (IoDeviceHandle, 'io_device_name', IoDeviceName)</l>
+<c>* </c>
+<c>* Query all output channels of the device, only the digital output channels</c>
+<c>* or only the digital I/O channels</c>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names.digital_output', ChannelsOutput)</l>
+<c>* </c>
+<c>* Open two channels: first two lines at first port and all other lines at first port</c>
+<l>get_channel_indices (ChannelsOutput, DIPorts, DILines, DOPorts, DOLines, Ctr)</l>
+<c></c>
+<l>tuple_equal_elem (DOPorts, DOPorts[0], Equal)</l>
+<l>tuple_select_mask (DOLines, Equal, DOLinesPort0)</l>
+<l>if (|DOLinesPort0| &lt; 2)</l>
+<c>    * Not enough output lines supported on first port</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c></c>
+<c></c>
+<c>* Channel0 is the first line at the first input port and is usually the same as ChannelsInput[0]</c>
+<l>Channel0 := 'do_' + DOPorts[0] + '.' + DOLinesPort0[0]</l>
+<l>open_io_channel (IoDeviceHandle, Channel0, [], [], IoHandle0)</l>
+<c>* </c>
+<c>* Channel1 aggregates all other lines at the first input port</c>
+<l>Channel1 := 'do_' + DOPorts[0] + '.' + DOLinesPort0[1] + '-' + DOLinesPort0[|DOLinesPort0| - 1]</l>
+<l>open_io_channel (IoDeviceHandle, Channel1, [], [], IoHandle1)</l>
+<c>* </c>
+<c>* Write a 1 to the selected digital output</c>
+<l>write_io_channel (IoHandle0, 0x1, Status0)</l>
+<c>* Write a 1 to all aggregated lines</c>
+<l>write_io_channel (IoHandle1, 0xFFFF, Status1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Write to multiple output channels.</c>
+<l>write_io_channel ([IoHandle0,IoHandle1], [0x1,0x0], Status)</l>
+<c>* </c>
+<c>* Cleanup previous initialized handles</c>
+<l>close_io_channel ([IoHandle0,IoHandle1])</l>
+<l>close_io_device (IoDeviceHandle)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_channel_indices">
+<interface>
+<ic>
+<par name="Channels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DIPorts" base_type="ctrl" dimension="0"/>
+<par name="DILines" base_type="ctrl" dimension="0"/>
+<par name="DOPorts" base_type="ctrl" dimension="0"/>
+<par name="DOLines" base_type="ctrl" dimension="0"/>
+<par name="Ctr" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Find the indices of the channels with the following format:</c>
+<c>* di_x.x, do_x.x and ctr_x</c>
+<c>* *** digital input ***</c>
+<l>tuple_regexp_match (Channels, 'di_(([0-9]+)(\\.[0-9]+)*)', sDigitalInput)</l>
+<l>tuple_split (sDigitalInput, '.', sDigitalInput)</l>
+<l>tuple_number (sDigitalInput, iDigitalInput)</l>
+<c>* </c>
+<l>tuple_gen_sequence (0, |iDigitalInput| - 1, 2, evenIndices)</l>
+<l>tuple_select (iDigitalInput, evenIndices, DIPorts)</l>
+<l>tuple_remove (iDigitalInput, evenIndices, DILines)</l>
+<c>* </c>
+<c>* *** digital output ***</c>
+<l>tuple_regexp_match (Channels, 'do_(([0-9]+)(\\.[0-9]+)*)', sDigitalOutput)</l>
+<l>tuple_split (sDigitalOutput, '.', sDigitalOutput)</l>
+<l>tuple_number (sDigitalOutput, iDigitalOutput)</l>
+<c>* </c>
+<l>tuple_gen_sequence (0, |iDigitalOutput| - 1, 2, evenIndices)</l>
+<l>tuple_select (iDigitalOutput, evenIndices, DOPorts)</l>
+<l>tuple_remove (iDigitalOutput, evenIndices, DOLines)</l>
+<c>* </c>
+<c>* *** counter ***</c>
+<l>tuple_regexp_select (Channels, 'ctr_([0-9]+)', sCounter)</l>
+<l>tuple_split (sCounter, '_', sCounter)</l>
+<l>tuple_number (sCounter, iCounter)</l>
+<c>* </c>
+<l>tuple_gen_sequence (1, |iCounter| - 1, 2, oddIndices)</l>
+<l>tuple_select (iCounter, oddIndices, Ctr)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="get_channel_indices">
+<parameters>
+<parameter id="Channels"/>
+<parameter id="Ctr"/>
+<parameter id="DILines"/>
+<parameter id="DIPorts"/>
+<parameter id="DOLines"/>
+<parameter id="DOPorts"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

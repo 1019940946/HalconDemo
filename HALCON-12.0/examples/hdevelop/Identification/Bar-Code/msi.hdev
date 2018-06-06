@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program for decoding bar codes of type MSI</c>
+<c>* </c>
+<c>* Create Barcode reader with check character validation</c>
+<l>create_bar_code_model ('check_char', 'present', BarCodeHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 320, 240, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read bar codes</c>
+<l>for I := 1 to 3 by 1</l>
+<l>    read_image (Image, 'barcode/msi/msi_' + I$'.2d')</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'MSI', DecodedDataStrings)</l>
+<l>    area_center (SymbolRegions, Area, Row, Column)</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    for IdxFound := 0 to |DecodedDataStrings| - 1 by 1</l>
+<l>        disp_message (WindowHandle, DecodedDataStrings[IdxFound], 'image', Row[IdxFound] - 20, Column[IdxFound] - 50, 'black', 'true')</l>
+<l>    endfor</l>
+<l>    if (I &lt; 3)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Close Barcode reader</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

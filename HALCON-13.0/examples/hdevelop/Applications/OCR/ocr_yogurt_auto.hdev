@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to segment the expiration date of</c>
+<c>* a yoghurt cap on a bilaterally filtered image with the</c>
+<c>* Automatic Text Reader.</c>
+<c>* </c>
+<c>* Display initializations</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'ocr/yogurt_lid_01')</l>
+<c>* </c>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<l>create_text_model_reader ('auto', 'Universal_0-9+_Rej.occ', TextModelDigits)</l>
+<l>create_text_model_reader ('auto', 'Universal_A-Z+_Rej.occ', TextModelBatchIds)</l>
+<l>set_text_model_param (TextModelDigits, 'dot_print', 'true')</l>
+<l>set_text_model_param (TextModelDigits, 'dot_print_max_dot_gap', 3)</l>
+<l>set_text_model_param (TextModelDigits, 'max_char_height', 64)</l>
+<l>set_text_model_param (TextModelBatchIds, 'dot_print', 'true')</l>
+<l>set_text_model_param (TextModelBatchIds, 'dot_print_max_dot_gap', 3)</l>
+<l>set_text_model_param (TextModelBatchIds, 'max_char_height', 64)</l>
+<c>* </c>
+<c>* Main loop</c>
+<l>for I := 1 to 4 by 1</l>
+<l>    read_image (Image, 'ocr/yogurt_lid_' + I$'02')</l>
+<c>    * </c>
+<c>    * Remove unwanted structures</c>
+<l>    decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<l>    gen_image_proto (ImageR, ImageJoint, 128)</l>
+<l>    for Index := 1 to 5 by 1</l>
+<l>        bilateral_filter (ImageR, ImageJoint, ImageJoint, 4, 30, [], [])</l>
+<l>    endfor</l>
+<c>    * Find text on filtered red channel</c>
+<l>    find_text (ImageJoint, TextModelDigits, TextResultID)</l>
+<l>    get_text_object (Characters, TextResultID, 'all_lines')</l>
+<l>    get_text_result (TextResultID, 'class', Class)</l>
+<l>    String := sum(Class)</l>
+<l>    tuple_regexp_replace (String, '.*(\\d)(\\d).(\\d)(\\d).(\\w).*', 'Best before: $1$2.$3$4', Message1)</l>
+<c></c>
+<c></c>
+<l>    find_text (ImageJoint, TextModelBatchIds, TextResultID)</l>
+<l>    get_text_object (Characters, TextResultID, 'all_lines')</l>
+<l>    get_text_result (TextResultID, 'class', Class)</l>
+<l>    String := sum(Class)</l>
+<l>    tuple_regexp_replace (String, '.*(\\w)(\\w).(\\w)(\\w).(\\w).*', 'Batch ID:    $5', Message2)</l>
+<c></c>
+<l>    Message := Message1 + '\n' + Message2</l>
+<c></c>
+<c>    * Display result</c>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageJoint)</l>
+<l>    dev_display (Characters)</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    if (I &lt; 4)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

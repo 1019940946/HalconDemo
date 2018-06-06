@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to read DXF files and how to</c>
+<c>* use this CAD description of objects to generate shape models.</c>
+<c>* The program is a slightly modified copy of the example program</c>
+<c>* examples/hdevelop/Applications/Object-Recognition-2D/</c>
+<c>* pm_multiple_models.hdev.</c>
+<c>* The following modifications to this program were made:</c>
+<c>* - The model images are created from the DXF description of</c>
+<c>*   the objects.</c>
+<c>* - The parameters of the operator find_shape_models were</c>
+<c>*   slightly relaxed because the DXF object description does</c>
+<c>*   not fit exactly to the objects in the search image because</c>
+<c>*   the images were taken with an uncalibrated and slightly</c>
+<c>*   oblique viewing camera.</c>
+<c>* This program shows how to use HALCON's shape-based</c>
+<c>* matching to find multiple different models in one call to</c>
+<c>* find_shape_models. Note that this is one mode of operation</c>
+<c>* that is frequently useful. However, the number of</c>
+<c>* applications that can be solved with this mechanism is much</c>
+<c>* larger. Other applications where finding multiple models</c>
+<c>* in one call is useful are applications where the same object</c>
+<c>* can only occur in small angle ranges around a discrete set</c>
+<c>* of angles, e.g., 0°, 90°, 180°, and 270°. In these cases,</c>
+<c>* it would be wasteful to train the model for the full 360°</c>
+<c>* rotation range and to match the model in this range. Instead,</c>
+<c>* four models using the small angle ranges around the discrete</c>
+<c>* set of angles should be generated from the same model image</c>
+<c>* and used in the matching stage using four different angle</c>
+<c>* ranges.</c>
+<c>* </c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 646, 482, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 481, 645)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<c>* These colors will be used to graphically discern the different</c>
+<c>* models in the visualization code below.</c>
+<l>Colors := ['red','green','cyan']</l>
+<c>* The object Models will hold a set of XLD contours that</c>
+<c>* represent the different models. They are used below to overlay</c>
+<c>* the found models on the current image.  XLD contours are used</c>
+<c>* because they can be transformed much faster than regions. This</c>
+<c>* creates a slight problem because in general multiple XLD</c>
+<c>* contours will represent one model.  Therefore, the start and</c>
+<c>* end indices of the different models will be stored in IndexS</c>
+<c>* and IndexE, respectively.</c>
+<l>gen_empty_obj (Models)</l>
+<l>IndexS := []</l>
+<l>IndexE := []</l>
+<c>* The variable ModelIDs holds the different models that are</c>
+<c>* created below.</c>
+<l>ModelIDs := []</l>
+<c>* Likewise, RowsRef and ColumnsRef store the reference points</c>
+<c>* of the different models.  They are necessary to transform the</c>
+<c>* models to the found instances in the current image.</c>
+<l>for J := 1 to 3 by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    read_contour_xld_dxf (Contours, 'metal-part-' + J$'02', [], [], DxfStatus)</l>
+<l>    gen_model_image_of_bright_object_with_holes (Contours, Image, 3.38, 646, 482)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    set_tposition (WindowHandle, 20, 20)</l>
+<l>    write_string (WindowHandle, 'Generating shape model ' + J$'d')</l>
+<l>    get_domain (Image, Domain)</l>
+<l>    area_center (Domain, Area, Row, Column)</l>
+<c>    * Although we will use get_shape_model_contours below to</c>
+<c>    * obtain the representation of the model, we extract a model</c>
+<c>    * representation here using inspect_shape_model because this</c>
+<c>    * enables us to display the representation of the model while</c>
+<c>    * the model is being created.</c>
+<l>    inspect_shape_model (Image, ModelImages, ModelRegions, 1, 30)</l>
+<c>    * Since the shape models contain a few extraneous edges,</c>
+<c>    * they will be removed here to give a slightly nicer</c>
+<c>    * visualization.</c>
+<l>    connection (ModelRegions, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 20, 100000)</l>
+<l>    union1 (SelectedRegions, ModelRegions)</l>
+<l>    gen_contours_skeleton_xld (ModelRegions, ModelContours, 1, 'filter')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (ModelContours)</l>
+<l>    create_shape_model (Image, 5, rad(0), rad(360), 'auto', 'pregeneration', 'use_polarity', 30, 10, ModelID)</l>
+<l>    get_shape_model_contours (ModelCont, ModelID, 1)</l>
+<l>    select_shape_xld (ModelCont, ModelContours, 'contlength', 'and', 20, 1000)</l>
+<c>    * Count how many XLD contours there are in the current</c>
+<c>    * model and in the already stored models. This is necessary</c>
+<c>    * to compute IndexS and IndexE.</c>
+<l>    count_obj (ModelContours, NumModel)</l>
+<l>    count_obj (Models, NumModels)</l>
+<l>    concat_obj (Models, ModelContours, Models)</l>
+<l>    IndexS := [IndexS,NumModels + 1]</l>
+<l>    IndexE := [IndexE,NumModels + NumModel]</l>
+<l>    ModelIDs := [ModelIDs,ModelID]</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle, ['Press left button to start','and stop the demo'], 'image', 50, 20, 'yellow', 'false')</l>
+<l>get_mbutton (WindowHandle, Row1, Column1, Button1)</l>
+<l>wait_seconds (0.5)</l>
+<l>dev_set_color ('red')</l>
+<l>Button := 0</l>
+<l>ImgNo := 1</l>
+<l>while (Button != 1)</l>
+<l>    read_image (Image, 'metal-parts/metal-parts-' + ImgNo$'02d')</l>
+<l>    count_seconds (S1)</l>
+<l>    find_shape_models (Image, ModelIDs, rad(0), rad(360), 0.6, 0, 0.5, 'least_squares', 4, 0.3, Row, Column, Angle, Score, Model)</l>
+<l>    count_seconds (S2)</l>
+<l>    Time := (S2 - S1) * 1000.</l>
+<l>    dev_display (Image)</l>
+<l>    Num := |Score|</l>
+<l>    for J := 0 to Num - 1 by 1</l>
+<c>        * Select the correct XLD contours from the Models object.</c>
+<l>        copy_obj (Models, ModelSelected, IndexS[Model[J]], IndexE[Model[J]] - IndexS[Model[J]] + 1)</l>
+<c>        * Compute the transformation from the model object to</c>
+<c>        * the current instance.</c>
+<l>        vector_angle_to_rigid (0, 0, 0, Row[J], Column[J], Angle[J], HomMat2D)</l>
+<l>        affine_trans_contour_xld (ModelSelected, ModelTrans, HomMat2D)</l>
+<l>        dev_set_color (Colors[Model[J]])</l>
+<l>        dev_display (ModelTrans)</l>
+<l>    endfor</l>
+<l>    if (Num == 1)</l>
+<l>        disp_message (WindowHandle, Num$'1d' + ' object  found in ' + Time$'4.2f' + 'ms', 'image', 20, 20, 'yellow', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, Num$'1d' + ' objects found in ' + Time$'4.2f' + ' ms', 'image', 20, 20, 'yellow', 'false')</l>
+<l>    endif</l>
+<l>    ImgNo := ImgNo + 1</l>
+<l>    if (ImgNo &gt; 15)</l>
+<l>        ImgNo := 1</l>
+<l>    endif</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>for J := 0 to |ModelIDs| - 1 by 1</l>
+<l>    clear_shape_model (ModelIDs[J])</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_model_image_of_bright_object_with_holes">
+<interface>
+<io>
+<par name="Contours" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ModelImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>union_adjacent_contours_xld (Contours, Contours, 1, 1, 'attr_keep')</l>
+<c>* </c>
+<c>* We can use the set operations for closed contours</c>
+<c>* to classify the contours into outer boundaries and holes</c>
+<l>gen_empty_obj (EmptyObject)</l>
+<l>difference_closed_contours_xld (Contours, EmptyObject, ContoursClassified)</l>
+<l>gen_empty_obj (Boundaries)</l>
+<l>gen_empty_obj (Holes)</l>
+<l>count_obj (ContoursClassified, Number)</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (ContoursClassified, ObjectSelected, i)</l>
+<l>    get_contour_global_attrib_xld (ObjectSelected, 'is_hole', IsHole)</l>
+<l>    if (IsHole == 1)</l>
+<l>        concat_obj (Holes, ObjectSelected, Holes)</l>
+<l>    else</l>
+<l>        concat_obj (Boundaries, ObjectSelected, Boundaries)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, Scale, Scale, 0, 0, HomMat2DScale)</l>
+<c>* </c>
+<l>affine_trans_contour_xld (Boundaries, BoundariesScaled, HomMat2DScale)</l>
+<l>area_center_xld (BoundariesScaled, Area, RowScaled, ColScaled, PointOrder)</l>
+<l>hom_mat2d_translate (HomMat2DScale, Height / 2 - mean(RowScaled), Width / 2 - mean(ColScaled), HomMat2D)</l>
+<l>affine_trans_contour_xld (Boundaries, BoundariesCenteredAndScaled, HomMat2D)</l>
+<l>affine_trans_contour_xld (Holes, HolesCenteredAndScaled, HomMat2D)</l>
+<c>* </c>
+<l>gen_image_const (ModelImage, 'byte', Width, Height)</l>
+<l>count_obj (BoundariesCenteredAndScaled, NumberBoundaries)</l>
+<l>for i := 1 to NumberBoundaries by 1</l>
+<l>    select_obj (BoundariesCenteredAndScaled, ObjectSelected, i)</l>
+<l>    paint_xld (ObjectSelected, ModelImage, ModelImage, 127)</l>
+<l>endfor</l>
+<l>count_obj (HolesCenteredAndScaled, NumberHoles)</l>
+<l>for i := 1 to NumberHoles by 1</l>
+<l>    select_obj (HolesCenteredAndScaled, ObjectSelected, i)</l>
+<l>    paint_xld (ObjectSelected, ModelImage, ModelImage, 0)</l>
+<l>endfor</l>
+<l>threshold (ModelImage, Region, 10, 255)</l>
+<l>dilation_rectangle1 (Region, RegionDilation, 3, 3)</l>
+<l>reduce_domain (ModelImage, RegionDilation, ModelImage)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_model_image_of_bright_object_with_holes">
+<short lang="en_US">Create an image of bright object with holes from XLD contours</short>
+<parameters>
+<parameter id="Contours"/>
+<parameter id="Height"/>
+<parameter id="ModelImage"/>
+<parameter id="Scale"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

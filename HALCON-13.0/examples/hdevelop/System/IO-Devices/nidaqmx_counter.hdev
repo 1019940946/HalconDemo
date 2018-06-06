@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example to demonstrate how to open a digital I/O device from NIDAQmx and</c>
+<c>* how to read values of a counter channel</c>
+<c>* </c>
+<c>* </c>
+<c>* Query the revision of the interface</c>
+<l>query_io_interface ('NIDAQmx', 'revision', IoRevision)</l>
+<c>* </c>
+<c>* Query currently installed National Instrument I/O devices</c>
+<l>query_io_interface ('NIDAQmx', 'io_device_names', DeviceName)</l>
+<c>* </c>
+<c>* Open a device</c>
+<l>open_io_device ('NIDAQmx', DeviceName[0], [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* Get the device name via open_io_device</c>
+<l>get_io_device_param (IoDeviceHandle, 'io_device_name', IoDeviceName)</l>
+<c>* </c>
+<c>* Query all counter channels of the device</c>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names', ChannelsAll)</l>
+<l>query_io_device (IoDeviceHandle, [], 'io_channel_names.counter', ChannelsCounter)</l>
+<c>* </c>
+<l>if (|ChannelsCounter| == 0)</l>
+<c>    * No input channels supported by this device</c>
+<l>    stop ()</l>
+<l>else</l>
+<l>    Channels := ChannelsCounter</l>
+<l>endif</l>
+<c>* </c>
+<c>* Open counter</c>
+<l>open_io_channel (IoDeviceHandle, Channels[0], [], [], IoInputHandle0)</l>
+<c>* </c>
+<c>* Get all counter informations</c>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_edge_type', EdgeType)</l>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_initial_value', InitialValue)</l>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_count_direction', CountDirection)</l>
+<l>get_io_channel_param (IoInputHandle0, 'task_control', GenParamValue)</l>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_running', Running)</l>
+<l>read_io_channel (IoInputHandle0, Value, Status)</l>
+<c>* </c>
+<c>* Set new counter settings if necessary</c>
+<c>* 'rising_edge' is not supported by some devices for example 6105</c>
+<l>set_io_channel_param (IoInputHandle0, 'ctr_edge_type', 'falling_edge')</l>
+<l>set_io_channel_param (IoInputHandle0, 'ctr_initial_value', 20)</l>
+<c>* Also ctr_count_direction 'count_down' is not supported by some</c>
+<c>* devices, for example 6105</c>
+<l>set_io_channel_param (IoInputHandle0, 'task_control', 'stop')</l>
+<l>set_io_channel_param (IoInputHandle0, 'ctr_count_direction', 'count_up')</l>
+<l>set_io_channel_param (IoInputHandle0, 'ctr_running', true)</l>
+<l>read_io_channel (IoInputHandle0, Value, Status)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read the current counter value</c>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_value', CTRValue)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reset the counter</c>
+<l>set_io_channel_param (IoInputHandle0, 'ctr_reset', '')</l>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_value', CTRValue)</l>
+<l>stop ()</l>
+<l>read_io_channel (IoInputHandle0, CtrValue, CtrStatus)</l>
+<c>* </c>
+<c>* Stop the counter</c>
+<l>set_io_channel_param (IoInputHandle0, 'ctr_running', false)</l>
+<l>stop ()</l>
+<l>get_io_channel_param (IoInputHandle0, 'ctr_value', CTREndValue)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Close the channels and the device</c>
+<l>close_io_channel (IoInputHandle0)</l>
+<l>close_io_device (IoDeviceHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

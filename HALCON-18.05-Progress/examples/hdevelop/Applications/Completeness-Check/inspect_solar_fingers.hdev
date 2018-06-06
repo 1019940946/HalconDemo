@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* For the solar industry, a common problem is the damage of</c>
+<c>* fingers of solar cells. This example shows how to</c>
+<c>* extract the broken fingers using morphology.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>ImageName := 'solar_cell/solar_cell_'</l>
+<l>read_image (Image, ImageName + '01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* </c>
+<c>* For each image of a solar cell, extract defect areas</c>
+<l>NumImages := 6</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, ImageName + Index$'02')</l>
+<l>    decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<c>    * Segment dark regions (everything except the fingers)</c>
+<l>    threshold (ImageR, Region, 0, 159)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<c>    * Select good parts and clutter regions</c>
+<l>    select_shape (ConnectedRegions, GoodSmallParts, ['area','width'], 'and', [3500,130], [5000,300])</l>
+<l>    select_shape (ConnectedRegions, GoodLongParts, ['area','width'], 'and', [6000,350], [10000,550])</l>
+<l>    select_shape (ConnectedRegions, Clutter, ['width','height','area'], 'or', [900,900,0], [1000,1000,100])</l>
+<c>    * Regions that are neither good parts nor clutter contain broken fingers</c>
+<l>    difference (ConnectedRegions, GoodSmallParts, Difference)</l>
+<l>    difference (Difference, GoodLongParts, Difference)</l>
+<l>    difference (Difference, Clutter, BrokenParts)</l>
+<l>    shape_trans (BrokenParts, BrokenPartsTrans, 'rectangle1')</l>
+<c>    * Isolate the break for visualization</c>
+<l>    erosion_rectangle1 (BrokenParts, RegionErosion, 1, 25)</l>
+<l>    connection (RegionErosion, ConnectedBreaks)</l>
+<l>    shape_trans (ConnectedBreaks, Breaks, 'outer_circle')</l>
+<l>    dilation_circle (Breaks, Breaks, 6)</l>
+<c>    * Remove empty regions</c>
+<c>    * (This could also be achieved with set_system('store_empty_region','false')</c>
+<l>    select_shape (Breaks, Breaks, 'area', 'and', 1, 99999999)</l>
+<l>    count_obj (Breaks, CountBreaks)</l>
+<c>    * </c>
+<c>    *  Display results of inspection</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (BrokenPartsTrans)</l>
+<l>    dev_display (Breaks)</l>
+<c>    * </c>
+<l>    if (CountBreaks == 0)</l>
+<l>        disp_message (WindowHandle, 'Cell OK', 'window', 12, 12, 'black', 'true')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Cell not OK', 'window', 12, 12, 'red', 'true')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * If only one defect is present, zoom in</c>
+<l>    if (CountBreaks == 1)</l>
+<l>        dev_open_window (0, 610, 300, 300, 'black', WindowHandle1)</l>
+<l>        area_center (Breaks, Area, Row, Column)</l>
+<l>        dev_set_part (Row[0] - 50, Column[0] - 50, Row[0] + 50, Column[0] + 50)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_display (BrokenPartsTrans)</l>
+<l>        dev_display (Breaks)</l>
+<l>        stop ()</l>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

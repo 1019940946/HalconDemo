@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Find textured areas (trees and bushes)</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>Interactive := 0</l>
+<l>dev_close_window ()</l>
+<l>read_image (MreutHill, 'mreut_y')</l>
+<l>get_image_size (MreutHill, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* Filter an image using a Laws texture filter</c>
+<l>texture_laws (MreutHill, SS, 'ss', 0, 5)</l>
+<l>texture_laws (MreutHill, EE, 'ee', 2, 5)</l>
+<c>* Separated median filtering with rectangular masks</c>
+<l>median_separate (SS, SSMed, 25, 25, 'mirrored')</l>
+<l>median_separate (EE, EEMed, 25, 25, 'mirrored')</l>
+<l>dev_display (MreutHill)</l>
+<l>if (Interactive)</l>
+<l>    draw_region (TestReg, WindowHandle)</l>
+<l>else</l>
+<l>    gen_rectangle1 (TestReg, 376, 221, 466, 246)</l>
+<l>endif</l>
+<c>* Calculate the histogram of two-channel gray value images</c>
+<l>histo_2dim (TestReg, SSMed, EEMed, Histo2Dim)</l>
+<l>threshold (Histo2Dim, RegionFeat, 3, 1000000)</l>
+<l>fill_up (RegionFeat, RegionFillUpFeat)</l>
+<l>opening_circle (RegionFillUpFeat, FeatOpen, 1.5)</l>
+<l>dilation_circle (FeatOpen, FeatureSpace, 1.5)</l>
+<c>* Segment an image</c>
+<l>class_2dim_sup (SSMed, EEMed, FeatureSpace, RegionClass)</l>
+<l>opening_circle (RegionClass, ResultClass2, 3.5)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (MreutHill)</l>
+<l>dev_display (ResultClass2)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Continue to view textured areas</c>
+<l>threshold (SSMed, RegionThre, 35, 255)</l>
+<l>connection (RegionThre, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 150.000000, 99999.000000)</l>
+<l>closing_circle (SelectedRegions, ResultClass1, 3.5)</l>
+<l>dev_display (MreutHill)</l>
+<l>dev_display (ResultClass1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

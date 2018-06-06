@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows how to determine all variable nodes available on an OPC UA server.</c>
+<c>* </c>
+<c>* </c>
+<c>* Please adapt the following lines to specify your configuration:</c>
+<l>MyOpcUaServer := 'localhost'</l>
+<l>MyOpcUaPortNumber := 4841</l>
+<c>* </c>
+<l>MyOpcUaServer := 'opc.tcp://' + MyOpcUaServer + ':' + MyOpcUaPortNumber</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Open the connection to the server.</c>
+<l>open_io_device ('OPC_UA', MyOpcUaServer, [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* Use the root node to start browsing.</c>
+<l>control_io_device (IoDeviceHandle, 'translate', [], Nodes)</l>
+<l>Variables := []</l>
+<l>while (|Nodes|)</l>
+<l>    Start := Nodes[|Nodes| - 1]</l>
+<l>    tuple_remove (Nodes, |Nodes| - 1, Nodes)</l>
+<l>    query_io_device (IoDeviceHandle, Start, 'browse', Info)</l>
+<l>    for I := 0 to |Info| - 1 by 3</l>
+<c>        * Get node information.</c>
+<l>        Node := Info[I + 0]</l>
+<l>        Type := Info[I + 1]</l>
+<l>        Name := Info[I + 2]</l>
+<c>        * Due to a limitation in the OPC UA SDK, node IDs are truncated to</c>
+<c>        * 255 characters, so any node Id of 255 characters is potentially truncated</c>
+<c>        * and thus invalid.</c>
+<l>        tuple_strlen (Node, Length)</l>
+<l>        if (Length &gt;= 255)</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>        if (Type == 'Variable')</l>
+<l>            Variables := [Variables,Node]</l>
+<l>        elseif (Type == 'Object')</l>
+<l>            Nodes := [Node,Nodes]</l>
+<l>        else</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endwhile</l>
+<l>Variables := sort(Variables)</l>
+<c>* </c>
+<c>* Open graphics window for variables output:</c>
+<l>ShowValue := false</l>
+<l>NumWindows := |Variables| / 65 + 1</l>
+<l>WindowHandles := []</l>
+<l>ImageHeight := 800</l>
+<l>for Index := 0 to NumWindows - 1 by 1</l>
+<l>    dev_open_window (0, Index * 400, 500, ImageHeight, 'black', CurrentWindowHandle)</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_display_font (CurrentWindowHandle, 11, 'mono', 'true', 'false')</l>
+<l>    WindowHandles := [WindowHandles,CurrentWindowHandle]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display the variables</c>
+<l>count := 0</l>
+<l>for i := 0 to |Variables| - 1 by 1</l>
+<l>    if (i % 65 == 0)</l>
+<l>        CurrentWindowHandle := WindowHandles[count]</l>
+<l>        dev_set_window (CurrentWindowHandle)</l>
+<l>        count := count + 1</l>
+<l>    endif</l>
+<l>    set_tposition (CurrentWindowHandle, (12 * (i - 65 * (count - 1))) + 2, 10)</l>
+<l>    write_string (CurrentWindowHandle, Variables[i])</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Get the display_name and data_type for each variable.</c>
+<l>query_io_device (IoDeviceHandle, Variables, 'display_name', Displayname)</l>
+<l>query_io_device (IoDeviceHandle, Variables, 'data_type', DataType)</l>
+<c>* </c>
+<c>* Close the connection to the device</c>
+<l>close_io_device (IoDeviceHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

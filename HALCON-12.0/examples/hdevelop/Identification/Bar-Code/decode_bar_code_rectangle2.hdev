@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use the operator</c>
+<c>* decode_bar_code_rectangle2.</c>
+<c>* The bar code region is extracted by simple segmentation</c>
+<c>* and the returned rectangle2 parameters are passed to</c>
+<c>* the operator decode_bar_code_rectangle2.</c>
+<c>* </c>
+<c>* Initialize variables</c>
+<l>Directory := 'barcode/ean13/'</l>
+<l>TeaBoxRegExp := '.*tea_box.*'</l>
+<c>* </c>
+<c>* Initialize settings</c>
+<l>dev_update_window ('off')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* Get list of tea_box*-image files</c>
+<l>list_image_files (Directory, 'default', [], ImageFiles)</l>
+<l>ImageFilesTea := regexp_select(ImageFiles,[TeaBoxRegExp,'ignore_case'])</l>
+<l>read_image (Image, ImageFilesTea[0])</l>
+<c>* </c>
+<c>* Prepare graphics window and bar code model</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Decode tea_box*-images</c>
+<l>for ImageIndex := 0 to |ImageFilesTea| - 1 by 1</l>
+<l>    read_image (Image, ImageFilesTea[ImageIndex])</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * segment and determine the bar code region</c>
+<l>    threshold (Image, RegionThresh, 56, 255)</l>
+<l>    connection (RegionThresh, RegThreshConn)</l>
+<l>    select_shape_std (RegThreshConn, RegionBC, 'max_area', 100)</l>
+<c>    * </c>
+<c>    * create input parameters for decode_bar_code_rectangle2</c>
+<l>    smallest_rectangle2 (RegionBC, Row, Column, Phi, Length1, Length2)</l>
+<l>    gen_rectangle2 (Rectangle2BC, Row, Column, Phi, Length1, Length2)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    dev_display (Rectangle2BC)</l>
+<c>    * </c>
+<c>    * decode_bar_code_rectangle2 directly uses the passed rectangle2 parameters as ROI</c>
+<l>    decode_bar_code_rectangle2 (Image, BarCodeHandle, 'EAN-13', Row, Column, Phi, Length1, Length2, Decoded)</l>
+<l>    get_bar_code_object (SymbolRegions, BarCodeHandle, 'all', 'symbol_regions')</l>
+<l>    dev_set_color ('lime green')</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    disp_message (WindowHandle, 'Found bar code: ' + Decoded, 'window', 5, 5, 'black', 'true')</l>
+<l>    if (ImageIndex &lt; |ImageFilesTea| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

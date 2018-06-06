@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* rotchar: Estimation of the inclination of characters</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Letters, 'letters')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Letters, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Letters)</l>
+<l>disp_message (WindowID, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>PhiOrig := 2.6</l>
+<l>rotate_image (Letters, RotatedLetters, PhiOrig, 'weighted')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RotatedLetters)</l>
+<l>disp_message (WindowID, 'Rotated image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>binary_threshold (RotatedLetters, Characters, 'max_separability', 'dark', UsedThreshold)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Characters)</l>
+<l>disp_message (WindowID, 'Segmented characters', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dilation_rectangle1 (Characters, Lines, 40, 1)</l>
+<l>connection (Lines, SingleLines)</l>
+<l>dev_display (RotatedLetters)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (SingleLines)</l>
+<l>disp_message (WindowID, 'Segmented text lines', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>elliptic_axis (SingleLines, Ra, Rb, Phi)</l>
+<l>Phi := deg(sum(Phi) / |Phi|)</l>
+<l>rotate_image (RotatedLetters, ReconstructedLetters, 360 - Phi, 'constant')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ReconstructedLetters)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>disp_message (WindowID, 'Corrected image', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>open_socket_connect ('127.0.0.1', 3000, [], [], Socket)</l>
+<l>read_image (Image, 'mreut')</l>
+<l>send_image (Image, Socket)</l>
+<l>receive_xld (Edges, Socket)</l>
+<l>gen_polygons_xld (Edges, Polygons, 'ramer', 2)</l>
+<l>send_xld (Polygons, Socket)</l>
+<l>split_contours_xld (Polygons, Contours, 'polygon', 1, 5)</l>
+<l>receive_xld (Parallels, Socket)</l>
+<l>mod_parallels_xld (Parallels, Image, ModParallels, ExtParallels, 0.4, 160, 220, 10)</l>
+<l>send_xld (ModParallels, Socket)</l>
+<l>send_xld (ExtParallels, Socket)</l>
+<l>stop ()</l>
+<l>close_socket (Socket)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

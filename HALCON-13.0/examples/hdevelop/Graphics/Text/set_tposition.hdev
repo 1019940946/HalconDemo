@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Set the position of the text cursor in the output window</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>write_string (WindowID, 'Initial pos')</l>
+<c>* Set the coordinates in the output window to write a string</c>
+<l>set_tposition (WindowID, 255, 255)</l>
+<l>write_string (WindowID, 'Center')</l>
+<l>dev_set_color ('green')</l>
+<l>disp_arrow (WindowID, 255 - 30, 255 - 30, 255, 255, 1)</l>
+<c>* Set the coordinates in the output window to write a string</c>
+<l>set_tposition (WindowID, 2, 255)</l>
+<l>dev_set_color ('red')</l>
+<l>write_string (WindowID, 'Upper center')</l>
+<l>dev_set_color ('green')</l>
+<l>disp_arrow (WindowID, 2 + 30, 255 - 30, 2, 255, 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

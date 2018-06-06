@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to handle false bar code</c>
+<c>* decoding.</c>
+<c>* For this, the following two parameters can be used:</c>
+<c>*   - min_identical_scanlines</c>
+<c>*   - start_stop_tolerance</c>
+<c>* In this particular example these parameters are used to</c>
+<c>* suppress the false detection of a Code 128 in a Code 39</c>
+<c>* symbol</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'num_scanlines', 10)</l>
+<l>set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.1)</l>
+<l>set_bar_code_param (BarCodeHandle, 'persistence', 1)</l>
+<l>read_image (Image, 'barcode/code39/code3905')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>StatusHeight := 160</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height + StatusHeight, 'white', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height + StatusHeight - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* The code in the image is a Code 39 symbol</c>
+<l>find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 39', Data)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>Message := ['Looking for:             Code 39','Found:                   ' + Data]</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>Message := ['This image contains a Code 39 symbol, which is   ','detected by the find_bar_code operator with \'Code 39\'','as argument. If \'Code 128\' is selected instead, a ','false code is found in this particular image ...']</l>
+<l>disp_message (WindowHandle, Message, 'window', Height + 12, 12, 'black', 'false')</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reduce the domain in oder to show a possible fals decode</c>
+<l>dilation_circle (SymbolRegions, RegionDilation, 8.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<c>* </c>
+<c>* Using the default parameter settings of the bar code reader</c>
+<c>* leads to the false detection of a Code 128 in a Code 39 symbol</c>
+<l>find_bar_code (ImageReduced, SymbolRegions, BarCodeHandle, 'Code 128', Data)</l>
+<l>get_bar_code_object (AllScanlines, BarCodeHandle, 0, 'scanlines_all')</l>
+<l>get_bar_code_object (ValidScanlines, BarCodeHandle, 0, 'scanlines_valid')</l>
+<l>count_obj (ValidScanlines, NumValidScanLinesFalseRead)</l>
+<l>check_and_fix_example_results_1 (AllScanlines, SymbolRegions, ValidScanlines, SymbolRegions, ValidScanlines, Data, Data)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (SymbolRegions)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (AllScanlines)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ValidScanlines)</l>
+<l>Message := ['Looking for:             Code 128','Found:                   ' + Data]</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<c>* </c>
+<l>Message := ['Bar code detection is very tolerant in order to ','detect also badly imaged codes. This might cause a ','false detection. The problem can be handled with ','one of the two new bar code parameters that we','introduce here.    ']</l>
+<l>disp_message (WindowHandle, Message, 'window', Height + 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Requiring at least two identical scanlines suppresses</c>
+<c>* effectively the false detection, because the false</c>
+<c>* detection results from a single false scanline</c>
+<l>set_bar_code_param (BarCodeHandle, 'min_identical_scanlines', NumValidScanLinesFalseRead + 1)</l>
+<l>find_bar_code (ImageReduced, SymbolRegions, BarCodeHandle, 'Code 128', Data)</l>
+<l>get_bar_code_object (AllScanlines, BarCodeHandle, 0, 'scanlines_all')</l>
+<l>get_bar_code_object (ValidScanlines, BarCodeHandle, 0, 'scanlines_valid')</l>
+<c>* reset the constrain</c>
+<l>set_bar_code_param (BarCodeHandle, 'min_identical_scanlines', 0)</l>
+<l>decoded_data_safe (Data, Data)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (AllScanlines)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ValidScanlines)</l>
+<l>Message := ['Looking for:             Code 128','Found:                   ' + Data,'min_identical_scanlines: 2']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>Message := ['\'min_identical_scanlines\'=' + (NumValidScanLinesFalseRead + 1) + ' sets a condition that','at least ' + (NumValidScanLinesFalseRead + 1) + ' scanlines decode the identical data ','for a bar code decoding to be accepted. Less valid ','scanlines are not accepted anymore.']</l>
+<l>disp_message (WindowHandle, Message, 'window', Height + 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Restricting the start/stop tolerance suppresses effectively</c>
+<c>* the misdetection of the Code 128 start/stop pattern in the</c>
+<c>* Code 39 symbol</c>
+<c>* NOTE: currently only implemented for Code 128</c>
+<l>set_bar_code_param (BarCodeHandle, 'start_stop_tolerance', 'low')</l>
+<l>find_bar_code (ImageReduced, SymbolRegions, BarCodeHandle, 'Code 128', Data)</l>
+<l>get_bar_code_object (AllScanlines, BarCodeHandle, 0, 'scanlines_all')</l>
+<l>get_bar_code_object (ValidScanlines, BarCodeHandle, 0, 'scanlines_valid')</l>
+<c>* reset the constrain</c>
+<l>set_bar_code_param (BarCodeHandle, 'start_stop_tolerance', 'high')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (AllScanlines)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ValidScanlines)</l>
+<l>decoded_data_safe (Data, Data)</l>
+<l>Message := ['Looking for:             Code 128','Found:                   ' + Data,'start_stop_tolerance:    \'low\'']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>Message := ['\'start_stop_tolerance\'=\'low\' enforces less tolerant','searching criteria. Thus detections by chance are','reduced. Currently, this is implemented only for','Code 128.']</l>
+<l>disp_message (WindowHandle, Message, 'window', Height + 12, 12, 'black', 'false')</l>
+<c>* </c>
+<l>Message := 'End of the program'</l>
+<l>disp_message (WindowHandle, Message, 'window', Height + StatusHeight - 30, Width - 250, 'black', 'false')</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="decoded_data_safe">
+<interface>
+<ic>
+<par name="Data" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DataOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>DataOut := Data</l>
+<l>if (|DataOut| == 0)</l>
+<c>    * otherwise, the last line of the message below will disappear</c>
+<l>    DataOut := '[]'</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="decoded_data_safe">
+<parameters>
+<parameter id="Data"/>
+<parameter id="DataOut"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="check_and_fix_example_results_1">
+<interface>
+<io>
+<par name="AllScanlines" base_type="iconic" dimension="0"/>
+<par name="SymbolRegionsIn" base_type="iconic" dimension="0"/>
+<par name="ValidScanlinesIn" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="SymbolRegionsOut" base_type="iconic" dimension="0"/>
+<par name="ValidScanlinesOut" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="DataIn" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DataOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* In this procedure, we check wether we really found a false read or not.</c>
+<c>* If halcon is able to read this code without a false read we simulate</c>
+<c>* a false read in order to show the application of the parameters</c>
+<c>* 'min_identical_scanlines' and 'start_stop_tolerance' anyway.</c>
+<c>* </c>
+<c>* As MVTec is constantly improving the quality of it's identification</c>
+<c>* technology it is very likely that no false reads occur on this image.</c>
+<l>count_obj (ValidScanlinesIn, NumValidScanLinesFalseRead)</l>
+<l>if (NumValidScanLinesFalseRead == 0)</l>
+<c>    * If there is now false read, we simulate it here</c>
+<c>    * </c>
+<c>    * This is the fake false read:</c>
+<l>    DataOut := '=)7+)"T?P'</l>
+<c>    * </c>
+<c>    * This is the fake false read scanline</c>
+<l>    select_obj (AllScanlines, ValidScanlinesOut, 3)</l>
+<c>    * </c>
+<c>    * This is the fake false read symbol region</c>
+<l>    gen_rectangle2 (SymbolRegionsOut, 88.5, 304.5, rad(5.19443), 165.68, 44.7241)</l>
+<l>else</l>
+<l>    DataOut := DataIn</l>
+<l>    copy_obj (ValidScanlinesIn, ValidScanlinesOut, 1, -1)</l>
+<l>    copy_obj (SymbolRegionsIn, SymbolRegionsOut, 1, -1)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="check_and_fix_example_results_1">
+<parameters>
+<parameter id="AllScanlines"/>
+<parameter id="DataIn"/>
+<parameter id="DataOut"/>
+<parameter id="SymbolRegionsIn"/>
+<parameter id="SymbolRegionsOut"/>
+<parameter id="ValidScanlinesIn"/>
+<parameter id="ValidScanlinesOut"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

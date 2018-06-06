@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ------------------------------</c>
+<c>* Note: Before starting this example</c>
+<c>* execute the example program</c>
+<c>* 'open_file.hdev' in order to create</c>
+<c>* the file 'area.dat' to read.</c>
+<c>* ------------------------------</c>
+<l>open_file ('area.dat', 'input', FileHandleIn)</l>
+<l>open_file ('copy.dat', 'output', FileHandleOut)</l>
+<l>fread_string (FileHandleIn, Number, IsEOF)</l>
+<l>Char := ''</l>
+<l>Index := 0</l>
+<l>while (Char != 'eof')</l>
+<l>    fread_char (FileHandleIn, Char)</l>
+<l>    if ((Char != 'eof') and (Char != 'nl'))</l>
+<l>        fwrite_string (FileHandleOut, Char)</l>
+<l>    endif</l>
+<l>    if (Char == 'nl')</l>
+<l>        fnew_line (FileHandleOut)</l>
+<l>        Index := Index + 1</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>close_file (FileHandleIn)</l>
+<l>close_file (FileHandleOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a LinX GINGA++ frame grabber board</c>
+<c>* (sequence grabbing mode)</c>
+<c>* </c>
+<c>* </c>
+<l>MyCameraType := 'sony/XC55_NI_NORM'</l>
+<l>* MyCameraType := 'jai/CVM40_NI_NORM'</l>
+<l>MyBoardType := 'GINGA++M2'</l>
+<l>* MyBoardType := 'GINGA++M4'</l>
+<c>* </c>
+<l>open_framegrabber ('Ginga++', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyBoardType, -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<c>* </c>
+<l>NumBuffers := 25</l>
+<l>set_framegrabber_param (AcqHandle, 'num_buffers', NumBuffers)</l>
+<l>set_framegrabber_param (AcqHandle, 'sequence_grabbing', 'enable')</l>
+<l>* set_framegrabber_param (AcqHandle, 'capture_frequency', 'Capture=2 Drop=1')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<l>count_channels (Image, Channels)</l>
+<l>for i := 1 to Channels by 1</l>
+<l>    access_channel (Image, Image1, i)</l>
+<l>    dev_display (Image1)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

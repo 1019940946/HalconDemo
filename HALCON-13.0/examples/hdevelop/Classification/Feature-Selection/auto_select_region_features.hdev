@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows how to create a classifier with</c>
+<c>* an automatically selected set of features.</c>
+<c>* Additionally, it shows how to use the procedure library</c>
+<c>* calculate_feature_set.hdpl to pre-select features by</c>
+<c>* their properties and calculate them in a very</c>
+<c>* convenient way.</c>
+<c>* Finally, it shows how to integrate custom features easily.</c>
+<c>* </c>
+<c>*  Automatic feature selection</c>
+<c>* </c>
+<c>* Choosing the right features for classification is</c>
+<c>* often the hardest part in addition to supply a good</c>
+<c>* set of training samples.</c>
+<c>* </c>
+<c>* The select_feature_set_* operators help you to</c>
+<c>* decide which features are suitable for your problem</c>
+<c>* and which are not.</c>
+<c>* </c>
+<c>* The calculated features are stored in a</c>
+<c>* class_train_data structure and then the best</c>
+<c>* features for the task are automatically selected</c>
+<c>* by the operator select_feature_set_knn.</c>
+<c>* </c>
+<c>* The usage of fewer features makes the classification</c>
+<c>* faster and usually also more robust (because bad</c>
+<c>* features are discarded).</c>
+<c>* </c>
+<c>* ******************************</c>
+<c>* </c>
+<c>*  INSTRUCTIONS TO</c>
+<c>*  calculate_feature_set.hdpl</c>
+<c>* </c>
+<c>* ******************************</c>
+<c>* </c>
+<c>* The library contains a set of convenience procedures</c>
+<c>* to calculate features of pre-segmented regions and</c>
+<c>* images.</c>
+<c>* The contained features belong to several groups.</c>
+<c>* This makes it easier to access only features with</c>
+<c>* particular characteristics.</c>
+<c>* </c>
+<c>* The available procedures are:</c>
+<c>* </c>
+<c>*  query_feature_group_names</c>
+<c>* </c>
+<c>*      Query all available feature groups.</c>
+<l>query_feature_group_names (AllGroupNames)</l>
+<c>* </c>
+<c>*  query_feature_names_by_group</c>
+<c>* </c>
+<c>*      Get a list of all features and the groups</c>
+<c>*      they belong to.</c>
+<l>query_feature_names_by_group (AllGroupNames, FeatureNames, Groups)</l>
+<c>* </c>
+<c>*  get_feature_names</c>
+<c>* </c>
+<c>*      Get a list of all features belonging to</c>
+<c>*      one or more given groups.</c>
+<l>get_feature_names ('all', Names)</l>
+<c>* </c>
+<c>*  get_feature_lengths</c>
+<c>* </c>
+<c>*      Get the lengths of the feature vectors of</c>
+<c>*      given features.</c>
+<l>get_feature_lengths (Names, Lengths)</l>
+<c>* </c>
+<c>*  calculate_features</c>
+<c>* </c>
+<c>*      Calculate multiple features of one or more</c>
+<c>*      input regions in one call.</c>
+<c>*      (At this point, we do not have a region yet,</c>
+<c>*      so the next line is just for demonstration</c>
+<c>*      purposes and commented out. See later in the</c>
+<c>*      program how it is actually used.)</c>
+<l>* calculate_features (Region, Image, Names, Features)</l>
+<c>* </c>
+<c>* </c>
+<c>* While already a large number of features is contained</c>
+<c>* in the library, it is designed in a way that it can</c>
+<c>* be easily extended by user-defined features.</c>
+<c>* </c>
+<c>* To do this, simply follow the instructions contained</c>
+<c>* in the comments of the get_custom_feature procedure.</c>
+<c>* </c>
+<c>* There also exists a convenience procedure that allows</c>
+<c>* to test if features are implemented according to</c>
+<c>* the library specifications.</c>
+<c>* If a problem is detected, the test_features procedure</c>
+<c>* throws an exception.</c>
+<l>* test_features (Names)</l>
+<c>* </c>
+<c>* ***************</c>
+<c>* </c>
+<c>* MAIN PROGRAM</c>
+<c>* </c>
+<c>* ***************</c>
+<c>* </c>
+<c>* Initialization and introduction</c>
+<c>* </c>
+<c>* Sort images into training images and test images</c>
+<l>list_image_files ('rings', 'default', [], ImageFiles)</l>
+<l>TrainImageFilesNuts := regexp_select(ImageFiles,'nuts')</l>
+<l>TrainImageFilesRetainers := regexp_select(ImageFiles,'retainers')</l>
+<l>TrainImageFilesWashers := regexp_select(ImageFiles,'washers')</l>
+<l>TestImageFiles := regexp_select(ImageFiles,'mixed')</l>
+<l>TrainImageFiles := [TrainImageFilesNuts,TrainImageFilesRetainers,TrainImageFilesWashers]</l>
+<c>* Remember the number of images for each class</c>
+<l>NextClassIndex := [|TrainImageFilesNuts|,|TrainImageFilesNuts| + |TrainImageFilesRetainers|,|TrainImageFilesNuts| + |TrainImageFilesRetainers| + |TrainImageFilesWashers|]</l>
+<c>* </c>
+<c>* Init visualization</c>
+<l>read_image (Image, TrainImageFiles[0])</l>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Part A</c>
+<c>* </c>
+<c>* Use the calculate_feature_set.hdpl library to generate</c>
+<c>* a list of features that shall be used by the automatic</c>
+<c>* feature selection.</c>
+<c>* </c>
+<c>* To pre-select the features generate a feature list with</c>
+<c>* get_feature_names.</c>
+<c>* Using HALCON's operators for tuple set operations,</c>
+<c>* it is possible to create very specific feature lists.</c>
+<c>* </c>
+<c>* Use only region features, that are invariant to rotation and scale ...</c>
+<l>get_feature_names ('region', FeatureNamesRegion)</l>
+<l>get_feature_names ('rot_invar', FeatureNamesRotInvar)</l>
+<l>get_feature_names ('scale_invar', FeatureNamesScaleInvar)</l>
+<l>FeatureNamesIntersection := intersection(FeatureNamesRegion,intersection(FeatureNamesScaleInvar,FeatureNamesRotInvar))</l>
+<c>* </c>
+<l>for Part := 1 to 2 by 1</l>
+<c>    * </c>
+<c>    * Show introduction</c>
+<l>    dev_clear_window ()</l>
+<l>    Message := 'This example shows how to create a classifier with'</l>
+<l>    Message[1] := 'an automatically selected set of features.\n '</l>
+<l>    Message[2] := 'It makes extensive use of the procedure library'</l>
+<l>    Message[3] := 'calculate_feature_set.hdpl and shows how to integrate'</l>
+<l>    Message[4] := 'custom features.'</l>
+<l>    Message[5] := 'Please check the comments in the script for'</l>
+<l>    Message[6] := 'detailed instructions how to use the library.'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    switch (Part)</l>
+<l>    case 1:</l>
+<c>        * Do not use custom features</c>
+<l>        FeatureNames := FeatureNamesIntersection</l>
+<l>        disp_message (WindowHandle, 'PART 1: Use pre-defined features only', 'window', 222, 120, 'green', 'false')</l>
+<l>        break</l>
+<l>    case 2:</l>
+<c>        *     Use custom features that are defined</c>
+<c>        *     in the procedure "get_custom_features".</c>
+<c>        *     Please check the comments in the get_custom_features</c>
+<c>        *     procedure, if you like to integrate your own features.</c>
+<l>        get_feature_names ('custom', FeatureNamesCustom)</l>
+<l>        FeatureNames := union(FeatureNamesCustom,FeatureNamesIntersection)</l>
+<l>        disp_message (WindowHandle, 'PART 2: Use pre-defined and custom features', 'window', 222, 102, 'green', 'false')</l>
+<c>        * </c>
+<l>    endswitch</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Before using the automatic feature selection, it is</c>
+<c>    * necessary to determine the lengths of the used feature vectors with</c>
+<l>    get_feature_lengths (FeatureNames, FeatureLengths)</l>
+<c>    * </c>
+<c>    * Part B</c>
+<c>    * </c>
+<c>    * Create training data structure and perform the</c>
+<c>    * automatic feature selection</c>
+<c>    * </c>
+<l>    create_class_train_data (sum(FeatureLengths), ClassTrainDataHandle)</l>
+<l>    set_feature_lengths_class_train_data (ClassTrainDataHandle, FeatureLengths, FeatureNames)</l>
+<c>    * </c>
+<c>    * By adding a random error to the calculated training features</c>
+<c>    * you can simulate what might happen, if the training data</c>
+<c>    * is not optimal. That may happen, if the available samples</c>
+<c>    * are not available in good quality or not the whole range</c>
+<c>    * of variants can be covered.</c>
+<c>    * To simulate this effect on the automatic feature selection</c>
+<c>    * and the training, please change the NoiseLevel parameter</c>
+<c>    * below.</c>
+<c>    * This is how the training features will be modified by</c>
+<c>    * the noise (with Rand a random number between -0.5 and 0.5):</c>
+<c>    *  FeatureValue = FeatureValue * (1.0 + (Rand*NoiseLevel))</c>
+<l>    NoiseLevel := 0.1</l>
+<c>    * </c>
+<l>    ClassName := ['Nuts','Retainers','Washers']</l>
+<l>    Color := ['magenta','blue','orange']</l>
+<l>    AllFeatures := []</l>
+<c>    * </c>
+<c>    * Create training data</c>
+<c>    * (calculate and accumulate features of training samples)</c>
+<c>    * </c>
+<l>    Class := 0</l>
+<c>    * </c>
+<l>    for I := 0 to |TrainImageFiles| - 1 by 1</l>
+<l>        if (I &gt;= NextClassIndex[Class])</l>
+<l>            Class := Class + 1</l>
+<l>        endif</l>
+<l>        read_image (Image, TrainImageFiles[I])</l>
+<c>        * Segment the regions</c>
+<l>        binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>        * The objects are separated before calculating the features</c>
+<c>        * for each object sample</c>
+<l>        connection (Region, ConnectedRegions)</l>
+<l>        count_obj (ConnectedRegions, NumObjects)</l>
+<c>        * Calculate 20 features</c>
+<l>        calculate_features (ConnectedRegions, Image, FeatureNames, Features)</l>
+<c>        * Add some noise to make the problem more interesting.</c>
+<c>        * This can also help to make the solution more robust, if not enough</c>
+<c>        * or no representative training data is available.</c>
+<c>        * (Of course, this has to be handled carefully as too much</c>
+<c>        * noise will surely lead to unwanted results.)</c>
+<l>        Features := Features * (1.0 + ((rand(|Features|) - 0.5) * NoiseLevel))</l>
+<l>        add_sample_class_train_data (ClassTrainDataHandle, 'feature_column', Features, Class)</l>
+<c>        * Display the regions</c>
+<l>        dev_display (Image)</l>
+<l>        dev_set_color (Color[Class])</l>
+<l>        dev_display (ConnectedRegions)</l>
+<l>        Message := 'Training image ' + (I + 1) + '/' + |TrainImageFiles| + ', Class: ' + ClassName[Class]</l>
+<l>        Message[1] := |FeatureNames| + ' features calculated for ' + NumObjects + ' objects'</l>
+<l>        if (NoiseLevel &gt; 0)</l>
+<l>            Message[2] := 'Feature noise level: ' + NoiseLevel</l>
+<l>        endif</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Display status</c>
+<l>    dev_clear_window ()</l>
+<l>    ListText := ['List of features:',' ',' ' + FeatureNames]</l>
+<l>    Message := 'Calculating best feature set...'</l>
+<l>    disp_message (WindowHandle, ListText, 'window', 12, 12, 'white', 'false')</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 260, 'white', 'false')</l>
+<c>    * </c>
+<c>    * Select features from the complete list of features</c>
+<c>    * In this case, a k-NN classifier is used, which is the fastest classifier</c>
+<c>    * for automatic feature selection because of its short training times.</c>
+<c>    * You could also use SVM, MLP, or GMM classifiers, but that would take</c>
+<c>    * significantly longer.</c>
+<l>    count_seconds (S1)</l>
+<l>    select_feature_set_knn (ClassTrainDataHandle, 'greedy', [], [], KNNHandle, SelectedFeatures, Score)</l>
+<l>    count_seconds (S2)</l>
+<l>    Time := S2 - S1</l>
+<c>    * Display selection result</c>
+<l>    Message := [Message + ' ready','Time needed: ' + Time$'.2' + 's']</l>
+<l>    Message := [Message,' ','Selected feature(s):',SelectedFeatures]</l>
+<l>    TextColor := [gen_tuple_const(4,'white'),gen_tuple_const(|SelectedFeatures|,'green')]</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 260, TextColor, 'false')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Cleanup memory</c>
+<l>    clear_class_train_data (ClassTrainDataHandle)</l>
+<c>    * </c>
+<c>    * Part C</c>
+<c>    * </c>
+<c>    * Test the resulting classifier with the test images</c>
+<c>    * </c>
+<c>    * Set k-NN to get a comparable score</c>
+<l>    set_params_class_knn (KNNHandle, ['method','k','max_num_classes'], ['classes_weighted_frequencies',5,1])</l>
+<l>    get_params_class_knn (KNNHandle, ['method','k','max_num_classes'], KNNParameters)</l>
+<l>    for Index := 0 to |TestImageFiles| - 1 by 1</l>
+<l>        read_image (Image, TestImageFiles[Index])</l>
+<l>        dev_display (Image)</l>
+<c>        * Segment objects from the image</c>
+<l>        binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>        * The objects are separated before calculating the features</c>
+<c>        * for each object sample</c>
+<l>        connection (Region, ConnectedRegions)</l>
+<l>        count_obj (ConnectedRegions, Number)</l>
+<l>        for Index1 := 1 to Number by 1</l>
+<l>            select_obj (ConnectedRegions, ObjectSelected, Index1)</l>
+<c>            * Extract the selected features</c>
+<l>            calculate_features (ObjectSelected, Image, SelectedFeatures, Features)</l>
+<c>            * Classify object with the selected features</c>
+<c>            * and the automatically created classifer</c>
+<l>            classify_class_knn (KNNHandle, Features, Class, Rating)</l>
+<c>            * Display results</c>
+<l>            dev_set_color (Color[Class])</l>
+<l>            dev_display (ObjectSelected)</l>
+<l>            area_center (ObjectSelected, Area, Row, Column)</l>
+<l>            set_tposition (WindowHandle, Row - 8, Column - 15)</l>
+<l>            dev_set_color ('black')</l>
+<l>            write_string (WindowHandle, Rating$'.1f')</l>
+<l>        endfor</l>
+<l>        Message := ['Classification result (with score) using:',' - ' + SelectedFeatures]</l>
+<l>        Legend := ['Legend:',ClassName + ' (' + Color + ')']</l>
+<l>        LegendColor := ['black',Color]</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>        disp_message (WindowHandle, Legend, 'window', 400, 12, LegendColor, 'false')</l>
+<l>        if (Index &lt; |TestImageFiles| - 1 or Part &lt; 2)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Cleanup memory</c>
+<l>    clear_class_knn (KNNHandle)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

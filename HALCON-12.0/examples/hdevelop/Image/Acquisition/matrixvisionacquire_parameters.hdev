@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the MatrixVisionAcquire interface</c>
+<c>* (info about the supported parameters of the selected device)</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('MatrixVisionAcquire', 'info_boards', InfoBoardsInfo, InfoBoardsValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'camera_types', CameraTypesInfo, CameraTypesValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'defaults', DefaultsInfo, DefaultsValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'parameters', ParametersInfo, ParametersValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'ports', PortsInfo, PortsValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'revision', RevisionInfo, RevisionValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'color_space', colorspace, colorspacevalues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'bits_per_channel', bits, bitsvalues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'device', device, DeviceValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'external_trigger', trigger, triggerValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'field', field, fieldValues)</l>
+<l>info_framegrabber ('MatrixVisionAcquire', 'info_parameters', param, paramValues)</l>
+<c>* </c>
+<l>open_framegrabber ('MatrixVisionAcquire', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>ShowValue := false</l>
+<l>dev_close_window ()</l>
+<l>NumWindows := |ParameterValues| / 65 + 1</l>
+<l>WindowHandles := []</l>
+<l>ImageHeight := 800</l>
+<l>for Index := 0 to NumWindows - 1 by 1</l>
+<l>    dev_open_window (0, Index * 300, 700, ImageHeight, 'black', CurrentWindowHandle)</l>
+<l>    WindowHandles := [WindowHandles,CurrentWindowHandle]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>count := 0</l>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    if (i % 65 == 0)</l>
+<l>        CurrentWindowHandle := WindowHandles[count]</l>
+<l>        dev_set_window (CurrentWindowHandle)</l>
+<l>        count := count + 1</l>
+<l>    endif</l>
+<c>    * *****************************************************</c>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (CurrentWindowHandle, (12 * (i - 65 * (count - 1))) + 2, 10)</l>
+<l>    write_string (CurrentWindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    ShowValue := true</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i] + '_access', Access)</l>
+<l>    if ((strlen(ParameterInfoValues[i]) &gt; 2) or (Access == 'wo'))</l>
+<l>        if (ParameterInfoValues[i]{0:2} == 'do_' or Access == 'wo')</l>
+<l>            dev_set_color ('slate blue')</l>
+<l>            write_string (CurrentWindowHandle, '&lt;action parameter&gt;')</l>
+<l>            ShowValue := false</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if ((ShowValue == true) and (HalconError == H_MSG_TRUE))</l>
+<l>        dev_set_color ('green')</l>
+<l>*         get_framegrabber_param (AcqHandle, ParameterInfoValues[i] + '_range', ParameterValue)</l>
+<l>*         get_framegrabber_param (AcqHandle, ParameterInfoValues[i] + '_values', ParameterValue)</l>
+<l>        get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>        if (|ParameterValue| &gt; 1)</l>
+<l>            for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                write_string (CurrentWindowHandle, ParameterValue[j] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (CurrentWindowHandle, ParameterValue[j])</l>
+<l>        else</l>
+<l>            if (|ParameterValue| == 1)</l>
+<l>                write_string (CurrentWindowHandle, ParameterValue)</l>
+<l>            else</l>
+<l>                dev_set_color ('red')</l>
+<l>                write_string (CurrentWindowHandle, '&lt;not available&gt;')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        if (ShowValue == true)</l>
+<l>            dev_set_color ('red')</l>
+<l>            write_string (CurrentWindowHandle, '&lt;not available&gt;')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for Index := 0 to NumWindows - 1 by 1</l>
+<l>    dev_close_window ()</l>
+<l>endfor</l>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

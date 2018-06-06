@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows the basic steps necessary to find and connect to an</c>
+<c>* OPC UA server.</c>
+<c>* </c>
+<c>* Get a list of servers to contact:</c>
+<l>try</l>
+<c>    * First, attempt to find servers by querying the OPC UA discovery server</c>
+<c>    * listening on the localhost on port 4840.</c>
+<l>    query_io_interface ('OPC_UA', 'io_device_names', ServerInfo)</l>
+<l>catch (Exception)</l>
+<c>    * No discovery server. If you have a discovery server listening at</c>
+<c>    * a different address, you can check it here.</c>
+<l>    try</l>
+<l>        control_io_interface ('OPC_UA', 'discovery', 'opc.tcp://localhost:4841', ServerInfo)</l>
+<l>    catch (Exception)</l>
+<l>    endtry</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Parse the entries.</c>
+<l>if (|ServerInfo| != 0)</l>
+<l>    parse_list (ServerInfo, 'url', Servers)</l>
+<l>else</l>
+<c>    * As a fallback, use this server if all else fails.</c>
+<l>    Servers := 'opc.tcp://localhost:4841'</l>
+<l>endif</l>
+<c>* </c>
+<l>for Index := 0 to |Servers| - 1 by 1</l>
+<c>    * Open the device.</c>
+<l>    open_io_device ('OPC_UA', Servers[Index], [], [], IoDeviceHandle)</l>
+<c>    * </c>
+<c>    * Get the ID of the CurrentTime node (this should exist on all servers).</c>
+<l>    control_io_device (IoDeviceHandle, 'translate', ['','/Objects/Server/ServerStatus/CurrentTime'], CurrentTimeNodeId)</l>
+<c>    * </c>
+<c>    * Open the channel.</c>
+<l>    open_io_channel (IoDeviceHandle, CurrentTimeNodeId, [], [], IoChannelHandle)</l>
+<c>    * </c>
+<c>    * Read the current time. If everything went alright, Status should be 0.</c>
+<l>    read_io_channel (IoChannelHandle, Value, Status)</l>
+<c>    * </c>
+<c>    * Finish with this device.</c>
+<l>    close_io_device (IoDeviceHandle)</l>
+<l>endfor</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="parse_list">
+<interface>
+<ic>
+<par name="Info" base_type="ctrl" dimension="0"/>
+<par name="RelevantTags" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="List" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>List := []</l>
+<l>for Index1 := 0 to |Info| - 1 by 1</l>
+<l>    tuple_split (Info[Index1], '|', Entry)</l>
+<l>    tuple_strchr (Entry, ':', Position)</l>
+<l>    tuple_str_first_n (Entry, Position - 1, Tags)</l>
+<l>    tuple_str_last_n (Entry, Position + 1, Values)</l>
+<l>    for Index2 := 0 to |RelevantTags| - 1 by 1</l>
+<l>        List[Index1 * |RelevantTags| + Index2] := ''</l>
+<l>        for Index3 := 0 to |Tags| - 1 by 1</l>
+<l>            if (RelevantTags[Index2] == Tags[Index3])</l>
+<l>                List[Index1 * |RelevantTags| + Index2] := Values[Index3]</l>
+<l>                tuple_remove (Tags, Index3, Tags)</l>
+<l>                tuple_remove (Values, Index3, Values)</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>return ()</l>
+<c>* </c>
+</body>
+<docu id="parse_list">
+<parameters>
+<parameter id="Info"/>
+<parameter id="List"/>
+<parameter id="RelevantTags"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

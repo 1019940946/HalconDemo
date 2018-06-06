@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the hAcqTemplate image acquisition interface</c>
+<c>* </c>
+<l>AcqName := 'Template'</l>
+<l>info_framegrabber (AcqName, 'general', GeneralInfo, GeneralValues)</l>
+<l>info_framegrabber (AcqName, 'info_boards', InfoBoardsInfo, InfoBoardsValues)</l>
+<l>info_framegrabber (AcqName, 'defaults', DefaultsInfo, DefaultsValues)</l>
+<l>info_framegrabber (AcqName, 'parameters', ParametersInfo, ParametersValues)</l>
+<l>info_framegrabber (AcqName, 'ports', PortsInfo, PortsValues)</l>
+<l>info_framegrabber (AcqName, 'revision', RevisionInfo, RevisionValues)</l>
+<l>info_framegrabber (AcqName, 'bits_per_channel', BitsPerChannelInfo, BitsPerChannelValues)</l>
+<l>info_framegrabber (AcqName, 'color_space', ColorSpaceInfo, ColorSpaceValues)</l>
+<l>info_framegrabber (AcqName, 'device', DeviceInfo, DeviceValues)</l>
+<l>info_framegrabber (AcqName, 'external_trigger', TriggerInfo, TriggerValues)</l>
+<l>info_framegrabber (AcqName, 'horizontal_resolution', HorizontalResolutionInfo, HorizontalResolutionValues)</l>
+<l>info_framegrabber (AcqName, 'vertical_resolution', VerticalResolutionInfo, VerticalResolutionValues)</l>
+<c>* </c>
+<l>open_framegrabber (AcqName, 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

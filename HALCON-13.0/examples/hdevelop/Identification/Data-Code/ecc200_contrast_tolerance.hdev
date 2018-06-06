@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the impact of the parameter</c>
+<c>* 'contrast_tolerance' parameter of the ECC200 reader.</c>
+<c>* </c>
+<c>* If 'contrast_tolerance' is set to 'high', the ECC200 reader is</c>
+<c>* more tolerant towards local contrast variation within a symbol.</c>
+<c>* This is achieved due to internal preprocessing.</c>
+<c>* If 'contrast_tolerance' is set to 'low', this preprocessing step</c>
+<c>* is omitted.</c>
+<c>* If 'contrast_tolerance' is set to 'any', the reader tries both</c>
+<c>* modes.</c>
+<c>* </c>
+<c>* Note that 'contrast_tolerance' is also included in the training</c>
+<c>* mode of the ECC200 reader.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Initialize image path and window size</c>
+<l>list_image_files ('datacode/ecc200', 'default', [], ImageFiles)</l>
+<l>tuple_regexp_select (ImageFiles, 'contrast_variations', ImageFiles)</l>
+<l>read_image (Image, ImageFiles[0])</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Display short description</c>
+<l>Message := 'This example program demonstrates how the parameter'</l>
+<l>Message[1] := '\'contrast_tolerance\' influences the search with a'</l>
+<l>Message[2] := 'ECC200 reader for 2d data code symbols with local'</l>
+<l>Message[3] := 'contrast variations.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create ECC200 data code model with 'contrast_tolerance' set to 'low'</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', 'default_parameters', 'enhanced_recognition', DataCodeHandleLow)</l>
+<l>set_data_code_2d_param (DataCodeHandleLow, 'contrast_tolerance', 'low')</l>
+<c>* </c>
+<c>* Create ECC200 data code model with 'contrast_tolerance' set to 'high'</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', 'default_parameters', 'enhanced_recognition', DataCodeHandleHigh)</l>
+<l>set_data_code_2d_param (DataCodeHandleHigh, 'contrast_tolerance', 'high')</l>
+<c>* </c>
+<l>for Index := 0 to 4 by 1</l>
+<l>    read_image (Image, ImageFiles[Index])</l>
+<l>    Loops := 2</l>
+<c>    * </c>
+<c>    * Try to find the data code symbol with 'contrast_tolerance' set to 'low'</c>
+<l>    count_seconds (T1)</l>
+<l>    for Loop := 1 to Loops by 1</l>
+<l>        find_data_code_2d (Image, SymbolXLDs, DataCodeHandleLow, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    endfor</l>
+<l>    count_seconds (T2)</l>
+<l>    FoundLow := |DecodedDataStrings|</l>
+<l>    TimeLow := 1000 * (T2 - T1) / Loops</l>
+<c>    * </c>
+<c>    * Try to find the data code symbol with 'contrast_tolerance' set to 'high'</c>
+<l>    count_seconds (T1)</l>
+<l>    for Loop := 1 to Loops by 1</l>
+<l>        find_data_code_2d (Image, SymbolXLDs, DataCodeHandleHigh, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    endfor</l>
+<l>    count_seconds (T2)</l>
+<l>    FoundHigh := |DecodedDataStrings|</l>
+<l>    TimeHigh := 1000 * (T2 - T1) / Loops</l>
+<c>    * </c>
+<c>    * Create message about the search</c>
+<l>    Color := gen_tuple_const(4,'black')</l>
+<l>    Message := 'Runtime:'</l>
+<l>    Message[1] := '\'contrast_tolerance\' = \'low\': ' + TimeLow$'8.2f' + ' ms'</l>
+<l>    if (FoundLow == 0)</l>
+<l>        Message[1] := Message[1] + '  (no symbol found)'</l>
+<l>        Color[1] := 'red'</l>
+<l>    endif</l>
+<l>    Message[2] := '\'contrast_tolerance\' = \'high\':' + TimeHigh$'8.2f' + ' ms'</l>
+<l>    if (FoundHigh == 0)</l>
+<l>        Message[2] := Message[2] + '  (no symbol found)'</l>
+<l>        Color[2] := 'red'</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Display the data code symbol and information about runtime</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    disp_message (WindowHandle, 'Image ' + (Index + 1) + ' of 5', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, Message, 'window', 40, 12, Color, 'true')</l>
+<c>    * </c>
+<c>    * Display continue message</c>
+<l>    if (Index &lt; 5)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clear the 2d data code models</c>
+<l>clear_data_code_2d_model (DataCodeHandleLow)</l>
+<l>clear_data_code_2d_model (DataCodeHandleHigh)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

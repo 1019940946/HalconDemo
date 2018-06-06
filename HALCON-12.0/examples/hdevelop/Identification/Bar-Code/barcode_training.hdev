@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates how to use the training</c>
+<c>* mode of the bar code reader.</c>
+<c>* The program is split into two main parts. In the first part</c>
+<c>* the parameters of the bar code reader are trained. As the</c>
+<c>* training is time consuming, this part is typically done in</c>
+<c>* an offline phase of the application. The trained model is</c>
+<c>* stored into a file to be used in the online phase.</c>
+<c>* In the second part the trained model is loaded from the file</c>
+<c>* and is used to decode bar codes in an online phase of the</c>
+<c>* application.</c>
+<c>* </c>
+<c>* Specify the bar code type that will be trained</c>
+<l>CodeType := '2/5 Interleaved'</l>
+<c>* </c>
+<c>* Apply a training cycle, i.e., set DoTraining to 'true'</c>
+<l>DoTraining := true</l>
+<c>* </c>
+<c>* Specify additional bar code parameter names and values</c>
+<l>PredefGenParNames := 'check_char'</l>
+<l>PredefGenParValues := 'present'</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 245, 'white', WindowHandleStatus)</l>
+<l>dev_open_window (310, 0, 512, 512, 'black', WindowHandleImage)</l>
+<l>set_display_font (WindowHandleStatus, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('forest green')</l>
+<c>* </c>
+<c>* Read the training images</c>
+<l>NumImages := 8</l>
+<l>Sequence := [1:NumImages]</l>
+<l>FileNames := 'barcode/25interleaved/25interleaved' + Sequence$'.02' + '.png'</l>
+<l>read_image (TrainImages, FileNames)</l>
+<c>* </c>
+<c>* </c>
+<c>* PART ONE: Training (OFFLINE)</c>
+<c>* </c>
+<c>* The bar code training is a time consuming process. Therefore,</c>
+<c>* it is recommended to train a model in a OFFLINE phase of an</c>
+<c>* industrial application</c>
+<c>* </c>
+<c>* Bar code training for the bar code type 2/5 Interleaved</c>
+<l>if (DoTraining)</l>
+<c>    * </c>
+<c>    * Create the bar code model in the training mode</c>
+<l>    create_bar_code_model ('train', 'all', BarCodeHandle)</l>
+<l>    get_bar_code_param (BarCodeHandle, 'train', TrainParNames)</l>
+<c>    * </c>
+<c>    * Set all additional, non-trained parameters in advance:</c>
+<c>    * Here, we specify that the training images have check characters</c>
+<l>    set_bar_code_param (BarCodeHandle, PredefGenParNames, PredefGenParValues)</l>
+<c>    * </c>
+<l>    for IdxIma := 1 to NumImages by 1</l>
+<c>        * </c>
+<c>        * Get one of the training images</c>
+<l>        select_obj (TrainImages, Image, IdxIma)</l>
+<c>        * </c>
+<c>        * Set the display defaults</c>
+<l>        get_image_size (Image, Width, Height)</l>
+<l>        dev_set_window (WindowHandleStatus)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_set_window (WindowHandleImage)</l>
+<l>        dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandleStatus, 'Training bar code ' + IdxIma + ' of ' + NumImages + '...', 'window', 12, 12, 'black', 'false')</l>
+<c>        * </c>
+<c>        * Apply the training</c>
+<l>        find_bar_code (Image, SymbolRegion, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<c>        * </c>
+<c>        * Display the training status</c>
+<l>        if (|DecodedDataStrings| == 0)</l>
+<l>            disp_message (WindowHandleStatus, ['Did not find bar code of type',CodeType + '.','The bar code reader could not be','trained with this image!'], 'window', 36, 12, 'red', 'false')</l>
+<l>        else</l>
+<l>            dev_display (SymbolRegion)</l>
+<l>            disp_message (WindowHandleStatus, 'Found and trained bar code: ' + DecodedDataStrings, 'window', 36, 12, 'black', 'false')</l>
+<l>            query_bar_code_params (BarCodeHandle, 'trained_general', TrainParNamesGeneral)</l>
+<l>            query_bar_code_params (BarCodeHandle, 'trained_specific', TrainParNamesSpecific)</l>
+<l>            get_bar_code_param (BarCodeHandle, TrainParNamesGeneral, TrainParValuesGeneral)</l>
+<l>            get_bar_code_param_specific (BarCodeHandle, CodeType, TrainParNamesSpecific, TrainParValuesSpecific)</l>
+<l>            TrainParNames := [TrainParNamesGeneral,TrainParNamesSpecific]</l>
+<l>            TrainParValues := [TrainParValuesGeneral,TrainParValuesSpecific]</l>
+<l>            if (|DecodedDataStrings| &gt; 1)</l>
+<l>                disp_message (WindowHandleStatus, ['Warning: Found more than one bar code.','You should only use images with one visible','bar code for the training.'], 'window', 36, 12, 'red', 'false')</l>
+<l>            else</l>
+<l>                disp_message (WindowHandleStatus, TrainParNames + ': ' + TrainParValues, 'window', 60, 12, 'black', 'false')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>        if (IdxIma &lt; NumImages)</l>
+<l>            wait_seconds (1)</l>
+<l>        else</l>
+<l>            disp_continue_message (WindowHandleStatus, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * When the training is completed, the training mode</c>
+<c>    * must be disabled. The trained parameters are preserved</c>
+<c>    * in the bar code model</c>
+<l>    set_bar_code_param (BarCodeHandle, 'train', '~all')</l>
+<c>    * </c>
+<c>    * For the case that the given samples do not completely cover</c>
+<c>    * the whole range of orientations we increase the orientation</c>
+<c>    * tolerance by a tolerance value of 5 percent (but not more</c>
+<c>    * than 90 degrees)</c>
+<l>    get_bar_code_param_specific (BarCodeHandle, CodeType, 'orientation_tol', OrientationTol)</l>
+<l>    set_bar_code_param_specific (BarCodeHandle, CodeType, 'orientation_tol', min([1.05 * OrientationTol,90]))</l>
+<c>    * </c>
+<c>    * Finally, store the trained model such that it can be reused</c>
+<c>    * in an ONLINE phase of a industrial bar code reading</c>
+<c>    * application</c>
+<l>    write_bar_code_model (BarCodeHandle, 'bar_code_model.bcm')</l>
+<c>    * </c>
+<c>    * Clear the bar code model used for the training.</c>
+<l>    clear_bar_code_model (BarCodeHandle)</l>
+<c>    * </c>
+<c>    * Close the image window</c>
+<l>    dev_close_window ()</l>
+<l>else</l>
+<c>    * </c>
+<c>    * If DoTraining is false, you have to use previously defined values.</c>
+<l>    TrainParNames := ['element_size_min','element_size_max','orientation','orientation_tol','meas_thresh','meas_thresh_abs']</l>
+<l>    TrainParValues := [1.5,4.0,-89.6633,2.00,0.05,5.0,10.0]</l>
+<c>    * </c>
+<c>    * Merge the pre-defined parameters with the trained parameters</c>
+<l>    ParNames := [PredefGenParNames,TrainParNames]</l>
+<l>    ParValues := [PredefGenParValues,TrainParValues]</l>
+<c>    * </c>
+<c>    * Create a (temporary) bar code model with the pre-trained parameters</c>
+<c>    * and store it for ONLINE usage</c>
+<l>    create_bar_code_model (ParNames, ParValues, BarCodeHandle)</l>
+<l>    write_bar_code_model (BarCodeHandle, 'bar_code_model.bcm')</l>
+<l>    clear_bar_code_model (BarCodeHandle)</l>
+<l>endif</l>
+<c>* END OF PART ONE (OFFLINE)</c>
+<c>* </c>
+<c>* </c>
+<c>* PART TWO: Use the previously trained parameters (ONLINE)</c>
+<c>* </c>
+<c>* The main advantage of the automatic training is an</c>
+<c>* increased robustness of the bar code reader. Furthermore,</c>
+<c>* as a nice side effect, the decoding time is reduced. Measure</c>
+<c>* and display it:</c>
+<c>* </c>
+<c>* Read the bar code model that was trained and prepared for</c>
+<c>* ONLINE usage</c>
+<l>read_bar_code_model ('bar_code_model.bcm', BarCodeHandle)</l>
+<c>* </c>
+<c>* Measure the time needed to decode multiple images with</c>
+<c>* the trained model ...</c>
+<l>measure_bar_code_decoding_time (TrainImages, BarCodeHandle, CodeType, TimeAfterTrain)</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<l>wait_seconds (0.5)</l>
+<c>* </c>
+<c>* Create a (temporary) bar code model with the general parameters</c>
+<l>create_bar_code_model (PredefGenParNames, PredefGenParValues, BarCodeHandle)</l>
+<c>* </c>
+<c>* ... now perform the measurement with the general parameters</c>
+<l>measure_bar_code_decoding_time (TrainImages, BarCodeHandle, CodeType, TimeWithoutTrain)</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+<c>* </c>
+<c>* Display decoding time</c>
+<l>dev_set_window (WindowHandleStatus)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'As a welcome side effect of the training'</l>
+<l>Message[1] := 'there can also be a speedup. Here:'</l>
+<l>Message[2] := 'Average time to decode bar codes on ' + NumImages + ' images:'</l>
+<l>Message[3] := ' without optimized parameters: ' + TimeWithoutTrain$'3.1f' + ' ms'</l>
+<l>Message[4] := ' with optimized parameters: ' + TimeAfterTrain$'6.1f' + ' ms'</l>
+<l>disp_message (WindowHandleStatus, Message, 'window', 12, 12, 'black', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="measure_bar_code_decoding_time">
+<interface>
+<io>
+<par name="TrainImages" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="BarCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="CodeType" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Duration" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Decode multiple images with the parameters given in GenParamValues</c>
+<c>* and return the time needed in milliseconds.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* Retrieve number of images</c>
+<l>count_obj (TrainImages, NumImages)</l>
+<c>* </c>
+<c>* Repeat time measurements 10 times for more accuracy</c>
+<l>Repeatings := 20</l>
+<c>* </c>
+<c>* Measure time</c>
+<l>tuple_gen_const (Repeatings, 0, Durations)</l>
+<l>for Repeat := 1 to Repeatings by 1</l>
+<l>    count_seconds (Start)</l>
+<l>    for IdxIma := 1 to NumImages by 1</l>
+<l>        select_obj (TrainImages, Image, IdxIma)</l>
+<l>        find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>    endfor</l>
+<l>    count_seconds (Stop)</l>
+<l>    Durations[Repeat - 1] := Stop - Start</l>
+<l>endfor</l>
+<l>Durations := Durations * 1000</l>
+<l>tuple_median (Durations, Duration)</l>
+<l>return ()</l>
+</body>
+<docu id="measure_bar_code_decoding_time">
+<parameters>
+<parameter id="BarCodeHandle"/>
+<parameter id="CodeType"/>
+<parameter id="Duration"/>
+<parameter id="TrainImages"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

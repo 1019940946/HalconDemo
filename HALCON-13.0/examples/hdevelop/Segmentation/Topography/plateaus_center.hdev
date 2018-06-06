@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'particle')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>smooth_image (Image, ImageSmooth, 'deriche2', 0.2)</l>
+<l>dev_set_colored (12)</l>
+<l>plateaus_center (ImageSmooth, Plateaus)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

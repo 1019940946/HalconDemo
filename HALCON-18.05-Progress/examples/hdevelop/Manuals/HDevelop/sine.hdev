@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Compute the sine from 0 to 3*PI and print to the graphical window</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>old_x := 0</l>
+<l>old_y := 0</l>
+<l>dev_set_color ('red')</l>
+<l>for x := 1 to 511 by 4</l>
+<l>    y := sin(x / 511.0 * 2 * 3.1416 * 3) * 255</l>
+<l>    disp_line (WindowID, old_y + 256, old_x, y + 256, x)</l>
+<l>    old_x := x</l>
+<l>    old_y := y</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

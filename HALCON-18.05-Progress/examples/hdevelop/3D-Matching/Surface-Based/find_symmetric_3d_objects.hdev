@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how the symmetry of 3D object models</c>
+<c>* can be used to speed up the surface-based matching.</c>
+<c>* </c>
+<c>* The symmetry of an object must be manually set with</c>
+<c>*    set_surface_model_param</c>
+<c>* and will then automatically be used to improve the</c>
+<c>* matching performance.</c>
+<c>* </c>
+<c>* Two cases are shown:</c>
+<c>* (1) A cylinder with a continuous symmetry.</c>
+<c>* (2) An object with a non-continous, five-fold symmetry.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create a cylinder (model and scene for matching).</c>
+<l>gen_cylinder_object_model_3d ([0,0,0,0,0,0,0], 1, -4, 0, Cylinder)</l>
+<c>* Create a scene where we can match in.</c>
+<l>sample_object_model_3d (Cylinder, 'fast_compute_normals', 0.02, [], [], CylinderSampled)</l>
+<l>convex_hull_object_model_3d (CylinderSampled, CylinderTriangulated)</l>
+<l>disp_object_model_3d (WindowHandle, CylinderTriangulated, [], [1,1,80,210,30,0,0], 'disp_pose', 'true')</l>
+<l>Text := 'Using find_surface_model to find a cylinder'</l>
+<l>Text[1] := 'with and without symmetry information.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<l>create_surface_model (CylinderSampled, 0.03, [], [], SurfaceModelID)</l>
+<c>* </c>
+<c>* Find the cylinder without setting symmetry information.</c>
+<l>count_seconds (T0)</l>
+<l>find_surface_model (SurfaceModelID, CylinderSampled, 0.05, 1, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>count_seconds (T1)</l>
+<l>TimeNoSymmetry := (T1 - T0) * 1000</l>
+<c>* </c>
+<c>* Set symmetry information of the cylinder.</c>
+<l>set_surface_model_param (SurfaceModelID, 'symmetry_axis_direction', [0,0,1])</l>
+<c>* </c>
+<c>* Find the cylinder again, this time with the symmetry information set.</c>
+<l>count_seconds (T0)</l>
+<l>find_surface_model (SurfaceModelID, CylinderSampled, 0.05, 1, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>count_seconds (T1)</l>
+<l>TimeWithSymmetry := (T1 - T0) * 1000</l>
+<l>Text[2] := 'Without symmetry: ' + TimeNoSymmetry + ' ms'</l>
+<l>Text[3] := 'With symmetry: ' + TimeWithSymmetry + ' ms'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read the 3D object model.</c>
+<l>read_object_model_3d ('car_rim', 'm', [], [], CarRim, Status)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_object_model_3d (WindowHandle, CarRim, [], [0.01,0.01,1.5,210,30,0,0], 'disp_pose', 'true')</l>
+<l>Text := 'Using find_surface_model to find the object'</l>
+<l>Text[1] := 'with and without symmetry information.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<l>create_surface_model (CarRim, 0.03, [], [], SurfaceModelID)</l>
+<c>* Create a scene where we can match in.</c>
+<l>get_surface_model_param (SurfaceModelID, 'diameter', Diameter)</l>
+<l>sample_object_model_3d (CarRim, 'fast_compute_normals', Diameter * 0.01, [], [], CarRimSampled)</l>
+<c>* </c>
+<c>* Find the cylinder without setting symmetry information.</c>
+<l>count_seconds (T0)</l>
+<l>find_surface_model (SurfaceModelID, CarRimSampled, 0.05, 1, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>count_seconds (T1)</l>
+<l>TimeNoSymmetry := (T1 - T0) * 1000</l>
+<c>* </c>
+<c>* Set symmetry information of the object.</c>
+<c>* The object is identical if rotated around the z-axis with</c>
+<c>* 360/5 = 72 degrees</c>
+<l>set_surface_model_param (SurfaceModelID, 'symmetry_poses', [0,0,0,0,0,360.0 / 5, 0])</l>
+<c>* </c>
+<c>* Find the cylinder again, this time with the symmetry information set.</c>
+<l>count_seconds (T0)</l>
+<l>find_surface_model (SurfaceModelID, CarRimSampled, 0.05, 1, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>count_seconds (T1)</l>
+<l>TimeWithSymmetry := (T1 - T0) * 1000</l>
+<c>* </c>
+<l>Text[2] := 'Without symmetry: ' + TimeNoSymmetry + ' ms'</l>
+<l>Text[3] := 'With symmetry: ' + TimeWithSymmetry + ' ms'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* For debugging, inspect the 3D object model under the symmetry poses.</c>
+<l>rigid_trans_object_model_3d (CarRim, [0,0,0,0,0,360.0 / 5, 0], ObjectModel3DRigidTrans)</l>
+<l>Title := 'Note that the object is identical '</l>
+<l>Title[1] := 'when transformed with the symmetry pose'</l>
+<l>Title[2] := '[0,0,0, 0,0,360.0/5, 0].'</l>
+<l>visualize_object_model_3d (WindowHandle, [CarRim,ObjectModel3DRigidTrans], [], [], ['colored','disp_lines','color','line_color_0','line_color_1'], [12,'true','black','red','green'], Title, [], [], PoseOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Interpolate 2 video half images</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Marks, 'marks')</l>
+<l>get_image_size (Marks, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>fill_interlace (Marks, ImageRemoved, 'rmodd')</l>
+<l>fill_interlace (Marks, ImageFilled, 'odd')</l>
+<c>* View part of image</c>
+<l>dev_set_part (114, 222, 215, 364)</l>
+<l>dev_display (Marks)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Continue to view interpolated image</c>
+<l>dev_display (ImageFilled)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageRemoved)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_part (57, 222, 107, 364)</l>
+<l>dev_display (ImageRemoved)</l>
+<l>stop ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

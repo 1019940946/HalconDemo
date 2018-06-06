@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Show difference between distance_contours_xld and</c>
+<c>* apply_distance_transform_xld</c>
+<c>* </c>
+<c>* Init visualization</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 1280, 1024, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Show introduction</c>
+<l>Message := 'This example shows the speed difference between the operators'</l>
+<l>Message[1] := 'distance_contours_xld and apply_distance_transform_xld.'</l>
+<l>Message[2] := 'Both operators measure the pointwise distance between'</l>
+<l>Message[3] := 'two contours.'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'While distance_contours_xld can always be used,'</l>
+<l>Message[6] := 'apply_distance_transform_xld is used if one of the contours'</l>
+<l>Message[7] := 'is reused many times as an unchanging reference contour.'</l>
+<l>Message[10] := 'In that case some time-consuming calculations can be done'</l>
+<l>Message[11] := 'offline in advance so that apply_distance_transform_xld is'</l>
+<l>Message[12] := 'much faster.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Choose one of two modes.</c>
+<c>* 'point_to_point' is faster,</c>
+<c>* 'point_to_segment' is more accurate.</c>
+<l>Mode := 'point_to_point'</l>
+<l>* Mode := 'point_to_segment'</l>
+<l>Tolerance := 7</l>
+<l>Loops := 4</l>
+<l>Legend := ['Legend:','- template contour','- random test contour within tolerance','- random test contour outside of tolerance']</l>
+<c>* </c>
+<c>* PART I: distance_contours_xld</c>
+<c>* </c>
+<c>*    distance_contours_xld calculates</c>
+<c>*    the pointwise distance between two contours</c>
+<c>* </c>
+<l>for I := 1 to Loops by 1</l>
+<c>    * Generate the two contours to be compared</c>
+<l>    gen_test_contours (EdgeOriginal, EdgeWarped)</l>
+<c>    * Calculate pointwise distance.</c>
+<c>    * The distances from points of the first to the points of the second contour</c>
+<c>    * are stored in the 'distance' attribute of the output contour.</c>
+<c>    * Parts of the contour can be easily segmented based on the attributes.</c>
+<l>    count_seconds (S1)</l>
+<l>    distance_contours_xld (EdgeWarped, EdgeOriginal, EdgeWarpedWithDistances, Mode)</l>
+<l>    count_seconds (S2)</l>
+<l>    get_contour_attrib_xld (EdgeWarpedWithDistances, 'distance', Distance)</l>
+<l>    segment_contour_attrib_xld (EdgeWarpedWithDistances, ContourPart, 'distance', 'and', Tolerance, 99999)</l>
+<c>    * </c>
+<l>    display_result (EdgeOriginal, EdgeWarped, ContourPart)</l>
+<l>    Message := 'Part 1: Calculate distances with distance_contours_xld'</l>
+<l>    Message[1] := 'Execution time: ' + ((S2 - S1) * 1000)$'.2f' + ' ms'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, Legend, 'image', 800, 12, ['gray','white','green','red'], 'false')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* PART II: apply_distance_transform_xld</c>
+<c>* </c>
+<c>*    apply_distance_transform_xld is used to calculate the</c>
+<c>*    pointwise distance to changing contours to a not</c>
+<c>*    changing reference contour.</c>
+<c>*    To accelerate the calculation, some information is</c>
+<c>*    pre-calculated and stored in a distance transform handle.</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Please wait while pre-calculating distance transform...', 'window', 42, 12, 'white', 'false')</l>
+<c>* </c>
+<c>* Pre-calculate distance transform for the template contour</c>
+<c>* (this may take a while, depending on the size of the contour</c>
+<c>* and MaxDistance)</c>
+<c>* The parameter MaxDistance is used to restrict the pre-calculated</c>
+<c>* distance transform to the specified value. Distances larger than</c>
+<c>* MaxDistance will not be calculated. Instead, the distances are</c>
+<c>* clipped.</c>
+<l>MaxDistance := 8</l>
+<l>create_distance_transform_xld (EdgeOriginal, Mode, MaxDistance, DistanceTransformID)</l>
+<l>for I := 1 to Loops by 1</l>
+<l>    gen_test_contours (NotUsedOriginal, TestContour)</l>
+<l>    count_seconds (S1)</l>
+<l>    apply_distance_transform_xld (TestContour, TestContourOut, DistanceTransformID)</l>
+<l>    count_seconds (S2)</l>
+<c>    * Note, that the calculated distances are clipped at MaxDistance</c>
+<l>    get_contour_attrib_xld (TestContourOut, 'distance', DistanceClipped)</l>
+<l>    segment_contour_attrib_xld (TestContourOut, ContourPart, 'distance', 'and', Tolerance, MaxDistance)</l>
+<c>    * </c>
+<l>    display_result (EdgeOriginal, TestContour, ContourPart)</l>
+<l>    Message := 'Part 2: Calculate distances with apply_distance_transform_xld'</l>
+<l>    Message[1] := 'Execution time: ' + ((S2 - S1) * 1000)$'.2f' + ' ms'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, Legend, 'image', 800, 12, ['gray','white','green','red'], 'false')</l>
+<l>    if (I &lt; Loops)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>clear_distance_transform_xld (DistanceTransformID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="warp_image_randomly">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageWarped" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MaxDistance" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_image_const (ImageRow, 'real', 12, 10)</l>
+<l>add_noise_white (ImageRow, ImageRowNoise, MaxDistance)</l>
+<l>gen_image_const (ImageCol, 'real', 12, 10)</l>
+<l>add_noise_white (ImageCol, ImageColNoise, MaxDistance)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>zoom_image_size (ImageColNoise, ImageColNoiseZoom, Width, Height, 'weighted')</l>
+<l>zoom_image_size (ImageRowNoise, ImageRowNoiseZoom, Width, Height, 'weighted')</l>
+<l>real_to_vector_field (ImageRowNoiseZoom, ImageColNoiseZoom, VectorField, 'vector_field_relative')</l>
+<l>unwarp_image_vector_field (Image, VectorField, ImageWarped)</l>
+<l>return ()</l>
+</body>
+<docu id="warp_image_randomly">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageWarped"/>
+<parameter id="MaxDistance"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_test_contours">
+<interface>
+<oo>
+<par name="EdgeOriginal" base_type="iconic" dimension="0"/>
+<par name="EdgeWarped" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>read_image (Image, 'metal-parts/circle_plate_01')</l>
+<l>edges_sub_pix (Image, Edges, 'canny', 3, 20, 40)</l>
+<l>select_contours_xld (Edges, EdgeOriginal, 'contour_length', 3000, 10000, -0.5, 0.5)</l>
+<l>warp_image_randomly (Image, ImageWarped, 10)</l>
+<l>edges_sub_pix (ImageWarped, EdgesWarped, 'canny', 3, 20, 40)</l>
+<l>select_contours_xld (EdgesWarped, EdgeWarped, 'contour_length', 3000, 10000, -0.5, 0.5)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_test_contours">
+<parameters>
+<parameter id="EdgeOriginal"/>
+<parameter id="EdgeWarped"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_result">
+<interface>
+<io>
+<par name="EdgeOriginal" base_type="iconic" dimension="0"/>
+<par name="EdgeWarped" base_type="iconic" dimension="0"/>
+<par name="ContourPart" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (EdgeOriginal)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (EdgeWarped)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (ContourPart)</l>
+<l>return ()</l>
+</body>
+<docu id="display_result">
+<parameters>
+<parameter id="ContourPart"/>
+<parameter id="EdgeOriginal"/>
+<parameter id="EdgeWarped"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

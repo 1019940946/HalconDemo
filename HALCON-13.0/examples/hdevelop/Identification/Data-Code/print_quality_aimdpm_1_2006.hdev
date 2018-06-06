@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ------------------------</c>
+<c>* EXAMPLE DESCRIPTION</c>
+<c>* ------------------------</c>
+<c>* This program is a template and an example at once for evaluation</c>
+<c>* of a real 2D data code symbol according to the AIM DPM-1-2006 standard.</c>
+<c>* This step should be performed -after- the reflectance</c>
+<c>* calibration, which generates ‘reflectance_cam_par.dat’ (see</c>
+<c>* calibration_aimdpm_1_2006.hdev)</c>
+<c>* </c>
+<c>* The example can be executed in two modes: -online- and</c>
+<c>* -offline-. The default mode is -offline mode-.</c>
+<c>* </c>
+<c>* The -online mode- is implemented for IDS uEye USB 2.0 Camera.</c>
+<c>* Please adapt the parameters in the operators open_framegrabber()</c>
+<c>* and set-/get_framegrabber_param, as well as the</c>
+<c>* adjust_system_response routine if you use this example</c>
+<c>* with other cameras.</c>
+<c>* </c>
+<c>* In some cases you will also need to adapt the start values</c>
+<c>* for gain and exposure and also the values of the variables</c>
+<c>* 'EXPSTEP' and 'MAXSTEPS'. The variable 'EXPSTEP'</c>
+<c>* sets the interval for adjusting the exposure time</c>
+<c>* and the variable 'MAXSTEPS' determines how</c>
+<c>* often the implification factor (gain) of the camera is</c>
+<c>* increased or decreased.</c>
+<c>* </c>
+<c>* The -offline mode- demonstrates an artificial setup for</c>
+<c>* quality evaluation.</c>
+<c>* </c>
+<c>* The adjustment of the system response values is necessary</c>
+<c>* because a symbols' print quality can only be assessed under</c>
+<c>* predefined image quality conditions to be conform to</c>
+<c>* AIM DPM-1-2006 standard:</c>
+<c>* </c>
+<c>* o  The Mean Light computed in the image has to range</c>
+<c>* between 0.70 and 0.86. It represents the mean gray value of the</c>
+<c>* centers of the light symbols' modules as percentage of the</c>
+<c>* maximal gray value (0.00 and 1.00 corresponding to 0% and</c>
+<c>* 100%, resp.)</c>
+<c>* o  Rtarget has to be greater or equal to 0.05. If Rtarget is</c>
+<c>* smaller than this, it means that the symbol being assessed</c>
+<c>* has a drastically worse substrate contrast compared to the</c>
+<c>* calibration plate used during the calibration. Because of this,</c>
+<c>* such a symbol is regarded as hard to read and graded with 0.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* Reserved Variables</c>
+<c>* PLEASE ADAPT THESE VARIABLES TO YOUR APPLICATION</c>
+<c>* ---------------------------------------------------------------</c>
+<c>* Set the flag for image acquisition.</c>
+<l>Offline := true</l>
+<c>* Image acquisition interface used in the program</c>
+<l>InterfaceName := 'uEye'</l>
+<c>* </c>
+<c>* Set the interval for adjusting the exposure</c>
+<l>EXPSTEP := 0.05</l>
+<c>* </c>
+<c>* Initialization of the number of iteration steps for</c>
+<c>* adjusting the exposure time,i.e., if MAXSTEPS is 3,</c>
+<c>* the implification factor (gain) will be decreased or increased</c>
+<c>* after each three adjustments of the exposure.</c>
+<l>MAXSTEPS := 5</l>
+<c>* </c>
+<c>* Adjust system response values for print quality inspection.</c>
+<c>* The value of this variable signalizes how the</c>
+<c>* system should be adjusted in the next step. If the value</c>
+<c>* is -1, it means that the code is too bright and</c>
+<c>* the exposure or gain will be decreased. If the value is 1,</c>
+<c>* the inspected code symbol is too dark and the exposure or</c>
+<c>* gain will be increased. The value zero determines the</c>
+<c>* start of the system adjustment.</c>
+<l>IncreaseLight := 0</l>
+<c>* </c>
+<c>* Set the path and file name for the file with the results of</c>
+<c>* reflectance calibration.</c>
+<l>ReflectanceCalibFile := 'reflectance_cam_par.dat'</l>
+<c>* </c>
+<c>* Select Code type to be evaluated ('Data Matrix ECC 200', or 'QR Code')</c>
+<l>CodeType := 'Data Matrix ECC 200'</l>
+<c>* -----------------------------------------------------------------</c>
+<c>* </c>
+<l>ReflectanceCalibResultsNames := ['A','MLCal','Rcal','SRexp','SRgain']</l>
+<c>* </c>
+<l>if (Offline == false)</l>
+<c>    * Read calibration data from file</c>
+<l>    read_reflectance_calib_file (ReflectanceCalibFile, ReflectanceCalibResultsValues)</l>
+<l>else</l>
+<l>    A := 5.5</l>
+<l>    MLCal := 180</l>
+<l>    Rcal := 199</l>
+<l>    SRexp := 75</l>
+<l>    SRgain := 1</l>
+<l>    ReflectanceCalibResultsValues := [A,MLCal,Rcal,SRexp,SRgain]</l>
+<l>endif</l>
+<c>* </c>
+<l>if (Offline == false)</l>
+<c>    * Initiate camera and visualization for system adjustment</c>
+<l>    open_framegrabber (InterfaceName, 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', '1', -1, -1, AcqHandle)</l>
+<c>    * Set initial value of gain and exposure</c>
+<c>    * PLEASE ADAPT THESE START VALUES OF GAIN AND EXPOSURE</c>
+<c>    * TO YOUR APPLICATION</c>
+<l>    set_framegrabber_param (AcqHandle, 'gain_master', 0)</l>
+<l>    set_framegrabber_param (AcqHandle, 'exposure', 40.0)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>else</l>
+<c>    * Read Image to get the settings for the graphic window</c>
+<l>    read_image (Image, 'datacode/ecc200/ecc200_quality_aimdpm_01')</l>
+<l>endif</l>
+<c>* </c>
+<c>* Initialize graphic window</c>
+<l>dev_open_window_fit_image (Image, 0, 0, 700, 500, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Initialize some values</c>
+<c>* </c>
+<l>if (Offline)</l>
+<l>    read_image (Image, 'datacode/ecc200/ecc200_quality_aimdpm_01')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, ['Position the code symbol under the camera','and adjust aperture and focus','OFFLINE MODE'], 'window', 10, 10, 'black', 'true')</l>
+<l>    wait_seconds (1)</l>
+<l>else</l>
+<l>    Button := 0</l>
+<l>    while (Button != 1)</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, ['Position the code symbol under the camera','and adjust aperture and focus.','Finally press the left mouse button.'], 'window', 10, 10, 'black', 'true')</l>
+<l>        try</l>
+<l>            get_mposition (WindowHandle, Row, Column, Button)</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>    endwhile</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<l>IndIm := 1</l>
+<c>* </c>
+<c>* Initialize 2d data code handle</c>
+<l>create_data_code_2d_model (CodeType, 'polarity', 'any', DataCodeHandle)</l>
+<c>* </c>
+<c>* </c>
+<l>AdjustParams := []</l>
+<l>Rtarget := 0</l>
+<l>AdjustmentImpossible := false</l>
+<l>while (true)</l>
+<c>    * Adjust camera parameter for calibration</c>
+<l>    if (Offline)</l>
+<l>        read_image (Image, 'datacode/ecc200/ecc200_quality_aimdpm_' + IndIm$'02')</l>
+<l>        IndIm := IndIm + 1</l>
+<l>    else</l>
+<l>        adjust_system_response (AcqHandle, IncreaseLight, AdjustParams, MAXSTEPS, EXPSTEP, AdjustmentImpossible, AdjustParams)</l>
+<l>        get_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<l>        get_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<l>        if (AdjustmentImpossible)</l>
+<l>            dev_display (Image)</l>
+<l>            disp_message (WindowHandle, ['The adjustment of system response failed!','(the symbol was probably extreme bright or extreme dark)'], 'window', 10, 10, 'red', 'true')</l>
+<l>            if (Offline == false)</l>
+<l>                disp_message (WindowHandle, ['Actual exposure value = ' + ExposureValue,'Actual gain value = ' + GainValue], 'window', 50, 10, 'blue', 'true')</l>
+<l>            endif</l>
+<l>            break</l>
+<l>        endif</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    if (|DecodedDataStrings| == 0)</l>
+<l>        disp_message (WindowHandle, ['No data code symbol found','Please check the camera settings'], 'window', 10, 10, 'red', 'true')</l>
+<l>        wait_seconds (0.5)</l>
+<l>        Rtarget := 0</l>
+<l>        continue</l>
+<l>    else</l>
+<l>        dev_display (SymbolXLDs)</l>
+<l>    endif</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles[0], 'quality_aimdpm_1_2006', Quality)</l>
+<l>    MeanLight := Quality[8]</l>
+<l>    if ((MeanLight &gt;= 0.7) and (MeanLight &lt;= 0.86))</l>
+<l>        if (Offline)</l>
+<c>            * This calculation is done without system response</c>
+<c>            * values just in the offline mode:</c>
+<c>            * Use the calculation in the 'else'-statement</c>
+<c>            * in the online mode</c>
+<l>            MLcal := ReflectanceCalibResultsValues[1] / 255.0</l>
+<l>            Rcal := ReflectanceCalibResultsValues[2]</l>
+<l>            Rtarget := (Rcal / 255.0) * (MeanLight / MLcal)</l>
+<l>        else</l>
+<c>            * Initialize values for the calculation of the measurement</c>
+<c>            * of system reflectance relative to calibrated values</c>
+<l>            MLcal := ReflectanceCalibResultsValues[1] / 255.0</l>
+<l>            Rcal := ReflectanceCalibResultsValues[2]</l>
+<l>            SRexp := ReflectanceCalibResultsValues[3]</l>
+<l>            SRgain := ReflectanceCalibResultsValues[4]</l>
+<c>            * Calculate Rtarget</c>
+<l>            Rtarget := (Rcal / 255.0) * (SRexp / real(ExposureValue) * ((SRgain + 1) / real(GainValue + 1))) * (MeanLight / MLcal)</l>
+<l>        endif</l>
+<l>        break</l>
+<l>    elseif (MeanLight &lt; 0.7)</l>
+<l>        IncreaseLight := 1</l>
+<l>        disp_message (WindowHandle, ['The value of MeanLight (' + (MeanLight * 100)$'.1f' + '%) is too low','The exposure time will be increased'], 'window', 10, 10, 'black', 'true')</l>
+<l>        if (Offline == false)</l>
+<l>            disp_message (WindowHandle, ['Actual exposure value = ' + ExposureValue,'Actual gain value = ' + GainValue], 'window', 50, 1, 'blue', 'true')</l>
+<l>        endif</l>
+<l>        wait_seconds (1)</l>
+<l>    elseif (MeanLight &gt; 0.86)</l>
+<l>        IncreaseLight := -1</l>
+<l>        disp_message (WindowHandle, ['The value of MeanLight (' + (MeanLight * 100)$'.1f' + '%) is too high','The exposure time will be decreased'], 'window', 10, 10, 'black', 'true')</l>
+<l>        if (Offline == false)</l>
+<l>            disp_message (WindowHandle, ['Actual exposure value = ' + ExposureValue,'Actual gain value = ' + GainValue], 'window', 50, 1, 'blue', 'true')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    wait_seconds (1)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Evaluate the results of print quality inspection</c>
+<c>* Check if Rtarget is in the correct range</c>
+<c>* and set the corresponding value of the grade</c>
+<l>if (not AdjustmentImpossible)</l>
+<l>    if (Rtarget &gt; 0.05)</l>
+<l>        Grade := 1</l>
+<l>        disp_message (WindowHandle, 'The quality grades of the 2d data code symbol:', 'window', 10, 10, 'black', 'true')</l>
+<l>        Color := []</l>
+<l>        Message := []</l>
+<l>        MessageValues := []</l>
+<l>        get_data_code_2d_results (DataCodeHandle, ResultHandles[0], 'quality_aimdpm_1_2006_labels', QALabels)</l>
+<l>        get_data_code_2d_results (DataCodeHandle, ResultHandles[0], 'quality_aimdpm_1_2006_values', QAValues)</l>
+<c>        * Mean Light [8], Contrast Uniformity [11] and Aperture [12] have</c>
+<c>        * only values and no grades</c>
+<l>        NoGradesIndices := [8,11,12]</l>
+<l>        for Ind := 0 to |Quality| - 1 by 1</l>
+<l>            tuple_find (NoGradesIndices, Ind, NoGrade)</l>
+<l>            if (NoGrade == -1)</l>
+<l>                PrintGrade := true</l>
+<l>            else</l>
+<l>                PrintGrade := false</l>
+<l>            endif</l>
+<l>            QALabel := QALabels[Ind]</l>
+<l>            Message := [Message,QALabel]</l>
+<l>            if (PrintGrade)</l>
+<l>                if (Quality[Ind] &lt;= 1)</l>
+<l>                    Color := [Color,'red']</l>
+<l>                else</l>
+<l>                    Color := [Color,'forest green']</l>
+<l>                endif</l>
+<l>                if (is_number(QAValues[Ind]))</l>
+<l>                    MessageValues := [MessageValues,Quality[Ind] + '     (' + (100 * QAValues[Ind])$'5.1f' + '%)']</l>
+<l>                else</l>
+<l>                    MessageValues := [MessageValues,Quality[Ind] + '     (' + QAValues[Ind] + ')']</l>
+<l>                endif</l>
+<l>            else</l>
+<l>                Color := [Color,'black']</l>
+<l>                MessageValues := [MessageValues,Quality[Ind]$'.2f' + '  (' + (Quality[Ind] * 100)$'5.1f' + '%)']</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>        Message := [Message,'Rtarget']</l>
+<l>        MessageValues := [MessageValues,Rtarget$'.3f' + ' (' + (Rtarget * 100)$'5.1f' + '%)']</l>
+<l>        Color := [Color,'black']</l>
+<l>        if (Offline == false)</l>
+<l>            Message := [Message,'SRexp(target)','SRgain(target)']</l>
+<l>            MessageValues := [MessageValues,ExposureValue,GainValue]</l>
+<l>            Color := [Color,'black','black']</l>
+<l>        endif</l>
+<l>        disp_message (WindowHandle, Message, 'window', 40, 10, Color, 'true')</l>
+<l>        disp_message (WindowHandle, MessageValues, 'window', 40, 260, Color, 'true')</l>
+<l>    else</l>
+<l>        Grade := 0</l>
+<l>        disp_message (WindowHandle, ['The code symbol didn\'t pass the verification','because of too high Rtarget: ' + Rtarget$'.3f' + ' (' + (Rtarget * 100)$'.1f' + '%)','Please check the camera settings'], 'window', 40, 10, 'red', 'true')</l>
+<l>    endif</l>
+<l>endif</l>
+<c>* </c>
+<c>* Clean up the data code model and image acquisition handle</c>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+<l>if (Offline == false)</l>
+<l>    close_framegrabber (AcqHandle)</l>
+<l>endif</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_ref_calib_result_value">
+<interface>
+<ic>
+<par name="FileLine" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Matches" base_type="ctrl" dimension="0"/>
+<par name="Value" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_strchr (FileLine, '\n', PosNewLine)</l>
+<l>if (PosNewLine &gt; 0)</l>
+<l>    tuple_str_first_n (FileLine, PosNewLine - 1, FileLine)</l>
+<l>endif</l>
+<l>tuple_regexp_match (FileLine, '([-+]?[0-9]*[\\.]?[0-9]+(?:[eE][-+]?[0-9]+)?$)', Matches)</l>
+<l>if (strlen(Matches) &gt; 0)</l>
+<l>    tuple_number (Matches, Value)</l>
+<l>else</l>
+<l>    Value := -1</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_ref_calib_result_value">
+<parameters>
+<parameter id="FileLine"/>
+<parameter id="Matches"/>
+<parameter id="Value"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="read_reflectance_calib_file">
+<interface>
+<ic>
+<par name="ReflectanceCalibFile" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ReflectanceCalibResultsValues" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ReflectanceCalibResultsValues := [-1,-1,-1,-1,-1]</l>
+<l>open_file (ReflectanceCalibFile, 'input', FileHandle)</l>
+<l>IsEOF := 0</l>
+<l>while (IsEOF == 0)</l>
+<l>    fread_line (FileHandle, FileLine, IsEOF)</l>
+<l>    if (strstr(FileLine,'A') != -1)</l>
+<l>        get_ref_calib_result_value (FileLine, Matches, Value)</l>
+<l>        ReflectanceCalibResultsValues[0] := Value</l>
+<l>    elseif (strstr(FileLine,'MLCal') != -1)</l>
+<l>        get_ref_calib_result_value (FileLine, Matches, Value)</l>
+<l>        ReflectanceCalibResultsValues[1] := Value</l>
+<l>    elseif (strstr(FileLine,'Rcal') != -1)</l>
+<l>        get_ref_calib_result_value (FileLine, Matches, Value)</l>
+<l>        ReflectanceCalibResultsValues[2] := Value</l>
+<l>    elseif (strstr(FileLine,'SRexp') != -1)</l>
+<l>        get_ref_calib_result_value (FileLine, Matches, Value)</l>
+<l>        ReflectanceCalibResultsValues[3] := Value</l>
+<l>    elseif (strstr(FileLine,'SRgain') != -1)</l>
+<l>        get_ref_calib_result_value (FileLine, Matches, Value)</l>
+<l>        ReflectanceCalibResultsValues[4] := Value</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>close_file (FileHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="read_reflectance_calib_file">
+<parameters>
+<parameter id="ReflectanceCalibFile"/>
+<parameter id="ReflectanceCalibResultsValues"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="adjust_system_response">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+<par name="IncreaseLight" base_type="ctrl" dimension="0"/>
+<par name="LastAdjustParams" base_type="ctrl" dimension="0"/>
+<par name="MAXSTEPS" base_type="ctrl" dimension="0"/>
+<par name="EXPSTEP" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="AdjustmentImpossible" base_type="ctrl" dimension="0"/>
+<par name="NewAdjustParams" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* adjust_system_response adjusts the camera interface parameters</c>
+<c>* (so-called camera system response) in order to increase or</c>
+<c>* decrease the amount of light reaching the imaging sensor</c>
+<c>* </c>
+<c>* ==================================================================</c>
+<c>* Procedure parameters:</c>
+<c>* AcqHandle[in]:</c>
+<c>* Handle of the camera interface to be adjusted</c>
+<c>* IncreaseLight[in]:</c>
+<c>* A flag whether the light has to be increased (1) or</c>
+<c>* decreased (-1). The very first call of the procedure should be</c>
+<c>* made with value (0), which indicates that NewAdjustParams</c>
+<c>* should be initialized.</c>
+<c>* LastAdjustParams[in], NewAdjustParams[out]:</c>
+<c>* These parameters implement a mechanism for</c>
+<c>* adjust_system_response to store its 'working state' over the</c>
+<c>* procedure's calls. It stores its state in NewAdjustParams,</c>
+<c>* which the calling routine will give back as input parameter in</c>
+<c>* LastAdjustParams in the next call.</c>
+<c>* MAXSTEPS[in], EXPSTEP[in]:</c>
+<c>* External control parameters used to control the light</c>
+<c>* increasing/decreasing strategy from the main procedure</c>
+<c>* AdjustmentImpossible[out]:</c>
+<c>* returns true (1) if the camera settings cannot be adjusted any</c>
+<c>* further in the required direction. The calling procedure should</c>
+<c>* terminate the evaluation in such a case.</c>
+<c>* </c>
+<c>* PLEASE ADAPT THE BODY (and if necessary the interface) OF THIS</c>
+<c>* PROCEDURE TO WORK WITH YOUR IMAGE ACQUISITION INTERFACE.</c>
+<c>* If necessary, adapt the strategy for increasing and decreasing</c>
+<c>* the light to your interface.</c>
+<c>* </c>
+<c>* NOTE: The current implementation can be used as a basis for your</c>
+<c>* customized procedure. Please read the comments carefully to</c>
+<c>* understand how it works.</c>
+<c>* ==================================================================</c>
+<c>* </c>
+<c>* The procedure's state comprises of number of exposure incrementing</c>
+<c>* steps (NumExpSteps) and direction of the incrementation in the</c>
+<c>* last call (LastIncr)</c>
+<l>if (|LastAdjustParams| &gt; 0)</l>
+<l>    NumExpSteps := LastAdjustParams[0]</l>
+<l>    LastIncr := LastAdjustParams[1]</l>
+<l>else</l>
+<c>    * in the very first call of the routine, LastAdjustParams</c>
+<c>    * is not initialized yet, so assign default values</c>
+<l>    NumExpSteps := 0</l>
+<l>    LastIncr := 0</l>
+<l>endif</l>
+<c>* </c>
+<c>* read camera interface limits</c>
+<l>get_framegrabber_param (AcqHandle, 'exposure_range', ExposureRange)</l>
+<l>MinExp := ExposureRange[0]</l>
+<l>MaxExp := ExposureRange[1]</l>
+<l>get_framegrabber_param (AcqHandle, 'gain_master_range', GainRange)</l>
+<l>MinGain := GainRange[0]</l>
+<l>MaxGain := GainRange[1]</l>
+<c>* </c>
+<c>* get current camera settings</c>
+<l>get_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<l>get_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<c>* </c>
+<l>if (IncreaseLight == 0)</l>
+<c>    * initialize AdjustParameters</c>
+<l>    NewAdjustParams := [0,0]</l>
+<l>    AdjustmentImpossible := false</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<l>if (LastIncr != IncreaseLight)</l>
+<c>    * new direction was chosen, the exposure steps made so far do</c>
+<c>    * not matter so reset the counting</c>
+<l>    NumExpSteps := 0</l>
+<l>endif</l>
+<c>* </c>
+<c>* the adjustment is considered possible, as long as not the reverse</c>
+<c>* appears to be true</c>
+<l>AdjustmentImpossible := false</l>
+<l>if (IncreaseLight == -1)</l>
+<l>    if ((ExposureValue - EXPSTEP * MaxExp) &lt; MinExp)</l>
+<c>        * force Gain decrement, since Exposure cannot be decreased</c>
+<c>        * any further</c>
+<l>        NumExpSteps := MAXSTEPS</l>
+<l>    endif</l>
+<c>    * Increase the light sensibility of the camera</c>
+<l>    if ((NumExpSteps &gt;= MAXSTEPS) and (GainValue - 2 &gt;= MinGain))</l>
+<c>        * after MAXSTEPS incremental steps with 'exposure' try to</c>
+<c>        * adjust Gain</c>
+<l>        GainValue := GainValue - 2</l>
+<l>        set_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<c>        * reset exposure steps to let another MAXSTEPS exposure step</c>
+<c>        * happen</c>
+<l>        NumExpSteps := 0</l>
+<l>    elseif ((ExposureValue - EXPSTEP * MaxExp) &gt;= MinExp)</l>
+<c>        * decrement camera's exposure</c>
+<l>        ExposureValue := ExposureValue - EXPSTEP * MaxExp</l>
+<l>        set_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<c>        * note the incremented steps as well</c>
+<l>        NumExpSteps := NumExpSteps + 1</l>
+<l>    else</l>
+<c>        * neither Gain nor Exposure can be used to further decrease</c>
+<c>        * the light</c>
+<l>        AdjustmentImpossible := true</l>
+<l>    endif</l>
+<l>else</l>
+<c>    * (IncreaseLight = -1)</c>
+<l>    if ((ExposureValue + EXPSTEP * MaxExp) &gt; MaxExp)</l>
+<c>        * force Gain increment, since Exposure cannot be incremented</c>
+<c>        * any further</c>
+<l>        NumExpSteps := MAXSTEPS</l>
+<l>    endif</l>
+<c>    * Decrease light sensibility of the camera</c>
+<l>    if ((NumExpSteps &gt;= MAXSTEPS) and (GainValue + 2 &lt;= MaxGain))</l>
+<c>        * after MAXSTEPS incremental steps with 'exposure', try to</c>
+<c>        * adjust Gain</c>
+<l>        GainValue := GainValue + 2</l>
+<l>        set_framegrabber_param (AcqHandle, 'gain_master', GainValue)</l>
+<c>        * reset exposure steps, to let another MAXSTEPS exposure</c>
+<c>        * step happen</c>
+<l>        NumExpSteps := 0</l>
+<l>    elseif ((ExposureValue + EXPSTEP * MaxExp) &lt;= MaxExp)</l>
+<c>        * increment camera's exposure</c>
+<l>        ExposureValue := ExposureValue + EXPSTEP * MaxExp</l>
+<l>        set_framegrabber_param (AcqHandle, 'exposure', ExposureValue)</l>
+<c>        * note the incremented steps as well</c>
+<l>        NumExpSteps := NumExpSteps + 1</l>
+<l>    else</l>
+<c>        * neither Gain nor Exposure can be used to further decrease</c>
+<c>        * the light</c>
+<l>        AdjustmentImpossible := true</l>
+<l>    endif</l>
+<l>endif</l>
+<c>* store current adjustment routine parameters that will appear as</c>
+<c>* LastAdjustParams in the next call of adjust_system_response</c>
+<l>NewAdjustParams := [NumExpSteps,IncreaseLight]</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="adjust_system_response">
+<short>The values for exposure or gain will be adapted depeding on calcualted gray values of bright elements of the code.</short>
+<short lang="en_US">The values for exposure or gain will be adapted depeding on calcualted gray values of bright elements of the code.</short>
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="AdjustmentImpossible">
+<default_type>integer</default_type>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="EXPSTEP"/>
+<parameter id="IncreaseLight">
+<default_type>integer</default_type>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="LastAdjustParams">
+<default_type>integer</default_type>
+<sem_type>any</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="MAXSTEPS"/>
+<parameter id="NewAdjustParams"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

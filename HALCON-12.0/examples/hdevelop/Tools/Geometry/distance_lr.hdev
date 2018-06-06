@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the distance between one line and one region</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>threshold (Image, Region, 180, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<c>* Select a region from image</c>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 100000000)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('black')</l>
+<l>dev_display (SelectedRegions)</l>
+<l>Row1 := 100</l>
+<l>Row2 := 400</l>
+<l>for Col := 50 to 400 by 4</l>
+<l>    distance_lr (SelectedRegions, Row1, Col + 100, Row2, Col, DistanceMin, DistanceMax)</l>
+<l>    if (DistanceMin &lt;= 0)</l>
+<l>        dev_set_color ('green')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>    endif</l>
+<l>    disp_line (WindowID, Row1, Col + 100, Row2, Col)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

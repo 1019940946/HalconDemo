@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***************************************************************</c>
+<c>* This example program demonstrates how to read PDF417 data codes</c>
+<c>* with manually adapted parameter settings to optimize the</c>
+<c>* recognition and runtime.</c>
+<c>* </c>
+<c>* The following parameters are set manually:</c>
+<c>*    - 'module_width_min',</c>
+<c>*    - 'module_width_max'</c>
+<c>*    - 'module_aspect_min'</c>
+<c>*    - 'symbol_rows_min',</c>
+<c>*    - 'symbol_rows_max'</c>
+<c>*    - 'symbol_cols_min',</c>
+<c>*    - 'symbol_cols_max'</c>
+<c>*    - 'contrast_min'</c>
+<c>* </c>
+<c>* Note that in general the parameters can be chosen even more</c>
+<c>* restrictive because the symbol variations in practice are</c>
+<c>* smaller than in this example.</c>
+<c>* ****************************************************************</c>
+<c>* </c>
+<c>* Initialize image path and visual settings</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>ImageFiles := 'datacode/pdf417/pdf417_misc_'</l>
+<l>ImageNum := 10</l>
+<l>read_image (Image, ImageFiles + '01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* Display short description</c>
+<l>Message := 'This program demonstrates how to read PDF417'</l>
+<l>Message[1] := 'data codes with manually adapted parameter settings.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'The following parameters are adapted to optimize'</l>
+<l>Message[4] := 'the recognition and runtime:'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := '  - \'module_width_min\''</l>
+<l>Message[7] := '  - \'module_width_max\''</l>
+<l>Message[8] := '  - \'module_aspect_min\''</l>
+<l>Message[9] := '  - \'symbol_rows_min\''</l>
+<l>Message[10] := '  - \'symbol_rows_max\''</l>
+<l>Message[11] := '  - \'symbol_cols_min\''</l>
+<l>Message[12] := '  - \'symbol_cols_max\''</l>
+<l>Message[13] := '  - \'contrast_min\''</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 1: Create 2d data code model</c>
+<c>* ----------------------------------------------------</c>
+<c>* Create a 2d data code model of the 2d data code class</c>
+<c>* 'PDF417'. The operator returns a handle to</c>
+<c>* the 2d data code model which can be used for all further</c>
+<c>* operations on the data code.</c>
+<l>create_data_code_2d_model ('PDF417', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Step 2: Adapt some parameters manually</c>
+<c>* ----------------------------------------------------</c>
+<c>* Set some selected parameters of the 2d data code model</c>
+<c>* in order to adapt the model to the symbol appearance.</c>
+<l>set_data_code_2d_param (DataCodeHandle, ['symbol_rows_min','symbol_rows_max'], [6,16])</l>
+<l>set_data_code_2d_param (DataCodeHandle, ['symbol_cols_min','symbol_cols_max'], [5,9])</l>
+<l>set_data_code_2d_param (DataCodeHandle, ['module_width_min','module_width_max'], [2.0,4.0])</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'module_aspect_min', 2.5)</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'contrast_min', 10)</l>
+<c>* </c>
+<c>* Step 3: Read the data codes</c>
+<c>* ----------------------------------------------------</c>
+<c>* Search and read the data codes in each image and</c>
+<c>* display the decoded string for each found data code</c>
+<l>for Index := 1 to 10 by 1</l>
+<l>    read_image (Image, ImageFiles + Index$'02')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Find and decode the data codes and measure the runtime</c>
+<l>    count_seconds (T1)</l>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    count_seconds (T2)</l>
+<l>    Time := 1000 * (T2 - T1)</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    TitleMessage := 'Image ' + Index + ' of ' + ImageNum</l>
+<l>    ResultMessage := 'Data code found in ' + Time$'.1f' + ' ms'</l>
+<l>    display_found_data_codes (SymbolXLDs, WindowHandle, DecodedDataStrings, TitleMessage, ResultMessage, 'forest green', 'black')</l>
+<c>    * </c>
+<c>    * Deactivate the following lines to run the program without breaks</c>
+<l>    if (Index &lt; ImageNum)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clear the 2d data code model</c>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_found_data_codes">
+<interface>
+<io>
+<par name="SymbolXLDs" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="DecodedDataStrings" base_type="ctrl" dimension="0"/>
+<par name="TitleMessage" base_type="ctrl" dimension="0"/>
+<par name="ResultMessage" base_type="ctrl" dimension="0"/>
+<par name="ColorDecodedStrings" base_type="ctrl" dimension="0"/>
+<par name="ColorResult" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays the results of the search for</c>
+<c>* 2d data codes. The data strings are displayed accordingly</c>
+<c>* to their length so that the whole string is visible.</c>
+<c>* If the data strings are too long only the first 50 chars</c>
+<c>* are displayed.</c>
+<c>* </c>
+<c>* Input parameters are the XLD contours of the decoded</c>
+<c>* data symbols, the decoded data strings, the windowhandle,</c>
+<c>* a title message, a result message, the color of the decoded</c>
+<c>* strings and the color of the result message.</c>
+<c>* </c>
+<c>* Display the result of the search for each found data code</c>
+<l>for J := 0 to |DecodedDataStrings| - 1 by 1</l>
+<c>    * </c>
+<c>    * Display the XLD contour</c>
+<l>    select_obj (SymbolXLDs, SymbolXLD, J + 1)</l>
+<l>    get_contour_xld (SymbolXLD, Row, Column)</l>
+<l>    dev_display (SymbolXLD)</l>
+<c>    * </c>
+<c>    * Display messages</c>
+<c>    * ------------------</c>
+<c>    * Determine the length of the dislayed decoded data string</c>
+<l>    get_window_extents (WindowHandle, Row1, Column1, Width, Height)</l>
+<l>    get_string_extents (WindowHandle, DecodedDataStrings[J], Ascent, Descent, TWidth, THeight)</l>
+<l>    if (TWidth &gt; Width)</l>
+<l>        DecodedDataStrings[J] := DecodedDataStrings[J]{0:50} + '...'</l>
+<l>        get_string_extents (WindowHandle, DecodedDataStrings[J], Ascent, Descent, TWidth, THeight)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Split the decoded string in new lines for better readability</c>
+<l>    tuple_regexp_replace (DecodedDataStrings[J], ['[\\r\\f,^#;]','replace_all'], '\n', DecodedData)</l>
+<l>    tuple_split (DecodedData, '\n', DecodedDataSubstrings)</l>
+<c>    * </c>
+<c>    * Determine the position of the displayed decoded data string</c>
+<l>    if (max(Row) &gt; 420 and min(Row) &lt; 40)</l>
+<l>        TPosRow := max(Row) - 30</l>
+<l>    elseif (max(Row) &gt; 420)</l>
+<l>        TPosRow := min(Row) - 20</l>
+<l>    else</l>
+<l>        TPosRow := max(Row) - 30</l>
+<l>    endif</l>
+<l>    TPosColumn := max([min([mean(Column) - TWidth / 2,Width - 32 - TWidth]),12])</l>
+<l>    disp_message (WindowHandle, DecodedDataSubstrings, 'image', TPosRow, TPosColumn, ColorDecodedStrings, 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display the title message and result message</c>
+<l>disp_message (WindowHandle, TitleMessage, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ResultMessage, 'window', 40, 12, ColorResult, 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_found_data_codes">
+<parameters>
+<parameter id="ColorDecodedStrings"/>
+<parameter id="ColorResult"/>
+<parameter id="DecodedDataStrings"/>
+<parameter id="ResultMessage"/>
+<parameter id="SymbolXLDs"/>
+<parameter id="TitleMessage"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

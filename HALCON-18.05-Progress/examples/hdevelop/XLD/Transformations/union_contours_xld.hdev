@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program demonstrates the use of union_collinear_contours_xld for connecting</c>
+<c>* collinear line segments.  This is the new and recommended operator for this task.</c>
+<c>* In addition, the program shows how to use the old operator union_straight_contours_xld for</c>
+<c>* connecting contours that are not collinear but have neighboring end points.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'pads')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Remove border</c>
+<c>* </c>
+<l>Border := 35</l>
+<l>rectangle1_domain (Image, ImageReduced, Border, Border, 576 - Border, 768 - Border)</l>
+<c>* </c>
+<c>* Extract edges in the image and detect straight line segments</c>
+<c>* Unify collinear line segments and keep only the long ones</c>
+<c>* </c>
+<l>* edges_sub_pix (ImageReduced, Edges, 'lanser2', 0.16, 3, 5)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 5, 3, 5)</l>
+<l>segment_contours_xld (Edges, ContoursSplit, 'lines', 5, 4, 2)</l>
+<l>select_contours_xld (ContoursSplit, SelectedContours, 'contour_length', 20, Width / 2, -0.5, 0.5)</l>
+<l>union_collinear_contours_xld (SelectedContours, UnionContours, 10, 1, 8, 0.4, 'attr_keep')</l>
+<l>select_contours_xld (UnionContours, SelectedContours1, 'contour_length', 50, 10000, -0.5, 0.5)</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedContours1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Further processing (1): connect neighboring contours and get the surrounding box</c>
+<c>* </c>
+<l>union_adjacent_contours_xld (SelectedContours1, UnionContours1, 20, 1, 'attr_keep')</l>
+<l>smallest_rectangle2_xld (UnionContours1, Row, Column, Phi, Length1, Length2)</l>
+<l>gen_rectangle2 (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Further processing (2): fit lines into the collinear contours</c>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>fit_line_contour_xld (SelectedContours1, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>for i := 0 to |RowBegin| - 1 by 1</l>
+<l>    gen_contour_polygon_xld (Contour, [RowBegin[i],RowEnd[i]], [ColBegin[i],ColEnd[i]])</l>
+<l>    dev_display (Contour)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

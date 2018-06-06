@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Application program to illustrate the disparity results of some stereo image pairs.</c>
+<c>* </c>
+<c>* Some epipolar images (which are already rectified and have parallel,</c>
+<c>* horizontal epipolar lines) are processed and the resulting disparity images are displayed.</c>
+<c>* --------------------------------------------------------</c>
+<l>Width := [320,256,256,256] * 1.2</l>
+<l>Height := [240,256,256,256] * 1.2</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width[0], Height[0], 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, Width[0] + 12, Width[0], Height[0], 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>dev_open_window (Height[0] + 60, 0, Width[0], Height[0], 'black', WindowHandle3)</l>
+<l>set_display_font (WindowHandle3, 14, 'mono', 'true', 'false')</l>
+<c>* The images to be read:</c>
+<c>* (make sure that your HALCONIMAGES environment variable is set to the HALCON images directory)</c>
+<l>Names := ['baseball','fruit','plant','cube']</l>
+<l>ImgPath := 'stereo/epipolar/'</l>
+<c>* Define some parameter values for binocular_disparity to ensure good results for the images.</c>
+<l>DMin := [-45,-25,-12,-50]</l>
+<l>DMax := [-10,30,-8,-20]</l>
+<l>Size := [19,25,5,11]</l>
+<l>Levels := 2</l>
+<c>* </c>
+<l>for Index := 0 to |Names| - 1 by 1</l>
+<l>    read_image (LImage, ImgPath + Names[Index] + '_l')</l>
+<l>    read_image (RImage, ImgPath + Names[Index] + '_r')</l>
+<l>    binocular_disparity (LImage, RImage, DisparityNCC, Score, 'ncc', Size[Index], Size[Index], 5, DMin[Index], DMax[Index], Levels, 0.3, 'left_right_check', 'interpolation')</l>
+<c>    * Display results</c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_set_window_extents (0, 0, Width[Index], Height[Index])</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (LImage)</l>
+<l>    disp_message (WindowHandle1, 'Left image', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_set_window_extents (0, Width[Index] + 12, Width[Index], Height[Index])</l>
+<l>    dev_display (RImage)</l>
+<l>    disp_message (WindowHandle2, 'Right image', 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle3)</l>
+<l>    dev_set_window_extents (Height[Index] + 62, 0, Width[Index], Height[Index])</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (DisparityNCC)</l>
+<l>    disp_message (WindowHandle3, 'Disparity image', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index &lt; |Names| - 1)</l>
+<l>        disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

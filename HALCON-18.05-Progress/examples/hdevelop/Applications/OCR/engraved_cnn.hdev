@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example program for using the CNN-based OCR classifier.</c>
+<c>* </c>
+<c>* Step 0: Preparation</c>
+<c>* Specify the name of the font to use for reading the serial number.</c>
+<c>* It is easiest to use the pretrained font Universal_Rej.occ.</c>
+<l>FontName := 'Universal_Rej'</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Step 1: Segmentation</c>
+<l>read_image (Image, 'engraved')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>dev_disp_text ('Original image', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>gray_range_rect (Image, ImageResult, 7, 7)</l>
+<l>invert_image (ImageResult, ImageInvert)</l>
+<l>threshold (ImageResult, Region, 128, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 1000, 99999)</l>
+<l>sort_region (SelectedRegions, SortedRegions, 'first_point', 'true', 'column')</l>
+<c>* Visualize segmentation.</c>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_shape ('original')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (ImageResult)</l>
+<l>dev_display (SortedRegions)</l>
+<l>dev_disp_text ('Segmented characters on filtered image', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 2: Read text.</c>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SortedRegions)</l>
+<l>dev_disp_text ('Result', 'window', 'top', 'left', 'black', [], [])</l>
+<l>set_display_font (WindowHandle, 36, 'mono', 'true', 'false')</l>
+<l>shape_trans (SortedRegions, RegionTrans, 'rectangle1')</l>
+<l>area_center (RegionTrans, Area, Row, Column)</l>
+<l>MeanRow := mean(Row)</l>
+<l>count_obj (SortedRegions, Number)</l>
+<l>read_ocr_class_cnn (FontName, OCRHandle)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (SortedRegions, ObjectSelected, I)</l>
+<l>    do_ocr_single_class_cnn (ObjectSelected, ImageInvert, OCRHandle, 1, Class, Confidence)</l>
+<l>    dev_disp_text (Class, 'image', MeanRow + 60, Column[I - 1] - 10, 'yellow', 'box', 'false')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

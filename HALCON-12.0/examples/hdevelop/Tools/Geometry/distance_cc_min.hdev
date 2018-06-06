@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example for distance_cc_min operator. *</c>
+<c>* This example shows the differences of the single metrics (modes) provided by distance_cc_min.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_color ('white')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>SampleWidths := [1:.5:25]</l>
+<c>* Compute the distances of two excentric circle contours:</c>
+<c>* every loop increases the sample width of the contours (fine to coarse)</c>
+<l>for I := 0 to |SampleWidths| - 1 by 1</l>
+<l>    SampleWidth := SampleWidths[I]</l>
+<c>    * Generate two contours with certain sample width s</c>
+<l>    gen_contour_polygon_rounded_xld (Edge1, [10,500,500,10,10], [10,10,500,500,10], [245,245,245,245,245], SampleWidth)</l>
+<l>    gen_contour_polygon_rounded_xld (Edge2, [100,480,480,100,100], [100,100,480,480,100], [190,190,190,190,190], SampleWidth)</l>
+<c>    * </c>
+<c>    * Compute the distances by different Modes</c>
+<l>    distance_cc_min (Edge1, Edge2, 'point_to_point', DistanceMin1)</l>
+<l>    distance_cc_min (Edge1, Edge2, 'fast_point_to_segment', DistanceMin2)</l>
+<l>    distance_cc_min (Edge1, Edge2, 'point_to_segment', DistanceMin3)</l>
+<c>    * Store the results</c>
+<l>    Min1[I] := DistanceMin1</l>
+<l>    Min2[I] := DistanceMin2</l>
+<l>    Min3[I] := DistanceMin3</l>
+<c>    * </c>
+<c>    * Visualize sampled contour points</c>
+<l>    get_contour_xld (Edge1, Row, Col)</l>
+<l>    gen_cross_contour_xld (Cross1, Row, Col, 6, 0.785398)</l>
+<l>    get_contour_xld (Edge2, Row, Col)</l>
+<l>    gen_cross_contour_xld (Cross2, Row, Col, 6, 0.785398)</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_color ('gray')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (Cross1)</l>
+<l>    dev_display (Cross2)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display (Edge1)</l>
+<l>    dev_display (Edge2)</l>
+<l>    Message := ['Compute minimal distance between contours','Contour sample width: ' + SampleWidth]</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (.2)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Plot the minimal distances against the sample width for the single modes:</c>
+<l>dev_clear_window ()</l>
+<l>Colors := ['red','green','yellow']</l>
+<l>plot_tuple (WindowHandle, SampleWidths, [Min1,Min2,Min3], 'Sample Width', 'Minimal Distance', Colors, ['ticks_x','ticks_y','margin_top'], [4,1,85])</l>
+<l>Message := ['Minimal distances between contours','with varying sample widths','computed by different methods']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['\'point_to_point\'','\'fast_point_to_segment\'','\'point_to_segment\''], 'window', 112, 72, Colors, 'false')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

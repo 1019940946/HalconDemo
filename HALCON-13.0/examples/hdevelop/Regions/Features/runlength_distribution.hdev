@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to calculate the runlength</c>
+<c>* distribution of a region.</c>
+<c>* In HALCON a region is encoded in runlengths (chords). For</c>
+<c>* every line (chord) its row index and column index of its</c>
+<c>* start and end point is stored. The runlength distribution</c>
+<c>* represents the frequency of the occurence of each line.</c>
+<c>* </c>
+<c>* This example program first determines a region by determining</c>
+<c>* connected components of predefined gray values. The final</c>
+<c>* region is then chosen with the aid of shape features and</c>
+<c>* the runlength distribution of this region is calculated.</c>
+<c>* The result is plotted for the foreground and the background</c>
+<c>* of the region in a separate window.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Initialize</c>
+<l>read_image (Image, 'tooth_rim')</l>
+<l>get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>dev_open_window_fit_size (0, 0, 540, 400, -1, -1, WindowHandle1)</l>
+<l>dev_set_part (0, 0, ImageHeight, ImageWidth)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'This program shows how to calculate the'</l>
+<l>Message[1] := 'runlength distribution of a region. In HALCON'</l>
+<l>Message[2] := 'regions are encoded in runlengths. For every'</l>
+<l>Message[3] := 'line the coordinates of its start and end'</l>
+<l>Message[4] := 'point are stored. The runlength distribution'</l>
+<l>Message[5] := 'represents for each line how often it occurs'</l>
+<l>Message[6] := 'in the region.'</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'In this example a region is first determined'</l>
+<l>Message[9] := 'and then the runlength distribution for this'</l>
+<l>Message[10] := 'region is calculated. The result is displayed'</l>
+<l>Message[11] := 'in a separate window.'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the runlength distribution</c>
+<c>* ------------------------------------</c>
+<c>* Segment the image according to selected gray values.</c>
+<c>* Then calculate the length distribution of the segmented region.</c>
+<l>threshold (Image, Region, 0, 64)</l>
+<l>runlength_distribution (Region, Foreground, Background)</l>
+<c>* </c>
+<c>* Visualize the selected region</c>
+<c>* -----------------------------</c>
+<c>* </c>
+<c>* Display the foreground of the region</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region)</l>
+<c>* </c>
+<c>* Display the background (holes) of the region</c>
+<l>threshold (Image, Region2, 64, 300)</l>
+<l>connection (Region2, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, RegionBackground, 'area', 'and', 100, 9999)</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_display (RegionBackground)</l>
+<l>Message := 'Foreground and Background of the'</l>
+<l>Message[1] := 'selected region'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Visualize the length distribution</c>
+<c>* ---------------------------------</c>
+<l>get_window_extents (WindowHandle1, Row, Column, Width, Height)</l>
+<l>dev_open_window (0, Width + 10, 460, Height, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle2, 'Runlength distribution', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Determine visualization parameters</c>
+<l>OuterMargin := 50</l>
+<l>InnerMargin := 270</l>
+<l>TopMargin := Height * 0.2</l>
+<l>BottomMargin := Height * 0.15</l>
+<c>* </c>
+<c>* Display the length distribution of the foreground</c>
+<l>plot_tuple (WindowHandle2, [], Foreground, [], [], 'red', ['style','axes_color','margin_left','margin_right','margin_top','margin_bottom'], ['filled','white',OuterMargin,InnerMargin,TopMargin,BottomMargin])</l>
+<l>disp_message (WindowHandle2, 'Foreground', 'window', TopMargin + 10, OuterMargin + 40, 'white', 'false')</l>
+<c>* </c>
+<c>* Display the length distribution of the background (holes)</c>
+<l>plot_tuple (WindowHandle2, [], Background, [], [], 'lime green', ['style','axes_color','margin_left','margin_right','margin_top','margin_bottom'], ['filled','white',InnerMargin,OuterMargin,TopMargin,BottomMargin])</l>
+<l>disp_message (WindowHandle2, 'Background', 'window', TopMargin + 10, InnerMargin + 40, 'white', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

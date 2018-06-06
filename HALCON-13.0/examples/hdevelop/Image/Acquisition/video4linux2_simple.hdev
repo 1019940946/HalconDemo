@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for simple grabbing images with the Video4Linux2 image acquisition interface.</c>
+<c>* </c>
+<c>* check interface revision:</c>
+<l>info_framegrabber ('Video4Linux2', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed cameras for device and port:</c>
+<l>info_framegrabber ('Video4Linux2', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open first camera</c>
+<l>open_framegrabber ('Video4Linux2', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<c>* </c>
+<l>GrabAsync := true</l>
+<l>while (1)</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

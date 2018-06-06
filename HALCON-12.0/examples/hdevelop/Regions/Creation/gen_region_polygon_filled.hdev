@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>Button := 1</l>
+<l>Rows := []</l>
+<l>Cols := []</l>
+<l>dev_set_color ('red')</l>
+<l>dev_clear_window ()</l>
+<l>while (Button == 1)</l>
+<c>    * Click with the mouse to specify polygon points</c>
+<c>    * To quit loop use right mouse button</c>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    Rows := [Rows,Row]</l>
+<l>    Cols := [Cols,Column]</l>
+<l>    disp_circle (WindowID, Row, Column, 3)</l>
+<l>endwhile</l>
+<l>dev_clear_window ()</l>
+<l>gen_region_polygon_filled (Region, Rows, Cols)</l>
+<l>dev_display (Region)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

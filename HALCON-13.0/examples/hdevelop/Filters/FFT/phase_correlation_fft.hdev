@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how phase_correlation_fft can be used to compute the</c>
+<c>* translation between two images.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'wafer/wafer_dies.png')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Translate the image.</c>
+<l>RowTrans := 92.4</l>
+<l>ColumnTrans := 58.2</l>
+<l>optimize_rft_speed (Width, Height, 'standard')</l>
+<l>hom_mat2d_identity (HomMat2D)</l>
+<l>hom_mat2d_translate (HomMat2D, RowTrans, ColumnTrans, HomMat2D)</l>
+<c>* We set 'init_new_image' to 'true' to ensure the translated image has</c>
+<c>* defined values of 0 in the part that lies outside the original image.</c>
+<l>get_system ('init_new_image', InitNewImage)</l>
+<l>set_system ('init_new_image', 'true')</l>
+<l>affine_trans_image (Image, ImageTrans, HomMat2D, 'constant', 'false')</l>
+<l>full_domain (ImageTrans, ImageTranslated)</l>
+<l>set_system ('init_new_image', InitNewImage)</l>
+<c>* Simulate a degradation of the image by an uneven illumination.</c>
+<l>gen_image_surface_second_order (ImageSurface, 'byte', 0.0005, -0.0008, 0, 0, 0, 128, Height / 2, Width / 2, Width, Height)</l>
+<l>add_image (ImageTranslated, ImageSurface, ImageDegraded, 1, -128)</l>
+<l>dev_display (ImageDegraded)</l>
+<l>disp_message (WindowHandle, ['Image translated by (' + RowTrans$'4.1f' + ',' + ColumnTrans$'4.1f' + ')','and degraded by uneven illumination'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Compute the phase correlation.</c>
+<l>rft_generic (Image, ImageFFT, 'to_freq', 'none', 'complex', Width)</l>
+<l>rft_generic (ImageDegraded, ImageTransFFT, 'to_freq', 'none', 'complex', Width)</l>
+<l>phase_correlation_fft (ImageFFT, ImageTransFFT, ImagePhaseCorrelationFFT)</l>
+<l>rft_generic (ImagePhaseCorrelationFFT, ImagePhaseCorrelation, 'from_freq', 'n', 'real', Width)</l>
+<l>dev_display (ImagePhaseCorrelation)</l>
+<l>gen_circle_contour_xld (Circle, RowTrans, ColumnTrans, 20, 0, 6.28318, 'positive', 1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Circle)</l>
+<l>disp_message (WindowHandle, ['Phase correlation image:','note the peak in the upper left corner'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Since the phase correlation is cyclic, negative translations result in</c>
+<c>* peaks in lower or right part of the image.  If the translation is close</c>
+<c>* 0 in one or two directions, the interpolation in local_max_sub_pix would</c>
+<c>* therefore access wrong values because of its border treatment (which is</c>
+<c>* not cyclic).  To obtain a translation that is correct in all cases, we</c>
+<c>* shift the phase correlation cyclically so that a zero translation</c>
+<c>* corresponds to the center of the image.  We then correct the coordinates</c>
+<c>* returned by local_max_sub_pix.</c>
+<l>RowOffset := Height / 2</l>
+<l>ColumnOffset := Width / 2</l>
+<l>cyclic_shift_image (ImagePhaseCorrelation, ImageCyclicShift, RowOffset, ColumnOffset)</l>
+<l>local_max_sub_pix (ImageCyclicShift, 'facet', 1, 0.02, RowShifted, ColumnShifted)</l>
+<l>Row := RowShifted - RowOffset</l>
+<l>Column := ColumnShifted - ColumnOffset</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (ImageDegraded)</l>
+<l>disp_message (WindowHandle, 'Translation computed by the phase correlation:\n (' + Row$'5.2f' + ',' + Column$'5.2f' + ')', 'window', 12, 12, 'black', 'true')</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 20, 0.0)</l>
+<l>dev_display (Cross)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="cyclic_shift_image">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageCyclicShift" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="RowShift" base_type="ctrl" dimension="0"/>
+<par name="ColumnShift" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<l>concat_obj (Image, Image, Images2)</l>
+<l>concat_obj (Images2, Images2, Images)</l>
+<l>tile_images_offset (Images, ImageCyclicShift, [RowShift - Height,RowShift - Height,Height / 2,Height / 2], [ColumnShift - Width,Width / 2,ColumnShift - Width,Width / 2], [-1,-1,-1,-1], [-1,-1,-1,-1], [-1,-1,-1,-1], [-1,-1,-1,-1], Width, Height)</l>
+<l>return ()</l>
+</body>
+<docu id="cyclic_shift_image">
+<abstract lang="en_US">cyclic_shift_image shifts an image cyclically by the vector (RowShift,ColumnShift). RowShift and ColumnShift must be &gt;= 0 and &lt; the respective dimension of the image.</abstract>
+<chapters lang="en_US">
+<item>Filters</item>
+<item>Geometric Transformations</item>
+</chapters>
+<short lang="en_US">Cyclically shift an image.</short>
+<parameters>
+<parameter id="ColumnShift">
+<default_type>integer</default_type>
+<default_value>256</default_value>
+<description lang="en_US">Shift of the image in the column direction.</description>
+<mixed_type>false</mixed_type>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+<values>
+<item>0</item>
+<item>64</item>
+<item>128</item>
+<item>256</item>
+<item>512</item>
+</values>
+</parameter>
+<parameter id="Image">
+<description lang="en_US">Input image.</description>
+<multichannel>optional</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+<item>int1</item>
+<item>int2</item>
+<item>uint2</item>
+<item>int4</item>
+<item>int8</item>
+<item>real</item>
+<item>cyclic</item>
+<item>direction</item>
+</type_list>
+</parameter>
+<parameter id="ImageCyclicShift">
+<description lang="en_US">Cyclically shifted image.</description>
+<multichannel>optional</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+<item>int1</item>
+<item>int2</item>
+<item>uint2</item>
+<item>int4</item>
+<item>int8</item>
+<item>real</item>
+<item>cyclic</item>
+<item>direction</item>
+</type_list>
+</parameter>
+<parameter id="RowShift">
+<default_type>integer</default_type>
+<default_value>256</default_value>
+<description lang="en_US">Shift of the image in the row direction.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+<values>
+<item>0</item>
+<item>64</item>
+<item>128</item>
+<item>256</item>
+<item>512</item>
+</values>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

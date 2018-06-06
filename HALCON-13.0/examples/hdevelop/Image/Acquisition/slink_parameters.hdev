@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example how to use the Slink interface.</c>
+<c>* Query and display all available parameters of a MAS imaging system.</c>
+<c>* </c>
+<c>* Open camera with default settings.</c>
+<l>dev_update_pc ('off')</l>
+<l>open_framegrabber ('Slink', 0, 0, 0, 0, 0, 0, 'default', 8, 'rgb', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Query all available parameter names and sort them.</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', Parameters)</l>
+<l>Parameters := sort(Parameters)</l>
+<c>* </c>
+<c>* Open graphics window for parameter output.</c>
+<l>dev_close_window ()</l>
+<l>ImageWidth := 800</l>
+<l>ImageHeight := 12 * |Parameters| + 20</l>
+<l>dev_open_window (0, 0, ImageWidth, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, ImageWidth - 1)</l>
+<c>* </c>
+<c>* Query all current parameter values.</c>
+<l>for i := 0 to |Parameters| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, Parameters[i] + ': ')</l>
+<l>    try</l>
+<l>        get_framegrabber_param (AcqHandle, Parameters[i], ParameterValue)</l>
+<l>        dev_set_color ('green')</l>
+<l>        String := ''</l>
+<l>        for j := 0 to |ParameterValue| - 1 by 1</l>
+<l>            String := String + ParameterValue[j] + ', '</l>
+<l>        endfor</l>
+<l>        String := regexp_replace(String,',\\s$','')</l>
+<l>        write_string (WindowHandle, String)</l>
+<l>    catch (Exception)</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>    endtry</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_pc ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

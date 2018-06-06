@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'monkey')</l>
+<l>dev_open_window (0, 0, -1, -1, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>draw_rectangle1 (WindowID, Row1, Column1, Row2, Column2)</l>
+<l>gen_rectangle1 (Region, Row1, Column1, Row2, Column2)</l>
+<l>reduce_domain (Image, Region, ImageReduced)</l>
+<l>user_thresh (ImageReduced, ReducedRegion, 128)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (ReducedRegion)</l>
+<l>get_mbutton (WindowID, Row, Column, Button)</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to extract roads from an aerial</c>
+<c>* image.</c>
+<c>* For the road extraction it is assumed that a road consists of</c>
+<c>* two parallel edges with homogeneous gray values and a line</c>
+<c>* segment in between.</c>
+<c>* First the road centers in an aerial image are extracted. Then</c>
+<c>* a second image showing a zoomed part of the first aerial image</c>
+<c>* is read and successively the contours of the road edges,</c>
+<c>* parallel road edges and the road centers in the second image are</c>
+<c>* determined. At the end these road hypotheses are combined and</c>
+<c>* the road sides in the image are extracted.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Read an aerial image</c>
+<l>read_image (Image, 'mreut4_3')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle1, 'Extract the roads from an aerial image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment the image and reduce the domain</c>
+<l>threshold (Image, Region, 160, 255)</l>
+<l>reduce_domain (Image, Region, ImageReduced)</l>
+<c>* </c>
+<c>* Detect the lines that represent the road centers</c>
+<l>MaxLineWidth := 5</l>
+<l>Contrast := 70</l>
+<l>calculate_lines_gauss_parameters (MaxLineWidth, Contrast, Sigma, Low, High)</l>
+<l>lines_gauss (ImageReduced, RoadCenters, Sigma, Low, High, 'light', 'true', 'bar-shaped', 'true')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RoadCenters)</l>
+<l>disp_message (WindowHandle1, 'Road centers', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read a second image showing a zoomed image part</c>
+<c>* of the first image</c>
+<l>read_image (ImagePart, 'mreut_y')</l>
+<l>get_image_size (ImagePart, PartWidth, PartHeight)</l>
+<l>dev_resize_window_fit_image (ImagePart, 0, 0, -1, -1)</l>
+<l>dev_set_part (0, 0, PartWidth - 1, PartHeight - 1)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (ImagePart)</l>
+<l>disp_message (WindowHandle1, 'Zoomed image part of the aerial image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract the edge contours</c>
+<c>* -------------------------</c>
+<c>* Extract and segment edges</c>
+<l>edges_image (ImagePart, PartAmp, PartDir, 'mderiche2', 0.3, 'nms', 20, 40)</l>
+<l>threshold (PartAmp, EdgeRegion, 1, 255)</l>
+<c>* </c>
+<c>* Clip the edge region, compute the skeleton</c>
+<c>* and convert it into XLD contours</c>
+<l>clip_region (EdgeRegion, ClippedEdges, 2, 2, PartWidth - 3, PartHeight - 3)</l>
+<l>skeleton (ClippedEdges, EdgeSkeleton)</l>
+<l>gen_contours_skeleton_xld (EdgeSkeleton, EdgeContours, 1, 'filter')</l>
+<c>* </c>
+<c>* Approximate the contours by polygons</c>
+<l>gen_polygons_xld (EdgeContours, EdgePolygons, 'ramer', 2)</l>
+<c>* </c>
+<c>* Display the road edges</c>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (ImagePart)</l>
+<l>dev_display (EdgePolygons)</l>
+<l>disp_message (WindowHandle1, 'Approximated edges', 'window', 12, 12, 'blue', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine road edges</c>
+<c>* -----------------------------------------------------</c>
+<c>* Determine the road edges by extracting parallel XLD</c>
+<c>* polygons. To eliminate wrong candidates, the extracted</c>
+<c>* parallel polygons are further modified and extended.</c>
+<c>* </c>
+<c>* Extract all parallel XLD polygons</c>
+<l>gen_parallels_xld (EdgePolygons, ParallelEdges, 10, 30, 0.15, 'true')</l>
+<c>* </c>
+<c>* Modify the parallel XLD polygons to obtain only those XLD</c>
+<c>* polygons with a quality factor &gt; 0.3 (ModParallelRoadEdges).</c>
+<c>* These polygons are then extended by adjacent polygon segments</c>
+<c>* that enclose a homogeneous area (ExtParallelRoadEdges).</c>
+<l>mod_parallels_xld (ParallelEdges, ImagePart, ModParallelEdges, ExtParallelEdges, 0.3, 160, 220, 10)</l>
+<c>* </c>
+<c>* Display the parallel road edges</c>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ModParallelEdges)</l>
+<l>disp_message (WindowHandle1, 'Parallel edges', 'window', 35, 12, 'forest green', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_color ('orange')</l>
+<l>dev_display (ExtParallelEdges)</l>
+<l>disp_message (WindowHandle1, 'Extended parallel edges', 'window', 35, 12, 'orange', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract the road centers</c>
+<c>* --------------------------------------------------------</c>
+<c>* Extract the road centers from the extracted road centers</c>
+<c>* of the first image by applying an affine transformation</c>
+<c>* </c>
+<c>* Generate a homogeneous transformation matrix</c>
+<c>* and then add a scaling and a translation</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, 8, 8, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_translate (HomMat2DScale, -250, -600, HomMat2DTranslate)</l>
+<c>* </c>
+<c>* Apply the affine transformation to the road center contours</c>
+<l>affine_trans_contour_xld (RoadCenters, ScaledRoadCenters, HomMat2DTranslate)</l>
+<c>* </c>
+<c>* Clip the contours of the scaled road centers</c>
+<c>* and then approximate them by polygons</c>
+<l>clip_contours_xld (ScaledRoadCenters, ClippedRoadCenters, 0, 0, 512, 512)</l>
+<l>gen_polygons_xld (ClippedRoadCenters, RoadCenterPolygons, 'ramer', 2)</l>
+<c>* </c>
+<c>* Display the road centers</c>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RoadCenterPolygons)</l>
+<l>disp_message (WindowHandle1, 'Road centers', 'window', 58, 12, 'red', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract road sides</c>
+<c>* ------------------</c>
+<l>combine_roads_xld (EdgePolygons, ModParallelEdges, ExtParallelEdges, RoadCenterPolygons, RoadSides, rad(40), rad(20), 40, 40)</l>
+<c>* </c>
+<c>* Display the road sides in a second window</c>
+<l>dev_open_window (0, PartWidth + 10, 512, 512, 'black', WindowHandle2)</l>
+<l>dev_set_part (0, 0, PartWidth - 1, PartHeight - 1)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ImagePart)</l>
+<l>dev_display (RoadSides)</l>
+<l>disp_message (WindowHandle2, 'Extracted road sides', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Display the edge contours, extended parallel edges</c>
+<c>* and road centers again for visualization</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_display (ImagePart)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (EdgePolygons)</l>
+<l>dev_set_color ('orange')</l>
+<l>dev_display (ExtParallelEdges)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RoadCenterPolygons)</l>
+<l>disp_message (WindowHandle1, 'Approximated edges', 'window', 12, 12, 'blue', 'true')</l>
+<l>disp_message (WindowHandle1, 'Extended parallel edges', 'window', 35, 12, 'orange', 'true')</l>
+<l>disp_message (WindowHandle1, 'Road centers', 'window', 58, 12, 'red', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

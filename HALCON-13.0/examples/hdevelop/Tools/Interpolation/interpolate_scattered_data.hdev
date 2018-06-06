@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to interpolate scattered data</c>
+<c>* using the operators interpolate_scattered_data_points_to_image</c>
+<c>* and interpolate_scattered_data_image.</c>
+<c>* Note, that both operators work best if there is very few</c>
+<c>* input data for the interpolation.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_color ('orange')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Border := 20</l>
+<l>for Index := 1 to 4 by 1</l>
+<l>    FileName := 'scattered_data/scattered_data_xyz_' + Index$'02' + '.om3'</l>
+<l>    read_object_model_3d (FileName, 'm', [], [], ObjectModel3D, Status)</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'point_coord_x', X)</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'point_coord_y', Y)</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'point_coord_z', Z)</l>
+<c>    * </c>
+<c>    * Translate and scale points</c>
+<c>    * (just for visualization)</c>
+<l>    X := ((X - min(X)) * 1000) + Border</l>
+<l>    Y := ((Y - min(Y)) * 1000) + Border</l>
+<l>    Width := round(max(Y)) + 1 + Border</l>
+<l>    Height := round(max(X)) + 1 + Border</l>
+<c>    * </c>
+<c>    * Prepare Image with scattered data for the operator</c>
+<c>    * interpolate_scattered_image</c>
+<c>    * </c>
+<c>    * Create an image and set the Z values</c>
+<c>    * as gray values at (X,Y)</c>
+<l>    RowData := round(X)</l>
+<l>    ColumnData := round(Y)</l>
+<l>    gen_image_const (Image, 'real', Width, Height)</l>
+<l>    set_grayval (Image, RowData, ColumnData, Z)</l>
+<c>    * Create a region at the data points and calculate the</c>
+<c>    * complement (which is later used as ROI for the interpolation)</c>
+<l>    gen_region_points (RegionPoints, RowData, ColumnData)</l>
+<l>    reduce_domain (Image, RegionPoints, ImageData)</l>
+<l>    difference (Image, RegionPoints, RegionInterpolate)</l>
+<c>    * </c>
+<c>    * Visualize the scattered data</c>
+<l>    dev_resize_window_fit_image (ImageData, 0, 0, -1, -1)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageData)</l>
+<l>    String := 'Input points: ' + |X|</l>
+<l>    disp_message (WindowHandle, String, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Interpolate scattered data with both operators</c>
+<l>    count_seconds (S1)</l>
+<l>    interpolate_scattered_data_points_to_image (ImageInterpolatedFromPoints, 'thin_plate_splines', X, Y, Z, Width, Height, [], [])</l>
+<l>    count_seconds (S2)</l>
+<l>    interpolate_scattered_data_image (ImageData, RegionInterpolate, ImageInterpolatedFromImage, 'thin_plate_splines', [], [])</l>
+<l>    count_seconds (S3)</l>
+<c>    * The differences between both interpolated images results</c>
+<c>    * from the rounding errors during the data image creation</c>
+<c>    * (RowData = round(X) != X; ColumnData = round(Y) != Y)</c>
+<l>    abs_diff_image (ImageInterpolatedFromPoints, ImageInterpolatedFromImage, ImageDiff, 1)</l>
+<c>    * Display results</c>
+<l>    TimeSecondsFromPoints := (S2 - S1) * 1000</l>
+<l>    TimeSecondsFromImage := (S3 - S2) * 1000</l>
+<l>    dev_display (ImageInterpolatedFromPoints)</l>
+<l>    dev_set_color ('orange')</l>
+<l>    dev_display (RegionPoints)</l>
+<l>    String[1] := (Width * Height) + ' points interpolated '</l>
+<l>    String[2] := 'in ' + TimeSecondsFromPoints$'.0f' + ' ms (from points)'</l>
+<l>    String[3] := 'in ' + TimeSecondsFromImage$'.0f' + ' ms (from pixels)'</l>
+<l>    disp_message (WindowHandle, String, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

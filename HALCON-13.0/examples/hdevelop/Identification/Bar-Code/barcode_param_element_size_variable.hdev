@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use the bar code parameter</c>
+<c>* 'element_size_variable' if surface deformations are present.</c>
+<c>* </c>
+<c>* To illustrate the effect of the parameter, both decoding results</c>
+<c>* are shown in contrast. It is shown that, under cylindrical</c>
+<c>* surface deformation, setting the bar code parameter to 'true'</c>
+<c>* will lead to successful decoding.</c>
+<c>* ****************************************************************</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Create two bar code model with different element_size_variable values</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_variable', 'false')</l>
+<l>create_bar_code_model ([], [], BarCodeHandleVarSize)</l>
+<l>set_bar_code_param (BarCodeHandleVarSize, 'element_size_variable', 'true')</l>
+<l>CodeTypes := ['GS1 DataBar Limited','GS1 DataBar Expanded','GS1 DataBar Expanded Stacked']</l>
+<c>* </c>
+<c>* Prepare graphics window</c>
+<l>read_image (Image, 'barcode/gs1databar_limited/gs1databar_limited_no_deform')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Define bar code region</c>
+<l>DecodeRectRow := 315</l>
+<l>DecodeRectColumn := 490</l>
+<l>DecodeRectPhi := 0</l>
+<l>DecodeRectLength1 := 410</l>
+<l>DecodeRectLength2 := 200</l>
+<c>* </c>
+<c>* Part 1</c>
+<c>* Read bar code without distortions</c>
+<c>* </c>
+<c>* Decode the bar code with default setting</c>
+<l>decode_bar_code_rectangle2 (Image, BarCodeHandle, CodeTypes, DecodeRectRow, DecodeRectColumn, DecodeRectPhi, DecodeRectLength1, DecodeRectLength2, DecodedDataStrings)</l>
+<l>get_bar_code_object (SymbolRegions, BarCodeHandle, 'all', 'symbol_regions')</l>
+<c>* </c>
+<c>* Allow variable element sizes ('element_size_variable' = 'true')</c>
+<l>decode_bar_code_rectangle2 (Image, BarCodeHandleVarSize, CodeTypes, DecodeRectRow, DecodeRectColumn, DecodeRectPhi, DecodeRectLength1, DecodeRectLength2, DecodedDataStringsVarSize)</l>
+<l>get_bar_code_object (SymbolRegionsVarSize, BarCodeHandleVarSize, 'all', 'symbol_regions')</l>
+<c>* </c>
+<c>* Display results</c>
+<l>Message := 'If the bar code is not deformed, it is found with default settings.'</l>
+<l>Message[1] := 'Setting \'element_size_variable\' to \'true\' is not necessary.'</l>
+<l>display_results (Image, SymbolRegions, SymbolRegionsVarSize, WindowHandle, DecodedDataStrings, DecodedDataStringsVarSize, Message)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 2</c>
+<c>* Read distorted bar code</c>
+<c>* </c>
+<l>read_image (Image, 'barcode/gs1databar_limited/gs1databar_limited_cylinder')</l>
+<c>* </c>
+<c>* Use default setting</c>
+<l>decode_bar_code_rectangle2 (Image, BarCodeHandle, CodeTypes, DecodeRectRow, DecodeRectColumn, DecodeRectPhi, DecodeRectLength1, DecodeRectLength2, DecodedDataStrings)</l>
+<l>get_bar_code_object (SymbolRegions, BarCodeHandle, 'all', 'symbol_regions')</l>
+<c>* Use 'element_size_variable' = 'true'</c>
+<l>decode_bar_code_rectangle2 (Image, BarCodeHandleVarSize, CodeTypes, DecodeRectRow, DecodeRectColumn, DecodeRectPhi, DecodeRectLength1, DecodeRectLength2, DecodedDataStringsVarSize)</l>
+<l>get_bar_code_object (SymbolRegionsVarSize, BarCodeHandleVarSize, 'all', 'symbol_regions')</l>
+<c>* </c>
+<c>* Display results</c>
+<l>Message := 'If the bar code is bended, the code will only be read with'</l>
+<l>Message[1] := '\'element_size_variable\' set to \'true\'.'</l>
+<l>display_results (Image, SymbolRegions, SymbolRegionsVarSize, WindowHandle, DecodedDataStrings, DecodedDataStringsVarSize, Message)</l>
+<l>stop ()</l>
+<c>* Cleanup memory</c>
+<l>clear_bar_code_model (BarCodeHandleVarSize)</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_results">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="SymbolRegions" base_type="iconic" dimension="0"/>
+<par name="SymbolRegionsVarSize" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="DecodedDataStrings" base_type="ctrl" dimension="0"/>
+<par name="DecodedDataStringsVarSize" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display results</c>
+<l>Color := ['black','magenta','blue']</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color (Color[1])</l>
+<l>dev_display (SymbolRegions)</l>
+<l>dev_set_line_width (3)</l>
+<l>set_line_style (WindowHandle, [5,5])</l>
+<l>dev_set_color (Color[2])</l>
+<l>dev_display (SymbolRegionsVarSize)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<c>* </c>
+<c>* Display a description</c>
+<l>if (DecodedDataStrings == [])</l>
+<l>    DecodedDataStrings := 'No bar code found'</l>
+<l>    Color[1] := 'red'</l>
+<l>endif</l>
+<l>if (DecodedDataStringsVarSize == [])</l>
+<l>    DecodedDataStringsVarSize := 'No bar code found'</l>
+<l>    Color[2] := 'red'</l>
+<l>endif</l>
+<l>Result := '          Setting                 Decoded string'</l>
+<l>Result[1] := 'element_size_variable = \'false\': ' + DecodedDataStrings</l>
+<l>Result[2] := 'element_size_variable = \'true\' : ' + DecodedDataStringsVarSize</l>
+<l>disp_message (WindowHandle, Result, 'image', 300, 120, Color, 'true')</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_results">
+<parameters>
+<parameter id="DecodedDataStrings"/>
+<parameter id="DecodedDataStringsVarSize"/>
+<parameter id="Image"/>
+<parameter id="Message"/>
+<parameter id="SymbolRegions"/>
+<parameter id="SymbolRegionsVarSize"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

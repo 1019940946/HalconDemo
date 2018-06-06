@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Extraction of high objects from a digital surface model (DSM)</c>
+<c>* </c>
+<c>* Read DSM and gray image</c>
+<l>read_image (Mreut, 'mreut_y')</l>
+<l>read_image (DSM, 'mreut_dgm_2.0')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowHandle)</l>
+<c>* Initialize parameters</c>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Display gray image</c>
+<l>dev_display (Mreut)</l>
+<l>disp_message (WindowHandle, 'Gray image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display original DSM</c>
+<l>dev_set_lut ('change3')</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, 8, 8, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_translate (HomMat2DScale, -250, -600, HomMat2DTranslate)</l>
+<l>affine_trans_image (DSM, DSMAffinTrans, HomMat2DTranslate, 'constant', 'false')</l>
+<l>crop_part (DSMAffinTrans, DSMPart, 0, 0, 512, 512)</l>
+<l>scale_image_max (DSMPart, DSMPartScaled)</l>
+<l>compose2 (DSMPartScaled, Mreut, DSMPartScaledTextured)</l>
+<l>dev_set_paint ('3d_plot')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (DSMPartScaledTextured)</l>
+<l>disp_message (WindowHandle, 'Digital Surface Model', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Remove buildings and display digital elevation model (DEM)</c>
+<l>zoom_image_factor (DSMPart, DSMZoomed, 0.125, 0.125, 'weighted')</l>
+<l>dual_rank (DSMZoomed, DEMZoomed, 'circle', 9, 10, 'mirrored')</l>
+<l>zoom_image_factor (DEMZoomed, DEM, 8, 8, 'weighted')</l>
+<l>scale_image_max (DEM, DEMScaled)</l>
+<l>dev_set_paint ('3d_plot')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (DEMScaled)</l>
+<l>disp_message (WindowHandle, 'Digital Elevation Model', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display high objects</c>
+<l>sub_image (DSMPart, DEM, HighObjects, 1, 0)</l>
+<l>scale_image_max (HighObjects, HighObjectsScaled)</l>
+<l>compose2 (HighObjectsScaled, Mreut, HighObjectsTextured)</l>
+<l>dev_set_paint (['3d_plot','texture'])</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (HighObjectsTextured)</l>
+<l>disp_message (WindowHandle, 'High Objects', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_lut ('default')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

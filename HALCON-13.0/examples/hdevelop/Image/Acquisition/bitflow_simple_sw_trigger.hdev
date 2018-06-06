@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of a BitFlow frame grabber board and software trigger mode</c>
+<c>* </c>
+<c>* Note, that you have to configure your board (via the tools of the BitFlow SDK) appropriately.</c>
+<c>* Please see also the HTML documentation of the HALCON BitFlow interface!</c>
+<c>* </c>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, 1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, 'sdk_revision', SDKVersion)</l>
+<c></c>
+<c>* First manuall trigger each frame</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_force_trigger', 'true')</l>
+<l>    grab_image_async (Image1, AcqHandle, -1)</l>
+<l>endfor</l>
+<c></c>
+<c>* Now turn on automatic software trigger</c>
+<l>set_framegrabber_param (AcqHandle, 'software_trigger', 'enable')</l>
+<c></c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image (Image1, AcqHandle)</l>
+<l>endfor</l>
+<c></c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

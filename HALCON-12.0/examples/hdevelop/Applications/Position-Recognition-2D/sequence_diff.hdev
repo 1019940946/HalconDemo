@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Traffic monitoring by comparing two successive images</c>
+<l>Thresh := 35</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_close_window ()</l>
+<l>read_image (Img_n_1, 'xing/init')</l>
+<l>get_image_size (Img_n_1, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (3)</l>
+<l>for i := 0 to 587 by 1</l>
+<l>    read_image (Img_n, 'xing/xing' + (i$'03'))</l>
+<l>    dyn_threshold (Img_n_1, Img_n, RegionDynThresh, Thresh, 'not_equal')</l>
+<l>    opening_circle (RegionDynThresh, RegionOpening, 2.5)</l>
+<l>    closing_circle (RegionDynThresh, RegionClosing, 3.5)</l>
+<l>    connection (RegionClosing, ConnectedRegions)</l>
+<l>    shape_trans (ConnectedRegions, RegionTrans, 'convex')</l>
+<l>    dev_display (Img_n)</l>
+<l>    dev_display (RegionTrans)</l>
+<l>    select_obj (Img_n, Img_n_1, 1)</l>
+<l>endfor</l>
+<l>dev_update_window ('on')</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

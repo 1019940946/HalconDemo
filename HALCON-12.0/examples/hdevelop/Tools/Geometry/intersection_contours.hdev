@@ -1,0 +1,1248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the different intersection operators, which</c>
+<c>* compute intersections between segments, lines, circular arcs and</c>
+<c>* xld contours.</c>
+<c>* You can choose the prefered combination by left-clicking on the</c>
+<c>* operators in the graphics window.</c>
+<c>* </c>
+<c>* Please refer to the corresponing local procedures</c>
+<c>*  - intersection_segments_demo</c>
+<c>*  - intersection_segment_line_demo</c>
+<c>*  - intersection_lines_demo</c>
+<c>*  - intersection_segment_circle_demo</c>
+<c>*  - intersection_line_circle_demo</c>
+<c>*  - intersection_circles_demo</c>
+<c>*  - intersection_segment_contour_xld_demo</c>
+<c>*  - intersection_line_contour_xld_demo</c>
+<c>*  - intersection_circle_contour_xld_demo</c>
+<c>*  - intersection_contours_xld_demo</c>
+<c>* for coding details.</c>
+<c>* </c>
+<c>* </c>
+<c>* Initialization</c>
+<c>* </c>
+<c>* Interactive := 0 will activate non-interactive mode</c>
+<c>* which shows all sections in a row after a short</c>
+<c>* pause without the need of user interaction</c>
+<l>Interactive := 1</l>
+<c>* Generate menu</c>
+<l>init_menu (LabelRegions, Interactive, Labels, LabelRow1, LabelColumn1, LabelHeight, Intro, Instructions, WindowHandle)</l>
+<l>display_menu (LabelRegions, WindowHandle, Intro, Instructions, Labels, LabelRow1, LabelColumn1)</l>
+<c>* </c>
+<c>* Set some initial control values</c>
+<l>ItemSelected := 0</l>
+<l>MRow := 0</l>
+<l>MColumn := 0</l>
+<l>MButton := 0</l>
+<l>AutoCounter := 0</l>
+<l>Timeout := 5</l>
+<l>LastSelection := -1</l>
+<l>count_seconds (TimeSinceLastInteraction)</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<c>* </c>
+<c>* Loop for interactive selection</c>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>while (not ItemSelected)</l>
+<c>    * Poll mouse position</c>
+<l>    try</l>
+<l>        get_mposition (WindowHandle, MRow, MColumn, MButton)</l>
+<l>    catch (Exception)</l>
+<l>        MButton := 0</l>
+<l>    endtry</l>
+<c>    * Highlight label under mouse posititon</c>
+<l>    Highlighted := min([max([0,int(floor((MRow - LabelRow1) / LabelHeight))]),|Labels| - 1])</l>
+<c>    * Ignore mouse input in non-interactive mode</c>
+<l>    if (not Interactive)</l>
+<l>        MButton := 0</l>
+<l>        Highlighted := AutoCounter</l>
+<l>        auto_continue_on_timeout (TimeSinceLastInteraction, Timeout, MButton, Highlighted, AutoCounter, |Labels| - 1, MButton, Highlighted, AutoCounter)</l>
+<l>    endif</l>
+<c>    * Update menu graphics, if current selection has changed</c>
+<l>    if (Highlighted != LastSelection)</l>
+<l>        update_menu (LabelRegions, WindowHandle, Intro, Instructions, Labels, LabelRow1, LabelColumn1, Highlighted)</l>
+<l>        LastSelection := Highlighted</l>
+<l>    endif</l>
+<c>    * Evaluate mouse button</c>
+<l>    if (MButton == 4)</l>
+<c>        * Right click: Exit program</c>
+<l>        break</l>
+<l>    elseif (MButton % 2 == 1)</l>
+<c>        * </c>
+<c>        * Left click: Choose demo section based on current selection</c>
+<l>        switch (Highlighted)</l>
+<l>        case 0:</l>
+<l>            intersection_segments_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 1:</l>
+<l>            intersection_segment_line_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 2:</l>
+<l>            intersection_lines_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 3:</l>
+<l>            intersection_segment_circle_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 4:</l>
+<l>            intersection_line_circle_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 5:</l>
+<l>            intersection_circles_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 6:</l>
+<l>            intersection_segment_contour_xld_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 7:</l>
+<l>            intersection_line_contour_xld_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 8:</l>
+<l>            intersection_circle_contour_xld_demo (WindowHandle)</l>
+<l>            break</l>
+<l>        case 9:</l>
+<l>            intersection_contours_xld_demo (WindowHandle)</l>
+<l>            break</l>
+<c>            * </c>
+<l>        endswitch</l>
+<c>        * Re-paint menu after demo</c>
+<l>        display_menu (LabelRegions, WindowHandle, Intro, Instructions, Labels, LabelRow1, LabelColumn1)</l>
+<l>        LastSelection := -1</l>
+<l>        count_seconds (TimeSinceLastInteraction)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Program finished. Press \'F2\', then \'F5\' to start again.', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_line_image_border">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Column1" base_type="ctrl" dimension="0"/>
+<par name="Row2" base_type="ctrl" dimension="0"/>
+<par name="Column2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Intersect a line with the window border</c>
+<c>* to get the representation of a line</c>
+<c>* </c>
+<l>IntersectionPoints := []</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>Segment1Column := [0,0,0,Width - 1]</l>
+<l>Segment2Column := [Width - 1,Width - 1,0,Width - 1]</l>
+<l>Segment1Row := [0,Height - 1,0,0]</l>
+<l>Segment2Row := [0,Height - 1,Height - 1,Height - 1]</l>
+<c>* </c>
+<l>for I := 0 to |Segment1Column| - 1 by 1</l>
+<l>    intersection_segment_line (Segment1Row[I], Segment1Column[I], Segment2Row[I], Segment2Column[I], Row1, Column1, Row2, Column2, RowTmp, ColumnTmp, IsOverlapping)</l>
+<l>    if (|RowTmp|)</l>
+<l>        IntersectionPoints := [IntersectionPoints,RowTmp,ColumnTmp]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>Rows := IntersectionPoints[[0,2]]</l>
+<l>Columns := IntersectionPoints[[1,3]]</l>
+<l>return ()</l>
+</body>
+<docu id="get_line_image_border">
+<parameters>
+<parameter id="Column1"/>
+<parameter id="Column2"/>
+<parameter id="Columns"/>
+<parameter id="Row1"/>
+<parameter id="Row2"/>
+<parameter id="Rows"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_intersection_points">
+<interface>
+<io>
+<par name="Object1" base_type="iconic" dimension="0"/>
+<par name="Object2" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="IsOverlapping" base_type="ctrl" dimension="0"/>
+<par name="StateChanged" base_type="ctrl" dimension="0"/>
+<par name="Text" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Display results</c>
+<c>* </c>
+<l>ColorObject1 := 'medium slate blue'</l>
+<l>ColorObject2 := 'orange'</l>
+<l>ColorIntersection := 'lime green'</l>
+<c>* Seconds to wait if the status changed</c>
+<c>* e.g. from intersecting to non-intersecting</c>
+<l>DelayChange := 1</l>
+<c>* Seconds to wait if the status has not changed</c>
+<l>DelayNoChange := 0.01</l>
+<c>* </c>
+<l>gen_cross_contour_xld (Intersections, Row, Column, 16, rad(45))</l>
+<l>gen_rectangle1 (Dummy, 0, 0, 0, 0)</l>
+<c>* </c>
+<c>* Display intersecting objects and intersection points</c>
+<l>set_system ('flush_graphic', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Text, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, Message, 'window', 40, 12, 'white', 'false')</l>
+<l>if (IsOverlapping)</l>
+<l>    disp_message (WindowHandle, 'Is Overlapping', 'window', 12, 365, 'red', 'false')</l>
+<l>endif</l>
+<l>dev_set_color (ColorObject1)</l>
+<l>dev_display (Object1)</l>
+<l>dev_set_color (ColorObject2)</l>
+<l>dev_display (Object2)</l>
+<l>dev_set_color (ColorIntersection)</l>
+<l>dev_display (Intersections)</l>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>dev_display (Dummy)</l>
+<c>* </c>
+<l>if (StateChanged or IsOverlapping)</l>
+<l>    wait_seconds (DelayChange)</l>
+<l>else</l>
+<l>    wait_seconds (DelayNoChange)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_intersection_points">
+<parameters>
+<parameter id="Column"/>
+<parameter id="IsOverlapping"/>
+<parameter id="Message"/>
+<parameter id="Object1"/>
+<parameter id="Object2"/>
+<parameter id="Row"/>
+<parameter id="StateChanged"/>
+<parameter id="Text"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_segments_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* ----------------------------</c>
+<c>* Part 1 of 10</c>
+<c>* Intersection of two segments</c>
+<c>* ----------------------------</c>
+<c>* </c>
+<c>* Define both segments</c>
+<l>Row1 := [21,490]</l>
+<l>Column1 := [256,256] + 250</l>
+<l>Column2 := [64,364] + 250</l>
+<l>Row2 := [256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := (Column2[1] + Column2[0]) * 0.5</l>
+<l>RotationCenter2Row := (Row2[1] + Row2[0]) * 0.5</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_segments (RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans2[0], ColumnTrans2[0], RowTrans2[1], ColumnTrans2[1], Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    case 2:</l>
+<c>        * Segments are overlapping</c>
+<l>        Message := 'Segments overlap from'</l>
+<l>        Message[1] := '(' + Row[0]$'5.4' + ', ' + Column[0]$'5.4' + ') to (' + Row[1]$'5.4' + ', ' + Column[1]$'5.4' + ')'</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    gen_contour_polygon_xld (Segment1, RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Segment2, RowTrans2, ColumnTrans2)</l>
+<l>    StateChanged := NumIntersections != |Row|</l>
+<l>    display_intersection_points (Segment1, Segment2, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_segments', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_segments_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_segment_line_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* ------------------------------------</c>
+<c>* Part 2 of 10</c>
+<c>* Intersection of a segment and a line</c>
+<c>* ------------------------------------</c>
+<c>* </c>
+<c>* Define segment and line</c>
+<l>Column1 := [21,290] + 250</l>
+<l>Row1 := [256,256]</l>
+<l>Column2 := [64,364] + 250</l>
+<l>Row2 := [256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := (Column2[1] + Column2[0]) * 0.5</l>
+<l>RotationCenter2Row := (Row2[1] + Row2[0]) * 0.5</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Calculate intersection points</c>
+<c>    * </c>
+<l>    intersection_segment_line (RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans2[0], ColumnTrans2[0], RowTrans2[1], ColumnTrans2[1], Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection'</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    case 2:</l>
+<c>        * Segments are overlapping</c>
+<l>        Message := 'Segment overlaps line from'</l>
+<l>        Message[1] := '(' + Row[0]$'5.4' + ', ' + Column[0]$'5.4' + ') to (' + Row[1]$'5.4' + ', ' + Column[1]$'5.4' + ')'</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    get_line_image_border (WindowHandle, RowTrans2[0], ColumnTrans2[0], RowTrans2[1], ColumnTrans2[1], RowTrans2, ColumnTrans2)</l>
+<l>    gen_contour_polygon_xld (Segment, RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Line, RowTrans2, ColumnTrans2)</l>
+<l>    StateChanged := NumIntersections != |Row|</l>
+<l>    display_intersection_points (Segment, Line, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_segment_line', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_segment_line_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_lines_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* -------------------------</c>
+<c>* Part 3 of 10</c>
+<c>* Intersection of two lines</c>
+<c>* -------------------------</c>
+<c>* </c>
+<c>* Define both lines</c>
+<l>Column1 := [21,490] + 250</l>
+<l>Row1 := [256,256]</l>
+<l>Column2 := [64,364] + 250</l>
+<l>Row2 := [256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := (Column2[1] + Column2[0]) * 0.5</l>
+<l>RotationCenter2Row := (Row2[1] + Row2[0]) * 0.5</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 1</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 4)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_lines (RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans2[0], ColumnTrans2[0], RowTrans2[1], ColumnTrans2[1], Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    StateChanged := NumIntersections != |Row|</l>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        if (IsOverlapping)</l>
+<l>            Message := 'Lines are identical'</l>
+<l>        else</l>
+<l>            Message := 'Lines are parallel'</l>
+<l>        endif</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        if (max([Row,Column]) &gt; 1e12)</l>
+<l>            Message[1] := 'Lines are nearly parallel'</l>
+<l>            StateChanged := 1</l>
+<l>        endif</l>
+<l>        break</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    get_line_image_border (WindowHandle, RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans1, ColumnTrans1)</l>
+<l>    get_line_image_border (WindowHandle, RowTrans2[0], ColumnTrans2[0], RowTrans2[1], ColumnTrans2[1], RowTrans2, ColumnTrans2)</l>
+<l>    gen_contour_polygon_xld (Line1, RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Line2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<l>    display_intersection_points (Line1, Line2, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_lines', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_lines_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_segment_circle_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* --------------------------------------------</c>
+<c>* Part 4 of 10</c>
+<c>* Intersection of a segment and a circular arc</c>
+<c>* --------------------------------------------</c>
+<c>* </c>
+<c>* Define segment and circular arc</c>
+<l>Column1 := [41,470] + 250</l>
+<l>Row1 := [256,256]</l>
+<l>Column2 := 221 + 250</l>
+<l>Row2 := 256</l>
+<l>Radius := 200</l>
+<l>StartPhi := rad(45)</l>
+<l>EndPhi := rad(135)</l>
+<l>PointOrder := 'negative'</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := Column2</l>
+<l>RotationCenter2Row := Row2</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<l>    p1r := StartPhi + Phi2</l>
+<l>    p2r := EndPhi + Phi2</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_segment_circle (RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans2, ColumnTrans2, Radius, p1r, p2r, PointOrder, Row, Column)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    case 2:</l>
+<c>        * Segments are overlapping</c>
+<l>        Message := 'Intersections found at '</l>
+<l>        Message[1] := '(' + Row[0]$'5.4' + ', ' + Column[0]$'5.4' + ') and (' + Row[1]$'5.4' + ', ' + Column[1]$'5.4' + ')'</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    gen_contour_polygon_xld (Segment, RowTrans1, ColumnTrans1)</l>
+<l>    gen_circle_contour_xld (Circle, RowTrans2, ColumnTrans2, Radius, p1r, p2r, PointOrder, 1)</l>
+<c>    * </c>
+<l>    StateChanged := NumIntersections != |Row|</l>
+<l>    display_intersection_points (Segment, Circle, WindowHandle, Row, Column, 0, StateChanged, 'intersection_segment_circle', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_segment_circle_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_line_circle_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* -----------------------------------------</c>
+<c>* Part 5 of 10</c>
+<c>* Intersection of a line and a circular arc</c>
+<c>* -----------------------------------------</c>
+<c>* </c>
+<c>* Define line and circular arc</c>
+<l>Column1 := [41,470] + 250</l>
+<l>Row1 := [160,160]</l>
+<l>Column2 := 256 + 250</l>
+<l>Row2 := 256</l>
+<l>Radius := 100</l>
+<l>StartPhi := rad(45)</l>
+<l>EndPhi := rad(135)</l>
+<l>PointOrder := 'negative'</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := Column2</l>
+<l>RotationCenter2Row := Row2</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<l>    p1r := StartPhi + Phi2</l>
+<l>    p2r := EndPhi + Phi2</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_line_circle (RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans2, ColumnTrans2, Radius, p1r, p2r, PointOrder, Row, Column)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    case 2:</l>
+<c>        * Segments are overlapping</c>
+<l>        Message := 'Intersections found at '</l>
+<l>        Message[1] := '(' + Row[0]$'5.4' + ', ' + Column[0]$'5.4' + ') and (' + Row[1]$'5.4' + ', ' + Column[1]$'5.4' + ')'</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    get_line_image_border (WindowHandle, RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Line, RowTrans1, ColumnTrans1)</l>
+<l>    gen_circle_contour_xld (Circle, RowTrans2, ColumnTrans2, Radius, p1r, p2r, PointOrder, 1)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    StateChanged := NumIntersections != |Row|</l>
+<l>    display_intersection_points (Line, Circle, WindowHandle, Row, Column, 0, StateChanged, 'intersection_line_circle', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_line_circle_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_circles_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* ---------------------------------</c>
+<c>* Part 6 of 10</c>
+<c>* Intersection of two circular arcs</c>
+<c>* ---------------------------------</c>
+<c>* </c>
+<c>* Define both circular arcs</c>
+<l>Column1 := 256 + 250</l>
+<l>Row1 := 256</l>
+<l>r1 := 200</l>
+<l>p11 := rad(45)</l>
+<l>p12 := rad(135)</l>
+<l>po1 := 'negative'</l>
+<l>Column2 := 256 + 250</l>
+<l>Row2 := 512</l>
+<l>r2 := 256</l>
+<l>p21 := rad(0)</l>
+<l>p22 := rad(315)</l>
+<l>po2 := 'positive'</l>
+<c>* </c>
+<l>RotationCenter1Column := Column1</l>
+<l>RotationCenter1Row := Row1</l>
+<l>RotationCenter2Column := Column2</l>
+<l>RotationCenter2Row := Row2 + 20</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    p11r := p11 + Phi1</l>
+<l>    p12r := p12 + Phi1</l>
+<l>    p21r := p21 + Phi2</l>
+<l>    p22r := p22 + Phi2</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_circles (RowTrans1, ColumnTrans1, r1, p11r, p12r, po1, RowTrans2, ColumnTrans2, r2, p21r, p22r, po2, Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    default:</l>
+<c>        * 2, 3, or 4 intersection points (or overlap)</c>
+<l>        Message := 'Intersections found at'</l>
+<l>        Message := [Message,'(' + Row$'5.4' + ', ' + Column$'5.4' + ')']</l>
+<l>        if (IsOverlapping)</l>
+<l>            Message := [Message,'Circles partially overlap!']</l>
+<l>        endif</l>
+<l>    endswitch</l>
+<c>    * </c>
+<l>    gen_circle_contour_xld (Circle1, RowTrans1, ColumnTrans1, r1, p11r, p12r, po1, 1)</l>
+<l>    gen_circle_contour_xld (Circle2, RowTrans2, ColumnTrans2, r2, p21r, p22r, po2, 1)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    StateChanged := NumIntersections != |Row|</l>
+<l>    display_intersection_points (Circle1, Circle2, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_circles', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_circles_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_segment_contour_xld_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* --------------------------------------------</c>
+<c>* Part 7 of 10</c>
+<c>* Intersection of a segment and an XLD contour</c>
+<c>* --------------------------------------------</c>
+<c>* </c>
+<c>* Define segment and XLD contour</c>
+<l>Column1 := [21,490] + 250</l>
+<l>Row1 := [256,256]</l>
+<l>Column2 := [64,64,192,128,256,256,384,384,448] + 250</l>
+<l>Row2 := [128,320,384,128,256,64,384,256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := 256 + 250</l>
+<l>RotationCenter2Row := 256</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<l>    gen_contour_polygon_xld (Segment, RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Contour, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_segment_contour_xld (Contour, RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    default:</l>
+<c>        * 2, 3, or 4 intersection points (or overlap)</c>
+<l>        Message := 'Intersections found at'</l>
+<l>        Message := [Message,'(' + Row$'5.4' + ', ' + Column$'5.4' + ')']</l>
+<l>        if (IsOverlapping)</l>
+<l>            Message := [Message,'Contours partially overlap!']</l>
+<l>        endif</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    StateChanged := sgn(NumIntersections) != sgn(|Row|)</l>
+<l>    display_intersection_points (Segment, Contour, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_segment_contour_xld', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_segment_contour_xld_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_line_contour_xld_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* -----------------------------------------</c>
+<c>* Part 8 of 10</c>
+<c>* Intersection of a line and an XLD contour</c>
+<c>* -----------------------------------------</c>
+<c>* </c>
+<c>* Define line and XLD contour</c>
+<l>Column1 := [21,490] + 250</l>
+<l>Row1 := [256,256]</l>
+<l>Column2 := [64,64,192,128,256,256,384,384,448] + 250</l>
+<l>Row2 := [128,320,384,128,256,64,384,256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := (Column1[1] + Column1[0]) * 0.5</l>
+<l>RotationCenter1Row := (Row1[1] + Row1[0]) * 0.5</l>
+<l>RotationCenter2Column := 256 + 250</l>
+<l>RotationCenter2Row := 256</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<l>    get_line_image_border (WindowHandle, RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Line, RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Contour, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersections</c>
+<c>    * </c>
+<l>    intersection_line_contour_xld (Contour, RowTrans1[0], ColumnTrans1[0], RowTrans1[1], ColumnTrans1[1], Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    default:</l>
+<c>        * 2, 3, or 4 intersection points (or overlap)</c>
+<l>        Message := 'Intersections found at'</l>
+<l>        Message := [Message,'(' + Row$'5.4' + ', ' + Column$'5.4' + ')']</l>
+<l>        if (IsOverlapping)</l>
+<l>            Message := [Message,'Contours partially overlap!']</l>
+<l>        endif</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    StateChanged := sgn(NumIntersections) != sgn(|Row|)</l>
+<l>    display_intersection_points (Line, Contour, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_line_contour_xld', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_line_contour_xld_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_circle_contour_xld_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* -------------------------------------------------</c>
+<c>* Part 9 of 10</c>
+<c>* Intersection of a circular arc and an XLD contour</c>
+<c>* -------------------------------------------------</c>
+<c>* </c>
+<c>* Define circular arc and XLD contour</c>
+<l>Column1 := 471</l>
+<l>Row1 := 256</l>
+<l>Radius := 100</l>
+<l>StartPhi := rad(0)</l>
+<l>EndPhi := rad(180)</l>
+<l>PointOrder := 'positive'</l>
+<l>Column2 := [64,64,192,128,256,256,384,384,448] + 250</l>
+<l>Row2 := [128,320,384,128,256,64,384,256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := Column1</l>
+<l>RotationCenter1Row := Row1</l>
+<l>RotationCenter2Column := 256 + 250</l>
+<l>RotationCenter2Row := 256</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    p1r := StartPhi + Phi2</l>
+<l>    p2r := EndPhi + Phi2</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<l>    gen_circle_contour_xld (Circle, RowTrans1, ColumnTrans1, Radius, p1r, p2r, PointOrder, 1)</l>
+<l>    gen_contour_polygon_xld (Contour, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_circle_contour_xld (Contour, RowTrans1, ColumnTrans1, Radius, p1r, p2r, PointOrder, Row, Column)</l>
+<c>    * Ealuate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    default:</l>
+<c>        * 2, 3, or 4 intersection points (or overlap)</c>
+<l>        Message := 'Intersections found at'</l>
+<l>        Message := [Message,'(' + Row$'5.4' + ', ' + Column$'5.4' + ')']</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    StateChanged := sgn(NumIntersections) != sgn(|Row|)</l>
+<l>    display_intersection_points (Circle, Contour, WindowHandle, Row, Column, 0, StateChanged, 'intersection_circle_contour_xld', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_circle_contour_xld_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intersection_contours_xld_demo">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* --------------------------------</c>
+<c>* Part 10 of 10</c>
+<c>* Intersection of two XLD contours</c>
+<c>* --------------------------------</c>
+<c>* </c>
+<c>* Define XLD contours</c>
+<l>Column1 := [128,320,384,128,256,64,384,256,256] + 250</l>
+<l>Row1 := [64,64,192,128,256,256,384,384,448]</l>
+<l>Column2 := [64,64,192,128,256,256,384,384,448] + 250</l>
+<l>Row2 := [128,320,384,128,256,64,384,256,256]</l>
+<c>* </c>
+<l>RotationCenter1Column := 256 + 250</l>
+<l>RotationCenter1Row := 256</l>
+<l>RotationCenter2Column := 256 + 250</l>
+<l>RotationCenter2Row := 256</l>
+<c>* </c>
+<c>* Compute intersection points in rotating scene</c>
+<l>NumIntersections := 0</l>
+<l>for Alpha := 180 to 0 by -1</l>
+<c>    * Rotate objects</c>
+<l>    Phi1 := rad(Alpha)</l>
+<l>    Phi2 := rad(Alpha * 3.5)</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi1, RotationCenter1Row, RotationCenter1Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row1, Column1, RowTrans1, ColumnTrans1)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Phi2, RotationCenter2Row, RotationCenter2Column, HomMat2DRotate)</l>
+<l>    affine_trans_pixel (HomMat2DRotate, Row2, Column2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<l>    gen_contour_polygon_xld (Contour1, RowTrans1, ColumnTrans1)</l>
+<l>    gen_contour_polygon_xld (Contour2, RowTrans2, ColumnTrans2)</l>
+<c>    * </c>
+<c>    * Compute intersection points</c>
+<c>    * </c>
+<l>    intersection_contours_xld (Contour1, Contour2, 'all', Row, Column, IsOverlapping)</l>
+<c>    * Evaluate results</c>
+<l>    switch (|Row|)</l>
+<l>    case 0:</l>
+<c>        * No intersection points</c>
+<l>        Message := 'No intersection               '</l>
+<l>        break</l>
+<l>    case 1:</l>
+<c>        * 1 intersection point</c>
+<l>        Message := 'Intersection at (' + Row$'5.4' + ', ' + Column$'5.4' + ')'</l>
+<l>        break</l>
+<l>    default:</l>
+<c>        * 2, 3, or 4 intersection points (or overlap)</c>
+<l>        Message := 'Intersections found at'</l>
+<l>        Message := [Message,'(' + Row$'5.4' + ', ' + Column$'5.4' + ')']</l>
+<l>        if (IsOverlapping)</l>
+<l>            Message := [Message,'Contours partially overlap!']</l>
+<l>        endif</l>
+<l>    endswitch</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    StateChanged := sgn(NumIntersections) != sgn(|Row|)</l>
+<l>    display_intersection_points (Contour1, Contour2, WindowHandle, Row, Column, IsOverlapping, StateChanged, 'intersection_contours_xld', Message)</l>
+<l>    NumIntersections := |Row|</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>return ()</l>
+</body>
+<docu id="intersection_contours_xld_demo">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="init_menu">
+<interface>
+<oo>
+<par name="LabelRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Interactive" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="LabelRow1" base_type="ctrl" dimension="0"/>
+<par name="LabelColumn1" base_type="ctrl" dimension="0"/>
+<par name="LabelHeight" base_type="ctrl" dimension="0"/>
+<par name="Intro" base_type="ctrl" dimension="0"/>
+<par name="Instructions" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Open a graphics window, create menu labels</c>
+<c>* and define instruction text</c>
+<c>* </c>
+<l>Width := 700</l>
+<l>Height := 512</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* Initialize menu appearance and labels</c>
+<c>* </c>
+<l>Labels := 'intersection_segments'</l>
+<l>Labels[1] := 'intersection_segment_line'</l>
+<l>Labels[2] := 'intersection_lines'</l>
+<l>Labels[3] := 'intersection_segment_circle'</l>
+<l>Labels[4] := 'intersection_line_cirlce'</l>
+<l>Labels[5] := 'intersection_circles'</l>
+<l>Labels[6] := 'intersection_segment_contour_xld'</l>
+<l>Labels[7] := 'intersection_line_contour_xld'</l>
+<l>Labels[8] := 'intersection_circle_contour_xld'</l>
+<l>Labels[9] := 'intersection_contours_xld'</l>
+<l>NumMenuColumns := 1</l>
+<l>NumMenuRows := int(ceil(|Labels| / NumMenuColumns))</l>
+<l>LabelWidth := 350</l>
+<l>LabelHeight := 30</l>
+<l>Sequence := [0:|Labels| - 1]</l>
+<l>LabelRow1 := 100 + (Sequence / NumMenuColumns) * LabelHeight</l>
+<l>LabelColumn1 := 100 + (Sequence % NumMenuColumns) * LabelWidth</l>
+<l>LabelRow2 := LabelRow1 + LabelHeight - 1</l>
+<l>LabelColumn2 := LabelColumn1 + LabelWidth - 1</l>
+<l>gen_rectangle1 (LabelRegions, LabelRow1, LabelColumn1, LabelRow2, LabelColumn2)</l>
+<l>Intro := 'This example demonstrates how the intersecting points of two'</l>
+<l>Intro[1] := 'line segments, lines, circular arcs or arbitrary contours can be '</l>
+<l>Intro[2] := 'computed with the intersection_* operators.'</l>
+<l>if (Interactive)</l>
+<l>    Instructions := 'Please left-click to select the operator to be demonstrated'</l>
+<l>    Instructions[1] := 'Click right mouse button to exit this demo.'</l>
+<l>else</l>
+<l>    Instructions := 'Next section will start automatically.'</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="init_menu">
+<parameters>
+<parameter id="Instructions"/>
+<parameter id="Interactive"/>
+<parameter id="Intro"/>
+<parameter id="LabelColumn1"/>
+<parameter id="LabelHeight"/>
+<parameter id="LabelRegions"/>
+<parameter id="LabelRow1"/>
+<parameter id="Labels"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="auto_continue_on_timeout">
+<interface>
+<ic>
+<par name="TimeSinceLastInteraction" base_type="ctrl" dimension="0"/>
+<par name="Timeout" base_type="ctrl" dimension="0"/>
+<par name="MButton" base_type="ctrl" dimension="0"/>
+<par name="Highlighted" base_type="ctrl" dimension="0"/>
+<par name="AutoCounter" base_type="ctrl" dimension="0"/>
+<par name="MaxCounter" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MButtonOut" base_type="ctrl" dimension="0"/>
+<par name="HighlightedOut" base_type="ctrl" dimension="0"/>
+<par name="AutoCounterOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* In non-interactive mode, this procedure is used</c>
+<c>* to switch to the next demo section after a given</c>
+<c>* time specified in Timeout.</c>
+<c>* This is done by virtually clicking on the</c>
+<c>* corresponding menu item.</c>
+<c>* </c>
+<l>MButtonOut := MButton</l>
+<l>AutoCounterOut := AutoCounter</l>
+<l>HighlightedOut := Highlighted</l>
+<l>count_seconds (Now)</l>
+<l>if (Now - TimeSinceLastInteraction &gt; Timeout)</l>
+<c>    * Start demo automatically after Timeout seconds</c>
+<l>    if (AutoCounterOut &gt; MaxCounter)</l>
+<c>        * Exit</c>
+<l>        MButtonOut := 4</l>
+<l>    else</l>
+<c>        * Switch to next demo section</c>
+<l>        HighlightedOut := AutoCounter</l>
+<l>        AutoCounterOut := AutoCounter + 1</l>
+<l>        MButtonOut := 1</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="auto_continue_on_timeout">
+<parameters>
+<parameter id="AutoCounter"/>
+<parameter id="AutoCounterOut"/>
+<parameter id="Highlighted"/>
+<parameter id="HighlightedOut"/>
+<parameter id="MButton"/>
+<parameter id="MButtonOut"/>
+<parameter id="MaxCounter"/>
+<parameter id="TimeSinceLastInteraction"/>
+<parameter id="Timeout"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="update_menu">
+<interface>
+<io>
+<par name="LabelRegions" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Intro" base_type="ctrl" dimension="0"/>
+<par name="Instructions" base_type="ctrl" dimension="0"/>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="LabelRow1" base_type="ctrl" dimension="0"/>
+<par name="LabelColumn1" base_type="ctrl" dimension="0"/>
+<par name="Highlighted" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Display menu labels and highlight currently selected item</c>
+<c>* </c>
+<l>dev_set_color ('black')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (LabelRegions)</l>
+<l>select_obj (LabelRegions, LabelHighlighted, Highlighted + 1)</l>
+<l>dev_set_color ('#00B900')</l>
+<l>dev_display (LabelHighlighted)</l>
+<l>return ()</l>
+</body>
+<docu id="update_menu">
+<parameters>
+<parameter id="Highlighted"/>
+<parameter id="Instructions"/>
+<parameter id="Intro"/>
+<parameter id="LabelColumn1"/>
+<parameter id="LabelRegions"/>
+<parameter id="LabelRow1"/>
+<parameter id="Labels"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_menu">
+<interface>
+<io>
+<par name="LabelRegions" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Intro" base_type="ctrl" dimension="0"/>
+<par name="Instructions" base_type="ctrl" dimension="0"/>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="LabelRow1" base_type="ctrl" dimension="0"/>
+<par name="LabelColumn1" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Intro, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, Instructions, 'window', 450, 12, 'black', 'true')</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (LabelRegions)</l>
+<l>for Index := 0 to |Labels| - 1 by 1</l>
+<l>    disp_message (WindowHandle, Labels[Index], 'image', 6 + LabelRow1[Index], 12 + LabelColumn1[Index], 'white', 'false')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="display_menu">
+<parameters>
+<parameter id="Instructions"/>
+<parameter id="Intro"/>
+<parameter id="LabelColumn1"/>
+<parameter id="LabelRegions"/>
+<parameter id="LabelRow1"/>
+<parameter id="Labels"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

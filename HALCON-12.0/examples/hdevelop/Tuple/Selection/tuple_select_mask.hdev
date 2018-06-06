@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use tuple_select_mask</c>
+<c>* to select in mask specified elements of a tuple</c>
+<c>* </c>
+<l>IntTuple := [0,1,2,3,4,5]</l>
+<l>StringTuple := ['abcd','defg','ghij']</l>
+<c>* </c>
+<c>* Select a subset of elements</c>
+<l>tuple_select_mask (IntTuple, [0,1,0,1,0,1], SelectSome1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>SelectSome2 := select_mask(IntTuple,[0,1,0,1,0,1])</l>
+<c>* </c>
+<c>* Select all elements (alle mask elements are 1)</c>
+<l>tuple_select_mask (IntTuple, [1,1,1,1,1,1], SelectAll1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>SelectAll2 := select_mask(IntTuple,[1,1,1,1,1,1])</l>
+<c>* </c>
+<c>* Select only a single element</c>
+<l>tuple_select_mask (StringTuple, [0,0,1], SelectOne1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>SelectOne2 := select_mask(StringTuple,[0,0,1])</l>
+<l>dev_open_tool ('variable_view', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

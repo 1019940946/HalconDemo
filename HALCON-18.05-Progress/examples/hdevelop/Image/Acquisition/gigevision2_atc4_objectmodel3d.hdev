@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the Automation Technology C4 GigE</c>
+<c>* sensor in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* </c>
+<c>* In this example, the camera algorithm can be selected</c>
+<c>* ('CenterOfGravity', 'MaximumIntensity' or 'Threshold'). 16 bit</c>
+<c>* mode and the three data channel, DC0-DC2, are enabled. Every</c>
+<c>* channel is saved in a new image row, then grab_image[_async]</c>
+<c>* delivers an image with interleaved DC0-DC2. The local procedure</c>
+<c>* 'separate_data_channels(...)' deinterleaves the 3 channels.</c>
+<c>* Notice that in case of also using AOIs (Area Of Interest) and/or</c>
+<c>* NDRs (Non Destructive Readout), 'separate_data_channels(...)'</c>
+<c>* needs to be adapted.</c>
+<c>* </c>
+<c>* Notice that the generated HALCON ObjectModel3D contains</c>
+<c>* uncalibrated data. Please see calibrate_sheet_of_light.hdev</c>
+<c>* example that demonstrates how to perform the calibration of a</c>
+<c>* sheet-of-light measurement system.</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<c>* Connect to the C4-GigE camera in 16 bit mode.</c>
+<l>info_framegrabber ('GigEVision2', 'device', Information, ValueList)</l>
+<l>tuple_regexp_select (ValueList, 'C4', Device)</l>
+<l>open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'progressive', 16, 'default', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* 3D data configuration</c>
+<c>* </c>
+<c>* Selects the camera algorithm:</c>
+<c>* 'CenterOfGravity' / 'MaximumIntensity' / 'Threshold'</c>
+<l>CameraAlgorithm := 'CenterOfGravity'</l>
+<l>set_framegrabber_param (AcqHandle, 'CameraMode', CameraAlgorithm)</l>
+<c>* </c>
+<c>* When changing from Image to 3D mode (without AT 3D Wizard), the</c>
+<c>* cycle time is not automatically reduced, while more profiles</c>
+<c>* are added. To avoid a grab timeout error, 'FramePeriode' is set</c>
+<c>* to 0 to force the camera to calculate the minimum time and</c>
+<c>* maximum frame rate.</c>
+<l>set_framegrabber_param (AcqHandle, 'FramePeriode', 0)</l>
+<c>* </c>
+<c>* 3D data output: enable data channel DC0-DC2</c>
+<l>set_framegrabber_param (AcqHandle, 'EnableDC0', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'EnableDC1', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'EnableDC2', 1)</l>
+<c>* </c>
+<c>* Extra setting depending on the selected algorithm.</c>
+<c>*  - CenterOfGravity:</c>
+<c>*     DC0: Sum of intensity values</c>
+<c>*     DC1: Left edge of laser line (PosL) or</c>
+<c>*          laser line width (PosR-PosL)</c>
+<c>*     DC2: Line position with 1/X pixel resolution (center of</c>
+<c>*          gravity of beam profile), where X=1,2,4,8,16,32,64</c>
+<c>*  - MaximumIntensity:</c>
+<c>*      DC0: Maximum intensity</c>
+<c>*      DC1: Left edge of laser line (PosL)</c>
+<c>*      DC2: Position of maximum intensity (PosM)</c>
+<c>*  - Threshold:</c>
+<c>*      DC0: Maximum intensity</c>
+<c>*      DC1: Left edge of laser line (PosL) or</c>
+<c>*           line width (PosR-PosL)</c>
+<c>*      DC2: Right edge of laser line (PosR) or</c>
+<c>*           line position with 1/2 pixel accuracy (PosL+PosR)</c>
+<l>if (CameraAlgorithm == 'CenterOfGravity')</l>
+<c>    * EnableDC1Width: controls DC1 for COG algorithm:</c>
+<c>    *   True: laser line width / False: left edge position</c>
+<l>    set_framegrabber_param (AcqHandle, 'EnableDC1Width', 0)</l>
+<c>    * NumCOGSP: Number of subpixel bits of COG output (0-6)</c>
+<c>    * X=2^NumCOGSP</c>
+<l>    NumCOGSP := 3</l>
+<l>    set_framegrabber_param (AcqHandle, 'NumCOGSP', NumCOGSP)</l>
+<l>    X := pow(2,NumCOGSP)</l>
+<l>elseif (CameraAlgorithm == 'Threshold')</l>
+<c>    * EnableDC1TrshWidth: controls DC1 for TRSH algorithm:</c>
+<c>    *   True: laser line width</c>
+<c>    *   False: left edge position</c>
+<l>    set_framegrabber_param (AcqHandle, 'EnableDC1Width', 1)</l>
+<c>    * EnableDC2TrshSP: controls DC2 for TRSH algorithm:</c>
+<c>    *   True: position value with 1 subpixel</c>
+<c>    *   False: right edge position</c>
+<l>    set_framegrabber_param (AcqHandle, 'EnableDC2TrshSP', 1)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Get image dimensions.</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height_3DC)</l>
+<l>Height := Height_3DC / 3</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>while (true)</l>
+<c>    * Grab 3D data with interleaved data channels (DC0-DC2).</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<c>    * Display image keeping the aspect ratio.</c>
+<l>    dev_close_window ()</l>
+<l>    DisplayHeight := 600</l>
+<l>    DisplayWidth := DisplayHeight * Width / Height_3DC</l>
+<l>    dev_open_window (0, 0, DisplayWidth, DisplayHeight, 'black', WindowID1)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowID1, 'Interleaved DC0-DC2 (' + CameraAlgorithm + ')', 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<c>    * </c>
+<c>    * Separate data channels.</c>
+<l>    separate_data_channels (Image, DC0, DC1, DC2)</l>
+<c>    * Display images keeping the aspect ratio.</c>
+<l>    DisplayWidth := 800</l>
+<l>    DisplayHeight := DisplayWidth * Height / Width</l>
+<l>    dev_open_window (0, 0, DisplayWidth / 3, DisplayHeight / 3, 'black', WindowID1)</l>
+<l>    dev_display (DC0)</l>
+<l>    disp_message (WindowID1, 'DC0 (' + CameraAlgorithm + ')', 'window', 10, 10, 'black', 'true')</l>
+<l>    dev_open_window (0, DisplayWidth / 3 + 5, DisplayWidth / 3, DisplayHeight / 3, 'black', WindowID2)</l>
+<l>    dev_display (DC1)</l>
+<l>    disp_message (WindowID2, 'DC1 (' + CameraAlgorithm + ')', 'window', 10, 10, 'black', 'true')</l>
+<l>    dev_open_window (0, 2 * DisplayWidth / 3 + 10, DisplayWidth / 3, DisplayHeight / 3, 'black', WindowID3)</l>
+<l>    dev_display (DC2)</l>
+<l>    disp_message (WindowID3, 'DC2 (' + CameraAlgorithm + ')', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    disp_continue_message (WindowID3, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<c>    * </c>
+<c>    * Reduce disparity image domain.</c>
+<l>    threshold (DC2, Region, 1, lsh(1,16) - 1)</l>
+<l>    reduce_domain (DC2, Region, ImageReduced)</l>
+<c>    * Convert DisparityImage to real, which is the required</c>
+<c>    * format for apply_sheet_of_light_calibration operator.</c>
+<l>    convert_image_type (ImageReduced, DisparityImage, 'real')</l>
+<l>    if (CameraAlgorithm == 'CenterOfGravity')</l>
+<c>        * DC2: Line position with 1/X pixel resolution (COG of</c>
+<c>        *      beam profile), where X=1,2,4,8,16,32,64</c>
+<l>        scale_image (DisparityImage, DisparityImage, pow(X,-1), 0)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * ProfileRegion defines the region of the profile images in</c>
+<c>    * the sensor by the width of a rectangle. Please adapt the</c>
+<c>    * rectangle to your specific configuration:</c>
+<l>    Row1 := 0</l>
+<l>    Column1 := 0</l>
+<l>    Row2 := Height</l>
+<l>    Column2 := Width</l>
+<l>    gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<c>    * Create the sheet of light model with simplified parameters,</c>
+<c>    * i.e. 'calibration' = 'offset_scale'.</c>
+<l>    create_sheet_of_light_model (Rectangle, 'calibration', 'offset_scale', SheetOfLightModelID)</l>
+<c>    * Set the scaling factors such that the distance of</c>
+<c>    * neighboring 3D points is approximately the same as in the</c>
+<c>    * real object. Note that through the scaling, only</c>
+<c>    * approximate 3D coordinates are obtained (scaling does not</c>
+<c>    * replace calibration).</c>
+<l>    ScaleX := 1</l>
+<l>    ScaleY := 1</l>
+<l>    ScaleZ := 1</l>
+<l>    set_sheet_of_light_param (SheetOfLightModelID, 'scale_x', ScaleX)</l>
+<l>    set_sheet_of_light_param (SheetOfLightModelID, 'scale_y', ScaleY)</l>
+<l>    set_sheet_of_light_param (SheetOfLightModelID, 'scale_z', ScaleZ)</l>
+<c>    * </c>
+<c>    * Use the disparity Image to create a Sheet of Light Model ID.</c>
+<l>    apply_sheet_of_light_calibration (DisparityImage, SheetOfLightModelID)</l>
+<c>    * Get the Sheet of light Model,</c>
+<c>    * based on the previous defined configuration.</c>
+<l>    get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, ObjectModel3D)</l>
+<c>    * Display the result, press button to continue.</c>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, 800, 600, 'black', WindowID1)</l>
+<l>    set_display_font (WindowID1, 16, 'mono', 'true', 'false')</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        VisPose := []</l>
+<l>        Instructions[0] := 'Rotate: Left button'</l>
+<l>        Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>        Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>        Title := CameraAlgorithm + ' - ObjectModel3D (UNCALIBRATED)'</l>
+<l>        visualize_object_model_3d (WindowID1, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['coord_z','rainbow'], Title, [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * Visualize using the amplitude data.</c>
+<c>        * DC0 contains the amplitude infomation.</c>
+<l>        get_region_points (DisparityImage, Rows, Columns)</l>
+<l>        get_grayval (DC0, Rows, Columns, Grayval)</l>
+<l>        set_object_model_3d_attrib_mod (ObjectModel3D, '&amp;amplitude', 'points', Grayval)</l>
+<l>        visualize_object_model_3d (WindowID1, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['&amp;amplitude','sqrt'], Title + ' with Amplitude', [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * In order to create a surface triangulation from the</c>
+<c>        * ObjectModel3D, please see the following examples:</c>
+<c>        *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>        *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>        * </c>
+<l>    else</l>
+<l>        disp_message (WindowID1, 'No 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>    dev_close_window ()</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="separate_data_channels">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="DC0" base_type="iconic" dimension="0"/>
+<par name="DC1" base_type="iconic" dimension="0"/>
+<par name="DC2" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* get input image size</c>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<c>* extract DC0</c>
+<l>zoom_image_factor (Image, DC0, 1, 1. / 3, 'none')</l>
+<l>crop_rectangle1 (Image, ImagePart, 1, 0, Height, Width)</l>
+<c>* extract DC1</c>
+<l>zoom_image_factor (ImagePart, DC1, 1, 1. / 3, 'none')</l>
+<l>crop_rectangle1 (ImagePart, ImagePart, 1, 0, Height, Width)</l>
+<c>* extract DC2</c>
+<l>zoom_image_factor (ImagePart, DC2, 1, 1. / 3, 'none')</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="separate_data_channels">
+<parameters>
+<parameter id="DC0"/>
+<parameter id="DC1"/>
+<parameter id="DC2"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

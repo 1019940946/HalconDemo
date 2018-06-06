@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the Leuze LPS36 sensor in HALCON</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note: the object 3D model is represented with the HALCON</c>
+<c>*       camera 3D coordinate system in meters</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* Adapt the device IP address according to your system</c>
+<l>Device := '192.168.60.03'</l>
+<c>* Connect to the LPS36 device.</c>
+<c>* Note that one line takes approximately 10ms to be acquired,</c>
+<c>* then 128 scan lines represents approximately 1.28s.</c>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[1,2]" as_ord="1">open_framegrabber ('LPS36', 1, 128, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', Device, 1, 1, AcqHandle)</l>
+<c>* Get image dimensions (raw data)</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', RawWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', RawHeight)</l>
+<c>* </c>
+<l>while (true)</l>
+<l>    dev_close_window ()</l>
+<c>    * Grabbing of equidistant image using grab_image. This image</c>
+<c>    * is computed from the raw data and take the encoder values</c>
+<c>    * into account if available.</c>
+<l>    grab_image (EquidistantImage, AcqHandle)</l>
+<c>    * Equidistant Image:</c>
+<c>    * - Width: the raw data is converted to an image of 600 width.</c>
+<c>    * - Height: the height of the image corresponds:</c>
+<c>    *     - if no encoder data -&gt; to the number of scan lines</c>
+<c>    *     - if encoder data -&gt; variable depending on the min and</c>
+<c>    *       and max values of the encoder data. If the resulting</c>
+<c>    *       height exceeds the max image height the encoder data</c>
+<c>    *       is scaled automatically.</c>
+<c>    * - Value: the pixel gray value corresponds to the distance</c>
+<c>    *          (z-axis).</c>
+<c>    * Note: the image is scaled in a way that 1 pixel in the</c>
+<c>    *       width or 1 gray-value correspond to 1mm in the real</c>
+<c>    *       world. The height is currently not scaled.</c>
+<l>    get_image_size (EquidistantImage, Width, Height)</l>
+<l>    dev_open_window (0, 0, Width, Height, 'black', WindowID1)</l>
+<l>    scale_image_max (EquidistantImage, EquidistantImageScaleMax)</l>
+<l>    dev_display (EquidistantImageScaleMax)</l>
+<l>    disp_message (WindowID1, 'Image with equidistant values', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Access to x and z distance data via image tuples using</c>
+<c>    * grab_data. If an external encoder is enabled, the encoder</c>
+<c>    * values are returned in 'Data' parameter. The x and z data</c>
+<c>    * unit is 1/10mm.</c>
+<l>    grab_data (ImageData, Region, Contours, AcqHandle, EncoderData)</l>
+<c>    * Show image with raw z values</c>
+<l>    select_obj (ImageData, ImageRawZ, 1)</l>
+<l>    scale_image_max (ImageRawZ, ImageRawZScaleMax)</l>
+<l>    dev_open_window (RawHeight + 50, 0, RawWidth, RawHeight, 'black', WindowID2)</l>
+<l>    dev_display (ImageRawZScaleMax)</l>
+<l>    disp_message (WindowID2, 'Z distance data', 'window', 10, 10, 'black', 'true')</l>
+<c>    * Show image with raw x values</c>
+<l>    select_obj (ImageData, ImageRawX, 2)</l>
+<l>    scale_image_max (ImageRawX, ImageRawXScaleMax)</l>
+<l>    dev_open_window (RawHeight + 50, RawWidth + 10, RawWidth, RawHeight, 'black', WindowID3)</l>
+<l>    dev_display (ImageRawXScaleMax)</l>
+<l>    disp_message (WindowID3, 'X distance data', 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowID3, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<l>    dev_close_window ()</l>
+<c>    * </c>
+<c>    * Check if an external encoder is enabled</c>
+<l>    tuple_min (EncoderData, EncoderDataMin)</l>
+<l>    tuple_max (EncoderData, EncoderDataMax)</l>
+<l>    if ((EncoderDataMax - EncoderDataMin) == 0)</l>
+<c>        * If NO ENCODER used:</c>
+<c>        * </c>
+<c>        * Create an artificial X image [m] taking into account</c>
+<c>        * the FOV from -300 to 300 mm</c>
+<l>        gen_image_surface_first_order (X, 'real', 0, 0.001, -Width * 0.001 / 2, 0, 0, Width, Height)</l>
+<c>        * Create an artificial Y image [m] assuming 1mm</c>
+<c>        * resolution. The sensor needs approx. 10ms per scan,</c>
+<c>        * then 1mm every 10ms is assumed.</c>
+<l>        gen_image_surface_first_order (Y, 'real', 0.001, 0, 0, 0, 0, Width, Height)</l>
+<c>        * Create Z image [m]</c>
+<c>        * Reduce domain taking into account that 0 value means no</c>
+<c>        * measuring detection</c>
+<l>        threshold (EquidistantImage, Region, 1, lsh(1,16) - 1)</l>
+<l>        reduce_domain (EquidistantImage, Region, ImageReduced)</l>
+<l>        convert_image_type (ImageReduced, Z, 'real')</l>
+<l>        scale_image (Z, Z, 0.001, 0)</l>
+<l>    else</l>
+<c>        * If ENCODER used:</c>
+<c>        * </c>
+<c>        * Create X image [m] from raw x values</c>
+<c>        * The uint2 values have to be interpreted as int2</c>
+<c>        * Convert from 1/10mm to m</c>
+<l>        threshold (ImageRawX, Region, lsh(1,15), lsh(1,16) - 1)</l>
+<l>        convert_image_type (ImageRawX, ImageX, 'real')</l>
+<l>        reduce_domain (ImageX, Region, ImageXNeg)</l>
+<l>        scale_image (ImageXNeg, ImageXNeg, 0.001 * 0.1, -lsh(1,16) * 0.001 * 0.1)</l>
+<l>        overpaint_region (ImageX, Region, 0, 'fill')</l>
+<l>        scale_image (ImageX, ImageXPos, 0.001 * 0.1, 0)</l>
+<l>        full_domain (ImageXNeg, ImageXNeg)</l>
+<l>        add_image (ImageXPos, ImageXNeg, X, 1.0, 0.0)</l>
+<c>        * </c>
+<c>        * Create Y image [m] from the encoder values</c>
+<c>        * Please adapt the conversion factor (encoder step in mm)</c>
+<c>        * to your current setting (e.g. 10 encoder steps = 1mm).</c>
+<l>        ConversionFactor := 10</l>
+<l>        create_y_image_from_encoder_data (Y, EncoderData, RawWidth, RawHeight)</l>
+<l>        convert_image_type (Y, Y, 'real')</l>
+<l>        scale_image (Y, Y, 0.001 / ConversionFactor, 0)</l>
+<c>        * Create Z image [m] from raw z values</c>
+<c>        * Convert from 1/10mm to m</c>
+<c>        * Reduce domain taking into account that 0 value means no</c>
+<c>        * measuring detection</c>
+<l>        threshold (ImageRawZ, Region, 1, lsh(1,16) - 1)</l>
+<l>        reduce_domain (ImageRawZ, Region, ImageReduced)</l>
+<l>        convert_image_type (ImageReduced, Z, 'real')</l>
+<l>        scale_image (Z, Z, 0.001 * 0.1, 0)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Generate an ObjectModel3D and visualize it, press button</c>
+<c>    * to continue</c>
+<l>    xyz_to_object_model_3d (X, Y, Z, ObjectModel3D)</l>
+<l>    dev_open_window (0, 0, 800, 600, 'black', WindowID1)</l>
+<l>    set_display_font (WindowID1, 16, 'mono', 'true', 'false')</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<l>        VisPose := []</l>
+<l>        Instructions[0] := 'Rotate: Left button'</l>
+<l>        Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>        Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>        visualize_object_model_3d (WindowID1, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['coord_z','rainbow'], 'ObjectModel3D', [], Instructions, PoseOut)</l>
+<c>        * </c>
+<c>        * In order to create a surface triangulation from the</c>
+<c>        * ObjectModel3D, please see the following examples:</c>
+<c>        *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>        *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>        * </c>
+<l>    else</l>
+<l>        disp_message (WindowID1, 'No 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_y_image_from_encoder_data">
+<interface>
+<oo>
+<par name="YImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="EncoderData" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* calculate scaling range</c>
+<l>NumScan := Height</l>
+<l>MaxEncoderDelta := lsh(1,24)</l>
+<l>MaxCoord := lsh(1,15)</l>
+<l>UIntMax := lsh(1,16)</l>
+<l>ymin := 0</l>
+<l>ymax := 0</l>
+<l>ypos := 0</l>
+<l>for i := 0 to NumScan - 1 by 1</l>
+<l>    if (i + 1 &lt; NumScan)</l>
+<l>        ydelta := EncoderData[i + 1] - EncoderData[i]</l>
+<l>    else</l>
+<l>        ydelta := 0</l>
+<l>    endif</l>
+<l>    if (ydelta &lt; -MaxEncoderDelta)</l>
+<l>        ydelta := ydelta - MaxEncoderDelta + UIntMax</l>
+<l>    elseif (ydelta &gt; MaxEncoderDelta)</l>
+<l>        ydelta := ydelta + MaxEncoderDelta - UIntMax</l>
+<l>    endif</l>
+<l>    Y[i] := ypos</l>
+<l>    ypos := ypos + ydelta</l>
+<l>    if (ypos &lt; ymin)</l>
+<l>        ymin := ypos</l>
+<l>    endif</l>
+<l>    if (ypos &gt; ymax)</l>
+<l>        ymax := ypos</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>Y[NumScan - 1] := ypos</l>
+<c>* </c>
+<c>* scaling</c>
+<l>ydelta := ymax - ymin</l>
+<l>if (ydelta &gt; MaxCoord)</l>
+<l>    scale := (ydelta + MaxCoord + 1) / MaxCoord</l>
+<l>else</l>
+<l>    scale := 0</l>
+<l>endif</l>
+<l>ymax := 0</l>
+<l>for i := 0 to NumScan - 1 by 1</l>
+<l>    Y[i] := Y[i] - ymin</l>
+<l>    if (scale)</l>
+<l>        Y[i] := Y[i] / scale</l>
+<l>    endif</l>
+<l>    if (Y[i] &gt; ymax)</l>
+<l>        ymax := Y[i]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Create Y image [m] from the enconder data</c>
+<l>gen_image_const (YImage, 'uint2', Width, Height)</l>
+<l>tuple_gen_sequence (0, Height - 1, 1, Col)</l>
+<l>for Index := 0 to Width - 1 by 1</l>
+<l>    tuple_gen_const (Height, Index, Row)</l>
+<l>    set_grayval (YImage, Col, Row, Y)</l>
+<l>endfor</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="create_y_image_from_encoder_data">
+<parameters>
+<parameter id="EncoderData"/>
+<parameter id="Height"/>
+<parameter id="Width"/>
+<parameter id="YImage"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

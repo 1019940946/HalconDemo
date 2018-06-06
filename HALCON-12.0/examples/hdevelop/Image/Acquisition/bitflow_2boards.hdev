@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of two BitFlow frame grabber boards (here: 2 Raven boards)</c>
+<c>* </c>
+<c>* </c>
+<c>* Note, that you have to configure your board (via the tools of the BitFlow SDK) appropriately.</c>
+<c>* Please see also the HTML documentation of the HALCON BitFlow interface!</c>
+<c>* </c>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'Raven:0', -1, 1, AcqHandle)</l>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'Raven:1', -1, 1, AcqHandle2)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>set_framegrabber_param (AcqHandle, 'volatile', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle2, 'volatile', 'enable')</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    grab_image_async (Image2, AcqHandle2, -1)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

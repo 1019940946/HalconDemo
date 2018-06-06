@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operators</c>
+<c>* write_contour_xld_dxf and read_contour_xld_dxf as well as</c>
+<c>* the operators write_polygons_xld_dxf and read_polygon_xld_dxf</c>
+<c>* </c>
+<c>* First, edges are extracted from an image.</c>
+<l>read_image (Image, 'mreut')</l>
+<l>edges_sub_pix (Image, Edges, 'canny', 2, 20, 40)</l>
+<c>* </c>
+<c>* Then, to create global attributes, the regression lines are determined.</c>
+<l>regress_contours_xld (Edges, RegressContours, 'no', 1)</l>
+<c>* </c>
+<c>* Now, we can  query what attributes and global attributes</c>
+<c>* are available for the contours.</c>
+<l>select_obj (RegressContours, ObjectSelected, 1)</l>
+<l>query_contour_attribs_xld (ObjectSelected, Attribs)</l>
+<l>query_contour_global_attribs_xld (ObjectSelected, GlobalAttribs)</l>
+<c>* </c>
+<c>* In the next step, the contours are written into a DXF file. This file</c>
+<c>* contains also the attributes and global attributes.</c>
+<l>write_contour_xld_dxf (RegressContours, 'contours')</l>
+<c>* </c>
+<c>* When the contours are read from the DXF file created with</c>
+<c>* read_contours_xld_dxf, the (global) attributes are read, too.</c>
+<l>read_contour_xld_dxf (ContoursRead, 'contours', [], [], DxfStatusCont)</l>
+<c>* </c>
+<c>* All (global) attributes that were available for the</c>
+<c>* original contours (RegressContours) are available also for the</c>
+<c>* contours (ContoursRead) that have been read from the DXF file.</c>
+<l>select_obj (ContoursRead, ObjectSelected, 1)</l>
+<l>query_contour_attribs_xld (ObjectSelected, AttribsTest)</l>
+<l>query_contour_global_attribs_xld (ObjectSelected, GlobalAttribsTest)</l>
+<c>* </c>
+<c>* Now, we show how to write and read polygons</c>
+<l>gen_polygons_xld (ContoursRead, Polygons, 'ramer', 2)</l>
+<l>write_polygon_xld_dxf (Polygons, 'polygons')</l>
+<l>read_polygon_xld_dxf (PolygonsRead, 'polygons', [], [], DxfStatusPoly)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

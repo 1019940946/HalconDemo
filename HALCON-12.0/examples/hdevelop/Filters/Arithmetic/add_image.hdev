@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to add two images with</c>
+<c>* the operator 'add_image'.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Read the two images and cut out a rectangular area</c>
+<c>* in each image</c>
+<l>read_image (Image1, 'patras')</l>
+<l>read_image (Image2, 'brycecanyon1')</l>
+<l>crop_part (Image1, ImagePart1, 0, 0, 512, 480)</l>
+<l>crop_part (Image2, ImagePart2, 0, 0, 512, 480)</l>
+<c>* </c>
+<c>* Display the two input images for the addition</c>
+<l>dev_open_window_fit_image (ImagePart1, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (ImagePart1)</l>
+<l>disp_message (WindowHandle, 'Image 1', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImagePart2)</l>
+<l>disp_message (WindowHandle, 'Image 2', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Add the two images with factor 0.5 for the gray value</c>
+<c>* adaption. The resulting image is stored in ImageResult.</c>
+<l>add_image (ImagePart1, ImagePart2, ImageResult, 0.5, 0)</l>
+<l>dev_display (ImageResult)</l>
+<l>disp_message (WindowHandle, 'Resulting image of the addition', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

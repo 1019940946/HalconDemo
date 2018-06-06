@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images with the LuCam interface</c>
+<c>* (software image cropping)</c>
+<c>* </c>
+<c>* </c>
+<c>* Adapt the following settings according to your configuration!</c>
+<l>MyCameraType := 'default'</l>
+<l>MyColorSpace := 'rgb'</l>
+<l>MyDevice := 'default'</l>
+<l>open_framegrabber ('LuCam', 1, 1, 0, 0, 0, 0, 'default', -1, MyColorSpace, -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, MaxWidth / 2, MaxHeight / 2, 'black', WindowHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* "zoom" into the image:</c>
+<l>for i := 0 to MaxHeight / 32 - 1 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'image_width', MaxWidth - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'image_height', MaxHeight - 32 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'start_column', 16 * i)</l>
+<l>    set_framegrabber_param (AcqHandle, 'start_row', 16 * i)</l>
+<l>    get_framegrabber_param (AcqHandle, ['start_column','start_row','image_width','image_height'], ImagePart)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* reset full image size:</c>
+<l>set_framegrabber_param (AcqHandle, 'start_column', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'start_row', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>set_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<l>get_framegrabber_param (AcqHandle, ['start_column','start_row','image_width','image_height'], ImagePart)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* "zoom" into the image during open_framegrabber:</c>
+<l>for i := 0 to MaxHeight / 32 - 1 by 1</l>
+<l>    open_framegrabber ('LuCam', 1, 1, MaxWidth - 32 * i, MaxHeight - 32 * i, 16 * i, 16 * i, 'default', -1, MyColorSpace, -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<l>    get_framegrabber_param (AcqHandle, ['start_column','start_row','image_width','image_height'], ImagePart)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    close_framegrabber (AcqHandle)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

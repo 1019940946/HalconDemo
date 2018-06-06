@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'for5')</l>
+<l>threshold (Image, Region, 100, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'width', 'and', 300, 400)</l>
+<l>smallest_rectangle2 (SelectedRegions, Row, Column, Phi, Length1, Length2)</l>
+<l>gen_rectangle2 (CarSign, Row, Column, Phi, Length1, Length2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CarSign)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

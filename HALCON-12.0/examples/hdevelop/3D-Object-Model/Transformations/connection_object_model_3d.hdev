@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************</c>
+<c>* This example program shows how to use the operator</c>
+<c>* connection_object_model_3d in HALCON. The connected</c>
+<c>* components are calculated based on the mesh information.</c>
+<c>* For the usage of connection_object_model_3d, please see</c>
+<c>* the example ../Features/select_object_model_3d.hdev</c>
+<c>* ***********************************************************</c>
+<c>* Prepare windows</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, 512, 512, 512, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<c>* Read 3D object model</c>
+<l>read_object_model_3d ('bmc_mini', 'm', [], [], ObjectModel3D, Status)</l>
+<c>* </c>
+<c>* Calculate the connected components based on the mesh</c>
+<c>* information. The parameter 'Value' is ignored for the</c>
+<c>* feature 'mesh'.</c>
+<l>connection_object_model_3d (ObjectModel3D, 'mesh', 1, ObjectModel3DConnected)</l>
+<c>* </c>
+<c>* Display the object model 3D</c>
+<l>Pose := [0.08,0.05,1.0,188.0,50.0,0.0,0]</l>
+<l>CamParam := [0.01,0,7e-6,7e-6,256,240,512,512]</l>
+<l>disp_object_model_3d_safe (WindowHandle1, ObjectModel3D, CamParam, Pose, 'colored', 12)</l>
+<l>disp_object_model_3d_safe (WindowHandle2, ObjectModel3DConnected, CamParam, Pose, 'colored', 12)</l>
+<l>disp_message (WindowHandle1, 'The complete model', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle2, 'The connected components', 'window', 12, 12, 'black', 'true')</l>
+<l>clear_object_model_3d ([ObjectModel3D,ObjectModel3DConnected])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

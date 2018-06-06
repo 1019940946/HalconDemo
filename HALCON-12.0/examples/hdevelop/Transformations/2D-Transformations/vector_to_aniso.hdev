@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program gives an example of how to use vector_to_aniso.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 500, 500, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, 499, 499)</l>
+<c>* To generate a set of points from which we can construct a transformation,</c>
+<c>* we will use a synthetic square and read out its coordinates.</c>
+<l>gen_contour_polygon_rounded_xld (Square, [100,100,300,300,100], [100,300,300,100,100], [20,20,20,20,20], 1)</l>
+<l>get_contour_xld (Square, Rows1, Columns1)</l>
+<c>* Now we will transform the square by a known transformation, resulting in a</c>
+<c>* rotated rectangle, and add some noise to the coordinates.</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, 1.25, 0.5, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_rotate (HomMat2DScale, rad(30), 0, 0, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, 150, 150, HomMat2DTranslate)</l>
+<l>affine_trans_point_2d (HomMat2DTranslate, Rows1, Columns1, Rows2, Columns2)</l>
+<l>gen_contour_polygon_xld (Rectangle, Rows2, Columns2)</l>
+<l>add_noise_white_contour_xld (Rectangle, NoisyRectangle, 5, 5)</l>
+<c>* We will read out the coordinates of the noisy rectangle and use it to construct</c>
+<c>* the transformation.  Note that by his approach we know exactly which points</c>
+<c>* correspond to each other.  In a real application, the step of determining</c>
+<c>* the correspondences is usually the hard part.</c>
+<l>get_contour_xld (NoisyRectangle, Rows2, Columns2)</l>
+<c>* Now we can determine the anisotropic similarity transformation that best</c>
+<c>* approximates the the point correspondences.</c>
+<l>vector_to_aniso (Rows1, Columns1, Rows2, Columns2, HomMat2D)</l>
+<c>* Finally, we transform the original contour by the calculated transformation</c>
+<c>* to get an impression of how accurate the calculated transformation is</c>
+<c>* (but before that, correct the coordinate system).</c>
+<l>hom_mat2d_translate (HomMat2D, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DAdapted)</l>
+<l>affine_trans_contour_xld (Square, SquareTrans, HomMat2DAdapted)</l>
+<c>* Now let's display the results:</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Calculate anisometric transformation of'</l>
+<l>Message[1] := 'a square: Scale first, then rotate'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_color ('white')</l>
+<l>disp_message (WindowHandle, 'Original square', 'window', 80, 100, '', 'false')</l>
+<l>dev_display (Square)</l>
+<l>dev_set_color ('red')</l>
+<l>disp_message (WindowHandle, 'Noisy rectangle', 'window', 340, 160, '', 'false')</l>
+<l>dev_display (NoisyRectangle)</l>
+<l>dev_set_color ('green')</l>
+<l>disp_message (WindowHandle, 'Transformed square', 'window', 360, 140, '', 'false')</l>
+<l>dev_display (SquareTrans)</l>
+<l>stop ()</l>
+<c>* Note that the transformation in vector_to_aniso first scales and then</c>
+<c>* rotates the points.  This means that the square can only be transformed</c>
+<c>* into a rotated rectangle.  Sometimes, a different kind of transformation,</c>
+<c>* in which the points are first rotated and then scaled, is required.  This</c>
+<c>* kind of transformation can transform the square into a rotated rhomboid</c>
+<c>* (but not into a rotated rectangle).  To obtain this kind of transformation,</c>
+<c>* the point correspondences must be passed in the opposite order to</c>
+<c>* vector_to_aniso and the resulting transformation must be inverted.</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(30), 0, 0, HomMat2DRotate)</l>
+<l>hom_mat2d_scale (HomMat2DRotate, 1.25, 0.5, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_translate (HomMat2DScale, 200, 200, HomMat2DTranslate)</l>
+<l>affine_trans_point_2d (HomMat2DTranslate, Rows1, Columns1, Rows2, Columns2)</l>
+<l>gen_contour_polygon_xld (Rhomboid, Rows2, Columns2)</l>
+<l>add_noise_white_contour_xld (Rhomboid, NoisyRhomboid, 5, 5)</l>
+<l>get_contour_xld (NoisyRhomboid, Rows2, Columns2)</l>
+<c>* Now we can determine the anisotropic similarity transformation that best</c>
+<c>* approximates the the point correspondences.</c>
+<c>* Note, that the point pairs are passed in the opposite order</c>
+<c>* (measured first, then original), and the transformation is inverted afterwards.</c>
+<l>vector_to_aniso (Rows2, Columns2, Rows1, Columns1, HomMat2D)</l>
+<l>hom_mat2d_invert (HomMat2D, HomMat2D)</l>
+<c>* Finally, we transform the original contour by the calculated transformation</c>
+<c>* to get an impression of how accurate the calculated transformation is.</c>
+<l>hom_mat2d_translate (HomMat2D, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DAdapted)</l>
+<l>affine_trans_contour_xld (Square, SquareTrans, HomMat2DAdapted)</l>
+<c>* Now let's display the results:</c>
+<l>dev_clear_window ()</l>
+<l>Message[1] := 'a square: Rotate first, then scale'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_color ('white')</l>
+<l>disp_message (WindowHandle, 'Original square', 'window', 80, 100, '', 'false')</l>
+<l>dev_display (Square)</l>
+<l>dev_set_color ('red')</l>
+<l>disp_message (WindowHandle, 'Noisy rhomboid', 'window', 340, 130, '', 'false')</l>
+<l>dev_display (NoisyRhomboid)</l>
+<l>dev_set_color ('green')</l>
+<l>disp_message (WindowHandle, 'Transformed square', 'window', 360, 100, '', 'false')</l>
+<l>dev_display (SquareTrans)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

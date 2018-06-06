@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for using timestamp in images from a IDS uEye camera</c>
+<c>* (timestamp difference between two grabbed images)</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 64, 'black', WindowHandle)</l>
+<c>* </c>
+<l>open_framegrabber ('uEye', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'trigger_signal', 'software')</l>
+<l>set_framegrabber_param (AcqHandle, 'exposure', 1)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'pixel_clock', PixelClock)</l>
+<l>get_framegrabber_param (AcqHandle, 'frame_rate', FrameRate)</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * </c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    get_framegrabber_param (AcqHandle, 'timestamp_int', TS_int_1)</l>
+<c>    * </c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    get_framegrabber_param (AcqHandle, 'timestamp_int', TS_int_2)</l>
+<c>    * </c>
+<c>    * we assume a &gt; b</c>
+<l>    a := TS_int_2</l>
+<l>    b := TS_int_1</l>
+<c>    * </c>
+<l>    Diff := a - b</l>
+<l>    for n := |Diff| - 1 to 1 by -1</l>
+<l>        if (Diff[n] &lt; 0)</l>
+<l>            Diff[n] := 65536 + Diff[n]</l>
+<l>            Diff[n - 1] := Diff[n - 1] - 1</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * integers are represented as signed 32 bit integers</c>
+<c>    * remove sign and shift 16 bit</c>
+<l>    TimeDiff := lsh(Diff[2] band 0x7FFF,16) + Diff[3]</l>
+<c>    * </c>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    set_tposition (WindowHandle, 24, 12)</l>
+<l>    write_string (WindowHandle, 'Time difference: ' + (TimeDiff / 1e7)$'.6f' + ' sec')</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

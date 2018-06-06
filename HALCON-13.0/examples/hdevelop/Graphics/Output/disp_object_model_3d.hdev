@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the operator disp_object_model_3d to</c>
+<c>* display 3d object models.</c>
+<c>* The example shows the usage of different visualization parameters</c>
+<c>* and requires OpenGL!</c>
+<l>dev_update_off ()</l>
+<l>gen_cam_par_area_scan_division (0.025, 0, 1.1e-05, 1.1e-05, 384.0, 288.0, 768, 576, CameraParam)</l>
+<l>create_pose (-0.037, 0.026, 0.42, 137, 52, 326, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>create_pose (0.009, -0.011, 0.4, 354, 317, 252, 'Rp+T', 'gba', 'point', Pose2)</l>
+<l>create_pose (0.042, 0.01, 0.4, 253, 313, 325, 'Rp+T', 'gba', 'point', Pose3)</l>
+<l>ObjPoses := [Pose1,Pose2,Pose3]</l>
+<l>read_object_model_3d ('pipe_joint', 'm', 'convert_to_triangles', 'true', PipeJointOM3DID, Status)</l>
+<l>ObjectModel3DIDs := [PipeJointOM3DID,PipeJointOM3DID,PipeJointOM3DID]</l>
+<l>dev_close_window ()</l>
+<l>get_cam_par_data (CameraParam, 'image_width', ImageWidth)</l>
+<l>get_cam_par_data (CameraParam, 'image_height', ImageHeight)</l>
+<l>dev_open_window (0, 0, ImageWidth, ImageHeight, 'gray', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, ImageWidth - 1)</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>try</l>
+<c>    * </c>
+<c>    * Display objects with different colors</c>
+<c>    * </c>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, 'colored', 12)</l>
+<l>    dev_disp_text ('Display objects with different colors', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Use different distortion coefficients</c>
+<c>    * </c>
+<l>    GenParNames := 'colored'</l>
+<l>    GenParValues := 12</l>
+<l>    Kappa := -20000</l>
+<l>    count_seconds (LastTime)</l>
+<l>    DeltaKappaPerSecond := 15000</l>
+<l>    set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>    while (Kappa &lt; 10000)</l>
+<l>        count_seconds (CurrentTime)</l>
+<l>        DeltaT := CurrentTime - LastTime</l>
+<l>        DeltaKappa := DeltaT * DeltaKappaPerSecond</l>
+<l>        Kappa := Kappa + DeltaKappa</l>
+<l>        LastTime := CurrentTime</l>
+<l>        set_cam_par_data (CameraParam, 'kappa', Kappa, CameraParam)</l>
+<l>        disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>        dev_disp_text ('disp_object_model_3d takes account of radial distortions', 'window', 'top', 'left', 'black', [], [])</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>    endwhile</l>
+<l>    set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>    set_cam_par_data (CameraParam, 'kappa', 0, CameraParam)</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Set individual object colors</c>
+<c>    * </c>
+<l>    GenParNames := ['color_0','color_1','color_2']</l>
+<l>    GenParValues := ['yellow','#909090','cyan']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Set individual colors for each object', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Set translucency</c>
+<c>    * </c>
+<l>    GenParNames := [GenParNames,'alpha']</l>
+<l>    GenParValues := [GenParValues,0.7]</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Set the translucency', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Control the light source</c>
+<c>    * </c>
+<l>    LightAmbient := 1.0</l>
+<l>    count_seconds (LastTime)</l>
+<l>    LAPerSecond := 0.5</l>
+<l>    set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>    while (LightAmbient &gt; 0.0)</l>
+<l>        count_seconds (CurrentTime)</l>
+<l>        DeltaT := CurrentTime - LastTime</l>
+<l>        DeltaLA := DeltaT * LAPerSecond</l>
+<l>        LightAmbient := LightAmbient - DeltaLA</l>
+<l>        LightDiffuse := 1.0 - LightAmbient</l>
+<l>        LastTime := CurrentTime</l>
+<l>        GenParNamesL := [GenParNames,'light_ambient','light_diffuse']</l>
+<l>        LightAmbientString := LightAmbient + ' ' + LightAmbient + ' ' + LightAmbient</l>
+<l>        LightDiffuseString := LightDiffuse + ' ' + LightDiffuse + ' ' + LightDiffuse</l>
+<l>        GenParValuesL := [GenParValues,LightAmbientString,LightDiffuseString]</l>
+<l>        disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNamesL, GenParValuesL)</l>
+<l>        dev_disp_text ('Control the light source', 'window', 'top', 'left', 'black', [], [])</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>    endwhile</l>
+<l>    set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Visualize poses</c>
+<c>    * </c>
+<l>    GenParNames := [GenParNames,'disp_pose']</l>
+<l>    GenParValues := [GenParValues,'true']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Display the poses', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Visualize lines</c>
+<c>    * </c>
+<l>    GenParNames := [GenParNames,'disp_lines']</l>
+<l>    GenParValues := [GenParValues,'true']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Display as wireframe', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Set a different color for the lines</c>
+<c>    * </c>
+<l>    GenParNames := [GenParNames,'line_color']</l>
+<l>    GenParValues := [GenParValues,'white']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Set the color of the lines', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Visualize points instead of faces</c>
+<c>    * </c>
+<l>    GenParNames := ['colored','attribute']</l>
+<l>    GenParValues := [12,'points']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Display points instead of faces', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Select the attribute that is used for false color visualization</c>
+<c>    * </c>
+<l>    GenParNames := [GenParNames,'color_attrib']</l>
+<l>    GenParValues := [GenParValues,'coord_x']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Select attributes as for false color visualization', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Visualize an extended attribute</c>
+<c>    * </c>
+<l>    get_object_model_3d_params (PipeJointOM3DID, 'point_coord_x', PointX)</l>
+<l>    get_object_model_3d_params (PipeJointOM3DID, 'point_coord_y', PointY)</l>
+<l>    get_object_model_3d_params (PipeJointOM3DID, 'point_coord_z', PointZ)</l>
+<l>    get_object_model_3d_params (PipeJointOM3DID, 'center', Center)</l>
+<l>    SquaredDist := (PointX - Center[0]) * (PointX - Center[0]) + (PointY - Center[1]) * (PointY - Center[1]) + (PointZ - Center[2]) * (PointZ - Center[2])</l>
+<l>    DistToCenter := sqrt(SquaredDist)</l>
+<l>    set_object_model_3d_attrib_mod (PipeJointOM3DID, '&amp;dist_to_center', 'points', DistToCenter)</l>
+<l>    GenParNames := ['colored','attribute','color_attrib']</l>
+<l>    GenParValues := [12,'points','&amp;dist_to_center']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text (['Visualize an extended attribute','(distance to the center of the point set)'], 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Use a LUT to colorize points</c>
+<c>    * </c>
+<l>    GenParNames := [GenParNames,'lut']</l>
+<l>    GenParValues := [GenParValues,'temperature']</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_disp_text ('Use a LUT to colorize the points', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Increase the point size</c>
+<c>    * </c>
+<l>    PointSize := 3.5</l>
+<l>    count_seconds (LastTime)</l>
+<l>    DeltaPointSizePerSecond := (25 - 3.5) / 2</l>
+<l>    set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>    while (PointSize &lt; 25)</l>
+<l>        count_seconds (CurrentTime)</l>
+<l>        DeltaT := CurrentTime - LastTime</l>
+<l>        DeltaPointSize := DeltaT * DeltaPointSizePerSecond</l>
+<l>        PointSize := PointSize + DeltaPointSize</l>
+<l>        LastTime := CurrentTime</l>
+<l>        GenParNamesPS := [GenParNames,'point_size']</l>
+<l>        GenParValuesPS := [GenParValues,PointSize]</l>
+<l>        disp_object_model_3d (WindowHandle, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNamesPS, GenParValuesPS)</l>
+<l>        dev_disp_text ('Set the point size', 'window', 'top', 'left', 'black', [], [])</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>    endwhile</l>
+<l>    set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Use render_object_model_3d</c>
+<c>    * </c>
+<c>    * Instead of displaying the scene directly,</c>
+<c>    * the scene can be rendered into an image</c>
+<c>    * with the operator render_object_model_3d</c>
+<c>    * (E.g. if no visualization in a window is</c>
+<c>    * needed or the image shall be saved to disc etc.)</c>
+<l>    render_object_model_3d (Image, ObjectModel3DIDs, CameraParam, ObjPoses, GenParNames, GenParValues)</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Scene rendered with render_object_model_3d'</l>
+<l>    Message[1] := 'and stored in Image'</l>
+<l>    dev_disp_text ('Scene rendered with render_object_model_3d', 'window', 'top', 'left', 'black', [], [])</l>
+<l>catch (Exception)</l>
+<l>    dev_disp_text ('This example requires OpenGL!', 'window', 'top', 'left', 'black', [], [])</l>
+<l>endtry</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>clear_object_model_3d (PipeJointOM3DID)</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

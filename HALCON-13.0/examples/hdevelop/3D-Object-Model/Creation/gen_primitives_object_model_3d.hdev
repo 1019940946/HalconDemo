@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operators</c>
+<c>* gen_plane_object_model_3d, gen_sphere_object_model_3d_center</c>
+<c>* gen_sphere_object_model_3d, gen_cylinder_object_model_3d, and</c>
+<c>* gen_box_object_model_3d in HALCON. In this example, a plane,</c>
+<c>* two spheres, a cylinder, and a box are set with different poses.</c>
+<c>* The generated primitves of the 3D object models are visualized.</c>
+<c>* </c>
+<c>* Initialize program.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>PoseIn := [0.1,1.5,88,106,337,224,0]</l>
+<l>gen_circle_contour_xld (ContCircle, 200, 200, 100, 0, 6.28318, 'positive', 120)</l>
+<l>get_contour_xld (ContCircle, Row, Column)</l>
+<l>X := 3 * Row / max([Row,Column]) - 2</l>
+<l>Y := 3 * Column / max([Row,Column]) - 2</l>
+<c>* </c>
+<c>* Create an infinite plane.</c>
+<l>gen_plane_object_model_3d ([0,0,0,0,0,0,0], [], [], ObjectModel3DPlane1)</l>
+<c>* Create a limited plane.</c>
+<l>gen_plane_object_model_3d ([1,1,1,0,50,30,0], X, Y, ObjectModel3DPlane2)</l>
+<c>* Create a sphere using pose.</c>
+<l>gen_sphere_object_model_3d ([0,0,3,0,0,0,0], 0.5, ObjectModel3DSphere1)</l>
+<c>* Create a sphere und position.</c>
+<l>gen_sphere_object_model_3d_center (-1, 0, 1, 1, ObjectModel3DSphere2)</l>
+<c>* Create a cylinder.</c>
+<l>gen_cylinder_object_model_3d ([1,-1,2,0,0,60,0], 0.5, -1, 1, ObjectModel3DCylinder)</l>
+<c>* Create a box.</c>
+<l>gen_box_object_model_3d ([-1,2,1,0,0,90,0], 1, 2, 1, ObjectModel3DBox)</l>
+<c>* </c>
+<c>* Display the generated primitives.</c>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>ObjectModels := [ObjectModel3DPlane1,ObjectModel3DCylinder,ObjectModel3DSphere1,ObjectModel3DSphere2,ObjectModel3DPlane2,ObjectModel3DBox]</l>
+<l>Labels := ['Plane1','Cylinder','Sphere1','Sphere2','Plane2','Box']</l>
+<l>VisParamName := ['disp_pose_3','color_0','color_1','color_2','color_3','color_4','color_5','alpha_0']</l>
+<l>VisParamValue := ['true','green','cyan','yellow','magenta','blue','white',0.5]</l>
+<l>visualize_object_model_3d (WindowHandle, ObjectModels, [], PoseIn, VisParamName, VisParamValue, [], Labels, Instructions, PoseOut)</l>
+<c>* </c>
+<c>* Clear all 3D object models</c>
+<l>clear_object_model_3d (ObjectModels)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

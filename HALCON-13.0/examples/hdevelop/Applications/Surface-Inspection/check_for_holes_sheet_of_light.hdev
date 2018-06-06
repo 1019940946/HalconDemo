@@ -1,0 +1,704 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of a calibrated sheet-of-light</c>
+<c>* setup for surface comparison. In particular, in this example,</c>
+<c>* the presence and correctness of holes is checked.</c>
+<c>* The inspected injection molds were scanned with a calibrated setup</c>
+<c>* that returns metric x, y, and z coordinates.</c>
+<c>* </c>
+<c>* The disparities are added to a sheet_of_light_model with the operator</c>
+<c>* set_profile_sheet_of_light. Using the parameters of the calibrated setup,</c>
+<c>* the measurements are transformed into a 3D object model.</c>
+<c>* </c>
+<c>* In the first part of the example program, the reference object is</c>
+<c>* created, together with a model for surface-based matching, which</c>
+<c>* is used in the second part to align the test objects with the</c>
+<c>* reference object.</c>
+<c>* </c>
+<c>* In the second part, the test objects are aligned with the reference</c>
+<c>* object. Then, the distance from the test object to the reference</c>
+<c>* object is calculated as well as the distance from the reference</c>
+<c>* object to the test object. The results of these two distance</c>
+<c>* measurements are analyzed for clues that holes are missing</c>
+<c>* or that there are additional holes, holes at a wrong position</c>
+<c>* or with a wrong size. The result of this analysis is then</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* If the alignment result should be displayed separately, set the</c>
+<c>* parameter DisplayAlignmentResult to true</c>
+<l>DisplayAlignmentResult := false</l>
+<c>* </c>
+<c>* Create a sheet-of-light model to collect the disparities</c>
+<c>* and set the calibration information for the reconstruction.</c>
+<l>read_image (Disparity, 'sheet_of_light/injection_mold_01_disparity')</l>
+<l>get_image_size (Disparity, Width, Height)</l>
+<l>NumProfiles := Height</l>
+<l>gen_rectangle1 (Rectangle, 0, 0, Height - 1, Width - 1)</l>
+<l>create_sheet_of_light_model (Rectangle, [], [], SheetOfLightModelID)</l>
+<c>* Set the calibration parameters</c>
+<l>gen_cam_par_area_scan_division (0.016, -1250.34, 4.65114e-006, 4.65e-006, 623.43, 515.23, 1280, 1024, CameraParam)</l>
+<l>CameraPose := [0.0013952482819,-0.0025835234583,-0.53764418409,337.80940798,359.84685912,358.46883832,0]</l>
+<l>LightplanePose := [-0.047567497224,-0.73091602504,0.0016815300297,271.32238394,0.40428170089,359.66058824,0]</l>
+<l>MovementPose := [-2.5e-005,-1.5e-4,-1.25e-006,0.0,0.0,0.0,0]</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'calibration', 'xyz')</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale', 'm')</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'camera_parameter', CameraParam)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'camera_pose', CameraPose)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'lightplane_pose', LightplanePose)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'movement_pose', MovementPose)</l>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Disparity, 0, 0, 500, 480, WindowHandle1)</l>
+<l>get_window_extents (WindowHandle1, Row, Column, Width1, Height1)</l>
+<l>dev_open_window_fit_image (Disparity, 0, Width1 + 8, 500, 480, WindowHandle2)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<c>* </c>
+<c>* Define text labels and colors for the possible error types</c>
+<l>ErrorTypesText := ['unknown','additional hole','missing hole','hole too large','hole too small','wrong position','unknown (missing in test object)','unknown (missing in reference object)']</l>
+<l>ErrorTypesColor := ['white','magenta','red','blue','yellow','cyan','white','white']</l>
+<c>* </c>
+<c>* Set the disparity image of the reference object</c>
+<l>set_profile_sheet_of_light (Disparity, SheetOfLightModelID, [])</l>
+<c>* </c>
+<c>* Get the 3D object model of the reference object</c>
+<l>get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, ReferenceOrig)</l>
+<c>* </c>
+<c>* Cut off the ground plane</c>
+<l>select_points_object_model_3d (ReferenceOrig, 'point_coord_z', 0.01, 1, Reference)</l>
+<c>* Clean up</c>
+<l>clear_object_model_3d (ReferenceOrig)</l>
+<c>* </c>
+<c>* Create the model for surface-based matching</c>
+<l>create_surface_model (Reference, 0.02, [], [], SurfaceModelID)</l>
+<c>* </c>
+<c>* Display reference object</c>
+<l>dev_clear_window ()</l>
+<l>get_window_extents (WindowHandle1, Row2, Column2, Width2, Height2)</l>
+<l>dev_set_part (0, 0, Height2 - 1, Width2 - 1)</l>
+<l>Introduction := 'This example shows the usage of a calibrated'</l>
+<l>Introduction[1] := 'sheet-of-light setup for surface comparison.'</l>
+<l>Introduction[2] := 'In particular, in this example the presence'</l>
+<l>Introduction[3] := 'and correctness of holes is checked.'</l>
+<l>disp_message (WindowHandle1, Introduction, 'window', 12, 12, 'white', 'false')</l>
+<l>create_pose (0.0474352, 0.0572356, 1.94537, 350.457, 347.057, 346.811, 'Rp+T', 'gba', 'point', PoseDisplay)</l>
+<l>Title := 'Reference object'</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>visualize_object_model_3d (WindowHandle2, Reference, [], PoseDisplay, ['color','color_attrib'], ['gray','coord_z'], Title, [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* Display the reference object in the second window for comparison with the</c>
+<c>* test object</c>
+<l>dev_set_window (WindowHandle2)</l>
+<l>get_window_extents (WindowHandle2, Row2, Column2, Width2, Height2)</l>
+<l>dev_set_part (0, 0, Height2 - 1, Width2 - 1)</l>
+<l>dev_clear_window ()</l>
+<l>disp_object_model_3d (WindowHandle2, Reference, [], PoseDisplay, ['color','color_attrib'], ['gray','coord_z'])</l>
+<l>disp_message (WindowHandle2, 'Reference object', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Main loop</c>
+<l>NumScenes := 6</l>
+<l>MaxDist := 0.001</l>
+<l>for SceneIndex := 1 to NumScenes by 1</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle1, 'Match test object with reference object ...', 'window', 12, 12, 'black', 'true')</l>
+<c>    * Read disparity image</c>
+<l>    read_image (Disparity, 'sheet_of_light/injection_mold_' + SceneIndex$'02d' + '_disparity')</l>
+<c>    * Reset the disparities in the sheet-of-light model. All other settings can be reused</c>
+<l>    reset_sheet_of_light_model (SheetOfLightModelID)</l>
+<l>    set_profile_sheet_of_light (Disparity, SheetOfLightModelID, [])</l>
+<c>    * Cut off the ground plane</c>
+<l>    get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, TestObjectOrig)</l>
+<l>    select_points_object_model_3d (TestObjectOrig, 'point_coord_z', 0.01, 1, TestObject)</l>
+<l>    clear_object_model_3d (TestObjectOrig)</l>
+<l>    disp_object_model_3d (WindowHandle1, TestObject, [], [], ['color','color_attrib'], ['gray','coord_z'])</l>
+<l>    disp_message (WindowHandle1, 'Match test object ' + SceneIndex + ' with reference object...', 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (1)</l>
+<c>    * </c>
+<c>    * Align the test object with the reference object:</c>
+<c>    * Determine the transformation between the test object and the reference object</c>
+<c>    * with surface-based matching.</c>
+<c>    * Note that the RelSamplingDistance has been set fairly small and the</c>
+<c>    * KeypointFraction has been set fairly large. This is necessary to ensure that</c>
+<c>    * enough points that lie on curved parts are used because the object contains</c>
+<c>    * large planar parts. Note that planar parts restrict the transformation only</c>
+<c>    * in the direction of their normal vector and thus are not sufficient to</c>
+<c>    * determine the transformation reliably, especially, if the data are noisy.</c>
+<l>    find_surface_model (SurfaceModelID, TestObject, 0.02, 0.5, 0, 'false', 'pose_ref_sub_sampling', 1, Pose, Score, NotUsed)</l>
+<l>    pose_invert (Pose, PosesInvert)</l>
+<c>    * Transform the test object to match the reference object</c>
+<l>    rigid_trans_object_model_3d (TestObject, PosesInvert, TestObjectTrans)</l>
+<l>    if (DisplayAlignmentResult)</l>
+<c>        * ...and together with the reference object (if desired, see above)</c>
+<l>        visualize_object_model_3d (WindowHandle1, [Reference,TestObjectTrans], [], PoseDisplay, ['color_0','color_1'], ['forest green','gray'], 'Result of surface based matching:\nTest object (gray) and reference (green)', [], [], PoseOut)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Measure the distances between the reference object and the test object</c>
+<l>    distance_object_model_3d (Reference, TestObjectTrans, [], 0.0, [], [])</l>
+<c>    * Select points with a large distance from the test object</c>
+<l>    select_points_object_model_3d (Reference, '&amp;distance', MaxDist, 1, ObjectModel3DThresholded)</l>
+<l>    ToClear := ObjectModel3DThresholded</l>
+<l>    get_object_model_3d_params (ObjectModel3DThresholded, 'num_points', NumPoints)</l>
+<l>    if (NumPoints &gt; 0)</l>
+<c>        * Calculate connected components, the distance threshold should</c>
+<c>        * be greater than the distance between two scan lines (&gt; MovementPose[1])</c>
+<l>        connection_object_model_3d (ObjectModel3DThresholded, 'distance_3d', 0.001, ObjectModel3DConnected)</l>
+<l>        ToClear := [ToClear,ObjectModel3DConnected]</l>
+<c>        * Keep the large components, discard small ones as noise</c>
+<l>        select_object_model_3d (ObjectModel3DConnected, 'num_points', 'and', 200, 1000000, SurfacePointsMissingInTestObject)</l>
+<l>    else</l>
+<l>        SurfacePointsMissingInTestObject := []</l>
+<l>    endif</l>
+<c>    * Clean up</c>
+<l>    clear_object_model_3d (ToClear)</l>
+<c>    * </c>
+<c>    * Measure the distances the other way round</c>
+<l>    distance_object_model_3d (TestObjectTrans, Reference, [], 0.0, [], [])</l>
+<c>    * Select points with a large distance from the reference</c>
+<l>    select_points_object_model_3d (TestObjectTrans, '&amp;distance', MaxDist, 1, ObjectModel3DThresholded)</l>
+<l>    ToClear := ObjectModel3DThresholded</l>
+<l>    try</l>
+<c>        * Calculate connected components, the distance threshold should</c>
+<c>        * be greater than the distance between two scan lines (&gt; MovementPose[1])</c>
+<l>        connection_object_model_3d (ObjectModel3DThresholded, 'distance_3d', 0.001, ObjectModel3DConnected)</l>
+<l>        ToClear := [ToClear,ObjectModel3DConnected]</l>
+<c>        * Keep the large components, discard small ones as noise</c>
+<l>        select_object_model_3d (ObjectModel3DConnected, 'num_points', 'and', 200, 1000000, SurfacePointsMissingInReference)</l>
+<l>    catch (Exception)</l>
+<l>        SurfacePointsMissingInReference := []</l>
+<l>    endtry</l>
+<c>    * Clean up</c>
+<l>    clear_object_model_3d (ToClear)</l>
+<c>    * </c>
+<c>    * Collect and classify errors</c>
+<l>    ErrorObjects := [SurfacePointsMissingInTestObject,SurfacePointsMissingInReference]</l>
+<l>    ErrorSources := [gen_tuple_const(|SurfacePointsMissingInTestObject|,'missing in test'),gen_tuple_const(|SurfacePointsMissingInReference|,'missing in reference')]</l>
+<l>    ErrorTypes := []</l>
+<l>    gen_empty_obj (ErrorPatterns)</l>
+<l>    NumErrors := |ErrorObjects|</l>
+<l>    if (NumErrors &gt; 0)</l>
+<l>        for ErrorIndex := 0 to NumErrors - 1 by 1</l>
+<l>            ErrorObject := ErrorObjects[ErrorIndex]</l>
+<l>            ErrorSource := ErrorSources[ErrorIndex]</l>
+<c>            * </c>
+<c>            * Create a region from the points of the error object by first fitting</c>
+<c>            * a plane through the points and then projecting the points into this plane.</c>
+<l>            create_region_from_error_points (Region, ErrorObject)</l>
+<c>            * </c>
+<c>            * Analyze the shape of the resulting 2D error pattern (the region)</c>
+<l>            fill_up (Region, RegionFillUp)</l>
+<l>            difference (RegionFillUp, Region, RegionDifference)</l>
+<c>            * </c>
+<l>            circularity (Region, CircularityRegDilation)</l>
+<l>            circularity (RegionFillUp, CircularityRegFillUp)</l>
+<l>            circularity (RegionDifference, CircularityRegDifference)</l>
+<c>            * </c>
+<l>            area_center (Region, AreaRegDilation, Row1, Column1)</l>
+<l>            area_center (RegionFillUp, AreaRegFillUp, Row1, Column1)</l>
+<l>            area_center (RegionDifference, AreaRegDifference, Row1, Column1)</l>
+<c>            * </c>
+<c>            * Determine the kind of error</c>
+<l>            MinCircularity := 0.7</l>
+<l>            if (CircularityRegDilation &gt; MinCircularity and real(AreaRegDifference) / AreaRegDilation &lt; 0.1)</l>
+<l>                if (ErrorSource == 'missing in test')</l>
+<l>                    ErrorType := 1</l>
+<l>                else</l>
+<l>                    ErrorType := 2</l>
+<l>                endif</l>
+<l>            elseif (CircularityRegFillUp &gt; MinCircularity and CircularityRegDifference &gt; MinCircularity and real(AreaRegDifference) / AreaRegDilation &gt; 0.1)</l>
+<l>                if (ErrorSource == 'missing in test')</l>
+<l>                    ErrorType := 3</l>
+<l>                else</l>
+<l>                    ErrorType := 4</l>
+<l>                endif</l>
+<l>            else</l>
+<l>                ErrorType := 0</l>
+<l>            endif</l>
+<l>            ErrorTypes[ErrorIndex] := ErrorType</l>
+<l>            concat_obj (ErrorPatterns, Region, ErrorPatterns)</l>
+<l>        endfor</l>
+<c>        * </c>
+<c>        * Inspect the 'unknown' error types if there are clues for holes that</c>
+<c>        * have just a slightly wrong position. This kind of error would result</c>
+<c>        * in the presence of symmetric error objects, because some part of the</c>
+<c>        * hole would be missing in the test object and on the opposite side</c>
+<c>        * of the hole, a part would be missing in the reference object.</c>
+<l>        MaskKnown := ErrorTypes [!=] 0</l>
+<l>        ErrorObjectsKnown := select_mask(ErrorObjects,MaskKnown)</l>
+<l>        ErrorTypesKnown := select_mask(ErrorTypes,MaskKnown)</l>
+<c>        * </c>
+<l>        MaskUnknownMIT := ErrorTypes [==] 0 and ErrorSources [==] 'missing in test'</l>
+<l>        ErrorObjectsUnknownMIT := select_mask(ErrorObjects,MaskUnknownMIT)</l>
+<l>        MaskUnknownMIR := ErrorTypes [==] 0 and ErrorSources [==] 'missing in reference'</l>
+<l>        ErrorObjectsUnknownMIR := select_mask(ErrorObjects,MaskUnknownMIR)</l>
+<c>        * </c>
+<l>        ErrorObjectsWrongPos := []</l>
+<l>        ErrorTypesWrongPos := []</l>
+<c>        * </c>
+<l>        MergedMIT := gen_tuple_const(|ErrorObjectsUnknownMIT|,false)</l>
+<l>        MergedMIR := gen_tuple_const(|ErrorObjectsUnknownMIR|,false)</l>
+<l>        if (|ErrorObjectsUnknownMIT| &gt; 0 and |ErrorObjectsUnknownMIR| &gt; 0)</l>
+<l>            for IndexMIT := 0 to |ErrorObjectsUnknownMIT| - 1 by 1</l>
+<l>                if (MergedMIT[IndexMIT])</l>
+<l>                    continue</l>
+<l>                endif</l>
+<l>                for IndexMIR := 0 to |ErrorObjectsUnknownMIR| - 1 by 1</l>
+<l>                    if (MergedMIR[IndexMIR])</l>
+<l>                        continue</l>
+<l>                    endif</l>
+<c>                    * Test if there are symmetric error objects</c>
+<c>                    * The parameter MaxHoleDiameter is used to speed up the search and to</c>
+<c>                    * make it more robust, because we are only interested in symmetric</c>
+<c>                    * error objects that are not further apart from each other than</c>
+<c>                    * the size of a hole.</c>
+<l>                    MaxHoleDiameter := 0.02</l>
+<l>                    test_symmetry_object_model_3d (ErrorObjectsUnknownMIT[IndexMIT], ErrorObjectsUnknownMIR[IndexMIR], MaxHoleDiameter, Rating)</l>
+<l>                    if (Rating &gt; 70)</l>
+<c>                        * Merge the two symmetric errors into a new error object</c>
+<l>                        get_object_model_3d_params (ErrorObjectsUnknownMIT[IndexMIT], 'point_coord_x', X1)</l>
+<l>                        get_object_model_3d_params (ErrorObjectsUnknownMIT[IndexMIT], 'point_coord_y', Y1)</l>
+<l>                        get_object_model_3d_params (ErrorObjectsUnknownMIT[IndexMIT], 'point_coord_z', Z1)</l>
+<l>                        get_object_model_3d_params (ErrorObjectsUnknownMIR[IndexMIR], 'point_coord_x', X2)</l>
+<l>                        get_object_model_3d_params (ErrorObjectsUnknownMIR[IndexMIR], 'point_coord_y', Y2)</l>
+<l>                        get_object_model_3d_params (ErrorObjectsUnknownMIR[IndexMIR], 'point_coord_z', Z2)</l>
+<l>                        gen_object_model_3d_from_points ([X1,X2], [Y1,Y2], [Z1,Z2], ObjectModel3D)</l>
+<c>                        * Remember the new object</c>
+<l>                        ErrorObjectsWrongPos := [ErrorObjectsWrongPos,ObjectModel3D]</l>
+<l>                        ErrorTypesWrongPos := [ErrorTypesWrongPos,5]</l>
+<c>                        * Mark merged object</c>
+<l>                        MergedMIT[IndexMIT] := true</l>
+<l>                        MergedMIR[IndexMIR] := true</l>
+<l>                        break</l>
+<l>                    endif</l>
+<l>                endfor</l>
+<l>            endfor</l>
+<c>            * Clean up</c>
+<l>            for IndexMIT := |MergedMIT| - 1 to 0 by -1</l>
+<l>                if (MergedMIT[IndexMIT])</l>
+<l>                    clear_object_model_3d (ErrorObjectsUnknownMIT[IndexMIT])</l>
+<l>                    tuple_remove (ErrorObjectsUnknownMIT, IndexMIT, ErrorObjectsUnknownMIT)</l>
+<l>                endif</l>
+<l>            endfor</l>
+<l>            for IndexMIR := |MergedMIR| - 1 to 0 by -1</l>
+<l>                if (MergedMIR[IndexMIR])</l>
+<l>                    clear_object_model_3d (ErrorObjectsUnknownMIR[IndexMIR])</l>
+<l>                    tuple_remove (ErrorObjectsUnknownMIR, IndexMIR, ErrorObjectsUnknownMIR)</l>
+<l>                endif</l>
+<l>            endfor</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Concatenate final error objects</c>
+<l>        ErrorObjectsFinal := [ErrorObjectsKnown,ErrorObjectsWrongPos,ErrorObjectsUnknownMIT,ErrorObjectsUnknownMIR]</l>
+<l>        ErrorTypesFinal := [ErrorTypesKnown,ErrorTypesWrongPos,gen_tuple_const(|ErrorObjectsUnknownMIT|,6),gen_tuple_const(|ErrorObjectsUnknownMIR|,7)]</l>
+<l>    else</l>
+<l>        ErrorObjectsFinal := []</l>
+<l>        ErrorTypesFinal := []</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Show the erroneous regions</c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_clear_window ()</l>
+<c>    * </c>
+<l>    ObjectModelsForVisualization := [TestObjectTrans,ErrorObjectsFinal]</l>
+<l>    VisParamNames := ['point_size','alpha','point_size_0','alpha_0','color_0','intensity_0','color_' + [1:|ErrorTypesFinal|]]</l>
+<l>    VisParamValues := [5.0,0.3,3.0,1.0,'gray','coord_z',subset(ErrorTypesColor,ErrorTypesFinal)]</l>
+<l>    Labels := ['',subset(ErrorTypesText,ErrorTypesFinal)]</l>
+<c>    * </c>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModelsForVisualization, [], PoseDisplay, VisParamNames, VisParamValues, ['Test object ' + SceneIndex,'Number of errors: ' + NumErrors], Labels, Instructions, PoseOut1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<c>    * </c>
+<c>    * Clean up memory</c>
+<l>    clear_object_model_3d ([TestObject,TestObjectTrans,ErrorObjectsFinal])</l>
+<l>endfor</l>
+<c>* Clean up memory</c>
+<l>clear_object_model_3d (Reference)</l>
+<l>clear_sheet_of_light_model (SheetOfLightModelID)</l>
+<l>clear_surface_model (SurfaceModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="hnf_to_hom_mat3d">
+<interface>
+<ic>
+<par name="NX" base_type="ctrl" dimension="0"/>
+<par name="NY" base_type="ctrl" dimension="0"/>
+<par name="NZ" base_type="ctrl" dimension="0"/>
+<par name="C" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>N := [NX,NY,NZ]</l>
+<c>* Determine arbitrary point on the plane</c>
+<l>IdxMax := sort_index(-fabs(N))[0]</l>
+<l>Val := C / N[IdxMax]</l>
+<l>PointOnPlane := [0,0,0]</l>
+<l>PointOnPlane[IdxMax] := Val</l>
+<c>* Determine rotation matrix</c>
+<l>ZAxis := N</l>
+<l>XAxis := [0,0,0]</l>
+<l>XAxis[(IdxMax + 1) % 3] := -N[IdxMax]</l>
+<l>cross_product (ZAxis, XAxis, YAxis)</l>
+<l>HomMat3D[0:3] := [XAxis[0],YAxis[0],ZAxis[0],PointOnPlane[0]]</l>
+<l>HomMat3D[4:7] := [XAxis[1],YAxis[1],ZAxis[1],PointOnPlane[1]]</l>
+<l>HomMat3D[8:11] := [XAxis[2],YAxis[2],ZAxis[2],PointOnPlane[2]]</l>
+<l>return ()</l>
+</body>
+<docu id="hnf_to_hom_mat3d">
+<short lang="en_US">Determine a 3D transformation such that the given plane is the plane z=0</short>
+<parameters>
+<parameter id="C">
+<default_type>real</default_type>
+<description lang="en_US">Distance of the origin from the plane (sign according to the definition of the Hessian normal form of planes).</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="HomMat3D">
+<default_type>real</default_type>
+<description lang="en_US">Transformation matrix that describes a transformation where the given plane is the plane z=0.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat3d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="NX">
+<default_type>real</default_type>
+<description lang="en_US">X component of the normal vector of the plane.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="NY">
+<default_type>real</default_type>
+<description lang="en_US">Y component of the normal vector of the plane.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="NZ">
+<default_type>real</default_type>
+<description lang="en_US">Z component of the normal vector of the plane.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_region_from_error_points">
+<interface>
+<oo>
+<par name="Region" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ErrorObject" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Get 3D points of the error object</c>
+<l>get_object_model_3d_params (ErrorObject, 'point_coord_x', X)</l>
+<l>get_object_model_3d_params (ErrorObject, 'point_coord_y', Y)</l>
+<l>get_object_model_3d_params (ErrorObject, 'point_coord_z', Z)</l>
+<c>* Determine an approximating plane through all points</c>
+<l>fit_plane (X, Y, Z, NX, NY, NZ, C)</l>
+<l>hnf_to_hom_mat3d (NX, NY, NZ, C, HomMat3D)</l>
+<c>* Project all points into the plane (just set Qz to zero)</c>
+<l>affine_trans_point_3d (HomMat3D, X, Y, Z, Qx, Qy, Qz)</l>
+<c>* Create a region from the 2D points</c>
+<c>* - First, determine the necessary resolution</c>
+<l>create_class_knn (2, KNNHandle)</l>
+<l>Seq := [0:2:2 * |Qx| - 2]</l>
+<l>Features[Seq] := Qx</l>
+<l>Features[Seq + 1] := Qy</l>
+<l>add_sample_class_knn (KNNHandle, Features, 0)</l>
+<l>train_class_knn (KNNHandle, [], [])</l>
+<l>set_params_class_knn (KNNHandle, ['method','k'], ['neighbors_distance',4])</l>
+<l>classify_class_knn (KNNHandle, Features, Result, Rating)</l>
+<l>Seq4 := [0:4:4 * |Qx| - 4]</l>
+<l>DistancesClosest := Rating[Seq4 + 1]</l>
+<l>DistancesAway := Rating[Seq4 + 3]</l>
+<l>clear_class_knn (KNNHandle)</l>
+<l>Resolution := median(DistancesClosest) / sqrt(2)</l>
+<l>DilationRad := median(DistancesAway) / Resolution</l>
+<l>QxMin := min(Qx)</l>
+<l>QxMax := max(Qx)</l>
+<l>QyMin := min(Qy)</l>
+<l>QyMax := max(Qy)</l>
+<l>DQx := QxMax - QxMin</l>
+<l>DQy := QyMax - QyMin</l>
+<c>* - Then create the region from the appropriately scaled point coordinates</c>
+<l>Rows := int((Qy - QyMin) / Resolution + 0.5)</l>
+<l>Cols := int((Qx - QxMin) / Resolution + 0.5)</l>
+<l>gen_region_points (RegionRaw, Rows, Cols)</l>
+<c>* Dilate the region to fill up gaps between the points</c>
+<l>dilation_circle (RegionRaw, Region, DilationRad)</l>
+<l>return ()</l>
+</body>
+<docu id="create_region_from_error_points">
+<parameters>
+<parameter id="ErrorObject"/>
+<parameter id="Region"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="test_symmetry_object_model_3d">
+<interface>
+<ic>
+<par name="OM1" base_type="ctrl" dimension="0"/>
+<par name="OM2" base_type="ctrl" dimension="0"/>
+<par name="MaxDistance" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Rating" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<l>Inspection := false</l>
+<c>* Determin an hypothesis for the symmetry plane</c>
+<l>get_object_model_3d_params (OM1, 'point_coord_x', X1)</l>
+<l>get_object_model_3d_params (OM1, 'point_coord_y', Y1)</l>
+<l>get_object_model_3d_params (OM1, 'point_coord_z', Z1)</l>
+<l>get_object_model_3d_params (OM2, 'point_coord_x', X2)</l>
+<l>get_object_model_3d_params (OM2, 'point_coord_y', Y2)</l>
+<l>get_object_model_3d_params (OM2, 'point_coord_z', Z2)</l>
+<l>Center1 := [mean(X1),mean(Y1),mean(Z1)]</l>
+<l>Center2 := [mean(X2),mean(Y2),mean(Z2)]</l>
+<l>Distance := sqrt(sum((Center1 - Center2) * (Center1 - Center2)))</l>
+<l>if (Distance &gt; MaxDistance)</l>
+<l>    Rating := 0</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>NSymm := Center2 - Center1</l>
+<l>NSymm := NSymm / sqrt(sum(NSymm * NSymm))</l>
+<l>PSymm := Center1 + 0.5 * (Center2 - Center1)</l>
+<l>CSymm := sum(NSymm * PSymm)</l>
+<l>if (CSymm &lt; 0)</l>
+<l>    NSymm := -NSymm</l>
+<l>    CSymm := -CSymm</l>
+<l>endif</l>
+<l>hnf_to_hom_mat3d (NSymm[0], NSymm[1], NSymm[2], CSymm, HomMat3D)</l>
+<l>hom_mat3d_to_pose (HomMat3D, Pose)</l>
+<c>* </c>
+<c>* </c>
+<c>* Test hypothesis for symmetry plane</c>
+<c>* </c>
+<c>* Transform all points into the coordinate system in which the</c>
+<c>* symmetry plane is the plane z=0</c>
+<l>hom_mat3d_invert (HomMat3D, HomMat3DInvert)</l>
+<l>affine_trans_point_3d (HomMat3DInvert, X1, Y1, Z1, X1T, Y1T, Z1T)</l>
+<l>affine_trans_point_3d (HomMat3DInvert, X2, Y2, Z2, X2T, Y2T, Z2T)</l>
+<c>* </c>
+<c>* Create first KNN classifier to determine distance to closest points</c>
+<l>create_class_knn (3, KNN1)</l>
+<l>Seq1 := [0:3:3 * |X1T| - 3]</l>
+<l>Features1 := gen_tuple_const(3 * |X1T|,0)</l>
+<l>Features1[Seq1] := X1T</l>
+<l>Features1[Seq1 + 1] := Y1T</l>
+<l>Features1[Seq1 + 2] := Z1T</l>
+<l>add_sample_class_knn (KNN1, Features1, 0)</l>
+<l>train_class_knn (KNN1, [], [])</l>
+<c>* </c>
+<c>* Create second KNN classifier to determine distance to closest points</c>
+<l>create_class_knn (3, KNN2)</l>
+<l>Seq2 := [0:3:3 * |X2T| - 3]</l>
+<l>Features2 := gen_tuple_const(3 * |X2T|,0)</l>
+<l>Features2[Seq2] := X2T</l>
+<l>Features2[Seq2 + 1] := Y2T</l>
+<l>Features2[Seq2 + 2] := Z2T</l>
+<l>add_sample_class_knn (KNN2, Features2, 0)</l>
+<l>train_class_knn (KNN2, [], [])</l>
+<l>set_params_class_knn (KNN2, ['method','k'], ['neighbors_distance',1])</l>
+<c>* </c>
+<c>* Determine the distance to the closest point in the other</c>
+<c>* set of points for all points mirrored at the hypothedical</c>
+<c>* symmetry plane. Note, mirroring is ease because we have</c>
+<c>* transformed the points into the coordinate system in which</c>
+<c>* the symmetry plane is the plane z=0. So mirroring is</c>
+<c>* just switching the sign of the z coordinate.</c>
+<c>* </c>
+<c>* - Determine mean distance within point set 1</c>
+<l>set_params_class_knn (KNN1, ['method','k'], ['neighbors_distance',2])</l>
+<l>classify_class_knn (KNN1, Features1, Result1, Rating1)</l>
+<l>Rating1 := subset(Rating1,[1:2:|Rating1| - 1])</l>
+<c>* - Determine mean distance within point set 2</c>
+<l>set_params_class_knn (KNN2, ['method','k'], ['neighbors_distance',2])</l>
+<l>classify_class_knn (KNN2, Features2, Result2, Rating2)</l>
+<l>Rating2 := subset(Rating2,[1:2:|Rating2| - 1])</l>
+<c>* - Determine mean distance of mirrored points from point set 1 within point set 2</c>
+<l>set_params_class_knn (KNN1, ['method','k'], ['neighbors_distance',1])</l>
+<l>Features1[Seq1 + 2] := -Z1T</l>
+<l>classify_class_knn (KNN2, Features1, Result1In2, Rating1In2)</l>
+<c>* - Determine mean distance of mirrored points from point set 2 within point set 1</c>
+<l>Features2[Seq2 + 2] := -Z2T</l>
+<l>classify_class_knn (KNN1, Features2, Result2In1, Rating2In1)</l>
+<c>* </c>
+<c>* </c>
+<l>MeanRating1 := mean(Rating1)</l>
+<l>StdDevRating1 := deviation(Rating1)</l>
+<l>MeanRating2 := mean(Rating2)</l>
+<l>StdDevRating2 := deviation(Rating2)</l>
+<c>* </c>
+<l>PercBadRating2In1 := sum(Rating2In1 [&gt;] MeanRating1 + 3 * StdDevRating1) / real(|Rating2In1|) * 100.0</l>
+<l>PercBadRating1In2 := sum(Rating1In2 [&gt;] MeanRating2 + 3 * StdDevRating2) / real(|Rating1In2|) * 100.0</l>
+<l>Rating := 100.0 - mean([PercBadRating2In1,PercBadRating1In2])</l>
+<c>* </c>
+<l>if (Inspection)</l>
+<l>    dev_get_window (WindowHandle)</l>
+<l>    gen_object_model_3d_from_points (X1T, Y1T, Z1T, OM1T)</l>
+<l>    gen_object_model_3d_from_points (X2T, Y2T, Z2T, OM2T)</l>
+<l>    gen_object_model_3d_from_points (X1T, Y1T, -Z1T, OM1TM)</l>
+<l>    gen_object_model_3d_from_points (X2T, Y2T, -Z2T, OM2TM)</l>
+<l>    visualize_object_model_3d (WindowHandle, [OM1T,OM2TM,OM2T], [], [], ['color_0','color_1','color_2','disp_pose'], ['red','green','gray','true'], 'Rating: ' + Rating, [], [], PoseOut)</l>
+<l>    clear_object_model_3d ([OM1T,OM2T,OM1TM,OM2TM])</l>
+<l>endif</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_class_knn (KNN1)</l>
+<l>clear_class_knn (KNN2)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="test_symmetry_object_model_3d">
+<parameters>
+<parameter id="MaxDistance"/>
+<parameter id="OM1"/>
+<parameter id="OM2"/>
+<parameter id="Rating"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="fit_plane">
+<interface>
+<ic>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="NX" base_type="ctrl" dimension="0"/>
+<par name="NY" base_type="ctrl" dimension="0"/>
+<par name="NZ" base_type="ctrl" dimension="0"/>
+<par name="C" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* number of points</c>
+<l>Num := |X|</l>
+<c>* </c>
+<c>* center of gravity of all points</c>
+<l>XM := mean(X)</l>
+<l>YM := mean(Y)</l>
+<l>ZM := mean(Z)</l>
+<c>* </c>
+<c>* symmetric matrix M(A)</c>
+<l>DX := X - XM</l>
+<l>DY := Y - YM</l>
+<l>DZ := Z - ZM</l>
+<l>MA11 := sum(DX * DX)</l>
+<l>MA22 := sum(DY * DY)</l>
+<l>MA33 := sum(DZ * DZ)</l>
+<l>MA12 := sum(DX * DY)</l>
+<l>MA13 := sum(DX * DZ)</l>
+<l>MA23 := sum(DY * DZ)</l>
+<l>create_matrix (3, 3, [MA11,MA12,MA13,MA12,MA22,MA23,MA13,MA23,MA33], MatrixID)</l>
+<c>* </c>
+<c>* the normal vector is the eigenvector that belongs to the smallest</c>
+<c>* eigenvalue auf the matrix MatrixID</c>
+<l>eigenvalues_symmetric_matrix (MatrixID, 'true', EigenvaluesID, EigenvectorsID)</l>
+<l>get_value_matrix (EigenvectorsID, 0, 0, NX)</l>
+<l>get_value_matrix (EigenvectorsID, 1, 0, NY)</l>
+<l>get_value_matrix (EigenvectorsID, 2, 0, NZ)</l>
+<l>clear_matrix (MatrixID)</l>
+<l>clear_matrix (EigenvaluesID)</l>
+<l>clear_matrix (EigenvectorsID)</l>
+<c>* </c>
+<c>* the constant of the normal-constant form of the plane (n*P = c)</c>
+<l>C := NX * XM + NY * YM + NZ * ZM</l>
+<l>if (C &lt; 0.0)</l>
+<l>    NX := -NX</l>
+<l>    NY := -NY</l>
+<l>    NZ := -NZ</l>
+<l>    C := -C</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="fit_plane">
+<chapters lang="en_US">
+<item>Math</item>
+<item>Fitting</item>
+</chapters>
+<short lang="en_US">Fit a plane to the given 3D points</short>
+<parameters>
+<parameter id="C"/>
+<parameter id="NX"/>
+<parameter id="NY"/>
+<parameter id="NZ"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="cross_product">
+<interface>
+<ic>
+<par name="V1" base_type="ctrl" dimension="0"/>
+<par name="V2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="CrossProduct" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Determine the cross product of the two given vectors</c>
+<c>* Note that only the first three values of the given vectors are taken into account</c>
+<l>CrossProduct := [V1[1] * V2[2] - V1[2] * V2[1],V1[2] * V2[0] - V1[0] * V2[2],V1[0] * V2[1] - V1[1] * V2[0]]</l>
+<l>return ()</l>
+</body>
+<docu id="cross_product">
+<chapters lang="en_US">
+<item>Math</item>
+<item>Vector</item>
+</chapters>
+<short lang="en_US">Calculates the cross product of the two 3d vectors given in V1 and V2</short>
+<parameters>
+<parameter id="CrossProduct"/>
+<parameter id="V1"/>
+<parameter id="V2"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

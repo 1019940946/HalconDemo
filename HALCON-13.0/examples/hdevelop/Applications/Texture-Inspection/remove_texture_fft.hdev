@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to separate foreground information</c>
+<c>* from a disturbing background texture by filtering in the</c>
+<c>* frequency domain.</c>
+<c>* First, the image is fourier transformed in order to obtain</c>
+<c>* its frequency spectrum. Then, we detect the frequency peaks</c>
+<c>* corresponding to the disturbing background texture in the</c>
+<c>* frequency spectrum. Afterwards, a filter which eliminates those</c>
+<c>* frequencies is built and applied to the spectrum. By applying</c>
+<c>* the inverse fourier transform to the filtered spectrum, we</c>
+<c>* obtain a filtered image from which the disturbing background</c>
+<c>* texture was removed.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>Scale := [1.0,.65]</l>
+<l>MinGray := [50,100]</l>
+<l>for Index := 0 to 1 by 1</l>
+<c>    * </c>
+<c>    * Read and display the image</c>
+<l>    read_image (Image, 'plan_' + (Index + 1)$'02')</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_open_window (0, 0, Width * Scale[Index], Height * Scale[Index], 'black', WindowHandle)</l>
+<l>    set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Perform fft and display spectrum</c>
+<l>    optimize_fft_speed (Width, Height, 'standard')</l>
+<c>    * </c>
+<c>    * We used 'fft_generic' 'sqrt' and 'dc_center' mainly</c>
+<c>    * for visualization purposes.</c>
+<c>    * To speed up the program, rft_generic should be used;</c>
+<c>    * but of course, the peak detection algorithm has to be</c>
+<c>    * adjusted in this case.</c>
+<l>    fft_generic (Image, ImageFFT, 'to_freq', -1, 'sqrt', 'dc_center', 'complex')</l>
+<l>    dev_open_window (0, Width * Scale[Index] + 7, Width * Scale[Index], Height * Scale[Index], 'black', WindowHandle1)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (ImageFFT)</l>
+<l>    disp_message (WindowHandle1, 'Fourier spectrum', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_cont_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Detect the eight most significant peaks in the spectrum</c>
+<l>    power_real (ImageFFT, PowerSpectrum)</l>
+<l>    binomial_filter (PowerSpectrum, ImageSmooth, 9, 9)</l>
+<l>    threshold (ImageSmooth, Region, MinGray[Index], 100000)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5, 200)</l>
+<l>    union1 (SelectedRegions, RegionUnion)</l>
+<l>    reduce_domain (ImageSmooth, RegionUnion, ImageReduced)</l>
+<l>    local_max (ImageReduced, LocalMaxima)</l>
+<c>    * </c>
+<c>    * Next, detect peaks one octave higher, i.e., at twice</c>
+<c>    * the frequency of the most significant peaks</c>
+<l>    shape_trans (LocalMaxima, RegionTrans, 'convex')</l>
+<c>    * Construct ROI band at twice the frequency</c>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_scale (HomMat2DIdentity, 2.1, 2.1, Height / 2, Width / 2, HomMat2DScale)</l>
+<l>    affine_trans_region (RegionTrans, RegionTrans1, HomMat2DScale, 'nearest_neighbor')</l>
+<l>    hom_mat2d_scale (HomMat2DIdentity, 1.9, 1.9, Height / 2, Width / 2, HomMat2DScale)</l>
+<l>    affine_trans_region (RegionTrans, RegionTrans2, HomMat2DScale, 'nearest_neighbor')</l>
+<l>    difference (RegionTrans1, RegionTrans2, RegionDifference)</l>
+<c>    * Extract the peaks at twice the frequency</c>
+<l>    reduce_domain (ImageSmooth, RegionDifference, ImageReduced)</l>
+<l>    threshold (ImageReduced, Region, 15, 100000)</l>
+<l>    reduce_domain (ImageSmooth, Region, ImageReduced)</l>
+<l>    local_max (ImageReduced, LocalMaxima2)</l>
+<c>    * </c>
+<c>    * Merge the peaks of both octaves and enlarge them to</c>
+<c>    * integrate the relevant frequencies into the filter</c>
+<l>    union2 (LocalMaxima, LocalMaxima2, RegionUnion)</l>
+<l>    dilation_circle (RegionUnion, RegionDilation, 15.5)</l>
+<l>    paint_region (RegionDilation, ImageFFT, ImageFFTFiltered, 0, 'fill')</l>
+<l>    dev_display (ImageFFT)</l>
+<l>    dev_display (RegionDilation)</l>
+<l>    disp_message (WindowHandle1, 'Frequencies of the\nbackground texture', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_cont_message (WindowHandle1, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Apply the filter and display the results</c>
+<l>    fft_generic (ImageFFTFiltered, ImageFiltered, 'from_freq', 1, 'sqrt', 'dc_center', 'byte')</l>
+<l>    dev_display (ImageFiltered)</l>
+<l>    disp_message (WindowHandle1, 'Filtered image', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    dev_open_window (0, 2 * (Width * Scale[Index]) + 14, Width * Scale[Index], Height * Scale[Index], 'black', WindowHandle2)</l>
+<l>    set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    sub_image (Image, ImageFiltered, ImageTexture, 1, 128)</l>
+<l>    dev_display (ImageTexture)</l>
+<l>    disp_message (WindowHandle2, 'Removed texture', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index &lt; 1)</l>
+<l>        disp_cont_message (WindowHandle2, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_close_window ()</l>
+<l>        dev_close_window ()</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_cont_message">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Color" base_type="ctrl" dimension="0"/>
+<par name="Box" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays 'Press Run (F5) to continue' in the</c>
+<c>* lower right corner of the screen.</c>
+<c>* It uses the procedure disp_message.</c>
+<c>* </c>
+<c>* Input parameters:</c>
+<c>* WindowHandle: The window, where the text shall be displayed</c>
+<c>* Color: defines the text color.</c>
+<c>*    If set to '' or 'auto', the currently set color is used.</c>
+<c>* Box: If set to 'true', the text is displayed in a box.</c>
+<c>* </c>
+<l>ContinueMessage := 'Press Run (F5) to continue'</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>get_string_extents (WindowHandle, ' ' + ContinueMessage + ' ', Ascent, Descent, TextWidth, TextHeight)</l>
+<l>disp_message (WindowHandle, ContinueMessage, 'window', Height - TextHeight - 6, Width - TextWidth - 6, Color, Box)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_cont_message">
+<abstract lang="en_US">This procedure displays 'Click 'Run' to continue' in a given Color in the lower right corner of the screen.
+If the parameter Box is set to 'true', the text is written within a white box, which is useful on irregular background.</abstract>
+<alternatives>
+<item>disp_message</item>
+<item>write_string</item>
+</alternatives>
+<attention lang="en_US">This procedure uses the procedure disp_message.
+</attention>
+<chapters>
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<chapters lang="de_DE">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<example lang="en_US">dev_open_window (0, 0, 512, 512, 'black', WindowHandle)
+set_display_font (WindowHandle, 16, 'mono', 'true', 'false')
+for Index := 1 to 5 by 1
+    disp_message (WindowHandle, 'Step '+Index, 'window', 30*Index, 12, 'black', 'true')
+    disp_continue_message (WindowHandle, 'black', 'true')
+    stop ()
+endfor
+</example>
+<keywords lang="en_US">
+<item>display continue message</item>
+</keywords>
+<library lang="de_DE">MVTec Standard Procedures</library>
+<library lang="en_US">MVTec Standard Procedures</library>
+<predecessor>
+<item>disp_message</item>
+<item>set_display_font</item>
+<item>write_string</item>
+<item>dev_display</item>
+<item>disp_obj</item>
+<item>disp_image</item>
+</predecessor>
+<see_also>
+<item>disp_message</item>
+<item>write_string</item>
+</see_also>
+<short>This procedure displays 'Press 'Run' to continue' in the lower right corner of the screen.</short>
+<short lang="de_DE">This procedure displays 'Click 'Run' to continue' in the lower right corner of the screen.</short>
+<short lang="en_US">This procedure displays 'Click 'Run' to continue' in the lower right corner of the screen.</short>
+<successor>
+<item>stop</item>
+</successor>
+<parameters>
+<parameter id="Box">
+<default_type>string</default_type>
+<default_value>'true'</default_value>
+<description lang="en_US">If set to 'true', the text is written within a white box.</description>
+<multivalue>false</multivalue>
+<sem_type>attribute.value</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'true'</item>
+<item>'false'</item>
+</value_list>
+</parameter>
+<parameter id="Color">
+<default_type>string</default_type>
+<default_value>'black'</default_value>
+<description lang="en_US">Defines the text color. If set to '' or 'auto', the currently set color is used.
+</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>color</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<values>
+<item>'black'</item>
+<item>'blue'</item>
+<item>'yellow'</item>
+<item>'red'</item>
+<item>'green'</item>
+<item>'cyan'</item>
+<item>'magenta'</item>
+<item>'forest green'</item>
+<item>'lime green'</item>
+<item>'coral'</item>
+<item>'slate blue'</item>
+</values>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">The handle of the window, where the text shall be displayed.
+</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

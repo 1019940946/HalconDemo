@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the use of the operator set_shape_model_param.</c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'rings_and_nuts')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* First, a shape model is created from a very noisy image.</c>
+<c>* This leads to a large value of (the automatically determined) MinContrast.</c>
+<l>add_noise_white (Image, ImageNoise, 60)</l>
+<l>dev_display (ImageNoise)</l>
+<l>gen_rectangle1 (Rectangle, 60, 60, 200, 200)</l>
+<l>reduce_domain (ImageNoise, Rectangle, ImageReduced)</l>
+<l>determine_shape_model_params (ImageReduced, 'auto', -0.39, 0.79, 0.9, 1.1, 'auto', 'use_polarity', 'auto', 'auto', 'all', ParameterName, ParameterValue)</l>
+<l>disp_message (WindowHandle, '\'Auto\' MinContrast on a Noisy Image: ' + ParameterValue[7], 'window', 12, 12, 'black', 'true')</l>
+<l>create_shape_model (ImageReduced, 'auto', -0.39, 0.79, 'auto', 'auto', 'use_polarity', 'auto', 'auto', ModelID)</l>
+<l>dev_inspect_ctrl ([ParameterName,ParameterValue])</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, '\'Auto\' MinContrast on a Noisy Image: ' + ParameterValue[7], 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_close_inspect_ctrl ([ParameterName,ParameterValue])</l>
+<c>* </c>
+<c>* Then an image with low contrast is used as search image.</c>
+<l>scale_image (Image, ImageLowContrast, 0.1, 100)</l>
+<l>dev_display (ImageLowContrast)</l>
+<l>disp_message (WindowHandle, 'Creating Search Image with low Contrast', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Find_shape_model will not be able to find an instance in ImageLowContrast</c>
+<c>* because the edge amplitude in ImageLowContrast is below the automatically</c>
+<c>* determined MinContrast.</c>
+<c>* Internally, only edges with an amplitude larger than MinContrast are used.</c>
+<c>* This corresponds to the result of edges_image with the threshold set to the</c>
+<c>* value of MinContrast.</c>
+<l>edges_image (ImageLowContrast, ImaAmp, ImaDir, 'sobel_fast', 0.5, 'nms', ParameterValue[7] - 20, ParameterValue[7] - 20)</l>
+<l>get_domain (ImaAmp, Domain)</l>
+<l>full_domain (ImaAmp, ImageFull)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Domain)</l>
+<l>disp_message (WindowHandle, 'Edge Amplitude of Search Image is\nbelow MinContrast of Noisy Image\n=&gt; no Edges can be extracted', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* With the above created shape model, no match is found in the low-contrast image</c>
+<c>* because of the high value of MinContrast.</c>
+<l>find_shape_model (ImageLowContrast, ModelID, -0.39, 0.78, 0.5, 1, 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>NumMatches := |Score|</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageLowContrast)</l>
+<l>dev_inspect_ctrl (NumMatches)</l>
+<l>disp_message (WindowHandle, 'Hence, no Matches found on the Search Image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_close_inspect_ctrl (NumMatches)</l>
+<c>* </c>
+<c>* If the threshold is set to a smaller value, the edges can be extracted in the low-contrast image.</c>
+<l>edges_image (ImageLowContrast, ImaAmp, ImaDir, 'sobel_fast', 0.5, 'nms', 5, 5)</l>
+<l>get_domain (ImaAmp, Domain)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageLowContrast)</l>
+<l>dev_display (Domain)</l>
+<l>disp_message (WindowHandle, 'Extracted Edges on Search Image\nwith Threshold lower than MinContrast', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Consequently, if MinContrast is set to a sufficiently small value, find_shape_model finds the correct match.</c>
+<l>set_shape_model_param (ModelID, 'min_contrast', 5)</l>
+<l>find_shape_model (ImageLowContrast, ModelID, -0.39, 0.78, 0.5, 1, 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>get_shape_model_contours (ModelContours, ModelID, 1)</l>
+<l>vector_angle_to_rigid (0, 0, 0, Row, Column, Angle, HomMat2D)</l>
+<l>affine_trans_contour_xld (ModelContours, ContoursAffineTrans, HomMat2D)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageLowContrast)</l>
+<l>dev_display (ContoursAffineTrans)</l>
+<l>disp_message (WindowHandle, 'Change MinContrast in Shape Model to lower Threshold\n =&gt; Match found for new MinContrast', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

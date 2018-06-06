@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use tuple_replace</c>
+<c>* to replace one or more elements of a tuple</c>
+<c>* </c>
+<l>OriginalTuple := [0,1,2,3,4,5]</l>
+<c>* Replace multiple elements with different values</c>
+<l>tuple_replace (OriginalTuple, [0,1], ['x','y'], Replaced1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>Replaced2 := replace(OriginalTuple,[0,1],['x','y'])</l>
+<c>* </c>
+<c>* Replace multiple elements with a single value</c>
+<l>tuple_replace (OriginalTuple, [1,3,5], -111, ReplacedWithOneValue1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>ReplacedWithOneValue2 := replace(OriginalTuple,[1,3,5],-111)</l>
+<c>* </c>
+<c>* if index &gt; length of Tuple</c>
+<c>*    -&gt; Tuple will be extended with appropriate default values</c>
+<c>* The default value for numeric tuples is 0</c>
+<l>tuple_replace (OriginalTuple, 10, 100, Extended1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>Extended2 := replace(OriginalTuple,10,100)</l>
+<c>* The default value for string tuples is the empty string ''</c>
+<l>tuple_replace (['a','b','c','d','e'], [7,10], ['h','k'], StringsExtended1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>StringsExtended2 := replace(['a','b','c','d','e'],[7,10],['h','k'])</l>
+<l>dev_open_tool ('variable_view', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

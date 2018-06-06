@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***************************************************************</c>
+<c>* Example program that demonstrates the print quality grades of</c>
+<c>* an ECC200 data code based on the standard ISO/IEC 15415.</c>
+<c>* ***************************************************************</c>
+<c>* For the 2D data codes ECC 200, Aztec Code, QR Code, and</c>
+<c>* Micro QR Code the print quality is described in a tuple with</c>
+<c>* eleven elements:</c>
+<c>* - Overall quality</c>
+<c>* - Contrast</c>
+<c>* - Modulation</c>
+<c>* - Fixed pattern damage</c>
+<c>* - Decode</c>
+<c>* - Axial non-uniformity</c>
+<c>* - Grid non-uniformity</c>
+<c>* - Unused error correction</c>
+<c>* - Reflectance Margin</c>
+<c>* - Print Growth</c>
+<c>* - Contrast Uniformity</c>
+<c>* </c>
+<c>* This program investigates all mentioned elements except for</c>
+<c>* overall quality and decode. For each of the other six</c>
+<c>* print quality elements the program adapts the image in</c>
+<c>* several iteration steps to simulate various qualities.</c>
+<c>* Then the grades for the assessment of print quality</c>
+<c>* (from lowest: 0 to highest: 4) and the corresponding raw values</c>
+<c>* are computed and displayed for each iteration step.</c>
+<c>* ****************************************************************</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Open the window in an appropriate size</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_print_quality_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Short description</c>
+<l>Message := 'This program demonstrates the print quality'</l>
+<l>Message[1] := 'grades of ECC200 data codes based on the'</l>
+<l>Message[2] := 'standard ISO/IEC 15415.'</l>
+<l>Message[3] := 'Successively images with various qualities'</l>
+<l>Message[4] := 'are generated and the respective print'</l>
+<l>Message[5] := 'quality grades queried. The grades are'</l>
+<l>Message[6] := 'values from 0 (lowest) to 4 (highest).'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Constants for quality grade access</c>
+<c>* The grades correpond to the position of the elements in the tuple</c>
+<l>GRADE_CONTRAST := 1</l>
+<l>GRADE_MODULATION := 2</l>
+<l>GRADE_FIXED_PATTERN_DAMAGE := 3</l>
+<l>GRADE_DECODE := 4</l>
+<l>GRADE_AXIAL_NON_UNIFORMITY := 5</l>
+<l>GRADE_GRID_NON_UNIFORMITY := 6</l>
+<l>GRADE_UNUSED_ERROR_CORRECTION := 7</l>
+<l>GRADE_UNUSED_REFECTANCE_MARGIN := 8</l>
+<l>GRADE_UNUSED_PRINT_GROWTH := 9</l>
+<l>GRADE_UNUSED_CONTRAST_UNIFORMITY := 10</l>
+<l>Wait := .5</l>
+<c>* </c>
+<c>* Create a model of a 2D data code class</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Set the parameters to enhanced recognition mode</c>
+<l>set_data_code_2d_param (DataCodeHandle, 'default_parameters', 'enhanced_recognition')</l>
+<c>* Get the grade labels of the print quality elements (e.g., 'Contrast')</c>
+<l>get_data_code_2d_results (DataCodeHandle, 'general', 'quality_isoiec15415_labels', Labels)</l>
+<c>* </c>
+<l>ModuleWidth := 10</l>
+<c>* </c>
+<c>* Contrast:</c>
+<c>* ----------</c>
+<c>* Range between minimal and maximal pixel intensity</c>
+<c>* High contrast grade means high contrast</c>
+<l>for Index := 1 to 10 by 1</l>
+<c>    * Minimize the contrast in each iteration step a little more</c>
+<c>    * by scaling the gray values of the image</c>
+<l>    scale_image (Image, ImageScaled, 1.0 / Index * 1.15, Index * 20 - 50)</l>
+<c>    * Find the 2d data code symbol in the image with reduced contrast</c>
+<l>    find_data_code_2d (ImageScaled, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<l>    dev_display (ImageScaled)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for contrast and the respective raw value.</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_CONTRAST, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Modulation and Contrast Uniformity:</c>
+<c>* -----------------------------------</c>
+<c>* Modulation measures the uniformity of the amplitudes of the modules inside the symbol</c>
+<c>* High modulation grade means big amplitudes and better assignment of modules.</c>
+<c>* </c>
+<c>* Contrast Uniformity is the minimum Modulation value found in any module.</c>
+<c>* Contrast Uniformity is an optional parameter and does not affect the overall grade.</c>
+<c>* </c>
+<c>* Define a rectangle in which the defect in the image is imitated</c>
+<l>gen_rectangle1 (Defect, 160, 220, 320, 335)</l>
+<c>* </c>
+<l>for Offset := 0 to 110 by 10</l>
+<c>    * Brighten the image in each iteration step a little more</c>
+<l>    scale_image (Image, ImageScaled, 1, Offset)</l>
+<l>    dev_display (ImageScaled)</l>
+<c>    * </c>
+<c>    * Reduce the domain of the brightened image to the predefined</c>
+<c>    * rectangle and then paint its gray values into the original</c>
+<c>    * image. This generates an image containing a rectangle in</c>
+<c>    * which the gray values become more and more brighter with</c>
+<c>    * every iteration step.</c>
+<l>    reduce_domain (ImageScaled, Defect, ImageReduced)</l>
+<l>    paint_gray (ImageReduced, Image, ImageModulation)</l>
+<c>    * Find the data code symbols in the generated image</c>
+<l>    find_data_code_2d (ImageModulation, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageModulation)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for modulation and the respective raw value.</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_MODULATION, MessageModulation)</l>
+<l>    disp_message (WindowHandle, MessageModulation, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for  contrast uniformity and the respective raw value.</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_UNUSED_CONTRAST_UNIFORMITY, MessageContrastUniformity)</l>
+<l>    disp_message (WindowHandle, MessageContrastUniformity, 'window', 40, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Fixed Pattern Damage:</c>
+<c>* ---------------------</c>
+<c>* Assessing the degradation/damage of fixed pattern or the respective quiet zones</c>
+<c>* and thus describes how reliable a symbol can be located and identified in the image</c>
+<c>* </c>
+<c>* Generate and investigate an image with damaged quiet zone</c>
+<l>for NumModules := 0 to 10 by 1</l>
+<c>    * </c>
+<c>    * Generate an image with damaged quiet zone by first</c>
+<c>    * creating a rectangle parallel to the coordinate axes and</c>
+<c>    * then painting it with gray value 0 into the image</c>
+<l>    gen_rectangle1 (Defect, 388, 171, 398, NumModules * ModuleWidth + 171)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 0, 'fill')</l>
+<c>    * Find the data code symbol in the image with damaged quiet zone</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for fixed pattern damage and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_FIXED_PATTERN_DAMAGE, Message)</l>
+<l>    Message[1] := 'Damaged quiet zone'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Generate and investigate an image with a damage at</c>
+<c>* the L-shape of the finder pattern</c>
+<l>for NumModules := 0 to 10 by 1</l>
+<c>    * </c>
+<c>    * Generate an image with a damaged L-shape of the finder pattern</c>
+<c>    * by first creating a rectangle horizontal at the finder pattern</c>
+<c>    * and then painting it with gray value 0 into the image</c>
+<l>    gen_rectangle1 (Defect, 375, 171, 385, NumModules * ModuleWidth + 171)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code in the image with damaged finder pattern</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for fixed pattern damage and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_FIXED_PATTERN_DAMAGE, Message)</l>
+<l>    Message[1] := 'Damaged L-shape of finder pattern'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Generate and investigate an image with a damage at the</c>
+<c>* alternating side of the finder pattern</c>
+<l>for NumModules := 0 to 10 by 1</l>
+<c>    * </c>
+<c>    * Generate an image with a damaged alternating side of the finder</c>
+<c>    * pattern by first creating a rectangle vertical at the alternating</c>
+<c>    * side and then painting it with gray value 0 into the image</c>
+<l>    gen_rectangle1 (Defect, 226, 376, NumModules * ModuleWidth + 226, 386)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code in the image with damaged alternating side</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for fixed pattern damage and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_FIXED_PATTERN_DAMAGE, Message)</l>
+<l>    Message[1] := 'Damaged alternating side of the\nfinder pattern'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Axial non-uniformity:</c>
+<c>* ---------------------</c>
+<c>* Distortion of width to height ratio result in degraded axial non-uniformity</c>
+<l>IterationIndex := 0</l>
+<l>for Scale := 1 to 1.2 by 0.02</l>
+<c>    * Generate an image with a distortion in aspect ratio</c>
+<c>    * of the symbol by scaling the image only in its height</c>
+<l>    affine_trans_image (Image, ImageDeformed, [Scale,0,(-Scale + 1) * 140,0,1,0], 'weighted', 'false')</l>
+<c>    * Find the data code in the image with distorted aspect ratio</c>
+<l>    find_data_code_2d (ImageDeformed, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the distortion</c>
+<l>    dev_display (ImageDeformed)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for axial non-uniformity and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_AXIAL_NON_UNIFORMITY, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Grid non-uniformity:</c>
+<c>* --------------------</c>
+<c>* In addition to affine distortion, perspective or any</c>
+<c>* other distortions degrades the grid non-uniformity quality.</c>
+<l>for Diff := 0 to 4 by 1</l>
+<l>    R := [40,40,210,210]</l>
+<l>    C := [30,200,200,30]</l>
+<l>    R2 := R + [0,0,Diff,0]</l>
+<l>    C2 := C + [0,0,Diff,0]</l>
+<c>    * </c>
+<c>    * Generate an image with deviations of the modules from their</c>
+<c>    * ideal grid (for each iteration increasing deviation) by</c>
+<c>    * applying a projective transformation to the image with</c>
+<c>    * a computed transformation matrix.</c>
+<l>    vector_to_proj_hom_mat2d (R, C, R2, C2, 'normalized_dlt', [], [], [], [], [], [], HomMat2D, Covariance)</l>
+<l>    projective_trans_image (Image, ImageDeformed, HomMat2D, 'bilinear', 'false', 'false')</l>
+<c>    * Find the data code in the image with deviations</c>
+<c>    * of the modules from their ideal grid</c>
+<l>    find_data_code_2d (ImageDeformed, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the distortio</c>
+<l>    dev_display (ImageDeformed)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for grid non-uniformity and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_GRID_NON_UNIFORMITY, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Unused error correction:</c>
+<c>* ------------------------</c>
+<c>* Amount of error correcting capacities which is not already used</c>
+<c>* reflects the reliability of the decoding process</c>
+<l>for NumModules := 1 to 18 by 1</l>
+<c>    * </c>
+<c>    * Generate an image with more defects for each iteration by</c>
+<c>    * creating a white rectangle inside the image, so that in</c>
+<c>    * each iteration the amount of unused error correction decreases.</c>
+<l>    gen_rectangle1 (Defect, 270, 171, 310, NumModules * ModuleWidth + 171)</l>
+<l>    paint_region (Defect, Image, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code in the image with defects</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, Contours, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Contours)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for unused error correction and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_UNUSED_ERROR_CORRECTION, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Print Growth:</c>
+<c>* -------------</c>
+<c>* Measures if the modules are grown or shrunk from the nominal size</c>
+<l>for Erosion := 1 to 17 by 2</l>
+<c>    * erode the image in each iteration step a little more</c>
+<l>    zoom_image_factor (Image, ImageZoomed, 4, 4, 'bilinear')</l>
+<l>    gray_erosion_shape (ImageZoomed, ImageZoomedErosion, Erosion, Erosion, 'octagon')</l>
+<l>    zoom_image_factor (ImageZoomedErosion, ImageErosion, 0.25, 0.25, 'bilinear')</l>
+<l>    dev_display (ImageErosion)</l>
+<c>    * Find the data code symbols in the generated image</c>
+<l>    find_data_code_2d (ImageErosion, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for reflectance margin and the respective raw value.</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_UNUSED_PRINT_GROWTH, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<c>* </c>
+<l>for Dilation := 1 to 17 by 2</l>
+<c>    * dilate the image in each iteration step a little more</c>
+<l>    zoom_image_factor (Image, ImageZoomed, 4, 4, 'bilinear')</l>
+<l>    gray_dilation_shape (ImageZoomed, ImageZoomedDilation, Dilation, Dilation, 'octagon')</l>
+<l>    zoom_image_factor (ImageZoomedDilation, ImageDilation, 0.25, 0.25, 'bilinear')</l>
+<l>    dev_display (ImageDilation)</l>
+<c>    * Find the data code symbols in the generated image</c>
+<l>    find_data_code_2d (ImageDilation, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for reflectance margin and the respective raw value.</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_UNUSED_PRINT_GROWTH, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reflectance Margin:</c>
+<c>* -------------------</c>
+<c>* Measures how well each module is correctly distinguishable as light and dark</c>
+<c>* Low reflectance margin grade increase the probability of modules being incorrectly identified.</c>
+<c>* </c>
+<c>* Define a rectangle in which the defect in the image is imitated</c>
+<l>gen_rectangle1 (Defect, 160, 220, 320, 335)</l>
+<c>* </c>
+<l>for Offset := 50 to 90 by 6</l>
+<c>    * Brighten the image in each iteration step a little more</c>
+<l>    scale_image (Image, ImageScaled, 1, Offset)</l>
+<l>    dev_display (ImageScaled)</l>
+<c>    * </c>
+<c>    * Reduce the domain of the brightened image to the predefined</c>
+<c>    * rectangle and then paint its gray values into the original</c>
+<c>    * image. This generates an image containing a rectangle in</c>
+<c>    * which the gray values become more and more brighter with</c>
+<c>    * every iteration step.</c>
+<l>    reduce_domain (ImageScaled, Defect, ImageReduced)</l>
+<l>    paint_gray (ImageReduced, Image, ImageReflectanceMargin)</l>
+<c>    * Find the data code symbols in the generated image</c>
+<l>    find_data_code_2d (ImageReflectanceMargin, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageReflectanceMargin)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, ContoursContrast, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (ContoursContrast)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for reflectance margin and the respective raw value.</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_UNUSED_REFECTANCE_MARGIN, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<c>* </c>
+<l>for NumModules := 1 to 10 by 1</l>
+<c>    * </c>
+<c>    * Generate an image with more defects for each iteration by</c>
+<c>    * creating a white rectangle inside the image</c>
+<l>    gen_rectangle1 (Defect, 270, 171, 310, NumModules * ModuleWidth + 171)</l>
+<l>    paint_region (Defect, ImageReflectanceMargin, ImageDefect, 255, 'fill')</l>
+<c>    * Find the data code in the image with defects</c>
+<l>    find_data_code_2d (ImageDefect, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Get the current grades of assessment of the print quality elements</c>
+<c>    * and the respective raw values</c>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415', Quality)</l>
+<l>    get_data_code_2d_results (DataCodeHandle, ResultHandles, 'quality_isoiec15415_values', QualityValues)</l>
+<c>    * </c>
+<c>    * Display the image with the defect</c>
+<l>    dev_display (ImageDefect)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    set_line_style (WindowHandle, [2,4])</l>
+<l>    gen_contour_region_xld (Defect, ContoursDefect, 'border')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (ContoursDefect)</l>
+<l>    dev_display (ContoursContrast)</l>
+<l>    set_line_style (WindowHandle, [])</l>
+<c>    * </c>
+<c>    * Compute and display a message with the current assessment</c>
+<c>    * grade for reflectance margin and the respective raw value</c>
+<l>    grade_message_text (Labels, Quality, QualityValues, GRADE_UNUSED_REFECTANCE_MARGIN, Message)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (Wait)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="grade_message_text">
+<interface>
+<ic>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="Quality" base_type="ctrl" dimension="0"/>
+<par name="QualityValues" base_type="ctrl" dimension="0"/>
+<par name="GradeEnum" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := Labels[GradeEnum] + ': ' + Quality[GradeEnum]</l>
+<l>Value := QualityValues[GradeEnum]</l>
+<l>if (is_number(Value))</l>
+<l>    Message := Message + ' (' + (100 * Value)$'.2f' + '%)'</l>
+<l>else</l>
+<l>    Message := Message + ' (' + Value + ')'</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="grade_message_text">
+<parameters>
+<parameter id="GradeEnum"/>
+<parameter id="Labels"/>
+<parameter id="Message"/>
+<parameter id="Quality"/>
+<parameter id="QualityValues"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

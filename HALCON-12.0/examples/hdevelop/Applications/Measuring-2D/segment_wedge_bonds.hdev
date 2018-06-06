@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates the optical inspection after a</c>
+<c>* wedge-bonding process on a chip. First the pads and wires are</c>
+<c>* extracted. Being able to narrow down the area of interest then,</c>
+<c>* we search for the exact location and dimension of each wedge</c>
+<c>* bond. The orientation and the coverage of each bond to its pad</c>
+<c>* can be evaluated finally.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* Create shape model for contact pads from artificial contours.</c>
+<l>gen_rectangle2_contour_xld (OuterRectangle, 0, 0, 0, 77, 77)</l>
+<l>gen_rectangle2_contour_xld (InnerRectangle, 0, 0, 0, 67.5, 67.5)</l>
+<l>concat_obj (InnerRectangle, OuterRectangle, ModelContours)</l>
+<l>create_shape_model_xld (ModelContours, 'auto', 0, 0, 'auto', 'auto', 'ignore_local_polarity', 5, PadModelID)</l>
+<l>read_image (Model, 'bonds/wedge_bond_chip_model')</l>
+<l>find_shape_model (Model, PadModelID, 0, 0, 0.5, 1, 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>vector_angle_to_rigid (0, 0, 0, Row, Column, 0, HomMat2D)</l>
+<l>set_shape_model_metric (Model, PadModelID, HomMat2D, 'use_polarity')</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Model, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Model)</l>
+<l>dev_set_line_width (2)</l>
+<l>disp_message (WindowHandle, 'Artificial shape model of contact pads', 'window', -1, -1, 'black', 'true')</l>
+<l>dev_display_shape_matching_results (PadModelID, 'green', Row, Column, Angle, 1.0, 1.0, 0)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>StringIntro := ['After the wegde bonding process\neach bond is tested in terms of\ndimension and positioning','Inspection of chip with\nwedge bonding']</l>
+<c>* </c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>NumImages := 10</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'bonds/wedge_bond_chip_' + Index$'02')</l>
+<c>    * </c>
+<c>    * Extraction of wires. It relies on the operator lines_gauss()</c>
+<c>    * Since extracting lines is computationally expensive, we first</c>
+<c>    * segment the areas of interest, in order to speed up the process.</c>
+<l>    zoom_image_factor (Image, ImageZoomed, 0.1, 0.1, 'weighted')</l>
+<c>    * Segment the dark areas containing the wires and contacts</c>
+<l>    threshold (ImageZoomed, Dark, 0, 50)</l>
+<l>    closing_circle (Dark, RegionClosing, 3.5)</l>
+<l>    reduce_domain (ImageZoomed, RegionClosing, ImageReduced)</l>
+<l>    calculate_lines_gauss_parameters (8, 80, Sigma, Low, High)</l>
+<l>    lines_gauss (ImageReduced, Lines, Sigma, Low, High, 'dark', 'true', 'true', 'true')</l>
+<l>    select_contours_xld (Lines, SelectedContours, 'contour_length', 15, 200, -0.5, 0.5)</l>
+<c>    * Scale the extracted contours back into the original image</c>
+<l>    hom_mat2d_scale (HomMat2DIdentity, 10, 10, 0, 0, HomMat2DScale)</l>
+<l>    affine_trans_contour_xld (SelectedContours, ContoursAffinTrans, HomMat2DScale)</l>
+<l>    contours_neighborhood_regions (ContoursAffinTrans, WireNeighborhood, WireRegions, 48)</l>
+<l>    reduce_domain (Image, WireNeighborhood, ImageReduced2)</l>
+<l>    find_pads_in_image (ImageReduced2, InnerRectangle, Pads, PadModelID)</l>
+<c>    * </c>
+<c>    * Extract wires more precisely</c>
+<l>    dilation_rectangle1 (Pads, RegionDilation, 140, 140)</l>
+<l>    intersection (RegionDilation, WireNeighborhood, RegionIntersection)</l>
+<l>    reduce_domain (Image, RegionIntersection, ImageReduced)</l>
+<l>    threshold (ImageReduced, Region, 0, 40)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    opening_circle (RegionFillUp, RegionOpening, 5.5)</l>
+<l>    connection (RegionOpening, Contacts)</l>
+<l>    count_obj (Contacts, NContacts)</l>
+<c>    * </c>
+<c>    * Examine the position and orientation the wedge bonds</c>
+<l>    opening_circle (Contacts, RegionOpening, 32)</l>
+<l>    smallest_rectangle2 (RegionOpening, Row, Column, Phi, Length1, Length2)</l>
+<l>    gen_rectangle2 (Rectangle1, Row, Column, Phi, Length1 - 20, Length2)</l>
+<l>    intersection (Rectangle1, RegionOpening, Wedges)</l>
+<l>    difference (Wedges, Pads, OuterParts)</l>
+<l>    select_shape (OuterParts, OuterParts, 'area', 'and', 2000, 99999)</l>
+<l>    difference (Contacts, Wedges, WireRest)</l>
+<l>    connection (WireRest, ConnectedRegions)</l>
+<l>    select_shape_proto (ConnectedRegions, RegionDilation, Candidates, 'distance_contour', 1, 100)</l>
+<l>    select_shape (Candidates, Noses, 'area', 'and', 2000, 4500)</l>
+<l>    union2 (Noses, Wedges, Fronts)</l>
+<l>    union1 (Fronts, Fronts)</l>
+<l>    connection (Fronts, Fronts)</l>
+<l>    gen_wedge_arrow (Fronts, Arrows)</l>
+<l>    difference (WireRegions, Fronts, WireCenterRests)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    if (Index &lt; 3)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, StringIntro[min([Index - 1,1])], 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('white')</l>
+<l>        dev_display (Pads)</l>
+<l>        disp_message (WindowHandle, 'Step 1:\nDetermine Pads on the Chip', 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (Fronts)</l>
+<l>        dev_set_color ('yellow')</l>
+<l>        dev_display (WireCenterRests)</l>
+<l>        disp_message (WindowHandle, 'Step 2:\nExtract Wedge Bond and Wire', 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        StringGeomtericData := 'Step 3:\nDetermine Geometric Data\nfor each Wedge Bond'</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, StringIntro[1], 'window', 12, 12, 'black', 'true')</l>
+<l>        wait_seconds (0.4)</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('white')</l>
+<l>        dev_display (Pads)</l>
+<l>        wait_seconds (0.4)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, StringIntro[1], 'window', 12, 12, 'black', 'true')</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (Fronts)</l>
+<l>        dev_set_color ('yellow')</l>
+<l>        dev_display (WireCenterRests)</l>
+<l>        wait_seconds (0.4)</l>
+<l>        StringGeomtericData := StringIntro[1]</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Geometric data</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Fronts)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display_geometric_data (Fronts, Noses, GeometricData)</l>
+<l>    disp_message (WindowHandle, StringGeomtericData, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Evaluation of results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (Pads)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (Wedges)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (OuterParts)</l>
+<l>    dev_set_color ('cyan')</l>
+<l>    dev_display (Noses)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (Arrows)</l>
+<l>    dev_display_caption (OuterParts, Fronts, WindowHandle)</l>
+<l>    if (Index &lt; 3)</l>
+<l>        disp_message (WindowHandle, 'Step 4:\nEvaluate results of\nwedge bond inspection', 'window', 12, 300, 'black', 'true')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_shape_model (PadModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_display_geometric_data">
+<interface>
+<io>
+<par name="Fronts" base_type="iconic" dimension="0"/>
+<par name="Noses" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="GeometricData" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* </c>
+<l>Xs := [1,1,-1,-1]</l>
+<l>Ys := [1,-1,-1,1]</l>
+<l>count_obj (Fronts, Number)</l>
+<l>for Index := 1 to Number by 1</l>
+<c>    * </c>
+<c>    * measure for entire bond wedge</c>
+<l>    select_obj (Fronts, Front, Index)</l>
+<l>    smallest_rectangle2 (Front, Row, Column, Phi, Length1_F, Length2_F)</l>
+<l>    orientation_region (Front, Phi)</l>
+<c>    * </c>
+<l>    Xs_extX := Xs * [1.35,1.35,1.35,1.35]</l>
+<l>    Ys_extY := Ys * [1.35,1.35,1.35,1.35]</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_scale (HomMat2DIdentity, Length1_F, Length2_F, 0, 0, HomMat2DScale)</l>
+<l>    hom_mat2d_rotate (HomMat2DScale, rad(180) - Phi, 0, 0, HomMat2DRotate)</l>
+<l>    hom_mat2d_translate (HomMat2DRotate, Column, Row, HomMat2DTranslate)</l>
+<l>    affine_trans_point_2d (HomMat2DTranslate, Xs, Ys_extY, Qx_1, Qy_1)</l>
+<l>    affine_trans_point_2d (HomMat2DTranslate, Xs_extX, Ys, Qx_2, Qy_2)</l>
+<l>    for IndexLines := 0 to |Qx_1| - 1 by 1</l>
+<l>        if (IndexLines % 2)</l>
+<l>            gen_contour_polygon_xld (ContourLine, [Qy_2[IndexLines],Qy_2[(IndexLines + 1) % 4]], [Qx_2[IndexLines],Qx_2[(IndexLines + 1) % 4]])</l>
+<l>        else</l>
+<l>            gen_contour_polygon_xld (ContourLine, [Qy_1[IndexLines],Qy_1[(IndexLines + 1) % 4]], [Qx_1[IndexLines],Qx_1[(IndexLines + 1) % 4]])</l>
+<l>        endif</l>
+<l>        dev_display (ContourLine)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * measure for bond tail</c>
+<l>    select_obj (Noses, Nose, Index)</l>
+<l>    smallest_rectangle2 (Nose, Row_N, Column_N, tmp, Length1_N, Length2_N)</l>
+<c>    * </c>
+<l>    Xs_extX := Xs * [1.2,1.2,1.2,1.2]</l>
+<l>    Ys_extY := Ys * [1.2,1.2,1.2,1.2]</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_scale (HomMat2DIdentity, Length1_N, Length2_F, 0, 0, HomMat2DScale)</l>
+<l>    hom_mat2d_rotate (HomMat2DScale, rad(180) - Phi, 0, 0, HomMat2DRotate)</l>
+<l>    hom_mat2d_translate (HomMat2DRotate, Column_N, Row_N, HomMat2DTranslate)</l>
+<l>    affine_trans_point_2d (HomMat2DTranslate, Xs, Ys_extY, Qx_1, Qy_1)</l>
+<l>    gen_contour_polygon_xld (ContourLine, [Qy_1[0],Qy_1[1]], [Qx_1[0],Qx_1[1]])</l>
+<l>    dev_display (ContourLine)</l>
+<c>    * </c>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_scale (HomMat2DIdentity, Length1_F, Length2_N, 0, 0, HomMat2DScale)</l>
+<l>    hom_mat2d_rotate (HomMat2DScale, rad(180) - Phi, 0, 0, HomMat2DRotate)</l>
+<l>    hom_mat2d_translate (HomMat2DRotate, Column, Row, HomMat2DTranslate)</l>
+<l>    affine_trans_point_2d (HomMat2DTranslate, Xs_extX, Ys, Qx_2, Qy_2)</l>
+<l>    for IndexLines := 1 to |Qx_1| - 1 by 2</l>
+<l>        gen_contour_polygon_xld (ContourLine, [Qy_2[IndexLines],Qy_2[(IndexLines + 1) % 4]], [Qx_2[IndexLines],Qx_2[(IndexLines + 1) % 4]])</l>
+<l>        dev_display (ContourLine)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_geometric_data">
+<parameters>
+<parameter id="Fronts"/>
+<parameter id="GeometricData"/>
+<parameter id="Noses"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_caption">
+<interface>
+<io>
+<par name="Outerparts" base_type="iconic" dimension="0"/>
+<par name="Fronts" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_draw ('fill')</l>
+<l>NextRow := 30</l>
+<l>disp_message (WindowHandle, '   Bond tail  ', 'image', NextRow - 5, 50, 'black', 'true')</l>
+<l>dev_set_color ('cyan')</l>
+<l>disp_rectangle1 (WindowHandle, NextRow, 60, NextRow + 30, 90)</l>
+<c>* </c>
+<l>NextRow := NextRow + 50</l>
+<l>disp_message (WindowHandle, '   Bond wedge ', 'image', NextRow - 5, 50, 'black', 'true')</l>
+<l>dev_set_color ('green')</l>
+<l>disp_rectangle1 (WindowHandle, NextRow, 60, NextRow + 30, 90)</l>
+<c>* </c>
+<l>NextRow := NextRow + 50</l>
+<l>disp_message (WindowHandle, '   Pad on chip', 'image', NextRow - 5, 50, 'black', 'true')</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('black')</l>
+<l>disp_rectangle1 (WindowHandle, NextRow, 60, NextRow + 30, 90)</l>
+<c>* </c>
+<l>count_obj (Outerparts, Number)</l>
+<l>dev_set_line_width (2)</l>
+<l>if (Number &gt; 0)</l>
+<l>    area_center (Outerparts, Area, Row, Column)</l>
+<l>    for IndexE := 0 to Number - 1 by 1</l>
+<l>        select_obj (Outerparts, OS, IndexE + 1)</l>
+<l>        select_shape_proto (Fronts, OS, Front, 'overlaps_rel', 10, 100)</l>
+<l>        area_center (Front, AreaF, Row1, Column1)</l>
+<l>        NRow := Row[IndexE]</l>
+<l>        NCol := Column[IndexE]</l>
+<l>        dev_set_color ('red')</l>
+<l>*         disp_arrow (WindowHandle, NRow + 50, NCol + 10, NRow + 10, NCol, 1)</l>
+<l>        Miss := ((real(Area[IndexE]) / AreaF) * 100.0)$'.1f'</l>
+<l>        disp_message (WindowHandle, 'Wedge misses pad by\n' + Miss + '% of its area', 'image', NRow + 50, NCol - 150, 'red', 'true')</l>
+<l>    endfor</l>
+<c>    * </c>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_caption">
+<parameters>
+<parameter id="Fronts"/>
+<parameter id="Outerparts"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="contours_neighborhood_regions">
+<interface>
+<io>
+<par name="ContoursAffinTrans" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="WireNeighborhood" base_type="iconic" dimension="0"/>
+<par name="WireRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_empty_obj (WireRegions)</l>
+<l>clip_end_points_contours_xld (ContoursAffinTrans, ClippedContours, 'num_points', 3)</l>
+<l>count_obj (ClippedContours, Number)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (ClippedContours, ObjectSelected, I)</l>
+<l>    get_contour_xld (ObjectSelected, Rows, Columns)</l>
+<l>    gen_region_polygon (Region, Rows, Columns)</l>
+<l>    concat_obj (WireRegions, Region, WireRegions)</l>
+<l>endfor</l>
+<l>union1 (WireRegions, RegionUnion)</l>
+<l>dilation_circle (RegionUnion, RegionDilation, Radius)</l>
+<l>union1 (RegionDilation, WireNeighborhood)</l>
+<l>return ()</l>
+</body>
+<docu id="contours_neighborhood_regions">
+<parameters>
+<parameter id="ContoursAffinTrans"/>
+<parameter id="Radius"/>
+<parameter id="WireNeighborhood"/>
+<parameter id="WireRegions"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="find_pads_in_image">
+<interface>
+<io>
+<par name="PadsImage" base_type="iconic" dimension="0"/>
+<par name="ModelRectangle" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Pads" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="PadModelID" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>find_shape_model (PadsImage, PadModelID, 0, 0, 0.35, 0, 0, 'least_squares', 0, 0.5, Row, Column, Angle, Score)</l>
+<l>gen_rectangle2 (Pads, Row, Column, 0 + 0 * Row, 67.5 + 0 * Row, 67.5 + 0 * Row)</l>
+<l>union1 (Pads, Pads)</l>
+<l>return ()</l>
+</body>
+<docu id="find_pads_in_image">
+<parameters>
+<parameter id="ModelRectangle"/>
+<parameter id="PadModelID"/>
+<parameter id="Pads"/>
+<parameter id="PadsImage"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_wedge_arrow">
+<interface>
+<io>
+<par name="Fronts" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Arrows" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>gen_empty_obj (Arrows)</l>
+<l>count_obj (Fronts, Number)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    select_obj (Fronts, Front, Index)</l>
+<l>    elliptic_axis (Front, Ra, Rb, Phi2)</l>
+<l>    orientation_region (Front, Phi2)</l>
+<l>    area_center (Front, Area, Row, Column)</l>
+<l>    gen_arrow_contour_xld (Arrow, Row - sin(Phi2 + rad(180)) * Rb, Column + cos(Phi2 + rad(180)) * Rb, Row - sin(Phi2) * Ra, Column + cos(Phi2) * Ra, 10, 20)</l>
+<l>    concat_obj (Arrows, Arrow, Arrows)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="gen_wedge_arrow">
+<parameters>
+<parameter id="Arrows"/>
+<parameter id="Fronts"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

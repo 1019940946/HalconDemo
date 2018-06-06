@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how median_rect can be used to enhance</c>
+<c>* images by removing undesirable background information.</c>
+<l>dev_update_off ()</l>
+<c>* The first part shows how median_rect can be used to remove</c>
+<c>* certain tissue structures from an angiographic image.  This</c>
+<c>* helps to enhance the visibility of the blood vessels in the</c>
+<c>* image.</c>
+<l>read_image (ImageAngio, 'angio-part')</l>
+<l>get_image_size (ImageAngio, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageAngio)</l>
+<l>disp_message (WindowHandle, 'Original image', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* The median is used in this example to estimate the gray values</c>
+<c>* of the tissue structures.  Note that the mask size must be</c>
+<c>* chosen large enough so that the blood vessels are completely</c>
+<c>* removed from the image.  The median image is then subtracted</c>
+<c>* from the original image.  Furthermore, the gray values are</c>
+<c>* scaled by a factor of 3.</c>
+<l>median_rect (ImageAngio, ImageAngioMedian, 61, 61)</l>
+<l>min_max_gray (ImageAngioMedian, ImageAngioMedian, 0, Min, Max, Range)</l>
+<l>sub_image (ImageAngio, ImageAngioMedian, ImageAngioEnhanced, 3, 3 * Min)</l>
+<l>dev_display (ImageAngioEnhanced)</l>
+<l>disp_message (WindowHandle, 'Enhanced image', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* The second example shows how median_rect can be used to</c>
+<c>* perform a shading correction of an unevenly lit object.</c>
+<l>read_image (ImageBraille, 'photometric_stereo/embossed_01')</l>
+<l>get_image_size (ImageBraille, Width, Height)</l>
+<l>dev_set_window_extents (-1, -1, Width / 2, Height / 2)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (ImageBraille)</l>
+<l>disp_message (WindowHandle, 'Original image', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* The procedure in this example is identical to that used in the</c>
+<c>* angiography example.  The only difference is the mask size and</c>
+<c>* the scale factor for the gray values, which is 1 in this case.</c>
+<l>median_rect (ImageBraille, ImageBrailleMedian, 55, 55)</l>
+<l>min_max_gray (ImageBrailleMedian, ImageBrailleMedian, 0, Min, Max, Range)</l>
+<l>sub_image (ImageBraille, ImageBrailleMedian, ImageBrailleCorrected, 1, Min)</l>
+<l>dev_display (ImageBrailleCorrected)</l>
+<l>disp_message (WindowHandle, 'Shading-corrected image', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* In the final example, median_rect is used to compute a</c>
+<c>* smoothed image for dyn_threshold.  This serves the same</c>
+<c>* purpose as the shading correction in the second example.</c>
+<c>* However, here the goal is segmenting the image.  Therefore,</c>
+<c>* the images are not subtracted explicitly from each other.</c>
+<l>read_image (ImageNeedle, 'needle1')</l>
+<l>get_image_size (ImageNeedle, Width, Height)</l>
+<l>dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (ImageNeedle)</l>
+<l>disp_message (WindowHandle, 'Original image', 'image', -1, -1, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>median_rect (ImageNeedle, ImageNeedleMedian, 41, 41)</l>
+<l>dyn_threshold (ImageNeedle, ImageNeedleMedian, Region, 30, 'dark')</l>
+<l>dev_display (ImageNeedle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region)</l>
+<l>disp_message (WindowHandle, 'Segmented image', 'image', -1, -1, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

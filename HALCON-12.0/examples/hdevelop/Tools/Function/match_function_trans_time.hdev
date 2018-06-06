@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Measure time to calculate transformation parameters between two functions</c>
+<c>* </c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_time ('off')</l>
+<l>NPT := 100</l>
+<l>MPT := 100</l>
+<l>GM := [30.0,65.0]</l>
+<l>GS := [15.0,25.0]</l>
+<l>GA := [20.0,15.0]</l>
+<l>E := [0.8,20.0,1.4,-10.0]</l>
+<l>X1 := []</l>
+<l>Y1 := []</l>
+<l>for I := 0 to NPT - 1 by 1</l>
+<l>    X := E[2] * I + E[3]</l>
+<l>    Y := GA[0] * exp(-pow((X - GM[0]) / GS[0],2)) + GA[1] * exp(-pow((X - GM[1]) / GS[1],2))</l>
+<l>    F := E[0] * Y + E[1]</l>
+<l>    X1 := [X1,I]</l>
+<l>    Y1 := [Y1,F]</l>
+<l>endfor</l>
+<l>X2 := []</l>
+<l>Y2 := []</l>
+<l>for I := 0 to MPT - 1 by 1</l>
+<l>    X := I</l>
+<l>    Y := GA[0] * exp(-pow((X - GM[0]) / GS[0],2)) + GA[1] * exp(-pow((X - GM[1]) / GS[1],2))</l>
+<l>    X2 := [X2,I]</l>
+<l>    Y2 := [Y2,Y]</l>
+<l>endfor</l>
+<l>C1 := E</l>
+<l>C2 := [1 / E[0],-E[1] / E[0],1 / E[2],-E[3] / E[2]]</l>
+<c>* Create a function from a sequence of y-values</c>
+<l>create_funct_1d_array (Y1, F1)</l>
+<l>create_funct_1d_array (Y2, F2)</l>
+<l>count_seconds (S1)</l>
+<c>* Calculate transformation parameters between two functions</c>
+<l>for I := 1 to 1000 by 1</l>
+<l>    match_funct_1d_trans (F1, F2, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsF1, ChiSquareF1, CovarF1)</l>
+<l>    match_funct_1d_trans (F2, F1, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsB1, ChiSquareB1, CovarB1)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>T1 := (S2 - S1) / 1000</l>
+<c>* Create a function from a set of (x,y) pairs</c>
+<l>create_funct_1d_pairs (X1, Y1, F3)</l>
+<l>create_funct_1d_pairs (X2, Y2, F4)</l>
+<l>count_seconds (S1)</l>
+<l>for I := 1 to 1000 by 1</l>
+<l>    match_funct_1d_trans (F3, F4, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsF4, ChiSquareF4, CovarF4)</l>
+<l>    match_funct_1d_trans (F4, F3, 'constant', [1.0,0.0,1.0,0.0], ['true','true','true','true'], ParamsB4, ChiSquareB4, CovarB4)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>T2 := (S2 - S1) / 1000</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the entropy of gray values within a rectangular window</c>
+<c>* </c>
+<l>read_image (MreutY, 'mreut_y')</l>
+<l>entropy_image (MreutY, ImageEntropy, 9, 9)</l>
+<l>threshold (ImageEntropy, RegionEnt, 165, 255)</l>
+<l>fill_up_shape (RegionEnt, RegionFillUpSh, 'area', 0, 100)</l>
+<c>* Apply opening to region using a circular structuring element</c>
+<l>opening_circle (RegionFillUpSh, RegionOpening, 8.5)</l>
+<l>connection (RegionOpening, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 350, 10000000)</l>
+<l>select_gray (SelectedRegions, MreutY, TexureRegions, 'entropy', 'and', 7, 8)</l>
+<l>dev_display (MreutY)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (TexureRegions)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates shape based matching</c>
+<c>* with multi channel images</c>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_update_off ()</l>
+<l>Mode := 'multi channel'</l>
+<l>ModelColor := 'green'</l>
+<l>CircleColor := 'white'</l>
+<l>Names := ['Pear Apple Hazelnut','Cherry Currant','Strawberry']</l>
+<l>read_image (Image, 'color/yogurt_model_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Part 1: create shape models</c>
+<l>ModelIDs := []</l>
+<l>for Index := 1 to 3 by 1</l>
+<l>    read_image (Image, 'color/yogurt_model_' + Index$'02')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Create ROI automatically</c>
+<l>    access_channel (Image, Channel1, 1)</l>
+<l>    fast_threshold (Channel1, Region, 75, 255, 20)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    opening_circle (RegionFillUp, RegionOpening, 170.5)</l>
+<l>    gen_contour_region_xld (RegionOpening, Contours, 'border')</l>
+<l>    fit_circle_contour_xld (Contours, 'geotukey', -1, 0, 0, 3, 2, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>    gen_circle (Circle, Row, Column, Radius / 2)</l>
+<l>    reduce_domain (Image, Circle, ImageReduced)</l>
+<c>    * </c>
+<c>    * Create model</c>
+<l>    create_shape_model (ImageReduced, 6, rad(0), rad(360), 'auto', 'auto', 'ignore_color_polarity', [35,50,15], 11, ModelID)</l>
+<l>    ModelIDs := [ModelIDs,ModelID]</l>
+<c>    * </c>
+<c>    * Display model</c>
+<l>    dev_set_color (CircleColor)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_display (Circle)</l>
+<l>    dev_set_color (ModelColor)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    find_shape_model (ImageReduced, ModelID, rad(0), rad(360), 0.5, 1, 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>    dev_display_shape_matching_results (ModelID, ModelColor, Row, Column, Angle, 1, 1, 0)</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, 'Create shape model ' + Names[Index - 1], 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Press \'Run\' to continue', 'window', 450, 12, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* Main loop: Find yogurt</c>
+<l>for Index := 1 to 10 by 1</l>
+<l>    read_image (Image, 'color/yogurt_' + Index$'02')</l>
+<c>    * Preprocessing: Reduce search domain to speed up matching</c>
+<l>    access_channel (Image, Channel1, 1)</l>
+<l>    fast_threshold (Channel1, Region, 50, 255, 20)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    erosion_rectangle1 (RegionFillUp, RegionErosion, 210, 210)</l>
+<l>    reduce_domain (Image, RegionErosion, ImageReduced)</l>
+<c>    * Find yogurt</c>
+<l>    find_shape_models (ImageReduced, ModelIDs, rad(0), rad(360), 0.80, 1, 0.5, 'least_squares', 0, 0.95, Row, Column, Angle, Score, Model)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_display (Image)</l>
+<l>    gen_circle (Circle, Row, Column, Radius / 2)</l>
+<l>    dev_set_color (CircleColor)</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_display (Circle)</l>
+<l>    get_shape_model_contours (ModelContours, ModelIDs[Model[0]], 1)</l>
+<l>    dev_set_color (ModelColor)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display_shape_matching_results (ModelIDs, ModelColor, Row, Column, Angle, 1, 1, Model)</l>
+<l>    disp_message (WindowHandle, Names[Model[0]] + ' found', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Score ' + Score, 'window', 50, 12, 'black', 'true')</l>
+<l>    if (Index &lt; 10)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

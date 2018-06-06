@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use shape-based</c>
+<c>* matching to find objects that are slightly deformed</c>
+<c>* using the parameter 'max_deformations'.</c>
+<c>* </c>
+<c>* Note that to find deformed objects you can</c>
+<c>* - apply shape-based matching using the parameter</c>
+<c>* 'max_deformation' or</c>
+<c>* - apply local deformable matching.</c>
+<c>* </c>
+<c>* In this example, the task is solved with shape-based</c>
+<c>* matching and the parameter 'max_deformation'.</c>
+<c>* You can compare it to the example</c>
+<c>* 'find_cocoa_packages_local_deformable.hdev', which</c>
+<c>* solves the same task with local deformable matching.</c>
+<c>* Shape-based matching is significantly faster, but</c>
+<c>* local deformable matching is more robust to different</c>
+<c>* types of deformations.</c>
+<c>* For example, the deformations in the example program</c>
+<c>* 'find_peanut_chocolate_candies_local_deformable.hdev'</c>
+<c>* can not be handled by shape-based matching.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (ModelImage, 'food/cocoa_package_model')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ModelImage, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create and display the shape model</c>
+<l>create_shape_model (ModelImage, 'auto', rad(-20), rad(40), 'auto', 'auto', 'use_polarity', [40,60,'auto_min_size'], 10, ModelID)</l>
+<l>get_shape_model_contours (ModelContours, ModelID, 1)</l>
+<l>area_center (ModelImage, Area, Row, Column)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, Row, Column, HomMat2DTranslate)</l>
+<l>affine_trans_contour_xld (ModelContours, ContoursAffineTrans, HomMat2DTranslate)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (ContoursAffineTrans)</l>
+<l>disp_message (WindowHandle, 'Model image and contours', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>NumImages := 13</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'food/cocoa_packages_' + Index$'02')</l>
+<c>    * Reduce the image resolution for a speed-up</c>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Search...', 'window', 12, 12, 'black', 'true')</l>
+<l>    count_seconds (S1)</l>
+<c>    * Find the deformed model in the search image</c>
+<c>    * and display the results</c>
+<l>    find_shape_model (Image, ModelID, rad(-20), rad(40), 0.6, 0, 0.5, ['least_squares','max_deformation 16'], 0, 0.4, Row, Column, Angle, Score)</l>
+<l>    count_seconds (S2)</l>
+<l>    Time := (S2 - S1) * 1000</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display_shape_matching_results (ModelID, 'green', Row, Column, Angle, 1, 1, 0)</l>
+<l>    disp_message (WindowHandle, |Score| + ' matches found in ' + Time$'3.1f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Score: ' + Score$'.2f', 'image', 350, Column - 80, 'black', 'true')</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of ifm 3D time of flight cameras (O3D3xx)</c>
+<c>* (demonstrate usage of grab_image[_async] and grab_data[_async])</c>
+<c>* </c>
+<c>* </c>
+<l>Name := 'O3D3xx'</l>
+<l>Device := 'default'</l>
+<c>* Open camera</c>
+<l>open_framegrabber (Name, 0, 0, 0, 0, 0, 0, 'default', 0, 'default', -1, 'false', 'default', Device, -1, 0, AcqHandle)</l>
+<c>* Get image dimensions and prepare a graphic window</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowID1)</l>
+<l>dev_update_window ('off')</l>
+<c>* Configuration to return real images in meters. Notice that the</c>
+<c>* the confidence image is still returned as byte image.</c>
+<l>set_framegrabber_param (AcqHandle, 'pixel_format', 'Mono32F')</l>
+<l>set_framegrabber_param (AcqHandle, 'distance_unit', 'meter')</l>
+<c>* Use grab_image[_async] to acquire the z image only (as real in meters).</c>
+<l>dev_set_window (WindowID1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowID1, 'grab_image: z image (real)', 'window', 10, 10, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Open some more graphics windows</c>
+<l>dev_open_window (0, Width * 2 + 20, Width * 2, Height * 2, 'black', WindowID2)</l>
+<l>dev_open_window (0, Width * 4 + 40, Width * 2, Height * 2, 'black', WindowID3)</l>
+<l>dev_open_window (Height * 2 + 60, 0, Width * 2, Height * 2, 'black', WindowID4)</l>
+<l>dev_open_window (Height * 2 + 60, Width * 2 + 20, Width * 2, Height * 2, 'black', WindowID5)</l>
+<l>dev_open_window (Height * 2 + 60, Width * 4 + 40, Width * 2, Height * 2, 'black', WindowID6)</l>
+<c>* </c>
+<c>* Use grab_data[_async] to acquire all images (as real/byte images)</c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_data (ImageData, Region, Contours, AcqHandle, Data)</l>
+<l>    count_obj (ImageData, NumImageData)</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ImageX, 1)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_display (ImageX)</l>
+<l>    disp_message (WindowID1, 'grab_data: x image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ImageY, 2)</l>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_display (ImageY)</l>
+<l>    disp_message (WindowID2, 'grab_data: y image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ImageZ, 3)</l>
+<l>    dev_set_window (WindowID3)</l>
+<l>    dev_display (ImageZ)</l>
+<l>    disp_message (WindowID3, 'grab_data: z image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, AmplitudeImage, 4)</l>
+<l>    dev_set_window (WindowID4)</l>
+<l>    dev_set_lut ('cubic_root')</l>
+<l>    dev_display (AmplitudeImage)</l>
+<l>    disp_message (WindowID4, 'grab_data: normalized amplitude image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, DistanceImage, 5)</l>
+<l>    dev_set_window (WindowID5)</l>
+<l>    dev_set_lut ('cubic_root')</l>
+<l>    dev_display (DistanceImage)</l>
+<l>    disp_message (WindowID5, 'grab_data: distance image (real)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ConfidenceImage, 6)</l>
+<l>    dev_set_window (WindowID6)</l>
+<l>    dev_display (ConfidenceImage)</l>
+<l>    disp_message (WindowID6, 'grab_data: confidence image (byte)', 'window', 10, 10, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

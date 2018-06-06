@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to perform a pick-and-place application with</c>
+<c>* a SCARA robot based on the calibration information determined by</c>
+<c>* a SCARA hand-eye calibration. In a first step, a shape model is defined</c>
+<c>* from a model image. Then, based on this shape model, the object is searched</c>
+<c>* in each image. For one selected object, the robot coordinates are</c>
+<c>* calculated that can be used to grasp this object.</c>
+<c>* To adapt this example for real applications, the images must be acquired</c>
+<c>* from a camera (instead of read from file) and the control of the robot</c>
+<c>* must be implemented (instead of the respective lines in this example that</c>
+<c>* are commented out).</c>
+<c>* </c>
+<c>* Typically, the images must be rectified before the matching. This step</c>
+<c>* may only be omitted if the camera looks exactly orthogonal onto the</c>
+<c>* measurement plane. To run the example program with the provided example</c>
+<c>* images, RectifyImages must be set to true.</c>
+<l>RectifyImages := true</l>
+<c>* </c>
+<c>* Read in the calibration information provided by one of the HDevelop</c>
+<c>* example programs calibrate_hand_eye_scara_stationary_cam.hdev</c>
+<c>* or align_hand_eye_scara_stationary_cam.hdev</c>
+<l>try</l>
+<c>    * Read the result of the hand eye calibration</c>
+<l>    read_pose ('cam_in_base_pose.dat', CamInBasePose)</l>
+<c>    * Read the data required for the pose estimation of the objects to be grasped</c>
+<l>    read_cam_par ('camera_parameters.dat', CameraParam)</l>
+<l>    read_pose ('measurement_plane_in_cam_pose.dat', MPInCamPose)</l>
+<l>catch (Exception)</l>
+<c>    * The calibration information is not yet available, use standard calibration</c>
+<c>    * information instead. To provide the calibration information on file, run</c>
+<c>    * one of the HDevelop example programs calibrate_hand_eye_scara_stationary_cam.hdev</c>
+<c>    * or align_hand_eye_scara_stationary_cam.hdev</c>
+<l>    CamInBasePose := [0.05592166548,0.19497621789,0.48025117245,180.09816119,29.85593363,179.94389014,0]</l>
+<l>    CameraParam := [0.0165251,-642.277,4.65521e-006,4.65e-006,595.817,521.75,1280,1024]</l>
+<l>    MPInCamPose := [0.0045679683065,-0.0028695297318,0.4088853425,359.78658429,29.732027579,0.22946472765,0]</l>
+<l>endtry</l>
+<c>* Prepare the rectification map to eliminate the perspective</c>
+<c>* distortions of the images</c>
+<l>if (RectifyImages)</l>
+<l>    prepare_rectification_map (Map, CameraParam, MPInCamPose, MappingScale, MPInCamPoseMapping)</l>
+<l>    image_points_to_world_plane (CameraParam, MPInCamPoseMapping, 0, 0, 'm', MapUpperLeftX, MapUpperLeftY)</l>
+<l>endif</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>set_system ('border_shape_models', 'true')</l>
+<c>* </c>
+<c>* Here, the connection to the robot should be established and</c>
+<c>* the robot should be moved to a defined standby pose that</c>
+<c>* allows to take an unoccluded image of the measurement plane.</c>
+<c>* </c>
+<c>* Define a shape model of the object to be grasped</c>
+<c>* - Acquire an image for model generation</c>
+<l>read_image (Image, '3d_machine_vision/handeye/scara_stationary_cam_setup_01_metal_parts_01')</l>
+<l>if (RectifyImages)</l>
+<l>    map_image (Image, Map, ModelImage)</l>
+<l>else</l>
+<l>    copy_image (Image, ModelImage)</l>
+<l>endif</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ModelImage, 0, 0, 600, 600, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_set_line_width (2)</l>
+<c>* - Create the shape model</c>
+<l>gen_rectangle1 (ModelROI, 400, 500, 1100, 1300)</l>
+<l>gauss_filter (ModelImage, ImageGauss, 5)</l>
+<l>reduce_domain (ImageGauss, ModelROI, ImageReduced)</l>
+<l>create_shape_model (ImageReduced, 'auto', rad(0), rad(360), 'auto', 'auto', 'use_polarity', [10,50], 'auto', ModelID)</l>
+<l>area_center (ModelROI, ModelROIArea, ModelROIRow, ModelROIColumn)</l>
+<l>dev_display_shape_matching_results (ModelID, 'green', ModelROIRow, ModelROIColumn, 0, 1, 1, 0)</l>
+<c>* - Define the grasping point on the object either by indicating</c>
+<c>*   it in the image (only if the object can be picked up by the tool in any orientation)</c>
+<c>*   or by grasping it with the robot and registering the respective robot pose</c>
+<l>DefineGraspingPointByRobot := true</l>
+<l>if (DefineGraspingPointByRobot)</l>
+<l>    dev_set_colored (12)</l>
+<l>    GraspingPointModelInBasePose := [0.2592,0.1997,0.1224,0,0,1.2572,0]</l>
+<l>    pose_invert (CamInBasePose, BaseInCamPose)</l>
+<l>    pose_to_hom_mat3d (BaseInCamPose, BaseInCamHomMat3D)</l>
+<l>    affine_trans_point_3d (BaseInCamHomMat3D, GraspingPointModelInBasePose[0], GraspingPointModelInBasePose[1], GraspingPointModelInBasePose[2], Qx, Qy, Qz)</l>
+<l>    project_3d_point (Qx, Qy, Qz, CameraParam, GraspingPointModelRow, GraspingPointModelColumn)</l>
+<l>    GraspingPointModelAngle := GraspingPointModelInBasePose[5]</l>
+<l>    if (RectifyImages)</l>
+<c>        * Calculate rectified image coordinates</c>
+<l>        image_points_to_world_plane (CameraParam, MPInCamPoseMapping, GraspingPointModelRow, GraspingPointModelColumn, MappingScale, GraspingPointModelXMP, GraspingPointModelYMP)</l>
+<l>        GraspingPointModelRow := GraspingPointModelYMP - MapUpperLeftY / MappingScale</l>
+<l>        GraspingPointModelColumn := GraspingPointModelXMP - MapUpperLeftX / MappingScale</l>
+<c>        * Display grasping pose in rectified model image</c>
+<l>        get_image_size (ModelImage, WidthM, HeightM)</l>
+<l>        CamParamRect := [0,0,MappingScale,MappingScale,-MapUpperLeftX / MappingScale,-MapUpperLeftY / MappingScale,WidthM,HeightM]</l>
+<l>        GraspingPointModelXMP := MapUpperLeftX + GraspingPointModelColumn * MappingScale</l>
+<l>        GraspingPointModelYMP := MapUpperLeftY + GraspingPointModelRow * MappingScale</l>
+<l>        PoseCoordSystemVis := [GraspingPointModelXMP,GraspingPointModelYMP,0,0,0,GraspingPointModelAngle,0]</l>
+<l>        dev_set_colored (12)</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParamRect, PoseCoordSystemVis, 0.02)</l>
+<l>    else</l>
+<c>        * Display grasping pose in original model image</c>
+<l>        pose_invert (CamInBasePose, BaseInCamPose)</l>
+<l>        pose_compose (BaseInCamPose, GraspingPointModelInBasePose, PoseCoordSystemVis)</l>
+<l>        dev_set_colored (12)</l>
+<l>        disp_3d_coord_system (WindowHandle, CameraParam, PoseCoordSystemVis, 0.02)</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, 'Model contours and grasping pose', 'window', 12, 12, 'black', 'true')</l>
+<l>else</l>
+<l>    binary_threshold (ImageReduced, Region, 'max_separability', 'light', UsedThreshold)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    erosion_rectangle1 (RegionFillUp, RegionErosion, 160, 1)</l>
+<l>    smallest_rectangle2 (RegionErosion, GraspingPointModelRow, GraspingPointModelColumn, Phi, Length1, Length2)</l>
+<l>    gen_cross_contour_xld (GraspingPointModel, GraspingPointModelRow, GraspingPointModelColumn, 25, 0.785398)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (GraspingPointModel)</l>
+<l>    disp_message (WindowHandle, 'Model contours and grasping point', 'window', 12, 12, 'black', 'true')</l>
+<l>endif</l>
+<l>area_center (ModelROI, ModelROIArea, ModelROIRow, ModelROIColumn)</l>
+<l>set_shape_model_origin (ModelID, GraspingPointModelRow - ModelROIRow, GraspingPointModelColumn - ModelROIColumn)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Loop over the images of objects to be grasped by the robot</c>
+<l>pose_to_hom_mat3d (MPInCamPoseMapping, MPInCamHomMat3DMapping)</l>
+<l>for ImageIdx := 2 to 6 by 1</l>
+<c>    * Acquire next image</c>
+<l>    read_image (Image, '3d_machine_vision/handeye/scara_stationary_cam_setup_01_metal_parts_' + ImageIdx$'02d')</l>
+<c>    * </c>
+<c>    * Rectify the image to allow the use of standard shape based matching</c>
+<c>    * for the search for instances of the object</c>
+<l>    if (RectifyImages)</l>
+<l>        map_image (Image, Map, SearchImage)</l>
+<l>    else</l>
+<l>        copy_image (Image, SearchImage)</l>
+<l>    endif</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (SearchImage)</l>
+<c>    * </c>
+<c>    * Find instances of the object</c>
+<l>    find_shape_model (SearchImage, ModelID, rad(0), rad(360), 0.5, 0, 0.5, 'least_squares', [0,3], 0.9, Row, Column, Angle, Score)</l>
+<l>    if (|Row| &lt; 1)</l>
+<l>        disp_message (WindowHandle, 'No objects found', 'window', 12, 12, 'black', 'true')</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Select one specific instance (here: the leftmost)</c>
+<l>    LeftmostIdx := sort_index(Column)[0]</l>
+<l>    GraspingPointRow := Row[LeftmostIdx]</l>
+<l>    GraspingPointColumn := Column[LeftmostIdx]</l>
+<l>    GraspingPointAngle := Angle[LeftmostIdx]</l>
+<c>    * </c>
+<c>    * Display matching results and indicate object to be grasped</c>
+<l>    dev_display_shape_matching_results (ModelID, 'blue', Row, Column, Angle, 1, 1, 0)</l>
+<l>    dev_display_shape_matching_results (ModelID, 'green', GraspingPointRow, GraspingPointColumn, GraspingPointAngle, 1, 1, 0)</l>
+<l>    disp_message (WindowHandle, |Row| + ' objects found (Green: Object to be grasped)', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Calculate point to approach</c>
+<l>    calculate_point_to_approach_scara_stationary (GraspingPointRow, GraspingPointColumn, GraspingPointAngle + rad(GraspingPointModelAngle), RectifyImages, MapUpperLeftX, MapUpperLeftY, MappingScale, MPInCamHomMat3DMapping, CameraParam, MPInCamPose, CamInBasePose, ObjInBasePose)</l>
+<c>    * </c>
+<c>    * Display object to be grasped together with the grasping point</c>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (SearchImage)</l>
+<l>    dev_display_shape_matching_results (ModelID, 'green', GraspingPointRow, GraspingPointColumn, GraspingPointAngle, 1, 1, 0)</l>
+<c>    * </c>
+<l>    dev_set_colored (12)</l>
+<l>    if (RectifyImages)</l>
+<l>        get_image_size (SearchImage, Width, Height)</l>
+<l>        CamParamRect := [0,0,MappingScale,MappingScale,-MapUpperLeftX / MappingScale,-MapUpperLeftY / MappingScale,Width,Height]</l>
+<l>        GraspingPointXMP := MapUpperLeftX + GraspingPointColumn * MappingScale</l>
+<l>        GraspingPointYMP := MapUpperLeftY + GraspingPointRow * MappingScale</l>
+<l>        PoseCoordSystemVis := [GraspingPointXMP,GraspingPointYMP,0,0,0,-deg(GraspingPointAngle) + GraspingPointModelAngle,0]</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParamRect, PoseCoordSystemVis, 0.02)</l>
+<l>    else</l>
+<l>        pose_invert (CamInBasePose, BaseInCamPose)</l>
+<l>        pose_compose (BaseInCamPose, ObjInBasePose, PoseCoordSystemVis)</l>
+<l>        disp_3d_coord_system (WindowHandle, CameraParam, PoseCoordSystemVis, 0.02)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, 'Press F5 to pick and place indicated object', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, ['ObjInBasePose:','Tx:    ','Ty:    ','Tz:    ','Alpha: ','Beta:  ','Gamma: '] + ['',ObjInBasePose[0:5]$'.3f' + [' m',' m',' m',' deg',' deg',' deg']], 'window', 305, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Convert translation part of the pose into mm, if necessary</c>
+<l>    ToolInBasePoseMM := [ObjInBasePose[0:2] * 1000,ObjInBasePose[3:6]]</l>
+<c>    * </c>
+<c>    * Pick and place the object</c>
+<c>    * </c>
+<c>    * Here, the robot should be moved to the above determined pose of the</c>
+<c>    * object (ToolInBasePoseMM), where the object should be picked and</c>
+<c>    * then placed at some predefined position (something like</c>
+<c>    * PlacePositionInBasePoseMM). Finally, the robot should be moved again</c>
+<c>    * to the standby pose that allows to take an unoccluded image of the</c>
+<c>    * measurement plane.</c>
+<l>endfor</l>
+<c>* </c>
+<c>* Here, the connection to the robot should be closed.</c>
+<c>* </c>
+<c>* Cleanup</c>
+<l>clear_shape_model (ModelID)</l>
+<l>set_system ('border_shape_models', 'false')</l>
+<l>dev_clear_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="prepare_rectification_map">
+<interface>
+<oo>
+<par name="Map" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CameraParameters" base_type="ctrl" dimension="0"/>
+<par name="ObjInCamPose" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+<par name="ObjInCamPoseMapping" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Modify this pose such that the orientation around the z axis</c>
+<c>* is zero to ensure that the rectified image has the same orientation</c>
+<c>* as the original one</c>
+<l>pose_to_hom_mat3d (ObjInCamPose, HomMat3D)</l>
+<l>hom_mat3d_rotate_local (HomMat3D, rad(-ObjInCamPose[5]), 'z', HomMat3DRotate)</l>
+<l>hom_mat3d_to_pose (HomMat3DRotate, ObjInCamPoseZ0)</l>
+<c>* Determine the scale such that the mapped image has at least</c>
+<c>* the same resolution as the original image</c>
+<l>Width := CameraParameters[|CameraParameters| - 2]</l>
+<l>Height := CameraParameters[|CameraParameters| - 1]</l>
+<l>gen_grid_region (RegionGrid, 20, 20, 'points', Width, Height)</l>
+<l>get_region_points (RegionGrid, Rows, Columns)</l>
+<l>gen_circle_contour_xld (ContCircle, Rows, Columns, gen_tuple_const(|Rows|,1.0), 0, 6.28318, 'positive', 0.1)</l>
+<l>contour_to_world_plane_xld (ContCircle, ContCircleWorldPlane, CameraParameters, ObjInCamPoseZ0, 'm')</l>
+<l>fit_ellipse_contour_xld (ContCircleWorldPlane, 'fitzgibbon', -1, 0, 0, 200, 3, 2, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>Scale := min(Radius2)</l>
+<c>* Determine the position of the mapped image, i.e.,</c>
+<c>* the origin of the pose used to create the map</c>
+<l>set_system ('clip_region', 'false')</l>
+<l>gen_rectangle1 (ImageArea, 0, 0, Height - 1, Width - 1)</l>
+<l>boundary (ImageArea, RegionBorder, 'outer')</l>
+<l>get_region_points (RegionBorder, BorderRows, BorderColumns)</l>
+<l>image_points_to_world_plane (CameraParameters, ObjInCamPoseZ0, BorderRows, BorderColumns, 'm', BorderX, BorderY)</l>
+<l>set_origin_pose (ObjInCamPoseZ0, min(BorderX), min(BorderY), 0, ObjInCamPoseMapping)</l>
+<l>gen_image_to_world_plane_map (Map, CameraParameters, ObjInCamPoseMapping, Width, Height, int((max(BorderX) - min(BorderX)) / Scale + 0.5), int((max(BorderY) - min(BorderY)) / Scale + 0.5), Scale, 'bilinear')</l>
+<l>return ()</l>
+</body>
+<docu id="prepare_rectification_map">
+<parameters>
+<parameter id="CameraParameters"/>
+<parameter id="Map"/>
+<parameter id="ObjInCamPose"/>
+<parameter id="ObjInCamPoseMapping"/>
+<parameter id="Scale"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="calculate_point_to_approach_scara_stationary">
+<interface>
+<ic>
+<par name="GraspingPointRow" base_type="ctrl" dimension="0"/>
+<par name="GraspingPointColumn" base_type="ctrl" dimension="0"/>
+<par name="GraspingPointAngle" base_type="ctrl" dimension="0"/>
+<par name="RectifyImages" base_type="ctrl" dimension="0"/>
+<par name="MapUpperLeftX" base_type="ctrl" dimension="0"/>
+<par name="MapUpperLeftY" base_type="ctrl" dimension="0"/>
+<par name="MappingScale" base_type="ctrl" dimension="0"/>
+<par name="MPInCamHomMat3DMapping" base_type="ctrl" dimension="0"/>
+<par name="CameraParam" base_type="ctrl" dimension="0"/>
+<par name="MPInCamPose" base_type="ctrl" dimension="0"/>
+<par name="CamInBasePose" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ObjInBasePose" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Define a pose, the translation part of which describes the</c>
+<c>* position of the object to be grasped in camera coordinates</c>
+<c>* (note that the orientation is just set to zero and will be</c>
+<c>*  corrected in the next step)</c>
+<l>if (RectifyImages)</l>
+<l>    GraspingPointXMP := MapUpperLeftX + GraspingPointColumn * MappingScale</l>
+<l>    GraspingPointYMP := MapUpperLeftY + GraspingPointRow * MappingScale</l>
+<l>else</l>
+<l>    image_points_to_world_plane (CameraParam, MPInCamPose, GraspingPointRow, GraspingPointColumn, 'm', GraspingPointXMP, GraspingPointYMP)</l>
+<l>endif</l>
+<l>affine_trans_point_3d (MPInCamHomMat3DMapping, GraspingPointXMP, GraspingPointYMP, 0, GraspingPointXCam, GraspingPointYCam, GraspingPointZCam)</l>
+<l>ObjInCamPose := [GraspingPointXCam,GraspingPointYCam,GraspingPointZCam,0,0,0,0]</l>
+<l>pose_compose (CamInBasePose, ObjInCamPose, ObjInBasePose)</l>
+<c>* Correct the orientation such that the z axis is aligned with</c>
+<c>* the z axis of the base pose and that the rotation of the</c>
+<c>* object is taken into account</c>
+<l>ObjInBasePose[3:5] := [0,0,fmod(deg(GraspingPointAngle),360.0)]</l>
+<l>return ()</l>
+</body>
+<docu id="calculate_point_to_approach_scara_stationary">
+<abstract lang="en_US">calculate_point_to_approach_scara_stationary calculates the point to approach for a SCARA robot with stationary camera from the row/column position of the grasping point (GraspingPointRow and GraspingPointColumn) and the orientation of the object (GraspingPointAngle). These values can, e.g., be determined with shape based matching.
+
+The parameter RectifyImages defines, if the above mentioned position of the grasping point has been derived from a rectified image (RectifyImages == true) or from the original image (RectifyImages == false). Typically, it is necessary to use rectified images.
+
+In the first step, the given image coordinates are transformed into camera coordinates. For this step, the following parameters are required, depending of the state of RectifyImages:
+
+If a rectified image was used (RectifyImages == true), the following parameters must be given:
+- MapUpperLeftX
+- MapUpperLeftY
+- MappingScale
+- MPInCamHomMat3DMapping
+Note that in this case, the parameters CameraParam and MPInCamPose may be set to an empty tuple ([]).
+
+If the original image was used (RectifyImages == false), the following parameters must be given:
+- CameraParam
+- MPInCamPose
+Note that in this case, the parameters MapUpperLeftX, MapUpperLeftY, MappingScale, and MPInCamHomMat3DMapping may be set to an empty tuple ([]).
+
+In the second step, the pose of the object in the robot base coordinate system is determined based on the result of the hand-eye-calibration (CamInBasePose).
+
+The resulting pose of the object in the robot base coordinate system is returned in ObjInBasePose.</abstract>
+<chapters lang="en_US">
+<item>Calibration</item>
+<item>Hand-Eye</item>
+</chapters>
+<short lang="en_US">Calculate point to approach for SCARA robot with stationary camera.</short>
+<parameters>
+<parameter id="CamInBasePose">
+<default_type>real</default_type>
+<description lang="en_US">Pose of the camera coordinate system in the robot base coordinate system.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CameraParam">
+<default_type>real</default_type>
+<description lang="en_US">Camera parameters.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="GraspingPointAngle">
+<default_type>real</default_type>
+<description lang="en_US">Angle of the object in the image.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>angle.rad</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="GraspingPointColumn">
+<default_type>real</default_type>
+<description lang="en_US">Column coordinate of grasping point.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>point.x</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="GraspingPointRow">
+<default_type>real</default_type>
+<description lang="en_US">Row coordinate of grasping point.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>point.y</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MPInCamHomMat3DMapping">
+<default_type>real</default_type>
+<description lang="en_US">Homogeneous 3D transformation matrix that transforms point coordinates from the measurement plane into the camera coordinate system.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat3d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MPInCamPose">
+<default_type>real</default_type>
+<description lang="en_US">Homogeneous 3D transformation matrix that transforms point coordinates from the measurement plane into the camera coordinate system.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat3d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MapUpperLeftX">
+<default_type>real</default_type>
+<description lang="en_US">X coordinate of the upper left corner of the rectified image.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>point.x</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MapUpperLeftY">
+<default_type>real</default_type>
+<description lang="en_US">Y coordinate of the upper left corner of the rectified image.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>point.y</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="MappingScale">
+<default_type>real</default_type>
+<description lang="en_US">Scale of the rectified image.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="ObjInBasePose">
+<default_type>real</default_type>
+<description lang="en_US">Pose of the object to be grasped in the robot base coordinate system.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="RectifyImages">
+<default_type>integer</default_type>
+<description lang="en_US">Boolean value that indicates if the image coordinates were extracted from rectified images.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

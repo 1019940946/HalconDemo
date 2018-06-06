@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the TWAIN Automatic Document Feeder</c>
+<c>* (ADF) functionality in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to:</c>
+<c>* - use the ADF functionality in manual mode</c>
+<c>* - enable the double-sided scan mode (if supported)</c>
+<c>* - detect if the scanner feeder is loaded (if supported)</c>
+<c>* </c>
+<c>* Note: this example has been tested using an EPSON DS-7500</c>
+<c>*       scanner in manual mode and using the EPSON TWAIN driver.</c>
+<c>*       Notice that WIA drivers may not work for scanners that</c>
+<c>*       have ADF. You should install and use the TWAIN driver</c>
+<c>*       for best results.</c>
+<c>* </c>
+<l>info_framegrabber ('TWAIN', 'info_boards', Information, ValueList)</l>
+<l>DeviceName := ValueList[0]</l>
+<l>* DeviceName := 'EPSON DS-5500/6500/7500'</l>
+<l>stop ()</l>
+<c>* Open the device using the scanner TWAIN driver (avoid WIA driver)</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('TWAIN', -1, -1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'inches', DeviceName, 1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Enable ADF mode. Note that for best performance, 'xfercount' is</c>
+<c>* internally set to -1 (transfer multiple images).</c>
+<l>set_framegrabber_param (AcqHandle, 'automatic_document_feeder', 'enable')</l>
+<c>* Enable double-sided scan mode (if supported)</c>
+<l>try</l>
+<l>    set_framegrabber_param (AcqHandle, 'duplexenabled', 'enable')</l>
+<l>    get_framegrabber_param (AcqHandle, 'duplexenabled', DoubleSidedScan)</l>
+<l>catch (Exception)</l>
+<c>    * Capability not supported</c>
+<l>    DoubleSidedScan := 'disable'</l>
+<l>endtry</l>
+<c>* Transfer only one image this session. That means that for each</c>
+<c>* grab_image: 1 document is fed, scanned and transferred.</c>
+<l>if (DoubleSidedScan == 'disable')</l>
+<l>    set_framegrabber_param (AcqHandle, 'xfercount', 1)</l>
+<l>else</l>
+<c>    * In case of double-sided scan mode, the first grab_image</c>
+<c>    * feeds 1 document, scans and transfers both sides and returns</c>
+<c>    * the first side. The second grab_image returns the second side.</c>
+<l>    set_framegrabber_param (AcqHandle, 'xfercount', 2)</l>
+<l>endif</l>
+<c>* Transfer multiple images (best performance). That means that</c>
+<c>* the first grab_image starts to feed, scan and transfer all the</c>
+<c>* documents. In parallel, for each grab_image, the next document or</c>
+<c>* side (double-sided mode) is returned.</c>
+<l>* set_framegrabber_param (AcqHandle, 'xfercount', -1)</l>
+<c>* If supported, it is possible to check if the scanner feeder is</c>
+<c>* already loaded.</c>
+<l>get_framegrabber_param (AcqHandle, 'feederloaded', FeederLoaded)</l>
+<c>* </c>
+<l>prepare_graphic_window (WindowHandle)</l>
+<l>PendingScans := true</l>
+<l>CountScans := 0</l>
+<l>while (PendingScans)</l>
+<l>    try</l>
+<c>        * Scan image</c>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        CountScans := CountScans + 1</l>
+<l>        disp_message (WindowHandle, DeviceName + '\n' + 'Scan # ' + CountScans, 'window', 10, 10, 'blue', 'true')</l>
+<l>    catch (Exception)</l>
+<l>        stop ()</l>
+<l>        PendingScans := false</l>
+<l>    endtry</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="prepare_graphic_window">
+<interface>
+<oc>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 800, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="prepare_graphic_window">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images via the LPS36 interface</c>
+<c>* </c>
+<c>* Adapt the following settings according to your system</c>
+<l>IP := '192.168.60.3'</l>
+<l>num_images := 5</l>
+<c>* </c>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[1,2]" as_ord="1">open_framegrabber ('LPS36', 1, 100, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', IP, 1, 1, AcqHandle)</l>
+<c>* </c>
+<c>* Open window with half the size</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, ImageWidth, ImageHeight, 'black', WindowHandle1)</l>
+<l>dev_open_window (ImageHeight + 70, 0, ImageWidth, ImageHeight, 'black', WindowHandle2)</l>
+<l>dev_open_window (ImageHeight + 70, ImageWidth + 20, ImageWidth, ImageHeight, 'black', WindowHandle3)</l>
+<c>* </c>
+<c>* Grab some images</c>
+<l>for i := 1 to num_images by 1</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<c>    * Show image with equidistant values</c>
+<l>    scale_image_max (Image, ImageScaleMax)</l>
+<l>    dev_display (ImageScaleMax)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    grab_data (ImageData, Region, Contours, AcqHandle, Data)</l>
+<c>    * Show image with raw z values</c>
+<l>    select_obj (ImageData, Image1, 1)</l>
+<l>    scale_image_max (Image1, ImageScaleMax1)</l>
+<l>    dev_display (ImageScaleMax1)</l>
+<l>    dev_set_window (WindowHandle3)</l>
+<c>    * Show image with raw x values</c>
+<l>    select_obj (ImageData, Image2, 2)</l>
+<l>    scale_image_max (Image2, ImageScaleMax2)</l>
+<l>    dev_display (ImageScaleMax2)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

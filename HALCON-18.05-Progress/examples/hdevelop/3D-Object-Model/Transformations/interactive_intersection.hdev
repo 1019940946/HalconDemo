@@ -1,0 +1,2082 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ********************************************************************</c>
+<c>* This program shows how to calculate the intersection between a</c>
+<c>* 3D object model and a plane.</c>
+<c>* If you start the program, on the left, you can see and move</c>
+<c>* a 3D object model. On the right, you can see the intersection</c>
+<c>* with the plane that is parallel to the viewing direction.</c>
+<c>* The plane is visualized in the left image by a white vertical line.</c>
+<c>* The intersection is calculated with the operator</c>
+<c>* intersect_plane_object_model in the procedure</c>
+<c>* draw_intersection_object_model, which is used by the procedure</c>
+<c>* visualize_intersect_object_model_3d.</c>
+<c>* The result of the intersection is a set of polylines.</c>
+<c>* ********************************************************************</c>
+<c>* Read 3D object model</c>
+<l>read_object_model_3d ('bmc_mini', 'm', [], [], ObjectModel3D1, Status)</l>
+<l>read_object_model_3d ('glass_mug', 'm', [], [], ObjectModel3D2, Status)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>gen_cam_par_area_scan_division (0.01, 0, 7e-6, 7e-6, 320, 240, 640, 480, CamParam)</l>
+<l>get_cam_par_data (CamParam, 'image_width', Width)</l>
+<l>get_cam_par_data (CamParam, 'image_height', Height)</l>
+<l>dev_open_window (0, 0, Width * .75, Height * .75, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Visualize</c>
+<l>GenParamName := ['color','disp_pose','alpha']</l>
+<l>GenParamValue := ['green','true',0.8]</l>
+<l>ColorIntersect := 'color'</l>
+<l>ColorIntersectValue := 'green'</l>
+<l>Instructions := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Object 1</c>
+<l>interactive_intersection_object_model_3d (WindowHandle, ObjectModel3D1, CamParam, [0.08,0.05,1.0,188.0,50.0,0.0,0], GenParamName, GenParamValue, 'Move object to an appropriate pose', [], Instructions, ColorIntersect, ColorIntersectValue, PoseOut)</l>
+<c>* </c>
+<c>* Object 2</c>
+<l>ColorIntersect := 'colored'</l>
+<l>ColorIntersectValue := 12</l>
+<l>interactive_intersection_object_model_3d (WindowHandle, ObjectModel3D2, CamParam, [], GenParamName, GenParamValue, 'Move object to an appropriate pose', [], Instructions, ColorIntersect, ColorIntersectValue, PoseOut)</l>
+<l>pose_to_hom_mat3d (PoseOut, HomMat3D)</l>
+<l>draw_intersection_object_model (ObjectModel3D2, HomMat3D, WindowHandle, CamParam, GenParamName, GenParamValue, ColorIntersect, ColorIntersectValue, TimeInfo)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="draw_intersection_object_model">
+<interface>
+<ic>
+<par name="ObjectModel3DID" base_type="ctrl" dimension="0"/>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="GenParamName" base_type="ctrl" dimension="0"/>
+<par name="GenParamValue" base_type="ctrl" dimension="0"/>
+<par name="Color" base_type="ctrl" dimension="0"/>
+<par name="ColorValue" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TimeInfo" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* ****************************************************</c>
+<c>*  This procedure translates and rotates the input</c>
+<c>*  3D object model and intersects it with a plane.</c>
+<c>*  The result is segmented into connected components</c>
+<c>*  and is displayed.</c>
+<c>* ****************************************************</c>
+<c>* Transform the model</c>
+<l>affine_trans_object_model_3d (ObjectModel3DID, HomMat3D, ObjectModel3DAffineTrans)</l>
+<l>hom_mat3d_to_pose (HomMat3D, Pose)</l>
+<c>* Intersect the model with the plane and measure the calculation time.</c>
+<c>* The plane is given in the Hesse Normal form [1,0,0,0] and describes</c>
+<c>* the plane that originates from [0,0,0] and intersects the image plane in</c>
+<c>* a vertical line. The corresponding pose to this is [0.0,0,0,0,90,0,0]</c>
+<l>count_seconds (Seconds)</l>
+<l>intersect_plane_object_model_3d (ObjectModel3DAffineTrans, [0.0,0.0,0.0,0.0,90.0,0.0,0], ObjectModel3DLines)</l>
+<l>count_seconds (Seconds1)</l>
+<c>* </c>
+<l>TimeInfo := 'Calculation time: ' + ((Seconds1 - Seconds) * 1e3)$'.3' + ' ms'</l>
+<c>* </c>
+<c>* Estimate a good pose to display the polyline</c>
+<c>* Test if the object intersects the plane</c>
+<l>get_object_model_3d_params (ObjectModel3DLines, 'num_points', NumPoints)</l>
+<l>if (NumPoints &gt; 0)</l>
+<c>    * Paint the polylines, 'disp_lines' must be set to 'true'</c>
+<c>    * Orient the result so that the object is seen from the front</c>
+<c>    * (the intersection with a plane is two-dimensional, and it should be oriented</c>
+<c>    *  to be parallel to the image plane)</c>
+<l>    pose_invert (Pose, PoseInvert)</l>
+<l>    create_pose (0.0, 0.0, 0.0, 0, 90, 0, 'Rp+T', 'gba', 'point', PoseRot)</l>
+<l>    pose_compose (Pose, PoseRot, PoseCompose)</l>
+<l>    moments_object_model_3d (ObjectModel3DLines, 'mean_points', Mean)</l>
+<l>    create_pose (-Mean[0], -Mean[1], -Mean[2], 0, 0, 0, 'Rp+T', 'gba', 'point', PoseTrans)</l>
+<l>    create_pose (Mean[0], Mean[1], Mean[2], 0, 0, 0, 'Rp+T', 'gba', 'point', PoseTransBack)</l>
+<c>    * </c>
+<l>    rigid_trans_object_model_3d (ObjectModel3DLines, PoseTrans, ObjectModel3DRigidTrans)</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DRigidTrans, PoseRot, ObjectModel3DRigidTrans1)</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DRigidTrans1, PoseTransBack, ObjectModel3DFinal)</l>
+<c>    * Calculate the connected components in order to visualize them colored if requested</c>
+<l>    connection_object_model_3d (ObjectModel3DFinal, 'lines', 1, ObjectModel3DConnected)</l>
+<c>    * </c>
+<l>    try</l>
+<l>        dev_set_window (WindowHandle)</l>
+<l>        disp_object_model_3d (WindowHandle, ObjectModel3DConnected, CamParam, [0,0,0,0,0,0,0], ['disp_lines',GenParamName,Color], ['true',GenParamValue,ColorValue])</l>
+<c>        * </c>
+<l>    catch (Exception)</l>
+<l>        clear_window (WindowHandle)</l>
+<l>        disp_object_model_no_opengl (ModelContours, ObjectModel3DConnected, ['disp_lines',GenParamName,Color], ['true',GenParamValue,ColorValue], WindowHandle, CamParam, [0,0,0,0,0,0,0])</l>
+<l>    endtry</l>
+<l>    disp_message (WindowHandle, TimeInfo, 'window', 12, 12, 'black', 'true')</l>
+<l>else</l>
+<l>    clear_window (WindowHandle)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="draw_intersection_object_model">
+<abstract lang="en_US">Intersect a object model 3D with a plane and display the result and the calcualtion time</abstract>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Intersect a object model 3D with a plane and display the result and the calcualtion time.</short>
+<parameters>
+<parameter id="CamParam">
+<description lang="en_US">Virtual or  real camera.</description>
+<sem_type>calib_data</sem_type>
+</parameter>
+<parameter id="Color"/>
+<parameter id="ColorValue"/>
+<parameter id="GenParamName">
+<description lang="en_US">Dispaly parameter names.</description>
+</parameter>
+<parameter id="GenParamValue">
+<description lang="en_US">Dispaly parameter values.</description>
+</parameter>
+<parameter id="HomMat3D">
+<default_type>real</default_type>
+<description lang="en_US">The object is translated and rotated using this homography before the intersection</description>
+<multivalue>false</multivalue>
+<sem_type>hom_mat3d</sem_type>
+</parameter>
+<parameter id="ObjectModel3DID">
+<default_type>integer</default_type>
+<description lang="en_US">Input object model 3D, which will be intersected with the plane [1,0,0,0].</description>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="TimeInfo"/>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">The handle of the window to paint to.</description>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="interactive_intersection_object_model_3d">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="PoseIn" base_type="ctrl" dimension="0"/>
+<par name="GenParamName" base_type="ctrl" dimension="0"/>
+<par name="GenParamValue" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="Label" base_type="ctrl" dimension="0"/>
+<par name="Information" base_type="ctrl" dimension="0"/>
+<par name="GenParamIntersect" base_type="ctrl" dimension="0"/>
+<par name="GenValueIntersect" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PoseOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* The procedure interactive_intersection_object_model_3d can</c>
+<c>* be used to display a 3D object models and its intersection</c>
+<c>* with a plane and to interactively modify the object's pose</c>
+<c>* by using the mouse.</c>
+<c>* </c>
+<c>* The pose can be modified by moving the mouse while</c>
+<c>* pressing a mouse button. The default settings are:</c>
+<c>* </c>
+<c>*  Rotate: Left mouse button</c>
+<c>*  Zoom: Shift + Left mouse button (or Center mouse button)</c>
+<c>*  Pan: Ctrl + Left mouse button</c>
+<c>* </c>
+<c>* Furthermore, it is possible to select and deselect objects,</c>
+<c>* to decrease the mouse sensitivity, and to toggle the</c>
+<c>* inspection mode (see the description of the generic parameter</c>
+<c>* 'inspection_mode' below):</c>
+<c>* </c>
+<c>*  (De-)select object(s): Right mouse button</c>
+<c>*  Low mouse sensitivity: Alt + Mouse button</c>
+<c>*  Toggle inspection mode: Ctrl + Alt + Left mouse button</c>
+<c>* </c>
+<c>* In GenParamName and GenParamValue all generic Paramters</c>
+<c>* of disp_object_model_3d are supported.</c>
+<c>* </c>
+<c>* **********************************************************</c>
+<c>* Define global variables</c>
+<c>* **********************************************************</c>
+<c>* </c>
+<l>global def tuple gDispObjOffset</l>
+<l>global def tuple gLabelsDecor</l>
+<l>global def tuple gInfoDecor</l>
+<l>global def tuple gInfoPos</l>
+<l>global def tuple gTitlePos</l>
+<l>global def tuple gTitleDecor</l>
+<l>global def tuple gTerminationButtonLabel</l>
+<l>global def tuple gAlphaDeselected</l>
+<l>global def tuple gIsSinglePose</l>
+<l>global def tuple gUsesOpenGL</l>
+<c>* </c>
+<c>* **********************************************************</c>
+<c>* Initialize Handles to enable correct handling in error case</c>
+<c>* **********************************************************</c>
+<l>Scene3DTest := []</l>
+<l>Scene3D := []</l>
+<l>WindowHandleBuffer := []</l>
+<c></c>
+<c>* **********************************************************</c>
+<c>* Some user defines that may be adapted if desired</c>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* TrackballSize defines the diameter of the trackball in</c>
+<c>* the image with respect to the smaller image dimension.</c>
+<l>TrackballSize := 0.8</l>
+<c>* </c>
+<c>* VirtualTrackball defines the type of virtual trackball that</c>
+<c>* shall be used ('shoemake' or 'bell').</c>
+<l>VirtualTrackball := 'shoemake'</l>
+<l>* VirtualTrackball := 'bell'</l>
+<c>* </c>
+<c>* Functionality of mouse buttons</c>
+<c>*     1: Left Button</c>
+<c>*     2: Middle Button</c>
+<c>*     4: Right Button</c>
+<c>*     5: Left+Right Mousebutton</c>
+<c>*   8+x: Shift + Mousebutton</c>
+<c>*  16+x: Ctrl + Mousebutton</c>
+<c>*  48+x: Ctrl + Alt + Mousebutton</c>
+<c>* in the order [Translate, Rotate, Scale, ScaleAlternative1, ScaleAlternative2, SelectObjects, ToggleSelectionMode]</c>
+<l>MouseMapping := [17,1,2,5,9,4,49]</l>
+<c>* </c>
+<c>* The labels of the objects appear next to their projected</c>
+<c>* center. With gDispObjOffset a fixed offset is added</c>
+<c>*                   R,  C</c>
+<l>gDispObjOffset := [-30,0]</l>
+<c>* </c>
+<c>* Customize the decoration of the different text elements</c>
+<c>*               Color,   Box</c>
+<l>gInfoDecor := ['white','false']</l>
+<l>gLabelsDecor := ['white','false']</l>
+<l>gTitleDecor := ['black','true']</l>
+<c>* </c>
+<c>* Customize the position of some text elements</c>
+<c>*   gInfoPos has one of the values</c>
+<c>*   {'UpperLeft', 'LowerLeft', 'UpperRight'}</c>
+<l>gInfoPos := 'LowerLeft'</l>
+<c>*   gTitlePos has one of the values</c>
+<c>*   {'UpperLeft', 'UpperCenter', 'UpperRight'}</c>
+<l>gTitlePos := 'UpperLeft'</l>
+<c>* Alpha value (=1-transparency) that is used for visualizing</c>
+<c>* the objects that are not selected</c>
+<l>gAlphaDeselected := 0.3</l>
+<c>* Customize the label of the continue button</c>
+<l>gTerminationButtonLabel := ' Continue '</l>
+<c>* Define if the continue button responds to a single click event or</c>
+<c>* if it responds only if the mouse button is released while being placed</c>
+<c>* over the continue button.</c>
+<c>* 'true':  Wait until the continue button has been released.</c>
+<c>*          This should be used to avoid unwanted continuations of</c>
+<c>*          subsequent calls of interactive_intersection_object_model_3d,</c>
+<c>*          which can otherwise occur if the mouse button remains pressed</c>
+<c>*          while the next visualization is active.</c>
+<c>* 'false': Continue the execution already if the continue button is</c>
+<c>*          pressed. This option allows a fast forwarding through</c>
+<c>*          subsequent calls of interactive_intersection_object_model_3d.</c>
+<l>WaitForButtonRelease := 'true'</l>
+<c>* Number of 3D Object models that can be selected and handled individually.</c>
+<c>* If there are more models passed then this number, some calculations</c>
+<c>* are performed differently and the individual selection and handling</c>
+<c>* of models is not supported anymore. Note that the value of MaxNumModels</c>
+<c>* can be overwritten with the generic parameter max_num_selectable_models.</c>
+<l>MaxNumModels := 1000</l>
+<c>* Defines the default for the initial state of the rotation center:</c>
+<c>* (1) The rotation center is fixed in the center of the image and lies</c>
+<c>*     on the surface of the object.</c>
+<c>* (2) The rotation center lies in the center of the object.</c>
+<l>WindowCenteredRotation := 2</l>
+<c>* </c>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* Initialize some values</c>
+<l>NumModels := |ObjectModel3D|</l>
+<l>SelectedObject := gen_tuple_const(NumModels,1)</l>
+<c>* </c>
+<c>* Apply some system settings</c>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>dev_get_preferences ('graphics_window_mouse_wheel', WindowMouseWheel)</l>
+<l>dev_set_preferences ('graphics_window_mouse_wheel', 'false')</l>
+<l>get_system ('clip_region', ClipRegion)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>dev_update_off ()</l>
+<c></c>
+<l>try</l>
+<c>    * </c>
+<c>    * Refactor camera parameters to fit to window size</c>
+<c>    * </c>
+<l>    CPLength := |CamParam|</l>
+<l>    get_window_extents (WindowHandle, RowNotUsed, ColumnNotUsed, Width, Height)</l>
+<l>    get_part (WindowHandle, WPRow1, WPColumn1, WPRow2, WPColumn2)</l>
+<l>    set_part (WindowHandle, 0, 0, Height - 1, Width - 1)</l>
+<l>    if (CPLength == 0)</l>
+<l>        gen_cam_par_area_scan_division (0.06, 0, 8.5e-6, 8.5e-6, Width / 2, Height / 2, Width, Height, CamParam)</l>
+<l>    else</l>
+<l>        get_cam_par_data (CamParam, ['sx','sy','cx','cy','image_width','image_height'], CamParamValue)</l>
+<l>        CamWidth := real(CamParamValue[4])</l>
+<l>        CamHeight := real(CamParamValue[5])</l>
+<l>        Scale := min([Width / CamWidth,Height / CamHeight])</l>
+<l>        set_cam_par_data (CamParam, 'sx', CamParamValue[0] / Scale, CamParam)</l>
+<l>        set_cam_par_data (CamParam, 'sy', CamParamValue[1] / Scale, CamParam)</l>
+<l>        set_cam_par_data (CamParam, 'cx', CamParamValue[2] * Scale, CamParam)</l>
+<l>        set_cam_par_data (CamParam, 'cy', CamParamValue[3] * Scale, CamParam)</l>
+<l>        set_cam_par_data (CamParam, 'image_width', int(CamParamValue[4] * Scale), CamParam)</l>
+<l>        set_cam_par_data (CamParam, 'image_height', int(CamParamValue[5] * Scale), CamParam)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Check the generic parameters for max_num_selectable_models</c>
+<c>    * (Note that the default is set above to MaxNumModels := 1000)</c>
+<l>    Indices := find(GenParamName,'max_num_selectable_models')</l>
+<l>    if (Indices != -1 and Indices != [])</l>
+<l>        if (is_number(GenParamValue[Indices[0]]))</l>
+<l>            if (int(number(GenParamValue[Indices[0]])) &lt; 1)</l>
+<c>                * Wrong parameter value: Only integer values greater than 0 are allowed</c>
+<l>                throw ('Wrong value for parameter \'max_num_selectable_models\' (must be an integer value greater than 0)')</l>
+<l>            endif</l>
+<l>        else</l>
+<c>            * Wrong parameter value: Only integer values greater than 0 are allowed</c>
+<l>            throw ('Wrong value for parameter \'max_num_selectable_models\' (must be an integer value greater than 0)')</l>
+<l>        endif</l>
+<l>        MaxNumModels := int(number(GenParamValue[Indices[0]]))</l>
+<l>        GenParamName := remove(GenParamName,Indices)</l>
+<l>        GenParamValue := remove(GenParamValue,Indices)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Check the generic parameters for window_centered_rotation</c>
+<c>    * (Note that the default is set above to WindowCenteredRotation := 2)</c>
+<l>    Indices := find(GenParamName,'inspection_mode')</l>
+<l>    if (Indices != -1 and Indices != [])</l>
+<l>        if (GenParamValue[Indices[0]] == 'surface')</l>
+<l>            WindowCenteredRotation := 1</l>
+<l>        elseif (GenParamValue[Indices[0]] == 'standard')</l>
+<l>            WindowCenteredRotation := 2</l>
+<l>        else</l>
+<c>            * Wrong parameter value, use default value</c>
+<l>        endif</l>
+<l>        GenParamName := remove(GenParamName,Indices)</l>
+<l>        GenParamValue := remove(GenParamValue,Indices)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Check the generic parameters for disp_background</c>
+<c>    * (The former parameter name 'use_background' is still supported</c>
+<c>    *  for compatibility reasons)</c>
+<l>    DispBackground := 'false'</l>
+<l>    if (|GenParamName| &gt; 0)</l>
+<l>        Mask := GenParamName [==] 'disp_background' or GenParamName [==] 'use_background'</l>
+<l>        Indices := find(Mask,1)</l>
+<l>    else</l>
+<l>        Indices := -1</l>
+<l>    endif</l>
+<l>    if (Indices != -1 and Indices != [])</l>
+<l>        DispBackground := GenParamValue[Indices[0]]</l>
+<l>        if (DispBackground != 'true' and DispBackground != 'false')</l>
+<c>            * Wrong parameter value: Only 'true' and 'false' are allowed</c>
+<l>            throw ('Wrong value for parameter \'disp_background\' (must be either \'true\' or \'false\')')</l>
+<l>        endif</l>
+<c>        * Note the the background is handled explicitely in this procedure</c>
+<c>        * and therefore, the parameter is removed from the list of</c>
+<c>        * parameters and disp_background is always set to true (see below)</c>
+<l>        GenParamName := remove(GenParamName,Indices)</l>
+<l>        GenParamValue := remove(GenParamValue,Indices)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    gen_contour_polygon_xld (IntersectionLine, [0,Height], [Width / 2,Width / 2])</l>
+<l>    dev_open_window (0, Width + 10, Width, Height, 'black', WindowHandleIntersect)</l>
+<l>    set_display_font (WindowHandleIntersect, 16, 'mono', 'true', 'false')</l>
+<c>    * </c>
+<c>    * Read and check the parameter Label for each object</c>
+<l>    if (|Label| == 0)</l>
+<l>        Label := 0</l>
+<l>    elseif (|Label| == 1)</l>
+<l>        Label := gen_tuple_const(NumModels,Label)</l>
+<l>    else</l>
+<l>        if (|Label| != NumModels)</l>
+<c>            * Error: Number of elements in Label does not match the</c>
+<c>            * number of object models</c>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Read and check the parameter PoseIn for each object</c>
+<l>    get_object_models_center (ObjectModel3D, Center)</l>
+<l>    if (|PoseIn| == 0)</l>
+<c>        * If no pose was specified by the caller, automatically calculate</c>
+<c>        * a pose that is appropriate for the visualization.</c>
+<c>        * Set the initial model reference pose. The orientation is parallel</c>
+<c>        * to the object coordinate system, the position is at the center</c>
+<c>        * of gravity of all models.</c>
+<l>        create_pose (-Center[0], -Center[1], -Center[2], 0, 0, 0, 'Rp+T', 'gba', 'point', PoseIn)</l>
+<l>        determine_optimum_pose_distance (ObjectModel3D, CamParam, 0.9, PoseIn, PoseEstimated)</l>
+<l>        Poses := []</l>
+<l>        HomMat3Ds := []</l>
+<l>        Sequence := [0:NumModels * 7 - 1]</l>
+<l>        Poses := PoseEstimated[Sequence % 7]</l>
+<l>        gIsSinglePose := true</l>
+<l>    elseif (|PoseIn| == 7)</l>
+<l>        Poses := []</l>
+<l>        HomMat3Ds := []</l>
+<l>        Sequence := [0:NumModels * 7 - 1]</l>
+<l>        Poses := PoseIn[Sequence % 7]</l>
+<l>        gIsSinglePose := true</l>
+<l>    else</l>
+<l>        if (|PoseIn| != |ObjectModel3D| * 7)</l>
+<c>            * Error: Wrong number of values of input control parameter 'PoseIn'</c>
+<l>            stop ()</l>
+<l>        else</l>
+<l>            Poses := PoseIn</l>
+<l>        endif</l>
+<l>        gIsSinglePose := false</l>
+<l>    endif</l>
+<c></c>
+<c>    * </c>
+<c>    * Open (invisible) buffer window to avoid flickering</c>
+<l>    open_window (0, 0, Width, Height, 0, 'buffer', '', WindowHandleBuffer)</l>
+<l>    set_part (WindowHandleBuffer, 0, 0, Height - 1, Width - 1)</l>
+<l>    get_font (WindowHandle, Font)</l>
+<l>    try</l>
+<l>        set_font (WindowHandleBuffer, Font)</l>
+<l>    catch (Exception)</l>
+<l>    endtry</l>
+<c>    * </c>
+<c>    *  Is OpenGL available and should it be used?</c>
+<l>    gUsesOpenGL := 'true'</l>
+<l>    Indices := find(GenParamName,'opengl')</l>
+<l>    if (Indices != -1 and Indices != [])</l>
+<l>        gUsesOpenGL := GenParamValue[Indices[0]]</l>
+<l>        GenParamName := remove(GenParamName,Indices)</l>
+<l>        GenParamValue := remove(GenParamValue,Indices)</l>
+<l>        if (gUsesOpenGL != 'true' and gUsesOpenGL != 'false')</l>
+<c>            * Wrong parameter value: Only 'true' and 'false' are allowed</c>
+<l>            throw ('Wrong value for parameter \'opengl\' (must be either \'true\' or \'false\')')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (gUsesOpenGL == 'true')</l>
+<l>        get_system ('opengl_info', OpenGLInfo)</l>
+<l>        if (OpenGLInfo == 'No OpenGL support included.')</l>
+<l>            gUsesOpenGL := 'false'</l>
+<l>        else</l>
+<l>            gen_object_model_3d_from_points (0, 0, 0, DummyObjectModel3D)</l>
+<l>            create_scene_3d (Scene3DTest)</l>
+<l>            add_scene_3d_camera (Scene3DTest, CamParam, CameraIndexTest)</l>
+<l>            determine_optimum_pose_distance (DummyObjectModel3D, CamParam, 0.9, [0,0,0,0,0,0,0], PoseTest)</l>
+<l>            add_scene_3d_instance (Scene3DTest, DummyObjectModel3D, PoseTest, InstanceIndexTest)</l>
+<l>            try</l>
+<l>                display_scene_3d (WindowHandleBuffer, Scene3DTest, InstanceIndexTest)</l>
+<l>            catch (Exception)</l>
+<l>                gUsesOpenGL := 'false'</l>
+<l>            endtry</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Compute the trackball</c>
+<l>    MinImageSize := min([Width,Height])</l>
+<l>    TrackballRadiusPixel := TrackballSize * MinImageSize / 2.0</l>
+<c>    * </c>
+<c>    * Measure the text extents for the continue button in the</c>
+<c>    * graphics window</c>
+<l>    get_string_extents (WindowHandleBuffer, gTerminationButtonLabel + '  ', Ascent, Descent, TextWidth, TextHeight)</l>
+<c>    * </c>
+<c>    * Store background image</c>
+<l>    if (DispBackground == 'false')</l>
+<l>        clear_window (WindowHandle)</l>
+<l>    endif</l>
+<l>    dump_window_image (Image, WindowHandle)</l>
+<c>    * Special treatment for color background images necessary</c>
+<l>    count_channels (Image, NumChannels)</l>
+<l>    ColorImage := NumChannels == 3</l>
+<c>    * </c>
+<l>    create_scene_3d (Scene3D)</l>
+<l>    add_scene_3d_camera (Scene3D, CamParam, CameraIndex)</l>
+<l>    add_scene_3d_instance (Scene3D, ObjectModel3D, Poses, AllInstances)</l>
+<c>    * Always set 'disp_background' to true,  because it is handled explicitely</c>
+<c>    * in this procedure (see above)</c>
+<l>    set_scene_3d_param (Scene3D, 'disp_background', 'true')</l>
+<c>    * Check if we have to set light specific parameters</c>
+<l>    SetLight := regexp_test(GenParamName,'light_')</l>
+<l>    if (SetLight)</l>
+<c>        * set position of light source</c>
+<l>        Indices := find(GenParamName,'light_position')</l>
+<l>        if (Indices != -1 and Indices != [])</l>
+<c>            * If multiple light positions are given, use the last one</c>
+<l>            LightParam := number(split(GenParamValue[Indices[|Indices| - 1]],', '))</l>
+<l>            if (|LightParam| != 4)</l>
+<l>                throw ('light_position must be given as a string that contains four space separated floating point numbers')</l>
+<l>            endif</l>
+<l>            LightPosition := LightParam[0:2]</l>
+<l>            LightKind := 'point_light'</l>
+<l>            if (LightParam[3] == 0)</l>
+<l>                LightKind := 'directional_light'</l>
+<l>            endif</l>
+<c>            * Currently, only one light source is supported</c>
+<l>            remove_scene_3d_light (Scene3D, 0)</l>
+<l>            add_scene_3d_light (Scene3D, LightPosition, LightKind, LightIndex)</l>
+<l>            tuple_remove (GenParamName, Indices, GenParamName)</l>
+<l>            tuple_remove (GenParamValue, Indices, GenParamValue)</l>
+<l>        endif</l>
+<c>        * set ambient part of light source</c>
+<l>        Indices := find(GenParamName,'light_ambient')</l>
+<l>        if (Indices != -1 and Indices != [])</l>
+<c>            * If the ambient part is set multiple times, use the last setting</c>
+<l>            LightParam := number(split(GenParamValue[Indices[|Indices| - 1]],', '))</l>
+<l>            if (|LightParam| &lt; 3)</l>
+<l>                throw ('light_ambient must be given as a string that contains three space separated floating point numbers')</l>
+<l>            endif</l>
+<l>            set_scene_3d_light_param (Scene3D, 0, 'ambient', LightParam[0:2])</l>
+<l>            tuple_remove (GenParamName, Indices, GenParamName)</l>
+<l>            tuple_remove (GenParamValue, Indices, GenParamValue)</l>
+<l>        endif</l>
+<c>        * Set diffuse part of light source</c>
+<l>        Indices := find(GenParamName,'light_diffuse')</l>
+<l>        if (Indices != -1 and Indices != [])</l>
+<c>            * If the diffuse part is set multiple times, use the last setting</c>
+<l>            LightParam := number(split(GenParamValue[Indices[|Indices| - 1]],', '))</l>
+<l>            if (|LightParam| &lt; 3)</l>
+<l>                throw ('light_diffuse must be given as a string that contains three space separated floating point numbers')</l>
+<l>            endif</l>
+<l>            set_scene_3d_light_param (Scene3D, 0, 'diffuse', LightParam[0:2])</l>
+<l>            tuple_remove (GenParamName, Indices, GenParamName)</l>
+<l>            tuple_remove (GenParamValue, Indices, GenParamValue)</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Handle persistence parameters separately because persistence will</c>
+<c>    * only be activated immediately before leaving the visualization</c>
+<c>    * procedure</c>
+<l>    PersistenceParamName := []</l>
+<l>    PersistenceParamValue := []</l>
+<c>    * Set position of light source</c>
+<l>    Indices := find(GenParamName,'object_index_persistence')</l>
+<l>    if (Indices != -1 and Indices != [])</l>
+<l>        if (GenParamValue[Indices[|Indices| - 1]] == 'true')</l>
+<l>            PersistenceParamName := [PersistenceParamName,'object_index_persistence']</l>
+<l>            PersistenceParamValue := [PersistenceParamValue,'true']</l>
+<l>        elseif (GenParamValue[Indices[|Indices| - 1]] == 'false')</l>
+<l>        else</l>
+<l>            throw ('Wrong value for parameter \'object_index_persistence\' (must be either \'true\' or \'false\')')</l>
+<l>        endif</l>
+<l>        tuple_remove (GenParamName, Indices, GenParamName)</l>
+<l>        tuple_remove (GenParamValue, Indices, GenParamValue)</l>
+<l>    endif</l>
+<l>    Indices := find(GenParamName,'depth_persistence')</l>
+<l>    if (Indices != -1 and Indices != [])</l>
+<l>        if (GenParamValue[Indices[|Indices| - 1]] == 'true')</l>
+<l>            PersistenceParamName := [PersistenceParamName,'depth_persistence']</l>
+<l>            PersistenceParamValue := [PersistenceParamValue,'true']</l>
+<l>        elseif (GenParamValue[Indices[|Indices| - 1]] == 'false')</l>
+<l>        else</l>
+<l>            throw ('Wrong value for parameter \'depth_persistence\' (must be either \'true\' or \'false\')')</l>
+<l>        endif</l>
+<l>        tuple_remove (GenParamName, Indices, GenParamName)</l>
+<l>        tuple_remove (GenParamValue, Indices, GenParamValue)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Parse the generic parameters</c>
+<c>    * - First, all parameters that are understood by set_scene_3d_instance_param</c>
+<l>    AlphaOrig := gen_tuple_const(NumModels,1)</l>
+<l>    for I := 0 to |GenParamName| - 1 by 1</l>
+<l>        ParamName := GenParamName[I]</l>
+<l>        ParamValue := GenParamValue[I]</l>
+<c>        * Check if this parameter is understood by set_scene_3d_param</c>
+<l>        if (ParamName == 'alpha')</l>
+<l>            AlphaOrig := gen_tuple_const(NumModels,ParamValue)</l>
+<l>        endif</l>
+<l>        try</l>
+<l>            set_scene_3d_param (Scene3D, ParamName, ParamValue)</l>
+<l>            continue</l>
+<l>        catch (Exception)</l>
+<l>            if (Exception[0] == 1203 or Exception[0] == 1303)</l>
+<l>                throw ('Wrong type or value for parameter ' + ParamName + ': ' + ParamValue)</l>
+<l>            endif</l>
+<l>        endtry</l>
+<c>        * Check if it is a parameter that is valid for only one instance</c>
+<c>        * and therefore can be set only with set_scene_3d_instance_param</c>
+<l>        ParamNameTrunk := regexp_replace(ParamName,'_\\d+$','')</l>
+<l>        if (ParamName == ParamNameTrunk)</l>
+<l>            Instance := [0:NumModels - 1]</l>
+<l>        else</l>
+<l>            Instance := number(regexp_replace(ParamName,'^' + ParamNameTrunk + '_(\\d+)$','$1'))</l>
+<l>            if (Instance &lt; 0 or Instance &gt; NumModels - 1)</l>
+<l>                throw ('Parameter ' + ParamName + ' refers to a non existing 3D object model')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>        try</l>
+<l>            set_scene_3d_instance_param (Scene3D, Instance, ParamNameTrunk, ParamValue)</l>
+<l>        catch (Exception)</l>
+<l>            if (Exception[0] == 1204 or Exception[0] == 1304)</l>
+<l>                throw ('Wrong type or value for parameter ' + ParamName + ': ' + ParamValue)</l>
+<l>            elseif (Exception[0] == 1203 or Exception[0] == 1303)</l>
+<l>                throw ('Wrong parameter name ' + ParamName)</l>
+<l>            else</l>
+<l>                throw (Exception)</l>
+<l>            endif</l>
+<l>        endtry</l>
+<l>        if (ParamNameTrunk == 'alpha')</l>
+<l>            AlphaOrig[Instance] := ParamValue</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Start the visualization loop</c>
+<l>    pose_to_hom_mat3d (Poses[0:6], HomMat3D)</l>
+<l>    affine_trans_point_3d (HomMat3D, Center[0], Center[1], Center[2], Qx, Qy, Qz)</l>
+<l>    TBCenter := [Qx,Qy,Qz]</l>
+<l>    TBSize := (0.5 + 0.5 * sum(SelectedObject) / NumModels) * TrackballRadiusPixel</l>
+<l>    ButtonHold := false</l>
+<l>    while (1)</l>
+<l>        VisualizeTB := max(SelectedObject) != 0</l>
+<l>        MaxIndex := min([|ObjectModel3D|,MaxNumModels]) - 1</l>
+<c>        * Set trackball fixed in the center of the window</c>
+<l>        TrackballCenterRow := Height / 2</l>
+<l>        TrackballCenterCol := Width / 2</l>
+<l>        if (WindowCenteredRotation == 1)</l>
+<l>            try</l>
+<l>                get_trackball_center_fixed (SelectedObject[0:MaxIndex], TrackballCenterRow, TrackballCenterCol, TrackballRadiusPixel, Scene3D, ObjectModel3D[0:MaxIndex], Poses[0:(MaxIndex + 1) * 7 - 1], WindowHandleBuffer, CamParam, GenParamName, GenParamValue, TBCenter, TBSize)</l>
+<l>            catch (Exception)</l>
+<l>                disp_message (WindowHandle, 'Surface inspection mode is not available.', 'image', 5, 20, 'red', 'true')</l>
+<l>                WindowCenteredRotation := 2</l>
+<l>                get_trackball_center (SelectedObject[0:MaxIndex], TrackballRadiusPixel, ObjectModel3D[0:MaxIndex], Poses[0:(MaxIndex + 1) * 7 - 1], TBCenter, TBSize)</l>
+<l>                wait_seconds (1)</l>
+<l>            endtry</l>
+<l>        else</l>
+<l>            get_trackball_center (SelectedObject[0:MaxIndex], TrackballRadiusPixel, ObjectModel3D[0:MaxIndex], Poses[0:(MaxIndex + 1) * 7 - 1], TBCenter, TBSize)</l>
+<l>        endif</l>
+<l>        dump_image_output (Image, IntersectionLine, WindowHandleBuffer, WindowHandleIntersect, Scene3D, AlphaOrig, ObjectModel3D, GenParamName, GenParamValue, GenParamIntersect, GenValueIntersect, CamParam, Poses, ColorImage, Title, Information, Label, VisualizeTB, 'true', TrackballCenterRow, TrackballCenterCol, TBSize, SelectedObject, WindowCenteredRotation, TBCenter)</l>
+<l>        dump_window_image (ImageDump, WindowHandleBuffer)</l>
+<l>        dev_set_window (WindowHandle)</l>
+<l>        dev_display (ImageDump)</l>
+<c>        * </c>
+<c>        * Check for mouse events</c>
+<l>        GraphEvent := false</l>
+<l>        Exit := false</l>
+<l>        while (1)</l>
+<c>            * </c>
+<c>            * Check graphic event</c>
+<l>            try</l>
+<l>                get_mposition_sub_pix (WindowHandle, GraphButtonRow, GraphButtonColumn, GraphButton)</l>
+<l>                if (GraphButton != 0)</l>
+<l>                    if (GraphButtonRow &gt; Height - TextHeight - 13 and GraphButtonRow &lt; Height and GraphButtonColumn &gt; Width - TextWidth - 13 and GraphButtonColumn &lt; Width)</l>
+<c>                        * Wait until the continue button has been released</c>
+<l>                        if (WaitForButtonRelease == 'true')</l>
+<l>                            while (1)</l>
+<l>                                get_mposition_sub_pix (WindowHandle, GraphButtonRow, GraphButtonColumn, GraphButton)</l>
+<l>                                if (GraphButton == 0 or GraphButton == [])</l>
+<l>                                    if (GraphButtonRow &gt; Height - TextHeight - 13 and GraphButtonRow &lt; Height and GraphButtonColumn &gt; Width - TextWidth - 13 and GraphButtonColumn &lt; Width)</l>
+<l>                                        ButtonReleased := true</l>
+<l>                                    else</l>
+<l>                                        ButtonReleased := false</l>
+<l>                                    endif</l>
+<c>                                    * </c>
+<l>                                    break</l>
+<l>                                endif</l>
+<c>                                * Keep waiting until mouse button is released or moved out of the window</c>
+<l>                            endwhile</l>
+<l>                        else</l>
+<l>                            ButtonReleased := true</l>
+<l>                        endif</l>
+<c>                        * Exit the visualization loop</c>
+<l>                        if (ButtonReleased)</l>
+<l>                            Exit := true</l>
+<l>                            break</l>
+<l>                        endif</l>
+<l>                    endif</l>
+<l>                    GraphEvent := true</l>
+<l>                    break</l>
+<l>                else</l>
+<l>                    ButtonHold := false</l>
+<l>                endif</l>
+<l>            catch (Exception)</l>
+<c>                * Keep waiting</c>
+<l>            endtry</l>
+<l>        endwhile</l>
+<l>        if (GraphEvent)</l>
+<l>            analyze_graph_event (Image, IntersectionLine, MouseMapping, GraphButton, GraphButtonRow, GraphButtonColumn, WindowHandle, WindowHandleBuffer, WindowHandleIntersect, VirtualTrackball, TrackballSize, SelectedObject, Scene3D, AlphaOrig, ObjectModel3D, CamParam, Label, Title, Information, GenParamName, GenParamValue, Poses, ButtonHold, TBCenter, TBSize, WindowCenteredRotation, MaxNumModels, GenParamIntersect, GenValueIntersect, Poses, SelectedObject, ButtonHold, WindowCenteredRotation)</l>
+<l>        endif</l>
+<l>        if (Exit)</l>
+<l>            break</l>
+<l>        endif</l>
+<l>    endwhile</l>
+<c>    * </c>
+<c>    * Display final state with persistence, if requested</c>
+<c>    * Note that disp_object_model_3d must be used instead of the 3D scene</c>
+<l>    if (|PersistenceParamName| &gt; 0)</l>
+<l>        try</l>
+<l>            disp_object_model_3d (WindowHandle, ObjectModel3D, CamParam, Poses, ['disp_background','alpha',PersistenceParamName], ['true',0.0,PersistenceParamValue])</l>
+<l>        catch (Exception)</l>
+<l>            stop ()</l>
+<l>        endtry</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Compute the output pose</c>
+<l>    if (gIsSinglePose)</l>
+<l>        PoseOut := Poses[0:6]</l>
+<l>    else</l>
+<l>        PoseOut := Poses</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Clean up</c>
+<l>    set_system ('clip_region', ClipRegion)</l>
+<l>    dev_set_preferences ('graphics_window_context_menu', 'true')</l>
+<l>    dev_set_preferences ('graphics_window_mouse_wheel', WindowMouseWheel)</l>
+<l>    dump_image_output (Image, IntersectionLine, WindowHandleBuffer, WindowHandleIntersect, Scene3D, AlphaOrig, ObjectModel3D, GenParamName, GenParamValue, GenParamIntersect, GenValueIntersect, CamParam, Poses, ColorImage, Title, [], Label, 0, 'false', TrackballCenterRow, TrackballCenterCol, TBSize, SelectedObject, WindowCenteredRotation, TBCenter)</l>
+<l>    dev_set_window (WindowHandleIntersect)</l>
+<l>    dev_close_window ()</l>
+<l>    dump_window_image (ImageDump, WindowHandleBuffer)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (ImageDump)</l>
+<l>    close_window (WindowHandleBuffer)</l>
+<l>    set_part (WindowHandle, WPRow1, WPColumn1, WPRow2, WPColumn2)</l>
+<l>    Scene3D := []</l>
+<l>catch (Exception)</l>
+<l>    try</l>
+<l>        if (0 &lt; |WindowHandleBuffer|)</l>
+<l>            close_window (WindowHandleBuffer)</l>
+<l>            WindowHandleBuffer := []</l>
+<l>        endif</l>
+<l>    catch (e)</l>
+<c>        * suppress all further exceptions to return the original exception</c>
+<l>    endtry</l>
+<c></c>
+<l>    throw (Exception)</l>
+<l>endtry</l>
+<l>return ()</l>
+</body>
+<docu id="interactive_intersection_object_model_3d">
+<abstract lang="en_US">The procedure visualize_object_model_3d displays the 3D object models of ObjectModel3D in the window with the handle WindowHandle and allows to interactively modify the object poses with the mouse. The current content of the window will be kept as background.
+
+The pose can be modified by moving the mouse while pressing a mouse button. The default settings are:
+
+- Rotate: Left mouse button
+- Zoom: Shift + Left mouse button (or Center mouse button)
+- Pan: Ctrl + Left mouse button
+
+Furthermore, it is possible to select and deselect objects, to decrease the mouse sensitivity, and to toggle the inspection mode (see the description of the generic parameter 'inspection_mode' below):
+
+- (De-)select object(s): Right mouse button
+- Low mouse sensitivity: Alt + Mouse button
+- Toggle inspection mode: Ctrl + Alt + Left mouse button
+
+Note that the selection of individual 3D object models is only available, if the number of models is not greater than 1000 (or the value passed with the generic parameter 'max_num_selectable_models', see below).
+
+Set CamParam and the individual poses (in PoseIn) of the 3D object models to setup the displayed scene. 
+If an empty tuple is given for CamParam, visualize_object_model_3d uses default camera parameters that correspond to the window size.
+PoseIn can contain either multiple poses (one for each 3D object model) or one pose for all 3D object models.
+If an empty tuple is given for PoseIn, visualize_object_model_3d estimates a pose, such that all 3D object models are visible.
+
+The parameter Title can be used to specify text that will be displayed in a box at the top of the window.
+
+The parameter Label can be used to specify a list of labels, which are displayed aligned with the corresponding 3D object model. It must either contain one entry per 3D object model or it must be empty.
+
+The parameter Information can be used to specify text that is displayed without a box at the bottom left of the window.
+
+The output parameter PoseOut contains the possibly modified poses used for the visualization of the 3D object models. These poses can be used directly in disp_object_model_3d and render_object_model_3d or in visualize_object_model_3d to start the visualization with exacly the poses that have been chosen interactively.
+
+The visualization can be configured with a set of parameters, which are given in GenParamName and GenParamValue. The detailed description  of these parameters can be found in the reference documentation of disp_object_model_3d.
+
+The following values influence the whole scene: 
+
+'disp_background':
+Flag, if the current window content should be used as background.
+Values: 'true' or 'false'
+Default: 'false' 
+
+'opengl':
+Decides if  OpenGL is used to display the 3D object models. Otherwise the CPU based fallback solution is used.
+Values: 'true' or 'false'
+Default: 'true' 
+
+'light_position':
+Position of the light source. Must be given as a string containing four space separated floating point numbers. If the fourth number is 0.0, a directional light source is used (the first three components represent the direction), otherwise a point light source is used (with the first three components representing the position). 
+Default: '-100.0 -100.0 0.0 1.0'
+
+'light_ambient':
+Ambient part of the light source. Must be given as a string containing three space separated floating point numbers.
+Default value: '0.2 0.2 0.2'
+
+'light_diffuse':
+Diffuse part of the light source. Must be given as a string containing three space separated floating point numbers.
+Default value: '0.8 0.8 0.8' 
+
+'colored':
+Display object models in different colors. The value of this parameter defines the number of colors that are used.
+Values: 3, 6, or 12
+Default: all objects are white 
+
+'object_index_persistence':
+Must be set to 'true' to enable the object index query in get_disp_object_model_3d_info.
+Values: 'true' or 'false'
+Default: 'false' 
+
+'depth_persistence':
+Must be set to 'true' to enable the depth query in get_disp_object_model_3d_info.
+Values: 'true' or 'false'
+Default: 'false' 
+
+The following parameters can be set for all objects in the scene or for a specific object by appending the index of the object to the parameter name (e.g., 'color_0' to set the color of the first object). 
+
+'attribute':
+Explicitly select in which way an object model is visualized.
+Values: 'auto', 'faces', 'primitive', 'points', 'lines'
+Default: 'auto' 
+
+'color':
+Color of the objects. The available colors can be queried with the operator query_color. In addition, the color may be specified as an RGB triplet in the form '#rrggbb', where 'rr', 'gg', and 'bb' are hexadecimal numbers between '00' and 'ff', respectively.
+Values: 'red', 'green', ...
+Default: 'white' 
+
+'alpha':
+Translucency of the objects.
+Values: floating point value between 0.0 (fully transparent) and 1.0 (fully opaque).
+Default: 1.0 
+
+'disp_pose':
+Flag, if the pose of the objects should be visualized.
+Values: 'true' or 'false'
+Default: 'false' 
+
+'disp_lines':
+Flag, if the contours of the object's polygons should be displayed.
+Values: 'true' or 'false'
+Default: 'false' 
+
+'disp_normals':
+Flag, if the surface normals of the 3D object models should be visualized.
+Values: 'true' or 'false'
+Default value: 'false' 
+
+'line_color':
+Color of the lines if 'disp_lines' is set to 'true'. The available colors can be queried with the operator query_color. In addition, the color may be specified as an RGB triplet in the form '#rrggbb', where 'rr', 'gg', and 'bb' are hexadecimal numbers.
+Values: 'red', 'green', ...
+Default: The value of 'color'
+
+'line_width':
+Sets the width of lines in pixel.
+Default value: 1.0 
+
+'normal_color':
+Color of the visualized normals if 'disp_normals' is set to 'true'. The available colors can be queried with the operator query_color. In addition, the color may be specified as an RGB triplet in the form '#rrggbb', where 'rr', 'gg', and 'bb' are hexadecimal numbers.
+Values: 'red', 'green', ...
+Default value: The value of 'color' 
+
+'intensity','intensity_red', 'intensity_green','intensity_blue':
+An attribute that describes the intensity of displayed points or faces. If 'lut' is set to anything but 'default', the intensity is used as input to the LUT function, otherwise the intensity is multiplied on the color given via the parameter 'color'.
+Values: 'coord_x', 'coord_y', 'coord_z', 'normal_x', 'normal_y', 'normal_z', 'none', or the name of an extended attribute. 
+Default: 'none' 
+
+'lut':
+Sets the LUT that transforms the 'intensity' into a color. See set_lut for available LUTs. If 'lut' is set to anything but 'default', 'color' is ignored. 
+Default: 'default' 
+
+'point_size':
+Sets the diameter of the points in pixel.
+Default: 3.5
+
+
+The following value defines the maximum number of models, for which the selection of individual models is available:
+
+'max_num_selectable_models':
+Number of 3D Object models that can be selected and handled individually. If there are more models passed then this number, some calculations are performed differently and for reasons of efficency, the individual selection and handling of models is not supported anymore.
+Values: 1, 2, ...
+Default: 1000
+
+The following value influences the handling how the pose can be modified interactively: 
+
+'inspection_mode':
+Flag that controls the initial state of the inspection mode.
+If 'inspection_mode' is set to 'standard', the rotation center is fixed in the center of the displayed object. In this mode, the rotation center is indicated by a vertical cross (+). This mode is  particularly well suited for getting an impression of the whole object.
+If 'inspection_mode' is set to 'surface', the rotation center is fixed in the center of the window and it lies on the surface of the displayed object. In this mode, the rotation center is indicated by a diagonal cross (x). This mode is particularly well suited for a detailed inspection of the object's surface. It is less suitable for the inspection of point clouds, because they do not provide surface information.
+Note that the trackball itself is kept in the center of the image, regardless of the selected inspection mode. Note also that the inspection mode can be toggled interactively during the visualization with Ctrl + Alt + Left mouse button (see above).
+Values: 'standard' or 'surface'
+Default: 'standard''
+  </abstract>
+<alternatives>
+<item>disp_object_model_3d</item>
+</alternatives>
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<example lang="en_US">read_object_model_3d ('pipe_joint', 'm', [], [], ObjectModel3D1, Status)
+read_object_model_3d ('clamp_sloped', 'mm', [], [], ObjectModel3D2, Status)
+gen_cam_par_area_scan_division (0.016, 0, 5e-6, 5e-6, 320, 240, 640, 480, CamParam)
+get_cam_par_data (CamParam, 'image_width', Width)
+get_cam_par_data (CamParam, 'image_height', Height)
+dev_open_window (0, 0, Width, Height, 'black', WindowHandle)
+create_pose (-0.02, 0.01, .6, 110, 5, 320, 'Rp+T', 'gba', 'point', Pose1)
+create_pose (0.01, 0.03, .6, 130, 315, 340, 'Rp+T', 'gba', 'point', Pose2)
+visualize_object_model_3d (WindowHandle, [ObjectModel3D1, ObjectModel3D2], \ 
+                           CamParam, [Pose1, Pose2], \
+                           ['alpha', 'color_0', 'color_1', 'disp_pose'], \
+                           [0.5,     'orange',  'yellow',  'true'], \
+                           ['3D visualization demo'], ['pipe joint', 'clamp'], \
+                           ['Use mouse to change view'], PoseOut)</example>
+<library lang="en_US">MVTec Standard Procedures</library>
+<predecessor>
+<item>read_object_model_3d</item>
+<item>gen_object_model_3d_from_points</item>
+</predecessor>
+<see_also>
+<item>disp_object_model_3d</item>
+</see_also>
+<short lang="en_US">Interactively display 3D object models</short>
+<parameters>
+<parameter id="CamParam">
+<default_type>real</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">Camera parameters of the scene.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="GenParamIntersect"/>
+<parameter id="GenParamName">
+<default_type>string</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">Names of the generic parameters. All generic parameters of disp_object_model_3d can be passed here as well.</description>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<values>
+<item>'alpha'</item>
+<item>'attribute'</item>
+<item>'color'</item>
+<item>'colored'</item>
+<item>'disp_background'</item>
+<item>'disp_lines'</item>
+<item>'disp_normals'</item>
+<item>'disp_pose'</item>
+<item>'inspection_mode'</item>
+<item>'intensity'</item>
+<item>'intensity_red'</item>
+<item>'intensity_green'</item>
+<item>'intensity_blue'</item>
+<item>'light_position'</item>
+<item>'light_ambient'</item>
+<item>'light_diffuse'</item>
+<item>'line_color'</item>
+<item>'line_width'</item>
+<item>'lut'</item>
+<item>'max_num_selectable_models'</item>
+<item>'normal_color'</item>
+<item>'point_size'</item>
+</values>
+</parameter>
+<parameter id="GenParamValue">
+<default_type>string</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">Values of the generic parameters. All generic parameters of disp_object_model_3d can be passed here as well.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>any</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+<item>string</item>
+</type_list>
+<values>
+<item>'true'</item>
+<item>'false'</item>
+<item>'coord_x'</item>
+<item>'coord_y'</item>
+<item>'coord_z'</item>
+<item>'red'</item>
+<item>'green'</item>
+<item>'blue'</item>
+<item>'auto'</item>
+<item>'faces'</item>
+<item>'primitive'</item>
+<item>'points'</item>
+<item>'lines'</item>
+<item>'normal_x'</item>
+<item>'normal_y,'normal_z'</item>
+<item>'standard'</item>
+<item>'surface'</item>
+</values>
+</parameter>
+<parameter id="GenValueIntersect"/>
+<parameter id="Information">
+<default_type>string</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">Text that is to be displayed in the lower left corner of the output graphics window.</description>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="Label">
+<default_type>string</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">Text that is to be displayed at the position of each displayed object model.</description>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="ObjectModel3D">
+<default_type>integer</default_type>
+<description lang="en_US">Handles of the 3D object models.</description>
+<mixed_type>false</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="PoseIn">
+<default_type>real</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">3D poses of the objects.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>optional</multivalue>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="PoseOut">
+<default_type>real</default_type>
+<description lang="en_US">Poses of all object models that were possibly interactively changed by the user.</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>pose</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Title">
+<default_type>string</default_type>
+<default_value>[]</default_value>
+<description lang="en_US">Text that is to be displayed in the upper left corner of the output graphics window.</description>
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<description lang="en_US">Window identifier.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="analyze_graph_event">
+<interface>
+<io>
+<par name="BackgroundImage" base_type="iconic" dimension="0"/>
+<par name="IntersectionLine" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="MouseMapping" base_type="ctrl" dimension="0"/>
+<par name="Button" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleBuffer" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleIntersect" base_type="ctrl" dimension="0"/>
+<par name="VirtualTrackball" base_type="ctrl" dimension="0"/>
+<par name="TrackballSize" base_type="ctrl" dimension="0"/>
+<par name="SelectedObjectIn" base_type="ctrl" dimension="0"/>
+<par name="Scene3D" base_type="ctrl" dimension="0"/>
+<par name="AlphaOrig" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3DID" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="Information" base_type="ctrl" dimension="0"/>
+<par name="GenParamName" base_type="ctrl" dimension="0"/>
+<par name="GenParamValue" base_type="ctrl" dimension="0"/>
+<par name="PosesIn" base_type="ctrl" dimension="0"/>
+<par name="ButtonHoldIn" base_type="ctrl" dimension="0"/>
+<par name="TBCenter" base_type="ctrl" dimension="0"/>
+<par name="TBSize" base_type="ctrl" dimension="0"/>
+<par name="WindowCenteredRotationlIn" base_type="ctrl" dimension="0"/>
+<par name="MaxNumModels" base_type="ctrl" dimension="0"/>
+<par name="GenParamIntersect" base_type="ctrl" dimension="0"/>
+<par name="GenValueIntersect" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PosesOut" base_type="ctrl" dimension="0"/>
+<par name="SelectedObjectOut" base_type="ctrl" dimension="0"/>
+<par name="ButtonHoldOut" base_type="ctrl" dimension="0"/>
+<par name="WindowCenteredRotationOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure reflects</c>
+<c>* - the pose change that was introduced by the user by</c>
+<c>*   moving the mouse</c>
+<c>* - the selection of a single object</c>
+<c>* </c>
+<l>global tuple gIsSinglePose</l>
+<c>* </c>
+<l>ButtonHoldOut := ButtonHoldIn</l>
+<l>PosesOut := PosesIn</l>
+<l>SelectedObjectOut := SelectedObjectIn</l>
+<l>WindowCenteredRotationOut := WindowCenteredRotationlIn</l>
+<l>VisualizeTB := max(SelectedObjectOut) != 0</l>
+<l>InvLog2 := 1.0 / log(2)</l>
+<c>* </c>
+<l>if (Button == MouseMapping[6])</l>
+<l>    if (ButtonHoldOut)</l>
+<l>        return ()</l>
+<l>    endif</l>
+<c>    * Ctrl (16) + Alt (32) + left mouse button (1) =&gt; Toggle rotation center position</c>
+<c>    * If WindowCenteredRotation is not 1, set it to 1, otherwise, set it to 2</c>
+<l>    count_seconds (Seconds)</l>
+<l>    if (WindowCenteredRotationOut == 1)</l>
+<l>        WindowCenteredRotationOut := 2</l>
+<l>    else</l>
+<l>        WindowCenteredRotationOut := 1</l>
+<l>    endif</l>
+<l>    ButtonHoldOut := true</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>if (Button == MouseMapping[5] and |ObjectModel3DID| &lt;= MaxNumModels)</l>
+<l>    if (ButtonHoldOut)</l>
+<l>        return ()</l>
+<l>    endif</l>
+<c>    * Ctrl (16) + left mouse button (1) =&gt; Select an object</c>
+<l>    try</l>
+<l>        set_scene_3d_param (Scene3D, 'object_index_persistence', 'true')</l>
+<l>        display_scene_3d (WindowHandleBuffer, Scene3D, 0)</l>
+<l>        get_display_scene_3d_info (WindowHandleBuffer, Scene3D, Row, Column, 'object_index', ModelIndex)</l>
+<l>        set_scene_3d_param (Scene3D, 'object_index_persistence', 'false')</l>
+<l>        disp_obj (IntersectionLine, WindowHandleBuffer)</l>
+<l>    catch (Exception1)</l>
+<c>        * * NO OpenGL, no selection possible</c>
+<l>        return ()</l>
+<l>    endtry</l>
+<l>    if (ModelIndex == -1)</l>
+<c>        * Background click:</c>
+<l>        if (sum(SelectedObjectOut) == |SelectedObjectOut|)</l>
+<c>            * If all objects are already selected, deselect all</c>
+<l>            SelectedObjectOut := gen_tuple_const(|ObjectModel3DID|,0)</l>
+<l>        else</l>
+<c>            * Otherwise select all</c>
+<l>            SelectedObjectOut := gen_tuple_const(|ObjectModel3DID|,1)</l>
+<l>        endif</l>
+<l>    else</l>
+<c>        * Object click:</c>
+<l>        SelectedObjectOut[ModelIndex] := not SelectedObjectOut[ModelIndex]</l>
+<l>    endif</l>
+<l>    ButtonHoldOut := true</l>
+<l>else</l>
+<c>    * Change the pose</c>
+<l>    hom_mat3d_identity (HomMat3DIdentity)</l>
+<l>    NumModels := |ObjectModel3DID|</l>
+<l>    get_cam_par_data (CamParam, 'image_width', Width)</l>
+<l>    get_cam_par_data (CamParam, 'image_height', Height)</l>
+<l>    MinImageSize := min([Width,Height])</l>
+<l>    TrackballRadiusPixel := TrackballSize * MinImageSize / 2.0</l>
+<c>    * Set trackball fixed in the center of the window</c>
+<l>    TrackballCenterRow := Height / 2</l>
+<l>    TrackballCenterCol := Width / 2</l>
+<l>    if (|ObjectModel3DID| &lt; MaxNumModels)</l>
+<l>        if (WindowCenteredRotationOut == 1)</l>
+<l>            get_trackball_center_fixed (SelectedObjectIn, TrackballCenterRow, TrackballCenterCol, TrackballRadiusPixel, Scene3D, ObjectModel3DID, PosesIn, WindowHandleBuffer, CamParam, GenParamName, GenParamValue, TBCenter, TBSize)</l>
+<l>        else</l>
+<l>            get_trackball_center (SelectedObjectIn, TrackballRadiusPixel, ObjectModel3DID, PosesIn, TBCenter, TBSize)</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (min(SelectedObjectOut) == 0 and max(SelectedObjectOut) == 1)</l>
+<c>        * At this point, multiple objects do not necessary have the same</c>
+<c>        * pose any more. Consequently, we have to return a tuple of poses</c>
+<c>        * as output of interactive_intersection_object_model_3d</c>
+<l>        gIsSinglePose := false</l>
+<l>    endif</l>
+<l>    count_channels (BackgroundImage, NumChannels)</l>
+<l>    ColorImage := NumChannels == 3</l>
+<c>    * Alt (32) =&gt; lower sensitivity</c>
+<l>    tuple_rsh (Button, 5, BAnd)</l>
+<l>    if (BAnd % 2)</l>
+<l>        SensFactor := 0.1</l>
+<l>    else</l>
+<l>        SensFactor := 1.0</l>
+<l>    endif</l>
+<l>    IsButtonTrans := MouseMapping[0] == Button or (32 + MouseMapping[0]) == Button</l>
+<l>    IsButtonRot := MouseMapping[1] == Button or (32 + MouseMapping[1]) == Button</l>
+<l>    IsButtonDist := MouseMapping[2] == Button or (32 + MouseMapping[2]) == Button or MouseMapping[3] == Button or (32 + MouseMapping[3]) == Button or MouseMapping[4] == Button or (32 + MouseMapping[4]) == Button</l>
+<l>    if (IsButtonTrans)</l>
+<c>        * Translate in XY-direction</c>
+<l>        MRow1 := Row</l>
+<l>        MCol1 := Column</l>
+<l>        while (IsButtonTrans)</l>
+<l>            try</l>
+<l>                get_mposition_sub_pix (WindowHandle, Row, Column, ButtonLoop)</l>
+<l>                IsButtonTrans := ButtonLoop == Button</l>
+<l>                MRow2 := MRow1 + (Row - MRow1) * SensFactor</l>
+<l>                MCol2 := MCol1 + (Column - MCol1) * SensFactor</l>
+<l>                get_line_of_sight (MRow1, MCol1, CamParam, PX, PY, PZ, QX1, QY1, QZ1)</l>
+<l>                get_line_of_sight (MRow2, MCol2, CamParam, PX, PY, PZ, QX2, QY2, QZ2)</l>
+<l>                Len := sqrt(QX1 * QX1 + QY1 * QY1 + QZ1 * QZ1)</l>
+<l>                Dist := sqrt(TBCenter[0] * TBCenter[0] + TBCenter[1] * TBCenter[1] + TBCenter[2] * TBCenter[2])</l>
+<l>                Translate := [QX2 - QX1,QY2 - QY1,QZ2 - QZ1] * Dist / Len</l>
+<l>                PosesOut := []</l>
+<l>                if (NumModels &lt;= MaxNumModels)</l>
+<l>                    for Index := 0 to NumModels - 1 by 1</l>
+<l>                        PoseIn := PosesIn[Index * 7:Index * 7 + 6]</l>
+<l>                        if (SelectedObjectOut[Index])</l>
+<l>                            pose_to_hom_mat3d (PoseIn, HomMat3DIn)</l>
+<l>                            hom_mat3d_translate (HomMat3DIn, Translate[0], Translate[1], Translate[2], HomMat3DOut)</l>
+<l>                            hom_mat3d_to_pose (HomMat3DOut, PoseOut)</l>
+<l>                            set_scene_3d_instance_pose (Scene3D, Index, PoseOut)</l>
+<l>                        else</l>
+<l>                            PoseOut := PoseIn</l>
+<l>                        endif</l>
+<l>                        PosesOut := [PosesOut,PoseOut]</l>
+<l>                    endfor</l>
+<l>                else</l>
+<l>                    tuple_find (SelectedObjectOut, 1, Indices)</l>
+<l>                    PoseIn := PosesIn[Indices[0] * 7:Indices[0] * 7 + 6]</l>
+<l>                    pose_to_hom_mat3d (PoseIn, HomMat3DIn)</l>
+<l>                    hom_mat3d_translate (HomMat3DIn, Translate[0], Translate[1], Translate[2], HomMat3DOut)</l>
+<l>                    hom_mat3d_to_pose (HomMat3DOut, PoseOut)</l>
+<l>                    Sequence := [0:NumModels * 7 - 1]</l>
+<l>                    tuple_mod (Sequence, 7, Mod)</l>
+<l>                    SequenceReal := [0:1.0 / 7.0:NumModels - (1.0 / 7.0)]</l>
+<l>                    Sequence2Int := int(SequenceReal)</l>
+<l>                    tuple_select (SelectedObjectOut, Sequence2Int, Selected)</l>
+<l>                    InvSelected := 1 - Selected</l>
+<l>                    tuple_select (PoseOut, Mod, PosesOut)</l>
+<l>                    PosesOut := PosesOut * Selected + PosesIn * InvSelected</l>
+<l>                    set_scene_3d_instance_pose (Scene3D, [0:NumModels - 1], PosesOut)</l>
+<l>                endif</l>
+<l>                dump_image_output (BackgroundImage, IntersectionLine, WindowHandleBuffer, WindowHandleIntersect, Scene3D, AlphaOrig, ObjectModel3DID, GenParamName, GenParamValue, GenParamIntersect, GenValueIntersect, CamParam, PosesOut, ColorImage, Title, Information, Labels, VisualizeTB, 'true', TrackballCenterRow, TrackballCenterCol, TBSize, SelectedObjectOut, WindowCenteredRotationOut == 1, TBCenter)</l>
+<l>                dump_window_image (ImageDump, WindowHandleBuffer)</l>
+<l>                dev_set_window (WindowHandle)</l>
+<l>                dev_display (ImageDump)</l>
+<c>                * </c>
+<l>                MRow1 := Row</l>
+<l>                MCol1 := Column</l>
+<l>                PosesIn := PosesOut</l>
+<l>            catch (Exception)</l>
+<c>                * Keep waiting</c>
+<l>            endtry</l>
+<l>        endwhile</l>
+<l>    elseif (IsButtonDist)</l>
+<c>        * Change the Z distance</c>
+<l>        MRow1 := Row</l>
+<l>        while (IsButtonDist)</l>
+<l>            try</l>
+<l>                get_mposition_sub_pix (WindowHandle, Row, Column, ButtonLoop)</l>
+<l>                IsButtonDist := ButtonLoop == Button</l>
+<l>                MRow2 := Row</l>
+<l>                DRow := MRow2 - MRow1</l>
+<l>                Dist := sqrt(TBCenter[0] * TBCenter[0] + TBCenter[1] * TBCenter[1] + TBCenter[2] * TBCenter[2])</l>
+<l>                TranslateZ := -Dist * DRow * 0.003 * SensFactor</l>
+<l>                TBCenter[2] := TBCenter[2] + TranslateZ</l>
+<l>                PosesOut := []</l>
+<l>                if (NumModels &lt;= MaxNumModels)</l>
+<l>                    for Index := 0 to NumModels - 1 by 1</l>
+<l>                        PoseIn := PosesIn[Index * 7:Index * 7 + 6]</l>
+<l>                        if (SelectedObjectOut[Index])</l>
+<c>                            * Transform the whole scene or selected object only</c>
+<l>                            pose_to_hom_mat3d (PoseIn, HomMat3DIn)</l>
+<l>                            hom_mat3d_translate (HomMat3DIn, 0, 0, TranslateZ, HomMat3DOut)</l>
+<l>                            hom_mat3d_to_pose (HomMat3DOut, PoseOut)</l>
+<l>                            set_scene_3d_instance_pose (Scene3D, Index, PoseOut)</l>
+<l>                        else</l>
+<l>                            PoseOut := PoseIn</l>
+<l>                        endif</l>
+<l>                        PosesOut := [PosesOut,PoseOut]</l>
+<l>                    endfor</l>
+<l>                else</l>
+<l>                    tuple_find (SelectedObjectOut, 1, Indices)</l>
+<l>                    PoseIn := PosesIn[Indices[0] * 7:Indices[0] * 7 + 6]</l>
+<l>                    pose_to_hom_mat3d (PoseIn, HomMat3DIn)</l>
+<l>                    hom_mat3d_translate (HomMat3DIn, 0, 0, TranslateZ, HomMat3DOut)</l>
+<l>                    hom_mat3d_to_pose (HomMat3DOut, PoseOut)</l>
+<l>                    Sequence := [0:NumModels * 7 - 1]</l>
+<l>                    tuple_mod (Sequence, 7, Mod)</l>
+<l>                    SequenceReal := [0:1.0 / 7.0:NumModels - (1.0 / 7.0)]</l>
+<l>                    Sequence2Int := int(SequenceReal)</l>
+<l>                    tuple_select (SelectedObjectOut, Sequence2Int, Selected)</l>
+<l>                    InvSelected := 1 - Selected</l>
+<l>                    tuple_select (PoseOut, Mod, PosesOut)</l>
+<l>                    PosesOut := PosesOut * Selected + PosesIn * InvSelected</l>
+<l>                    set_scene_3d_instance_pose (Scene3D, [0:NumModels - 1], PosesOut)</l>
+<l>                endif</l>
+<l>                dump_image_output (BackgroundImage, IntersectionLine, WindowHandleBuffer, WindowHandleIntersect, Scene3D, AlphaOrig, ObjectModel3DID, GenParamName, GenParamValue, GenParamIntersect, GenValueIntersect, CamParam, PosesOut, ColorImage, Title, Information, Labels, VisualizeTB, 'true', TrackballCenterRow, TrackballCenterCol, TBSize, SelectedObjectOut, WindowCenteredRotationOut, TBCenter)</l>
+<l>                dump_window_image (ImageDump, WindowHandleBuffer)</l>
+<l>                dev_set_window (WindowHandle)</l>
+<l>                dev_display (ImageDump)</l>
+<c>                * </c>
+<l>                MRow1 := Row</l>
+<l>                PosesIn := PosesOut</l>
+<l>            catch (Exception)</l>
+<c>                * Keep waiting</c>
+<l>            endtry</l>
+<l>        endwhile</l>
+<l>    elseif (IsButtonRot)</l>
+<c>        * Rotate the object</c>
+<l>        MRow1 := Row</l>
+<l>        MCol1 := Column</l>
+<l>        while (IsButtonRot)</l>
+<l>            try</l>
+<l>                get_mposition_sub_pix (WindowHandle, Row, Column, ButtonLoop)</l>
+<l>                IsButtonRot := ButtonLoop == Button</l>
+<l>                MRow2 := Row</l>
+<l>                MCol2 := Column</l>
+<c>                * Transform the pixel coordinates to relative image coordinates</c>
+<l>                MX1 := (TrackballCenterCol - MCol1) / (0.5 * MinImageSize)</l>
+<l>                MY1 := (TrackballCenterRow - MRow1) / (0.5 * MinImageSize)</l>
+<l>                MX2 := (TrackballCenterCol - MCol2) / (0.5 * MinImageSize)</l>
+<l>                MY2 := (TrackballCenterRow - MRow2) / (0.5 * MinImageSize)</l>
+<c>                * Compute the quaternion rotation that corresponds to the mouse</c>
+<c>                * movement</c>
+<l>                trackball (MX1, MY1, MX2, MY2, VirtualTrackball, TrackballSize, SensFactor, RelQuaternion)</l>
+<c>                * Transform the quaternion to a rotation matrix</c>
+<l>                quat_to_hom_mat3d (RelQuaternion, HomMat3DRotRel)</l>
+<l>                PosesOut := []</l>
+<l>                if (NumModels &lt;= MaxNumModels)</l>
+<l>                    for Index := 0 to NumModels - 1 by 1</l>
+<l>                        PoseIn := PosesIn[Index * 7:Index * 7 + 6]</l>
+<l>                        if (SelectedObjectOut[Index])</l>
+<c>                            * Transform the whole scene or selected object only</c>
+<l>                            pose_to_hom_mat3d (PoseIn, HomMat3DIn)</l>
+<l>                            hom_mat3d_translate (HomMat3DIn, -TBCenter[0], -TBCenter[1], -TBCenter[2], HomMat3DIn)</l>
+<l>                            hom_mat3d_compose (HomMat3DRotRel, HomMat3DIn, HomMat3DIn)</l>
+<l>                            hom_mat3d_translate (HomMat3DIn, TBCenter[0], TBCenter[1], TBCenter[2], HomMat3DOut)</l>
+<l>                            hom_mat3d_to_pose (HomMat3DOut, PoseOut)</l>
+<l>                            set_scene_3d_instance_pose (Scene3D, Index, PoseOut)</l>
+<l>                        else</l>
+<l>                            PoseOut := PoseIn</l>
+<l>                        endif</l>
+<l>                        PosesOut := [PosesOut,PoseOut]</l>
+<l>                    endfor</l>
+<l>                else</l>
+<l>                    tuple_find (SelectedObjectOut, 1, Indices)</l>
+<l>                    PoseIn := PosesIn[Indices[0] * 7:Indices[0] * 7 + 6]</l>
+<l>                    pose_to_hom_mat3d (PoseIn, HomMat3DIn)</l>
+<l>                    hom_mat3d_translate (HomMat3DIn, -TBCenter[0], -TBCenter[1], -TBCenter[2], HomMat3DInTmp1)</l>
+<l>                    hom_mat3d_compose (HomMat3DRotRel, HomMat3DInTmp1, HomMat3DInTmp)</l>
+<l>                    hom_mat3d_translate (HomMat3DInTmp, TBCenter[0], TBCenter[1], TBCenter[2], HomMat3DOut)</l>
+<l>                    hom_mat3d_to_pose (HomMat3DOut, PoseOut)</l>
+<l>                    Sequence := [0:NumModels * 7 - 1]</l>
+<l>                    tuple_mod (Sequence, 7, Mod)</l>
+<l>                    SequenceReal := [0:1.0 / 7.0:NumModels - (1.0 / 7.0)]</l>
+<l>                    Sequence2Int := int(SequenceReal)</l>
+<l>                    tuple_select (SelectedObjectOut, Sequence2Int, Selected)</l>
+<l>                    InvSelected := 1 - Selected</l>
+<l>                    tuple_select (PoseOut, Mod, PosesOut)</l>
+<l>                    PosesOut2 := PosesOut * Selected + PosesIn * InvSelected</l>
+<l>                    PosesOut := PosesOut2</l>
+<l>                    set_scene_3d_instance_pose (Scene3D, [0:NumModels - 1], PosesOut)</l>
+<l>                endif</l>
+<l>                dump_image_output (BackgroundImage, IntersectionLine, WindowHandleBuffer, WindowHandleIntersect, Scene3D, AlphaOrig, ObjectModel3DID, GenParamName, GenParamValue, GenParamIntersect, GenValueIntersect, CamParam, PosesOut, ColorImage, Title, Information, Labels, VisualizeTB, 'true', TrackballCenterRow, TrackballCenterCol, TBSize, SelectedObjectOut, WindowCenteredRotationOut, TBCenter)</l>
+<l>                dump_window_image (ImageDump, WindowHandleBuffer)</l>
+<l>                dev_set_window (WindowHandle)</l>
+<l>                dev_display (ImageDump)</l>
+<c>                * </c>
+<l>                MRow1 := Row</l>
+<l>                MCol1 := Column</l>
+<l>                PosesIn := PosesOut</l>
+<l>            catch (Exception)</l>
+<c>                * Keep waiting</c>
+<l>            endtry</l>
+<l>        endwhile</l>
+<l>    endif</l>
+<l>    PosesOut := PosesIn</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="analyze_graph_event">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Reflect the pose change that was introduced by the user by moving the mouse</short>
+<parameters>
+<parameter id="AlphaOrig"/>
+<parameter id="BackgroundImage"/>
+<parameter id="Button"/>
+<parameter id="ButtonHoldIn"/>
+<parameter id="ButtonHoldOut"/>
+<parameter id="CamParam"/>
+<parameter id="Column"/>
+<parameter id="GenParamIntersect"/>
+<parameter id="GenParamName"/>
+<parameter id="GenParamValue"/>
+<parameter id="GenValueIntersect"/>
+<parameter id="Information"/>
+<parameter id="IntersectionLine"/>
+<parameter id="Labels"/>
+<parameter id="MaxNumModels"/>
+<parameter id="MouseMapping"/>
+<parameter id="ObjectModel3DID"/>
+<parameter id="PosesIn"/>
+<parameter id="PosesOut"/>
+<parameter id="Row"/>
+<parameter id="Scene3D"/>
+<parameter id="SelectedObjectIn"/>
+<parameter id="SelectedObjectOut"/>
+<parameter id="TBCenter"/>
+<parameter id="TBSize"/>
+<parameter id="Title"/>
+<parameter id="TrackballSize"/>
+<parameter id="VirtualTrackball"/>
+<parameter id="WindowCenteredRotationOut"/>
+<parameter id="WindowCenteredRotationlIn"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleBuffer"/>
+<parameter id="WindowHandleIntersect"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_title_and_information">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="Information" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>global tuple gInfoDecor</l>
+<l>global tuple gInfoPos</l>
+<l>global tuple gTitlePos</l>
+<l>global tuple gTitleDecor</l>
+<c>* </c>
+<l>Title := split('' + Title + '','\n')</l>
+<l>NumTitleLines := |Title|</l>
+<l>if (NumTitleLines &gt; 0)</l>
+<l>    Row := 'top'</l>
+<l>    if (gTitlePos == 'UpperLeft')</l>
+<l>        Column := 'left'</l>
+<l>    elseif (gTitlePos == 'UpperCenter')</l>
+<l>        Column := 'center'</l>
+<l>    elseif (gTitlePos == 'UpperRight')</l>
+<l>        Column := 'right'</l>
+<l>    else</l>
+<c>        * Unknown position!</c>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>    disp_text (WindowHandle, Title, 'window', Row, Column, gTitleDecor[0], 'box', gTitleDecor[1])</l>
+<l>endif</l>
+<l>Information := split('' + Information + '','\n')</l>
+<l>NumInfoLines := |Information|</l>
+<l>if (NumInfoLines &gt; 0)</l>
+<l>    if (gInfoPos == 'UpperLeft')</l>
+<l>        Row := 'top'</l>
+<l>        Column := 'left'</l>
+<l>    elseif (gInfoPos == 'UpperRight')</l>
+<l>        Row := 'top'</l>
+<l>        Column := 'right'</l>
+<l>    elseif (gInfoPos == 'LowerLeft')</l>
+<l>        Row := 'bottom'</l>
+<l>        Column := 'left'</l>
+<l>    else</l>
+<c>        * Unknown position!</c>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>    disp_text (WindowHandle, Information, 'window', Row, Column, gInfoDecor[0], 'box', gInfoDecor[1])</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="disp_title_and_information">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Information"/>
+<parameter id="Title"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dump_image_output">
+<interface>
+<io>
+<par name="BackgroundImage" base_type="iconic" dimension="0"/>
+<par name="IntersectionLine" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandleBuffer" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleIntersection" base_type="ctrl" dimension="0"/>
+<par name="Scene3D" base_type="ctrl" dimension="0"/>
+<par name="AlphaOrig" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3DID" base_type="ctrl" dimension="0"/>
+<par name="GenParamName" base_type="ctrl" dimension="0"/>
+<par name="GenParamValue" base_type="ctrl" dimension="0"/>
+<par name="GenParamIntersect" base_type="ctrl" dimension="0"/>
+<par name="GenValueIntersect" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Poses" base_type="ctrl" dimension="0"/>
+<par name="ColorImage" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="Information" base_type="ctrl" dimension="0"/>
+<par name="Labels" base_type="ctrl" dimension="0"/>
+<par name="VisualizeTrackball" base_type="ctrl" dimension="0"/>
+<par name="DisplayContinueButton" base_type="ctrl" dimension="0"/>
+<par name="TrackballCenterRow" base_type="ctrl" dimension="0"/>
+<par name="TrackballCenterCol" base_type="ctrl" dimension="0"/>
+<par name="TrackballRadiusPixel" base_type="ctrl" dimension="0"/>
+<par name="SelectedObject" base_type="ctrl" dimension="0"/>
+<par name="VisualizeRotationCenter" base_type="ctrl" dimension="0"/>
+<par name="RotationCenter" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>global tuple gAlphaDeselected</l>
+<l>global tuple gTerminationButtonLabel</l>
+<l>global tuple gDispObjOffset</l>
+<l>global tuple gLabelsDecor</l>
+<l>global tuple gUsesOpenGL</l>
+<c>* </c>
+<c>* Display background image</c>
+<l>clear_window (WindowHandleBuffer)</l>
+<l>if (ColorImage)</l>
+<l>    disp_color (BackgroundImage, WindowHandleBuffer)</l>
+<l>else</l>
+<l>    disp_image (BackgroundImage, WindowHandleBuffer)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Display objects</c>
+<l>if (sum(SelectedObject) == |SelectedObject|)</l>
+<l>    if (gUsesOpenGL == 'true')</l>
+<l>        try</l>
+<l>            display_scene_3d (WindowHandleBuffer, Scene3D, 0)</l>
+<l>        catch (Exception)</l>
+<l>            if (Exception[0] == 5185 or Exception[0] == 5188 or Exception[0] == 5187)</l>
+<l>                gUsesOpenGL := 'false'</l>
+<l>            else</l>
+<l>                throw (Exception)</l>
+<l>            endif</l>
+<l>        endtry</l>
+<l>    endif</l>
+<l>    if (gUsesOpenGL == 'false')</l>
+<c>        * * NO OpenGL, use fallback</c>
+<l>        disp_object_model_no_opengl (ModelContours, ObjectModel3DID, GenParamName, GenParamValue, WindowHandleBuffer, CamParam, Poses)</l>
+<l>    endif</l>
+<l>else</l>
+<l>    for Index := 0 to |AlphaOrig| - 1 by 1</l>
+<l>        if (SelectedObject[Index] == 1)</l>
+<l>            set_scene_3d_instance_param (Scene3D, Index, 'alpha', AlphaOrig[Index])</l>
+<l>        else</l>
+<l>            set_scene_3d_instance_param (Scene3D, Index, 'alpha', gAlphaDeselected)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    try</l>
+<l>        if (gUsesOpenGL == 'false')</l>
+<l>            throw ([])</l>
+<l>        endif</l>
+<l>        display_scene_3d (WindowHandleBuffer, Scene3D, 0)</l>
+<l>    catch (Exception1)</l>
+<c>        * * NO OpenGL, use fallback</c>
+<l>        DeselectedIdx := find(SelectedObject,0)</l>
+<l>        if (DeselectedIdx != -1)</l>
+<l>            DeselectedName := 'color_' + DeselectedIdx</l>
+<l>            DeselectedValue := gen_tuple_const(|DeselectedName|,'gray')</l>
+<l>        endif</l>
+<l>        disp_object_model_no_opengl (ModelContours, ObjectModel3DID, [GenParamName,DeselectedName], [GenParamValue,DeselectedValue], WindowHandleBuffer, CamParam, Poses)</l>
+<l>    endtry</l>
+<l>    for Index := 0 to |AlphaOrig| - 1 by 1</l>
+<l>        set_scene_3d_instance_param (Scene3D, Index, 'alpha', AlphaOrig[Index])</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>disp_obj (IntersectionLine, WindowHandleBuffer)</l>
+<l>pose_to_hom_mat3d (Poses[0:6], HomMat3D)</l>
+<l>draw_intersection_object_model (ObjectModel3DID, HomMat3D, WindowHandleIntersection, CamParam, GenParamName, GenParamValue, GenParamIntersect, GenValueIntersect, TimeInfo)</l>
+<l>dump_window_image (Image, WindowHandleBuffer)</l>
+<c>* </c>
+<c>* Display labels</c>
+<l>if (Labels != 0)</l>
+<l>    set_color (WindowHandleBuffer, gLabelsDecor[0])</l>
+<l>    for Index := 0 to |ObjectModel3DID| - 1 by 1</l>
+<c>        * Project the center point of the current model</c>
+<l>        Pose := Poses[Index * 7:Index * 7 + 6]</l>
+<l>        pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>        get_object_model_3d_params (ObjectModel3DID[Index], 'center', Center)</l>
+<l>        affine_trans_point_3d (HomMat3D, Center[0], Center[1], Center[2], CenterCamX, CenterCamY, CenterCamZ)</l>
+<l>        project_3d_point (CenterCamX, CenterCamY, CenterCamZ, CamParam, CenterRow, CenterCol)</l>
+<l>        Label := Labels[Index]</l>
+<l>        if (Label != '')</l>
+<l>            get_string_extents (WindowHandleBuffer, Label, Ascent, Descent, TextWidth, TextHeight)</l>
+<l>            disp_message (WindowHandleBuffer, Label, 'window', CenterRow - TextHeight / 2 + gDispObjOffset[0], CenterCol - TextWidth / 2 + gDispObjOffset[1], [], gLabelsDecor[1])</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<c>* </c>
+<c>* Visualize the trackball if desired</c>
+<l>if (VisualizeTrackball)</l>
+<l>    set_line_width (WindowHandleBuffer, 1)</l>
+<l>    gen_ellipse_contour_xld (TrackballContour, TrackballCenterRow, TrackballCenterCol, 0, TrackballRadiusPixel, TrackballRadiusPixel, 0, 6.28318, 'positive', 1.5)</l>
+<l>    set_color (WindowHandleBuffer, 'dim gray')</l>
+<l>    disp_xld (TrackballContour, WindowHandleBuffer)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Visualize the rotation center if desired</c>
+<l>if (VisualizeRotationCenter != 0 and |RotationCenter| == 3)</l>
+<l>    if (RotationCenter[2] &lt; 1e-10)</l>
+<l>        RotationCenter[2] := 1e-10</l>
+<l>    endif</l>
+<l>    project_3d_point (RotationCenter[0], RotationCenter[1], RotationCenter[2], CamParam, RotCenterRow, RotCenterCol)</l>
+<l>    Orientation := rad(90)</l>
+<l>    if (VisualizeRotationCenter == 1)</l>
+<l>        Orientation := rad(45)</l>
+<l>    endif</l>
+<l>    gen_cross_contour_xld (CrossRotCenter, RotCenterRow, RotCenterCol, TrackballRadiusPixel / 25.0, Orientation)</l>
+<l>    set_line_width (WindowHandleBuffer, 3)</l>
+<l>    query_color (WindowHandleBuffer, Colors)</l>
+<l>    set_color (WindowHandleBuffer, 'light gray')</l>
+<l>    disp_xld (CrossRotCenter, WindowHandleBuffer)</l>
+<l>    set_line_width (WindowHandleBuffer, 1)</l>
+<l>    set_color (WindowHandleBuffer, 'dim gray')</l>
+<l>    disp_xld (CrossRotCenter, WindowHandleBuffer)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Display title</c>
+<l>disp_title_and_information (WindowHandleBuffer, Title, Information)</l>
+<c>* </c>
+<c>* Display the 'Exit' button</c>
+<l>if (DisplayContinueButton == 'true')</l>
+<l>    disp_continue_button (WindowHandleBuffer)</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="dump_image_output">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Renders 3d object models in a buffer window.</short>
+<parameters>
+<parameter id="AlphaOrig"/>
+<parameter id="BackgroundImage">
+<multichannel>optional</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="CamParam"/>
+<parameter id="ColorImage">
+<sem_type>string</sem_type>
+</parameter>
+<parameter id="DisplayContinueButton"/>
+<parameter id="GenParamIntersect"/>
+<parameter id="GenParamName">
+<sem_type>string</sem_type>
+</parameter>
+<parameter id="GenParamValue">
+<default_type>integer</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="GenValueIntersect"/>
+<parameter id="Information">
+<sem_type>string</sem_type>
+</parameter>
+<parameter id="IntersectionLine"/>
+<parameter id="Labels">
+<multivalue>optional</multivalue>
+<sem_type>string</sem_type>
+</parameter>
+<parameter id="ObjectModel3DID">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Poses">
+<sem_type>pose</sem_type>
+</parameter>
+<parameter id="RotationCenter"/>
+<parameter id="Scene3D"/>
+<parameter id="SelectedObject">
+<multivalue>optional</multivalue>
+<sem_type>integer</sem_type>
+</parameter>
+<parameter id="Title">
+<sem_type>string</sem_type>
+</parameter>
+<parameter id="TrackballCenterCol">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="TrackballCenterRow">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="TrackballRadiusPixel">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="VisualizeRotationCenter"/>
+<parameter id="VisualizeTrackball">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="WindowHandleBuffer">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandleIntersection"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_trackball_center">
+<interface>
+<ic>
+<par name="SelectedObject" base_type="ctrl" dimension="0"/>
+<par name="TrackballRadiusPixel" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+<par name="Poses" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TBCenter" base_type="ctrl" dimension="0"/>
+<par name="TBSize" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>NumModels := |ObjectModel3D|</l>
+<l>TBCenter[0] := 0</l>
+<l>TBCenter[1] := 0</l>
+<l>TBCenter[2] := 0</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'center', Centers)</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'diameter_axis_aligned_bounding_box', Diameter)</l>
+<c>* Normalize Diameter to use it as weights for a weighted mean of the individual centers</c>
+<l>MD := mean(Diameter)</l>
+<l>if (MD &gt; 1e-10)</l>
+<l>    Weight := Diameter / MD</l>
+<l>else</l>
+<l>    Weight := Diameter</l>
+<l>endif</l>
+<l>SumW := sum(select_mask(Weight,abs(sgn(SelectedObject))))</l>
+<l>if (SumW &lt; 1e-10)</l>
+<l>    Weight := gen_tuple_const(|Weight|,1.0)</l>
+<l>    SumW := sum(select_mask(Weight,abs(sgn(SelectedObject))))</l>
+<l>endif</l>
+<l>for Index := 0 to NumModels - 1 by 1</l>
+<l>    if (SelectedObject[Index])</l>
+<l>        ObjectModel3DIDSelected := ObjectModel3D[Index]</l>
+<l>        PoseSelected := Poses[Index * 7:Index * 7 + 6]</l>
+<l>        pose_to_hom_mat3d (PoseSelected, HomMat3D)</l>
+<l>        affine_trans_point_3d (HomMat3D, Centers[Index * 3 + 0], Centers[Index * 3 + 1], Centers[Index * 3 + 2], TBCenterCamX, TBCenterCamY, TBCenterCamZ)</l>
+<l>        TBCenter[0] := TBCenter[0] + TBCenterCamX * Weight[Index]</l>
+<l>        TBCenter[1] := TBCenter[1] + TBCenterCamY * Weight[Index]</l>
+<l>        TBCenter[2] := TBCenter[2] + TBCenterCamZ * Weight[Index]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>if (max(SelectedObject) != 0)</l>
+<l>    InvSum := 1.0 / SumW</l>
+<l>    TBCenter[0] := TBCenter[0] * InvSum</l>
+<l>    TBCenter[1] := TBCenter[1] * InvSum</l>
+<l>    TBCenter[2] := TBCenter[2] * InvSum</l>
+<l>    TBSize := (0.5 + 0.5 * sum(SelectedObject) / NumModels) * TrackballRadiusPixel</l>
+<l>else</l>
+<l>    TBCenter := []</l>
+<l>    TBSize := 0</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_trackball_center">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Get the center of the virtual trackback that is used to move the camera.</short>
+<parameters>
+<parameter id="ObjectModel3D"/>
+<parameter id="Poses"/>
+<parameter id="SelectedObject"/>
+<parameter id="TBCenter"/>
+<parameter id="TBSize"/>
+<parameter id="TrackballRadiusPixel"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="project_point_on_trackball">
+<interface>
+<ic>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="VirtualTrackball" base_type="ctrl" dimension="0"/>
+<par name="TrackballSize" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="V" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (VirtualTrackball == 'shoemake')</l>
+<c>    * Virtual Trackball according to Shoemake</c>
+<l>    R := sqrt(X * X + Y * Y)</l>
+<l>    if (R &lt;= TrackballSize)</l>
+<l>        XP := X</l>
+<l>        YP := Y</l>
+<l>        ZP := sqrt(TrackballSize * TrackballSize - R * R)</l>
+<l>    else</l>
+<l>        XP := X * TrackballSize / R</l>
+<l>        YP := Y * TrackballSize / R</l>
+<l>        ZP := 0</l>
+<l>    endif</l>
+<l>else</l>
+<c>    * Virtual Trackball according to Bell</c>
+<l>    R := sqrt(X * X + Y * Y)</l>
+<l>    if (R &lt;= TrackballSize * 0.70710678)</l>
+<l>        XP := X</l>
+<l>        YP := Y</l>
+<l>        ZP := sqrt(TrackballSize * TrackballSize - R * R)</l>
+<l>    else</l>
+<l>        XP := X</l>
+<l>        YP := Y</l>
+<l>        ZP := 0.6 * TrackballSize * TrackballSize / R</l>
+<l>    endif</l>
+<l>endif</l>
+<l>V := [XP,YP,ZP]</l>
+<l>return ()</l>
+</body>
+<docu id="project_point_on_trackball">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Project an image point onto the trackball</short>
+<parameters>
+<parameter id="TrackballSize"/>
+<parameter id="V"/>
+<parameter id="VirtualTrackball"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="trackball">
+<interface>
+<ic>
+<par name="MX1" base_type="ctrl" dimension="0"/>
+<par name="MY1" base_type="ctrl" dimension="0"/>
+<par name="MX2" base_type="ctrl" dimension="0"/>
+<par name="MY2" base_type="ctrl" dimension="0"/>
+<par name="VirtualTrackball" base_type="ctrl" dimension="0"/>
+<par name="TrackballSize" base_type="ctrl" dimension="0"/>
+<par name="SensFactor" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="QuatRotation" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Compute the 3d rotation from the mouse movement</c>
+<c>* </c>
+<l>if (MX1 == MX2 and MY1 == MY2)</l>
+<l>    QuatRotation := [1,0,0,0]</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* Project the image point onto the trackball</c>
+<l>project_point_on_trackball (MX1, MY1, VirtualTrackball, TrackballSize, P1)</l>
+<l>project_point_on_trackball (MX2, MY2, VirtualTrackball, TrackballSize, P2)</l>
+<c>* The cross product of the projected points defines the rotation axis</c>
+<l>tuple_vector_cross_product (P1, P2, RotAxis)</l>
+<c>* Compute the rotation angle</c>
+<l>D := P2 - P1</l>
+<l>T := sqrt(sum(D * D)) / (2.0 * TrackballSize)</l>
+<l>if (T &gt; 1.0)</l>
+<l>    T := 1.0</l>
+<l>endif</l>
+<l>if (T &lt; -1.0)</l>
+<l>    T := -1.0</l>
+<l>endif</l>
+<l>RotAngle := 2.0 * asin(T) * SensFactor</l>
+<l>Len := sqrt(sum(RotAxis * RotAxis))</l>
+<l>if (Len &gt; 0.0)</l>
+<l>    RotAxis := RotAxis / Len</l>
+<l>endif</l>
+<l>axis_angle_to_quat (RotAxis[0], RotAxis[1], RotAxis[2], RotAngle, QuatRotation)</l>
+<l>return ()</l>
+</body>
+<docu id="trackball">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Compute the 3d rotation from the mouse movement</short>
+<parameters>
+<parameter id="MX1"/>
+<parameter id="MX2"/>
+<parameter id="MY1"/>
+<parameter id="MY2"/>
+<parameter id="QuatRotation"/>
+<parameter id="SensFactor"/>
+<parameter id="TrackballSize"/>
+<parameter id="VirtualTrackball"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_trackball_center_fixed">
+<interface>
+<ic>
+<par name="SelectedObject" base_type="ctrl" dimension="0"/>
+<par name="TrackballCenterRow" base_type="ctrl" dimension="0"/>
+<par name="TrackballCenterCol" base_type="ctrl" dimension="0"/>
+<par name="TrackballRadiusPixel" base_type="ctrl" dimension="0"/>
+<par name="Scene3D" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3DID" base_type="ctrl" dimension="0"/>
+<par name="Poses" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleBuffer" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="GenParamName" base_type="ctrl" dimension="0"/>
+<par name="GenParamValue" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TBCenter" base_type="ctrl" dimension="0"/>
+<par name="TBSize" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Determine the trackball center for the fixed trackball</c>
+<l>NumModels := |ObjectModel3DID|</l>
+<l>get_cam_par_data (CamParam, 'image_width', Width)</l>
+<l>get_cam_par_data (CamParam, 'image_height', Height)</l>
+<c>* </c>
+<c>* Project the selected objects</c>
+<l>SelectPose := []</l>
+<l>for Index1 := 0 to |SelectedObject| - 1 by 1</l>
+<l>    SelectPose := [SelectPose,gen_tuple_const(7,SelectedObject[Index1])]</l>
+<l>    if (SelectedObject[Index1] == 0)</l>
+<l>        set_scene_3d_instance_param (Scene3D, Index1, 'visible', 'false')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>set_scene_3d_param (Scene3D, 'depth_persistence', 'true')</l>
+<l>display_scene_3d (WindowHandleBuffer, Scene3D, 0)</l>
+<l>set_scene_3d_param (Scene3D, 'visible', 'true')</l>
+<c>* </c>
+<c>* determine the depth of the object point that appears closest to the trackball</c>
+<c>* center</c>
+<l>gen_region_points (RegionCenter, TrackballCenterRow, TrackballCenterCol)</l>
+<l>distance_transform (RegionCenter, DistanceImage, 'chamfer-3-4-unnormalized', 'false', Width, Height)</l>
+<l>get_domain (DistanceImage, Domain)</l>
+<l>get_region_points (Domain, Rows, Columns)</l>
+<l>get_grayval (DistanceImage, Rows, Columns, Grayval)</l>
+<l>tuple_sort_index (Grayval, IndicesG)</l>
+<l>get_display_scene_3d_info (WindowHandleBuffer, Scene3D, subset(Rows,IndicesG), subset(Columns,IndicesG), 'depth', Value)</l>
+<l>tuple_find (sgn(Value), 1, Pos)</l>
+<c>* </c>
+<l>set_scene_3d_param (Scene3D, 'depth_persistence', 'false')</l>
+<c>* </c>
+<c>* </c>
+<c>* set TBCenter</c>
+<l>if (Pos != -1)</l>
+<c>    * if the object is visible in the image</c>
+<l>    TBCenter := [0,0,Value[Pos[0]]]</l>
+<l>else</l>
+<c>    * if the object is not visible in the image, set the z coordinate to -1</c>
+<c>    * to indicate, the the previous z value should be used instead</c>
+<l>    TBCenter := [0,0,-1]</l>
+<l>endif</l>
+<c>* </c>
+<l>if (max(SelectedObject) != 0)</l>
+<l>    TBSize := (0.5 + 0.5 * sum(SelectedObject) / NumModels) * TrackballRadiusPixel</l>
+<l>else</l>
+<l>    TBCenter := []</l>
+<l>    TBSize := 0</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_trackball_center_fixed">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Ausgabe</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Output</item>
+</chapters>
+<library lang="de_DE">MVTec Standard Procedures</library>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Get the center of the virtual trackback that is used to move the camera (version for inspection_mode = 'surface').</short>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="GenParamName"/>
+<parameter id="GenParamValue"/>
+<parameter id="ObjectModel3DID"/>
+<parameter id="Poses"/>
+<parameter id="Scene3D"/>
+<parameter id="SelectedObject"/>
+<parameter id="TBCenter"/>
+<parameter id="TBSize"/>
+<parameter id="TrackballCenterCol"/>
+<parameter id="TrackballCenterRow"/>
+<parameter id="TrackballRadiusPixel"/>
+<parameter id="WindowHandleBuffer"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

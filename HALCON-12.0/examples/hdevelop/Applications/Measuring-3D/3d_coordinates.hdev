@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Initialize the program</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 768, 576, 'black', WindowHandle)</l>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Calibrate the camera</c>
+<c>* </c>
+<l>CalTabDescrFile := 'caltab_big.descr'</l>
+<l>StartCamPar := [0.008,0,0.0000086,0.0000086,384,288,768,576]</l>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, 'area_scan_division', StartCamPar)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalTabDescrFile)</l>
+<l>NumImages := 10</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'calib/calib-3d-coord-' + I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Find calibration plate in\nall calibration images (' + I + '/' + NumImages + ')'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * Find the calibration plate</c>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, I - 1, [], [])</l>
+<l>    get_calib_data (CalibDataID, 'camera', 0, 'init_params', StartCamPar)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, I - 1, Row, Column, Index, Pose)</l>
+<l>    get_calib_data_observ_contours (Contours, CalibDataID, 'caltab', 0, 0, I - 1)</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 6, 0.785398)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Contours)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Cross)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParam)</l>
+<c>* </c>
+<c>* Perform measurements</c>
+<c>* </c>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'calib/calib-3d-coord-' + I$'02d')</l>
+<c>    * </c>
+<c>    * Now, measure the size of the black border of the plate</c>
+<l>    get_measure_positions (Image, PlateRegion, CalibDataID, I, Distance, Phi, RowCenter, ColumnCenter)</l>
+<l>    gen_rectangle2_contour_xld (Rectangle, RowCenter, ColumnCenter, Phi, Distance * 0.52, 8)</l>
+<l>    gen_measure_rectangle2 (RowCenter, ColumnCenter, Phi, Distance * 0.52, 8, 768, 576, 'nearest_neighbor', MeasureHandle)</l>
+<c>    * </c>
+<l>    measure_pos (Image, MeasureHandle, 1, 40, 'all', 'all', RowEdge, ColumnEdge, Amplitude, Distance1)</l>
+<l>    close_measure (MeasureHandle)</l>
+<l>    Rows := [RowEdge[0],RowEdge[|RowEdge| - 1]]</l>
+<l>    Columns := [ColumnEdge[0],ColumnEdge[|RowEdge| - 1]]</l>
+<l>    gen_cross_contour_xld (Cross, Rows, Columns, 16, Phi)</l>
+<c>    * </c>
+<c>    * Transform the two border points into the world coordinate system</c>
+<l>    get_calib_data (CalibDataID, 'calib_obj_pose', [0,I - 1], 'pose', Pose)</l>
+<l>    image_points_to_world_plane (CamParam, Pose, Rows, Columns, 'm', SX, SY)</l>
+<l>    distance_pp (SY[0], SX[0], SY[1], SX[1], Width)</l>
+<c>    * </c>
+<c>    * Display results of width measurement</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (Rectangle)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_draw ('fill')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    disp_message (WindowHandle, 'Width = ' + (Width * 100)$'8.3f' + 'cm', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Now, measure the size of the calibration marks</c>
+<c>    * </c>
+<c>    * Extract the ellipses in the image</c>
+<l>    erosion_circle (PlateRegion, ROI, 17.5)</l>
+<l>    reduce_domain (Image, ROI, ImageReduced)</l>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 1, 20, 60)</l>
+<l>    select_contours_xld (Edges, SelectedEdges, 'contour_length', 20, 99999999, -0.5, 0.5)</l>
+<c>    * Fit ellipses to extracted edges</c>
+<l>    fit_ellipse_contour_xld (SelectedEdges, 'fitzgibbon', -1, 2, 0, 200, 3, 2, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>    MeanRadius1 := mean(Radius1)</l>
+<l>    MeanRadius2 := mean(Radius2)</l>
+<l>    DevRadius1 := deviation(Radius1)</l>
+<l>    DevRadius2 := deviation(Radius2)</l>
+<c>    * Transform the ellipses to world coordinates, where they should be circles</c>
+<c>    * and convert the circles from meters to millimeters so that we can see them.</c>
+<l>    contour_to_world_plane_xld (SelectedEdges, WorldCircles, CamParam, Pose, 'mm')</l>
+<c>    * Fit ellipses to the circles in world coordinates</c>
+<l>    fit_ellipse_contour_xld (WorldCircles, 'fitzgibbon', -1, 2, 0, 200, 3, 2, Row, Column, Phi, RadiusW1, RadiusW2, StartPhi, EndPhi, PointOrder)</l>
+<l>    MeanRadiusW1 := mean(RadiusW1)</l>
+<l>    MeanRadiusW2 := mean(RadiusW2)</l>
+<l>    DevRadiusW1 := deviation(RadiusW1)</l>
+<l>    DevRadiusW2 := deviation(RadiusW2)</l>
+<c>    * </c>
+<c>    * Display results of ellipse measurement</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (SelectedEdges)</l>
+<l>    Message := 'Measured dimensions of the ellipses'</l>
+<l>    Message[0] := '                    Mean Radius1; Mean Radius2; (Standard deviations [%])'</l>
+<l>    Message[1] := 'Image coordinates:       ' + MeanRadius1$'5.2f' + 'px; ' + MeanRadius2$'5.2f' + 'px            (' + (DevRadius1 / MeanRadius1 * 100)$'4.2f' + ', ' + (DevRadius2 / MeanRadius2 * 100)$'4.2f' + ')'</l>
+<l>    Message[2] := 'World coordinates:       ' + (MeanRadiusW1 / 10)$'5.2f' + 'cm; ' + (MeanRadiusW2 / 10)$'5.2f' + 'cm            (' + (DevRadiusW1 / MeanRadiusW1 * 100)$'4.2f' + ', ' + (DevRadiusW2 / MeanRadiusW2 * 100)$'4.2f' + ')'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I &lt; 10)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_calib_data (CalibDataID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_measure_positions">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="PlateRegion" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CalibDataID" base_type="ctrl" dimension="0"/>
+<par name="PoseIndex" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Distance" base_type="ctrl" dimension="0"/>
+<par name="Phi" base_type="ctrl" dimension="0"/>
+<par name="RowCenter" base_type="ctrl" dimension="0"/>
+<par name="ColumnCenter" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Extract the calibration plate</c>
+<l>threshold (Image, Region, 0, 120)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['holes_num','rect2_len1','rect2_len2'], 'and', [1,120,120], [1,200,200])</l>
+<l>fill_up (SelectedRegions, PlateRegion)</l>
+<c>* Construct the measurement rectangle from the border of the table.</c>
+<l>gen_contour_region_xld (PlateRegion, Contours, 'center')</l>
+<l>segment_contours_xld (Contours, ContoursSplit, 'lines', 7, 4, 2)</l>
+<l>regress_contours_xld (ContoursSplit, RegressContours, 'no', 1)</l>
+<l>select_contours_xld (RegressContours, VerticalContours, 'direction', rad(45), rad(135), -0.5, 0.5)</l>
+<l>select_contours_xld (VerticalContours, LongContours, 'length', 150, 500, -0.5, 0.5)</l>
+<c>* The measurement line is constructed from the center points of the</c>
+<c>* two vertical border lines of the table.</c>
+<l>select_obj (LongContours, Contour, 1)</l>
+<l>get_contour_xld (Contour, Rows, Columns)</l>
+<l>RowBegin1 := Rows[0]</l>
+<l>ColBegin1 := Columns[0]</l>
+<l>RowEnd1 := Rows[|Rows| - 1]</l>
+<l>ColEnd1 := Columns[|Columns| - 1]</l>
+<l>select_obj (LongContours, Contour, 2)</l>
+<l>get_contour_xld (Contour, Rows, Columns)</l>
+<l>RowBegin2 := Rows[0]</l>
+<l>ColBegin2 := Columns[0]</l>
+<l>RowEnd2 := Rows[|Rows| - 1]</l>
+<l>ColEnd2 := Columns[|Columns| - 1]</l>
+<c>* Now do the actual measurement in the image</c>
+<l>get_calib_data_observ_points (CalibDataID, 0, 0, PoseIndex - 1, Row, Column, PoseIndex, _Pose)</l>
+<l>Row1 := Row[find(PoseIndex,21)]</l>
+<l>Row2 := Row[find(PoseIndex,27)]</l>
+<l>Column1 := Column[find(PoseIndex,21)]</l>
+<l>Column2 := Column[find(PoseIndex,27)]</l>
+<l>intersection_lines (Row1, Column1, Row2, Column2, RowBegin1, ColBegin1, RowEnd1, ColEnd1, RowA, ColA, IsOverlapping)</l>
+<l>intersection_lines (Row1, Column1, Row2, Column2, RowBegin2, ColBegin2, RowEnd2, ColEnd2, RowB, ColB, IsOverlapping)</l>
+<l>distance_pp (RowA, ColA, RowB, ColB, Distance)</l>
+<l>line_orientation (RowA, ColA, RowB, ColB, Phi)</l>
+<l>RowCenter := (RowA + RowB) / 2</l>
+<l>ColumnCenter := (ColA + ColB) / 2</l>
+<l>return ()</l>
+</body>
+<docu id="get_measure_positions">
+<parameters>
+<parameter id="CalibDataID"/>
+<parameter id="ColumnCenter"/>
+<parameter id="Distance"/>
+<parameter id="Image"/>
+<parameter id="Phi"/>
+<parameter id="PlateRegion"/>
+<parameter id="PoseIndex"/>
+<parameter id="RowCenter"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images from a DirectShow compatible capture device</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* check interface revision:</c>
+<l>info_framegrabber ('DirectShow', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed camera devices:</c>
+<l>info_framegrabber ('DirectShow', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open first camera device with current video settings:</c>
+<l>open_framegrabber ('DirectShow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* query current settings:</c>
+<l>get_framegrabber_param (AcqHandle, 'camera_type', CurrentCameraType)</l>
+<l>get_framegrabber_param (AcqHandle, 'frame_rate', CurrentFrameRate)</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>*     grab_image_async (Image, AcqHandle, -1)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

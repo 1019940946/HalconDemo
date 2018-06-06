@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* String types</c>
+<c>* </c>
+<l>i1 := 123$'#o'</l>
+<l>i2 := 123$'#x'</l>
+<l>i3 := 123$'#X'</l>
+<l>i4 := 123$'#f'</l>
+<l>i5 := 123$'#g'</l>
+<l>i6 := 123$'#G'</l>
+<l>i7 := 123$'#e'</l>
+<l>i8 := 123$'#E'</l>
+<l>d1 := 123$'6'</l>
+<l>d2 := 123$'-6'</l>
+<l>d3 := 123$'.6'</l>
+<l>d4 := 123$'10.5'</l>
+<l>g1 := 123.456$'.1'</l>
+<l>g2 := 123.456$'.2'</l>
+<l>g3 := 123.456$'.3'</l>
+<l>g4 := 123.456$'.4'</l>
+<l>g5 := 123.456$'.5'</l>
+<l>g6 := 123.456$'.15'</l>
+<l>g7 := 123.456$'2.2'</l>
+<l>e1 := 123.456$'.1e'</l>
+<l>e2 := 123.456$'.2e'</l>
+<l>e4 := 123.456$'.10e'</l>
+<l>s1 := 'Hugo'$'10'</l>
+<l>s2 := 'Hugo'$'-10'</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

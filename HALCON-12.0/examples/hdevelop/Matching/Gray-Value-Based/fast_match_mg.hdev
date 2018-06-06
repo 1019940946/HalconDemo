@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Search all good matches of a pattern in an image of letters</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'letters')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 4 * 3, Height / 4 * 3, 'black', WindowID)</l>
+<l>gen_rectangle1 (Rectangle, 201, 614, 235, 639)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 0, 180)</l>
+<l>dilation_circle (Region, RegionDilation, 4.5)</l>
+<l>reduce_domain (Image, RegionDilation, Pattern)</l>
+<c>* Preparing a pattern for template matching</c>
+<l>create_template (Pattern, 255, 4, 'sort', 'original', TemplateID)</l>
+<l>fast_match_mg (Image, Matches, TemplateID, 40, 3)</l>
+<l>connection (Matches, ConnectedMatches)</l>
+<l>add_channels (ConnectedMatches, Image, GrayRegions)</l>
+<c>* Search the best matches of the character pattern</c>
+<l>best_match (GrayRegions, TemplateID, 20, 'true', Row, Column, Error)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<c>* Display a circle on the position of the best match</c>
+<l>for i := 0 to |Row| - 1 by 1</l>
+<l>    if (Error[i] &lt; 255)</l>
+<l>        disp_circle (WindowID, Row[i], Column[i], 10.5)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

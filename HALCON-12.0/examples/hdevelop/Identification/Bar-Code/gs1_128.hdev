@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>*    GS1-128 bar code symbology</c>
+<c>* </c>
+<c>* The symbol structure of GS1-128 bar codes is identical</c>
+<c>* to a Code 128 symbols. This bar code type enforces merely</c>
+<c>* additional rules for the data formating: the data is</c>
+<c>* organized in the so-called GS1 application element</c>
+<c>* strings according to the GS1 General Specifications</c>
+<c>* (www.gs1.org)</c>
+<c>* </c>
+<c>* In this program, GS1-128 bar codes are decoded both as</c>
+<c>* Code 128 and GS1-128 and the decoding results are compared.</c>
+<c>* While the symbol can still be decoded as Code 128, the</c>
+<c>* resulting string lacks the semantical structure of the</c>
+<c>* data.</c>
+<c>* In contrast, decoding the symbol as GS1-128 results in</c>
+<c>* valid GS1 data with valid separation of the application</c>
+<c>* element strings</c>
+<c>* </c>
+<c>* Constants used in the program</c>
+<l>Scale := 1.0</l>
+<l>ScaleInv := 1. / Scale</l>
+<l>NumImages := 3</l>
+<l>StatusHeight := 300</l>
+<l>Colors := ['black','magenta','black','black','forest green',gen_tuple_const(10,'black')]</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 360, 256, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Create bar code reader</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Read bar codes</c>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'barcode/gs1_128/gs1_128_generated_' + I$'.2d')</l>
+<c>    * </c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'GS1-128', GS1128DecodedString)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 128', Code128DecodedString)</l>
+<c>    * </c>
+<c>    * Visualize results</c>
+<l>    Message := 'Code 128 Data:'</l>
+<l>    Message := [Message,'   ' + Code128DecodedString]</l>
+<l>    Message := [Message,' ']</l>
+<l>    Message := [Message,'GS1-128 Data*:']</l>
+<l>    Message := [Message,'   ' + GS1128DecodedString]</l>
+<l>    Message := [Message,' ']</l>
+<l>    Message := [Message,' ']</l>
+<l>    Message := [Message,'*) The data is split in several GS1 element strings, ']</l>
+<l>    Message := [Message,'   each containing an application identifier (AI, a']</l>
+<l>    Message := [Message,'   number enclosed in brackets) and the element data']</l>
+<l>    set_system ('flush_graphic', 'false')</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_window_extents (-1, -1, Scale * Width, Scale * Height + StatusHeight)</l>
+<l>    dev_set_part (-12, 0, Height + ScaleInv * StatusHeight - 13, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    disp_message (WindowHandle, 'Code 128 vs. GS1-128 data interpretation:', 'window', 12, 12, 'black', 'false')</l>
+<l>    set_system ('flush_graphic', 'true')</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12 + Scale * Height, 12, Colors, 'false')</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Release memory allocated by the bar code reader</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

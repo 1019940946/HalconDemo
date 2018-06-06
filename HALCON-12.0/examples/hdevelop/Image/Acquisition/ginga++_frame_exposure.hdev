@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a LinX GINGA++ frame grabber board</c>
+<c>* (frame exposure)</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>Width := 640</l>
+<l>Height := 480</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Select the desired trigger mode:</c>
+<l>MyCameraType := 'sony/XC55_NI_TRIG_DEMAND'</l>
+<c>* </c>
+<l>MyBoardType := 'GINGA++M2'</l>
+<l>* MyBoardType := 'GINGA++M4'</l>
+<c>* </c>
+<l>open_framegrabber ('Ginga++', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyBoardType, 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'wait_frame_exposure_timeout', 2000)</l>
+<c>* </c>
+<c>* Enable shot grabbing mode (software trigger):</c>
+<l>* set_framegrabber_param (AcqHandle, 'software_trigger', 'enable')</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    get_framegrabber_param (AcqHandle, 'wait_frame_exposure', RetVal)</l>
+<l>    if (RetVal != 2)</l>
+<c>        * could not wait frame exposure event</c>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

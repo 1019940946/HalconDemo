@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Specify line (right mouse button to end)</c>
+<c>* </c>
+<l>Button := -1</l>
+<l>RowLine := []</l>
+<l>ColLine := []</l>
+<l>dev_set_color ('red')</l>
+<l>Message := 'Use the left mouse button to draw data points'</l>
+<l>Message[1] := 'that will be used to fit a line.'</l>
+<l>Message[2] := '(Right click to end)'</l>
+<l>disp_message (WindowID, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* Select points of a lines</c>
+<c>* Use right button to end input</c>
+<l>while (Button != 4)</l>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    if (Button != 4)</l>
+<l>        gen_cross_contour_xld (Cross, Row, Column, 20, 0.785398)</l>
+<l>        dev_display (Cross)</l>
+<l>        RowLine := [RowLine,Row]</l>
+<l>        ColLine := [ColLine,Column]</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_clear_window ()</l>
+<l>gen_cross_contour_xld (Crosses, RowLine, ColLine, 20, 0.785398)</l>
+<l>dev_display (Crosses)</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_set_line_width (2)</l>
+<l>gen_contour_polygon_xld (Contour, RowLine, ColLine)</l>
+<l>dev_display (Contour)</l>
+<l>dev_set_color ('forest green')</l>
+<l>fit_line_contour_xld (Contour, 'regression', -1, 0, 5, 1.345, RowBegin1, ColBegin1, RowEnd1, ColEnd1, Nr1, Nc1, Dist1)</l>
+<l>gen_contour_polygon_xld (Line1, [RowBegin1,RowEnd1], [ColBegin1,ColEnd1])</l>
+<l>dev_display (Line1)</l>
+<l>disp_message (WindowID, 'Original data points and lines fitted with\ndifferent methods', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowID, 'regression', 'window', 52, 12, 'forest green', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_color ('blue')</l>
+<l>fit_line_contour_xld (Contour, 'huber', -1, 0, 5, 1.0, RowBegin2, ColBegin2, RowEnd2, ColEnd2, Nr2, Nc2, Dist2)</l>
+<l>gen_contour_polygon_xld (Line2, [RowBegin2,RowEnd2], [ColBegin2,ColEnd2])</l>
+<l>dev_display (Line2)</l>
+<l>disp_message (WindowID, 'huber', 'window', 72, 12, 'blue', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_color ('orange')</l>
+<l>fit_line_contour_xld (Contour, 'tukey', -1, 0, 5, 2.0, RowBegin3, ColBegin3, RowEnd3, ColEnd3, Nr3, Nc3, Dist3)</l>
+<l>gen_contour_polygon_xld (Line3, [RowBegin3,RowEnd3], [ColBegin3,ColEnd3])</l>
+<l>dev_display (Line3)</l>
+<l>disp_message (WindowID, 'tukey', 'window', 92, 12, 'orange', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_color ('cyan')</l>
+<l>fit_line_contour_xld (Contour, 'drop', -1, 0, 5, 1.0, RowBegin4, ColBegin4, RowEnd4, ColEnd4, Nr4, Nc4, Dist4)</l>
+<l>gen_contour_polygon_xld (Line4, [RowBegin4,RowEnd4], [ColBegin4,ColEnd4])</l>
+<l>dev_display (Line4)</l>
+<l>disp_message (WindowID, 'drop', 'window', 112, 12, 'cyan', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_color ('magenta')</l>
+<l>fit_line_contour_xld (Contour, 'gauss', -1, 0, 5, 2.0, RowBegin5, ColBegin5, RowEnd5, ColEnd5, Nr5, Nc5, Dist5)</l>
+<l>gen_contour_polygon_xld (Line5, [RowBegin5,RowEnd5], [ColBegin5,ColEnd5])</l>
+<l>dev_display (Line5)</l>
+<l>disp_message (WindowID, 'gauss', 'window', 132, 12, 'magenta', 'false')</l>
+<l>disp_end_of_program_message (WindowID, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example programs shows how to use matrices in HALCON to</c>
+<c>* solve a system of equations.</c>
+<c>* The example generates a sequence of random points and fits</c>
+<c>* a quadratic function to these points.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>Size := 500</l>
+<l>dev_open_window (0, 0, Size, Size, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Size - 1, Size - 1)</l>
+<c>* </c>
+<c>* Create a set of random points which lie approximately on</c>
+<c>* a second order curve</c>
+<c>* </c>
+<l>X := [25:50:Size]</l>
+<l>Y := 15 + 0.4 * X + 0.001 * X * X</l>
+<l>Y := Y + 40 * rand(|Y|)</l>
+<c>* </c>
+<c>* Show the point set</c>
+<c>* </c>
+<l>gen_cross_contour_xld (Cross, Size - Y, X, 15, 0.785398)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'Input point sequence', 'window', 70, 25, 'blue', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now fit these points to a quadratic function of the form</c>
+<c>* </c>
+<c>* f(x) = a*x^2 + b*x + c</c>
+<c>* </c>
+<c>* This can be achieved by solving the system of equations</c>
+<c>* </c>
+<c>* Ax = B</c>
+<c>* </c>
+<c>* where each line in A consists of [X^2, X, 1],</c>
+<c>* and each line of B consist of the corresponding Y value</c>
+<c>* </c>
+<c>* If this system of equations is solved for x, x will contain</c>
+<c>* the parameters of the quadratic function:</c>
+<c>* </c>
+<c>* x = [a, b, c]</c>
+<c>* </c>
+<l>create_matrix (|X|, 3, 1.0, MatrixA)</l>
+<l>create_matrix (|X|, 1, X, MatrixACol1)</l>
+<l>create_matrix (|X|, 1, X * X, MatrixACol0)</l>
+<l>set_sub_matrix (MatrixA, MatrixACol1, 0, 1)</l>
+<l>set_sub_matrix (MatrixA, MatrixACol0, 0, 0)</l>
+<c>* </c>
+<l>create_matrix (|X|, 1, Y, MatrixB)</l>
+<l>solve_matrix (MatrixA, 'general', 0, MatrixB, MatrixX)</l>
+<c>* </c>
+<c>* Plot the approximated quadratic function</c>
+<c>* </c>
+<l>Sequence := [0:1200]</l>
+<l>get_value_matrix (MatrixX, 0, 0, A)</l>
+<l>get_value_matrix (MatrixX, 1, 0, B)</l>
+<l>get_value_matrix (MatrixX, 2, 0, C)</l>
+<l>Distances := A * Sequence * Sequence + B * Sequence + C</l>
+<l>gen_contour_polygon_xld (Contour, Size - Distances, Sequence)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (Contour)</l>
+<l>Message := 'Approximated quadratic function'</l>
+<l>Message[1] := 'f(x) = ' + A$'.2' + '*x^2 + ' + B$'.2' + '*x + ' + C$'.2' + ''</l>
+<l>disp_message (WindowHandle, Message, 'window', 100, 25, 'forest green', 'false')</l>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+<c>* </c>
+<c>* </c>
+<c>* Clean up</c>
+<c>* </c>
+<l>clear_matrix (MatrixX)</l>
+<l>clear_matrix (MatrixB)</l>
+<l>clear_matrix (MatrixA)</l>
+<l>clear_matrix (MatrixACol0)</l>
+<l>clear_matrix (MatrixACol1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

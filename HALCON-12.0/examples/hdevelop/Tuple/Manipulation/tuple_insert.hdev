@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use tuple_insert</c>
+<c>* to insert one or more elements into a tuple at</c>
+<c>* a given position</c>
+<c>* </c>
+<l>OriginalTuple := [0,1,2,3,4,5]</l>
+<c>* Insert a single value at a given index</c>
+<l>tuple_insert (OriginalTuple, 3, 'x', InsertSingleValueA)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>InsertSingleValueB := insert(OriginalTuple,3,'x')</l>
+<c>* </c>
+<c>* Insert multiple values at a given index</c>
+<l>tuple_insert (OriginalTuple, 1, ['y','z'], InsertedMultipleValuesA)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>InsertedMultipleValuesB := insert(OriginalTuple,1,['y','z'])</l>
+<c>* </c>
+<c>* If index = length of Tuple -&gt; elements will be appended</c>
+<l>tuple_insert (OriginalTuple, 6, ['x','y','z'], AppendedA)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>AppendedB := insert(OriginalTuple,6,['x','y','z'])</l>
+<l>dev_open_tool ('variable_view', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

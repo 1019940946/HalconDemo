@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how inpainting_ct can be used to remove the</c>
+<c>* fence from an image of a lynx.</c>
+<l>read_image (Image, 'lynx')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Image to be inpainted'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>read_region (Region, 'lynx_mask')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (Region)</l>
+<l>Message := 'Inpainting region'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>inpainting_ct (Image, Region, InpaintedImage, 13, 70, 1.2, 4, 1)</l>
+<l>dev_display (InpaintedImage)</l>
+<l>Message := 'Inpainted image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

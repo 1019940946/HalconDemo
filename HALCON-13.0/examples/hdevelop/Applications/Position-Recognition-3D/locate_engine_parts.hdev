@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates planar calibrated deformable matching.</c>
+<c>* and its use in a typical bin picking application setup.</c>
+<c>* First a deformable model of an engine part is created.</c>
+<c>* Then, the model is searched in a set of images with</c>
+<c>* perspective distorted parts of an engine.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (ImageInit, 'automotive/engine_parts_01')</l>
+<l>get_image_size (ImageInit, Width, Height)</l>
+<l>dev_open_window_fit_image (ImageInit, 0, 0, Width, Height, WindowHandle)</l>
+<l>dev_update_off ()</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* </c>
+<c>* Create the ROI of the model from the first image.</c>
+<c>* Here, the upper part of the engine part, consisting of 6 boreholes can be used.</c>
+<l>dev_clear_window ()</l>
+<l>read_image (Image, 'automotive/engine_parts_01')</l>
+<l>dev_display (Image)</l>
+<l>gen_rectangle2 (Rectangle1, 285.69, 284.554, -1.66101, 58.923, 17.3983)</l>
+<l>gen_rectangle2 (Rectangle2, 282.154, 373.738, -1.50165, 56.3435, 14.8286)</l>
+<l>union2 (Rectangle1, Rectangle2, RegionUnion)</l>
+<l>reduce_domain (Image, RegionUnion, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 110, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 500, 3000)</l>
+<l>union1 (SelectedRegions, RegionUnion)</l>
+<l>dilation_circle (RegionUnion, RegionDilation, 3.5)</l>
+<l>reduce_domain (ImageReduced, RegionDilation, ImageReduced)</l>
+<l>disp_message (WindowHandle, 'ROI created', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<c>* </c>
+<c>* Create the metric deformable model from the reduced image.</c>
+<c>* Here the plane of the object is extracted from measured well defined points.</c>
+<c>* Note that it is also possible to place a calibration plate on the object and correct for</c>
+<c>* the thickness of the calibration plate.</c>
+<c>* Consult example locate_car_door.hdev in the same directory.</c>
+<l>dev_display (Image)</l>
+<c>* A camera calibration has been done beforehand (e.g. with the calibration assistant).</c>
+<l>gen_cam_par_area_scan_division (0.0124068, -268.149, 9.30326e-006, 9.3e-006, 290.95, 268.404, 640, 512, CamParam)</l>
+<c>* The boreholes are defining a 3D plane.</c>
+<l>ObjectRow := [254.344,253.433,311.613,316.545]</l>
+<l>ObjectCol := [284.269,368.903,373.356,286.666]</l>
+<l>gen_cross_contour_xld (Cross, ObjectRow, ObjectCol, 6, 0.785398)</l>
+<l>WorldX := [-29.0,26,27,-30.0] / 1000.0</l>
+<l>WorldY := [-21.5,-19,19,19] / 1000.0</l>
+<c>* The Z coordinate of the points is set to 0.0 as it is a planar object.</c>
+<l>WorldZ := [0.0,0.0,0.0,0.0]</l>
+<c>* Given the 3D-2D correspondences the plane of the object is extracted with vector_to_pose.</c>
+<l>vector_to_pose (WorldX, WorldY, WorldZ, ObjectRow, ObjectCol, CamParam, 'planar_analytic', 'error', PoseModelPlane, Quality)</l>
+<l>disp_3d_coord_system (WindowHandle, CamParam, PoseModelPlane, 0.05)</l>
+<l>create_planar_calib_deformable_model (ImageReduced, CamParam, PoseModelPlane, 3, [], [], 'auto', 1, [], 'auto', 1, [], 'auto', 'none', 'use_polarity', 'auto', 'auto', [], [], ModelID)</l>
+<c>* Project contour model into world coordinate system for later visualization.</c>
+<l>get_deformable_model_contours (ModelContours, ModelID, 1)</l>
+<l>get_deformable_model_params (ModelID, 'model_row', ModelRow)</l>
+<l>get_deformable_model_params (ModelID, 'model_col', ModelCol)</l>
+<l>get_deformable_model_params (ModelID, 'model_pose', ModelPose)</l>
+<l>get_deformable_model_params (ModelID, 'cam_param_rect', CamParamRect)</l>
+<c>* Due to radial distortion a simple translation does not suffice.</c>
+<c>* Instead we have to project the metric model into the world coordinate and</c>
+<c>* project this back into the camera that contains the radial distortion.</c>
+<l>affine_trans_contour_xld (ModelContours, ContoursAffineTrans, [1,0,ModelRow,0,1,ModelCol])</l>
+<l>contour_to_world_plane_xld (ContoursAffineTrans, ContoursTrans, CamParamRect, ModelPose, 'm')</l>
+<l>count_obj (ContoursTrans, NumberContour)</l>
+<l>pose_to_hom_mat3d (ModelPose, HomMat3D)</l>
+<c>* Project model into 3D world coordinates and project it into the camera.</c>
+<l>gen_empty_obj (FoundContour)</l>
+<l>for Index2 := 1 to NumberContour by 1</l>
+<l>    select_obj (ContoursTrans, ObjectSelected, Index2)</l>
+<l>    get_contour_xld (ObjectSelected, Y, X)</l>
+<l>    Z := gen_tuple_const(|X|,0.0)</l>
+<l>    affine_trans_point_3d (HomMat3D, X, Y, Z, Xc, Yc, Zc)</l>
+<l>    project_3d_point (Xc, Yc, Zc, CamParam, R, C)</l>
+<l>    gen_contour_polygon_xld (ModelWorld, R, C)</l>
+<l>    concat_obj (FoundContour, ModelWorld, FoundContour)</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_message (WindowHandle, 'Deformable model created', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Because some models are close to the border of the image, border_shape_models</c>
+<c>* must be set to true.</c>
+<l>get_system ('border_shape_models', BorderShapeModels)</l>
+<l>set_system ('border_shape_models', 'true')</l>
+<c>* Detect the model in new images with potentially tilted object instances.</c>
+<l>for Index := 1 to 25 by 1</l>
+<l>    TotalTime := 0</l>
+<l>    read_image (Image, 'automotive/engine_parts_' + Index$'.02')</l>
+<c>    * </c>
+<c>    * NumMatches = 0 returns not a specified number of found</c>
+<c>    * instances but all found instances. Use NumMatches = 0</c>
+<c>    * if you don't know how many instances are to be found.</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_planar_calib_deformable_model (Image, ModelID, rad(0), rad(360), 1, 1, 1, 1, 0.65, 0, 0, 3, 0.75, [], [], Pose, CovPose, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    dev_display (Image)</l>
+<l>    Time := Seconds2 - Seconds1</l>
+<l>    TotalTime := TotalTime + Time</l>
+<l>    for Index1 := 0 to |Score| - 1 by 1</l>
+<l>        tuple_select_range (Pose, Index1 * 7, ((Index1 + 1) * 7) - 1, PoseSelected)</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParam, PoseSelected, 0.04)</l>
+<l>        pose_to_hom_mat3d (PoseSelected, HomMat3D)</l>
+<l>        gen_empty_obj (FoundContour)</l>
+<l>        for Index2 := 1 to NumberContour by 1</l>
+<l>            select_obj (ContoursTrans, ObjectSelected, Index2)</l>
+<l>            get_contour_xld (ObjectSelected, Y, X)</l>
+<l>            Z := gen_tuple_const(|X|,0.0)</l>
+<l>            affine_trans_point_3d (HomMat3D, X, Y, Z, Xc, Yc, Zc)</l>
+<l>            project_3d_point (Xc, Yc, Zc, CamParam, R, C)</l>
+<l>            gen_contour_polygon_xld (ModelWorld, R, C)</l>
+<l>            concat_obj (FoundContour, ModelWorld, FoundContour)</l>
+<l>        endfor</l>
+<l>        dev_display (FoundContour)</l>
+<l>        disp_message (WindowHandle, |Score| + ' models found in ' + (TotalTime * 1000)$'.4' + ' ms', 'window', 10, 10, 'black', 'true')</l>
+<l>    endfor</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Program finished\nPress \'Run\' to clear deformable model', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Set border_shape_models to original value.</c>
+<l>set_system ('border_shape_models', BorderShapeModels)</l>
+<c>* Free memory of the model.</c>
+<l>clear_deformable_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

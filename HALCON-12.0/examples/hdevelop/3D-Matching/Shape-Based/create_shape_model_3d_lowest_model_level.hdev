@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's shape-based</c>
+<c>* 3D matching to find the 3D pose of tile spacers. Because</c>
+<c>* the object appears large in the images, the 3D model</c>
+<c>* needs many internal representations of different viewing</c>
+<c>* angles. This leads to a very high memory consumption of</c>
+<c>* the model. To reduce the needed memory, the parameter</c>
+<c>* 'lowest_model_level' is used. By setting 'lowest_model_level'</c>
+<c>* to a higher level (1 is the default) the memory consumption</c>
+<c>* can be reduced approximately by factor 3 per level, while</c>
+<c>* the time for the creation of the model is reduced by factor 2.</c>
+<c>* In exchange, the robustness of the matching might decrease and</c>
+<c>* the search time increases slightly (by 5-10%).</c>
+<c>* </c>
+<c>* Here, 'lowest_model_level' is set to 3, which results in</c>
+<c>* a reduction by factor 6 for the memory needed for the model</c>
+<c>* and factor 4 for the time needed to create the model.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* Set the camera parameters (can be obtained by calibrate_cameras)</c>
+<l>CamParam := [0.0269462,-354.842,1.27964e-005,1.28e-005,254.24,201.977,512,384]</l>
+<c>* </c>
+<l>IWidth := CamParam[6]</l>
+<l>IHeight := CamParam[7]</l>
+<c>* </c>
+<l>read_image (Image, 'tile_spacers/tile_spacers_color_01')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512 * 1.5, 384 * 1.5, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Reading the 3D shape model file from disk ...', 'window', 12, 12, 'black', 'false')</l>
+<c>* Create the 3D shape model if it is not available on disk</c>
+<l>try</l>
+<l>    read_shape_model_3d ('tile_spacer.sm3', ShapeModel3DID)</l>
+<l>catch (Exception)</l>
+<c>    * </c>
+<c>    * Read the object model from a DXF file</c>
+<l>    read_object_model_3d ('tile_spacer.dxf', 0.0001, [], [], ObjectModel3DID, DXFStatus)</l>
+<l>    prepare_object_model_3d (ObjectModel3DID, 'shape_based_matching_3d', 'true', [], [])</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, 'Reading the 3D shape model file from disk ... not found!', 'window', 12, 12, 'red', 'false')</l>
+<l>    disp_message (WindowHandle, 'Creating the 3D shape model (may take a few seconds) ...', 'window', 42, 12, 'black', 'false')</l>
+<l>    count_seconds (S1)</l>
+<c>    * </c>
+<c>    * Model creation</c>
+<c>    * </c>
+<c>    * Change the value of the 'lowest_model_level' parameter to</c>
+<c>    * compare the training times and memory consumption on your</c>
+<c>    * computer.</c>
+<l>    create_shape_model_3d (ObjectModel3DID, CamParam, 0, 0, 0, 'gba', -rad(60), rad(60), -rad(60), rad(60), 0, rad(360), 0.26, 0.27, 10, 'lowest_model_level', 3, ShapeModel3DID)</l>
+<l>    count_seconds (S2)</l>
+<l>    T := S2 - S1</l>
+<c>    * </c>
+<c>    * After creating the 3D shape model we do not longer need</c>
+<c>    * the 3D object model.</c>
+<l>    clear_object_model_3d (ObjectModel3DID)</l>
+<c>    * </c>
+<l>    disp_message (WindowHandle, 'Creation time: ' + T$'.3' + ' s', 'window', 72, 12, 'black', 'false')</l>
+<l>    try</l>
+<l>        disp_message (WindowHandle, 'Writing model to disk ...', 'window', 102, 12, 'black', 'false')</l>
+<l>        write_shape_model_3d (ShapeModel3DID, 'tile_spacer.sm3')</l>
+<l>    catch (Exception)</l>
+<l>        disp_message (WindowHandle, 'Writing model to disk ... failed!', 'window', 102, 12, 'red', 'false')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endtry</l>
+<l>endtry</l>
+<l>disp_lowest_model_level_info (WindowHandle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Matching</c>
+<l>Times := []</l>
+<l>NumImages := 12</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'tile_spacers/tile_spacers_color_' + I$'02')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Find up to three instances of the 3D shape model</c>
+<c>    * (set 'border_model' to 'true' because the object may</c>
+<c>    * touch the image border)</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_model_3d (Image, ShapeModel3DID, 0.7, 0.85, 0, ['num_matches','max_overlap','border_model'], [3,0.75,'true'], Pose, CovPose, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := Seconds2 - Seconds1</l>
+<l>    Times := [Times,Time]</l>
+<c>    * Visualize the found matches in the image by projecting</c>
+<c>    * the 3D shape model into it using the pose of the match</c>
+<l>    for J := 0 to |Score| - 1 by 1</l>
+<c>        * Display contours</c>
+<l>        PoseTmp := Pose[J * 7:J * 7 + 6]</l>
+<l>        project_shape_model_3d (ModelContours, ShapeModel3DID, CamParam, PoseTmp, 'true', rad(30))</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (ModelContours)</l>
+<c>        * Display the coordinate system of the 3D object model</c>
+<l>        dev_set_colored (3)</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParam, PoseTmp, 0.015)</l>
+<c>        * Display the parameters of the found pose</c>
+<l>        dev_set_color ('white')</l>
+<l>        display_match_pose (ShapeModel3DID, PoseTmp, WindowHandle)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, |Score| + ' Match(es) found in ' + Time$'4.2f' + ' s', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* clear the 3D shape model</c>
+<l>clear_shape_model_3d (ShapeModel3DID)</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_match_pose">
+<interface>
+<ic>
+<par name="ShapeModel3DID" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Construct the degree sign</c>
+<l>tuple_chr (0xb0, DegreeSign)</l>
+<l>get_shape_model_3d_params (ShapeModel3DID, 'reference_point', ReferencePoint)</l>
+<l>get_shape_model_3d_params (ShapeModel3DID, 'cam_param', CamParam)</l>
+<c>* </c>
+<c>* Project the reference point</c>
+<l>pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>affine_trans_point_3d (HomMat3D, ReferencePoint[0], ReferencePoint[1], ReferencePoint[2], X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, Row, Column)</l>
+<c>* </c>
+<c>* Display the pose at the projected reference point</c>
+<l>set_tposition (WindowHandle, Row, Column - 10)</l>
+<l>write_string (WindowHandle, 'Pose:')</l>
+<l>set_tposition (WindowHandle, Row + 15, Column)</l>
+<l>write_string (WindowHandle, 'X: ' + (1000 * Pose[0])$'4.1f' + ' mm')</l>
+<l>set_tposition (WindowHandle, Row + 30, Column)</l>
+<l>write_string (WindowHandle, 'Y: ' + (1000 * Pose[1])$'4.1f' + ' mm')</l>
+<l>set_tposition (WindowHandle, Row + 45, Column)</l>
+<l>write_string (WindowHandle, 'Z: ' + (1000 * Pose[2])$'4.1f' + ' mm')</l>
+<l>set_tposition (WindowHandle, Row + 60, Column)</l>
+<l>write_string (WindowHandle, 'Alpha: ' + Pose[3]$'4.1f' + DegreeSign)</l>
+<l>set_tposition (WindowHandle, Row + 75, Column)</l>
+<l>write_string (WindowHandle, 'Beta: ' + Pose[4]$'4.1f' + DegreeSign)</l>
+<l>set_tposition (WindowHandle, Row + 90, Column)</l>
+<l>write_string (WindowHandle, 'Gamma: ' + Pose[5]$'4.1f' + DegreeSign)</l>
+<l>return ()</l>
+</body>
+<docu id="display_match_pose">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Display a 3D matching pose at the projected reference point</short>
+<parameters>
+<parameter id="Pose"/>
+<parameter id="ShapeModel3DID"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_lowest_model_level_info">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>Message := 'The model used in this example for shape-based 3D matching contains'</l>
+<l>Message[1] := 'only views down to the third pyramid level.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'This has been achieved by setting the parameter \'lowest_model_level\''</l>
+<l>Message[4] := 'to 3 in \'create_shape_model_3d\'.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'Thus, the model\'s memory consumption and training time is reduced'</l>
+<l>Message[7] := 'significantly while the matching time slightly increases.'</l>
+<l>Message[8] := ' '</l>
+<l>Message[9] := 'The following table exemplarily shows the training times, model sizes,'</l>
+<l>Message[10] := 'and average search times achieved on an Intel Core 2 Duo 3.0 GHz for'</l>
+<l>Message[11] := 'different values of \'lowest_model_level\':'</l>
+<l>Message[12] := ' '</l>
+<l>Message[13] := ' ----------------------------------------------------------------------'</l>
+<l>Message[14] := '| lowest_model_level | training time |   model size    |  search time  |'</l>
+<l>Message[15] := '|--------------------|---------------|-----------------|---------------|'</l>
+<l>Message[16] := '|         3          |  23 s (  7%)  |   9.8 MB (  5%) | 750 ms (112%) |'</l>
+<l>Message[17] := '|         2          |  75 s ( 23%)  |  33.4 MB ( 16%) | 720 ms (107%) |'</l>
+<l>Message[18] := '|         1          | 330 s (100%)  | 214.8 MB (100%) | 670 ms (100%) |'</l>
+<l>Message[19] := ' ----------------------------------------------------------------------'</l>
+<l>Message[20] := ' '</l>
+<l>Message[21] := 'Note that execution times will differ on different machines.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'false')</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="disp_lowest_model_level_info">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

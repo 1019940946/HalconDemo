@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from two devices via the Ensenso-NxLib interface</c>
+<c>* The example also demonstrates how to trigger two devices simultaneously</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('Ensenso-NxLib', 'device', Information, ValueList)</l>
+<c>* </c>
+<l>if (|ValueList| &lt; 2)</l>
+<c>    * Only one or no device found. This example needs a minimum of two cameras</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Open the first device</c>
+<l>open_framegrabber ('Ensenso-NxLib', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'stereo', ValueList[0], 0, -1, AcqHandle1)</l>
+<c>* Open the second device</c>
+<l>open_framegrabber ('Ensenso-NxLib', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'stereo', ValueList[1], 0, -1, AcqHandle2)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle1, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle1, 'image_height', Height)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, Width + 15, Width, Height, 'black', WindowHandle2)</l>
+<c>* </c>
+<c>* Set the tree items returned when calling 'grab_data'</c>
+<l>set_framegrabber_param (AcqHandle1, 'grab_data_items', 'Images/Rectified/Left')</l>
+<l>set_framegrabber_param (AcqHandle2, 'grab_data_items', 'Images/PointMap')</l>
+<c>* </c>
+<l>for Index1 := 1 to 5 by 1</l>
+<c>    * Grab images from the first device</c>
+<l>    grab_data (Images1, Regions1, Contours1, AcqHandle1, Data1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Images1)</l>
+<c>    * Grab 3D data from the second device</c>
+<l>    grab_data (Images2, Regions2, Contours2, AcqHandle2, Data2)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Images2)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Demonstrate simultaneous grabbing of sensor images from two cameras. In this case the</c>
+<c>* grab_image_data operator returns quickly. The approach of reading out the sensor and copy the data</c>
+<c>* to the pc is decoupled. The call of grab_data could handle the date without this delay. It is also</c>
+<c>* possible to set the grab_data_item parameter to another value e.g. ['Images/Rectified/Left','Images/PointMap']</c>
+<l>set_framegrabber_param (AcqHandle1, 'grab_data_items', 'Images/Rectified/Left')</l>
+<l>set_framegrabber_param (AcqHandle2, 'grab_data_items', 'Images/Rectified/Left')</l>
+<c>* </c>
+<c>* Set the control of the image capturing to manual (user controlled)</c>
+<l>set_framegrabber_param (AcqHandle1, 'auto_grab_data', 0)</l>
+<l>set_framegrabber_param (AcqHandle2, 'auto_grab_data', 0)</l>
+<c>* </c>
+<c>* Global tree node handle. Useful to access the global parameters e.g. to trigger two devices simultaneously</c>
+<l>open_framegrabber ('Ensenso-NxLib', 0, 0, 0, 0, 0, 0, 'progressive', 0, '', -1, 'false', 'Item', '/', 0, 0, RootHandle)</l>
+<c>* </c>
+<l>for Index := 1 to 5 by 1</l>
+<c>    * Set command to capture and process the images</c>
+<l>    set_framegrabber_param (RootHandle, 'do_execute', 'Capture')</l>
+<l>    set_framegrabber_param (RootHandle, 'do_execute', 'ComputeDisparityMap')</l>
+<l>    set_framegrabber_param (RootHandle, 'do_execute', 'ComputePointMap')</l>
+<c>    * </c>
+<c>    * Grab images from the first device</c>
+<l>    grab_data (Images1, Regions1, Contours1, AcqHandle1, Data1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Images1)</l>
+<c>    * Grab 3D data from the second device</c>
+<l>    grab_data (Images2, Regions2, Contours2, AcqHandle2, Data2)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Images2)</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_update_on ()</l>
+<c>* </c>
+<l>close_framegrabber (RootHandle)</l>
+<l>close_framegrabber (AcqHandle1)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

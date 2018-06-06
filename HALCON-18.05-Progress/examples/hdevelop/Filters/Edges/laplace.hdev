@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'mreut')</l>
+<l>laplace (Image, ImageLaplace_3, 'signed', 3, 'n_8_isotropic')</l>
+<l>zero_crossing (ImageLaplace_3, RegionCrossing_3)</l>
+<l>laplace (Image, ImageLaplace_11, 'signed', 11, 'n_8_isotropic')</l>
+<l>zero_crossing (ImageLaplace_11, RegionCrossing_11)</l>
+<l>laplace_of_gauss (Image, ImageLaplaceG, 5)</l>
+<l>zero_crossing (ImageLaplaceG, RegionCrossingG)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

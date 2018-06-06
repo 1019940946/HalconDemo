@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a IDS uEye camera</c>
+<c>* (query current parameter settings)</c>
+<c>* </c>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* </c>
+<l>info_framegrabber ('uEye', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('uEye', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('uEye', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<l>info_framegrabber ('uEye', 'camera_types', CamTypeInfo, CamTypeValues)</l>
+<l>info_framegrabber ('uEye', 'ports', PortInfo, PortInfoValues)</l>
+<l>info_framegrabber ('uEye', 'defaults', DefaultInfo, DefaultInfoValues)</l>
+<l>info_framegrabber ('uEye', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>info_framegrabber ('uEye', 'color_space', ColorspaceInfo, ColorspaceValues)</l>
+<l>info_framegrabber ('uEye', 'bits_per_channel', BitsPerChannelInfo, BitsPerChannelValues)</l>
+<l>info_framegrabber ('uEye', 'device', DeviceInfo, DeviceValues)</l>
+<l>info_framegrabber ('uEye', 'external_trigger', TriggerInfo, TriggerValues)</l>
+<l>info_framegrabber ('uEye', 'field', FieldInfo, FieldValues)</l>
+<c>* </c>
+<c>* open first uEye camera</c>
+<l>open_framegrabber ('uEye', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'compatibility_mode', 'enable')</l>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>info_framegrabber ('uEye', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 600, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, 599)</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>    if (HalconError == H_MSG_TRUE or ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>            write_string (WindowHandle, '&lt;action parameter&gt;')</l>
+<l>        else</l>
+<l>            if (|ParameterValue| &gt; 1)</l>
+<l>                for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                    write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>                endfor</l>
+<l>                write_string (WindowHandle, ParameterValue[j])</l>
+<l>            else</l>
+<l>                if (|ParameterValue| == 1)</l>
+<l>                    write_string (WindowHandle, ParameterValue)</l>
+<l>                else</l>
+<l>                    write_string (WindowHandle, '-')</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_set_check ('give_error')</l>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>dev_open_window (10, 10, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* test parameters</c>
+<l>get_framegrabber_param (AcqHandle, 'sensor_capabilities', SensorCapabilities)</l>
+<c>* </c>
+<l>if (SensorCapabilities[0])</l>
+<l>    set_framegrabber_param (AcqHandle, 'color_correction', 'enable')</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    wait_seconds (1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'color_correction', 'disable')</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    stop ()</l>
+<l>endif</l>
+<l>set_framegrabber_param (AcqHandle, 'edge_enhancement', 'weak')</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>wait_seconds (1)</l>
+<l>set_framegrabber_param (AcqHandle, 'edge_enhancement', 'strong')</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>wait_seconds (1)</l>
+<l>set_framegrabber_param (AcqHandle, 'edge_enhancement', 'disable')</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>stop ()</l>
+<l>apply_parameter_range (AcqHandle, 'exposure', 50)</l>
+<l>stop ()</l>
+<l>apply_parameter_range (AcqHandle, 'frame_rate', 25)</l>
+<l>stop ()</l>
+<l>if (SensorCapabilities[1])</l>
+<l>    apply_parameter_range_min_max (AcqHandle, 'gain_master', 0, 100, 50)</l>
+<l>endif</l>
+<l>stop ()</l>
+<l>if (SensorCapabilities[2])</l>
+<l>    apply_parameter_range_min_max (AcqHandle, 'gain_r', 0, 100, 50)</l>
+<l>endif</l>
+<l>if (SensorCapabilities[3])</l>
+<l>    apply_parameter_range_min_max (AcqHandle, 'gain_g', 0, 100, 50)</l>
+<l>endif</l>
+<l>if (SensorCapabilities[4])</l>
+<l>    apply_parameter_range_min_max (AcqHandle, 'gain_b', 0, 100, 50)</l>
+<l>endif</l>
+<l>stop ()</l>
+<l>apply_parameter_range_min_max (AcqHandle, 'gamma', 0.01, 10.0, 50)</l>
+<l>set_framegrabber_param (AcqHandle, 'gamma', 1.0)</l>
+<l>stop ()</l>
+<l>apply_parameter_range (AcqHandle, 'pixel_clock', 5)</l>
+<l>stop ()</l>
+<l>if (SensorCapabilities[0])</l>
+<l>    set_framegrabber_param (AcqHandle, 'white_balance', 'auto')</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    wait_seconds (1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'white_balance', 'auto_once')</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    set_framegrabber_param (AcqHandle, 'white_balance', 'disable')</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="apply_parameter_range">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+<par name="ParameterName" base_type="ctrl" dimension="0"/>
+<par name="NrSteps" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_framegrabber_param (AcqHandle, ParameterName + '_range', Range)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_display (Image)</l>
+<l>if (|Range| &gt; 0)</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterName, ValueOld)</l>
+<c>    * loop over all valid values and grab some images</c>
+<l>    ValueMin := Range[0]</l>
+<l>    ValueMax := Range[1]</l>
+<l>    ValueStep := (ValueMax - ValueMin) / NrSteps</l>
+<l>    for Value := ValueMin to ValueMax by ValueStep</l>
+<l>        set_framegrabber_param (AcqHandle, ParameterName, Value)</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>    endfor</l>
+<l>    set_framegrabber_param (AcqHandle, ParameterName, ValueOld)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_display (Image)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="apply_parameter_range">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="NrSteps"/>
+<parameter id="ParameterName"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="apply_parameter_range_min_max">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+<par name="ParameterName" base_type="ctrl" dimension="0"/>
+<par name="ValueMin" base_type="ctrl" dimension="0"/>
+<par name="ValueMax" base_type="ctrl" dimension="0"/>
+<par name="NrSteps" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_display (Image)</l>
+<l>get_framegrabber_param (AcqHandle, ParameterName, ValueOld)</l>
+<c>* loop over all valid values and grab some images</c>
+<l>ValueStep := (ValueMax - ValueMin) / NrSteps</l>
+<l>for Value := ValueMin to ValueMax by ValueStep</l>
+<l>    set_framegrabber_param (AcqHandle, ParameterName, Value)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_display (Image)</l>
+<l>endfor</l>
+<l>set_framegrabber_param (AcqHandle, ParameterName, ValueOld)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_display (Image)</l>
+<l>return ()</l>
+</body>
+<docu id="apply_parameter_range_min_max">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="NrSteps"/>
+<parameter id="ParameterName"/>
+<parameter id="ValueMax"/>
+<parameter id="ValueMin"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

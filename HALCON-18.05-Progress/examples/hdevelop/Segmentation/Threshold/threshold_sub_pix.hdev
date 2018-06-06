@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'double_circle')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>threshold_sub_pix (Image, Edges, 128)</l>
+<l>segment_contours_xld (Edges, ContoursSplit, 'lines_circles', 5, 4, 3)</l>
+<l>count_obj (ContoursSplit, Number)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_update_window ('off')</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (ContoursSplit, ObjectSelected, i)</l>
+<l>    get_contour_global_attrib_xld (ObjectSelected, 'cont_approx', Attrib)</l>
+<l>    if (Attrib &gt; 0)</l>
+<l>        fit_circle_contour_xld (ObjectSelected, 'ahuber', -1, 2, 0, 3, 2, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>        gen_ellipse_contour_xld (ContEllipse, Row, Column, 0, Radius, Radius, 0, 4 * acos(0), 'positive', 1.0)</l>
+<l>        dev_display (ContEllipse)</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

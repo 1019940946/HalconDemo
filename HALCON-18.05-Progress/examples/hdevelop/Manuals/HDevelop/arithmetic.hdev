@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Arithmetic operations</c>
+<l>R1 := 5 * 5</l>
+<l>R2 := 5 * 5</l>
+<l>R3 := [1,2,3] * 2</l>
+<l>R4 := [1,2,3] * 2.1 + 10</l>
+<l>R5 := [1,2,3] * [1,2,3]</l>
+<l>R6 := 'Text1' + 'Text2'</l>
+<l>R7 := 17.23 + 'Text'</l>
+<l>R8 := 'Text1 ' + 99 + ' Text2'</l>
+<l>R9 := 'Text ' + 3.1 * 2</l>
+<l>R10 := 3.1 + 2 + ' Text'</l>
+<l>R11 := 3.1 + (2 + ' Text')</l>
+<l>R12 := 'Text ' + 2.1 + 3</l>
+<l>ThatIsAnError := 3.1 * (2 + ' Text')</l>
+<l>ThatIsAnError := [1,2,3] * [1,2]</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

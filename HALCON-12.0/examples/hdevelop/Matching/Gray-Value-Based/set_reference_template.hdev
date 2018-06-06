@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Define reference position for a template</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (For6, 'for6')</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>fill_interlace (For6, ImageFilled, 'odd')</l>
+<l>dev_display (ImageFilled)</l>
+<l>gen_rectangle1 (Rectangle, 266, 390, 348, 435)</l>
+<l>* gen_rectangle1 (Rectangle, 78, 292, 129, 402)</l>
+<l>* gen_rectangle1 (Rectangle, 258, 214, 296, 258)</l>
+<l>area_center (Rectangle, Area, Row, Column)</l>
+<l>reduce_domain (ImageFilled, Rectangle, ImageReduced)</l>
+<c>* Preparing a pattern for template matching</c>
+<l>create_template (ImageReduced, 5, 4, 'sort', 'original', TemplateID)</l>
+<c>* Define reference position for the template</c>
+<l>set_reference_template (TemplateID, Row, Column)</l>
+<l>OrigRow := []</l>
+<l>OrigCol := []</l>
+<l>NewRow := []</l>
+<l>NewCol := []</l>
+<l>dev_set_color ('red')</l>
+<l>for phi := 0 to 360 by 5</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    AddCol := cos(rad(phi))</l>
+<l>    AddRow := sin(rad(phi))</l>
+<l>    OrigRow := [OrigRow,AddRow]</l>
+<l>    OrigCol := [OrigCol,AddCol]</l>
+<l>    hom_mat2d_translate (HomMat2DIdentity, AddRow, AddCol, HomMat2DTranslate)</l>
+<c>    * Apply an arbitrary affine transformation to the image</c>
+<l>    affine_trans_image (ImageFilled, ImageAffinTrans, HomMat2DTranslate, 'constant', 'false')</l>
+<c>    * Apply gray value matching using an image pyramid</c>
+<l>    best_match_mg (ImageAffinTrans, TemplateID, 30, 'true', 4, 'original', Row, Column, Error)</l>
+<l>    disp_circle (WindowID, 256 + 30 * Row, 256 + 30 * Column, 2.5)</l>
+<l>    NewRow := [NewRow,Row]</l>
+<l>    NewCol := [NewCol,Column]</l>
+<l>endfor</l>
+<l>Diffs := sqrt(pow(NewRow - OrigRow,2) + pow(NewCol - OrigCol,2))</l>
+<l>MeanErr := sum(Diffs) / |NewRow|</l>
+<l>MaxxErr := max(Diffs)</l>
+<l>gnuplot_open_file ('sin_11', GnuplotFileID2)</l>
+<l>gnuplot_plot_ctrl (GnuplotFileID2, NewRow)</l>
+<l>gnuplot_plot_ctrl (GnuplotFileID2, NewCol)</l>
+<l>gnuplot_plot_ctrl (GnuplotFileID2, OrigRow)</l>
+<l>gnuplot_plot_ctrl (GnuplotFileID2, OrigCol)</l>
+<l>gnuplot_close (GnuplotFileID2)</l>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

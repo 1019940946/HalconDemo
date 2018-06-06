@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program performs a 3D measurement of solder paste on</c>
+<c>* a BGA pad using depth from focus.</c>
+<c>* First, the dff image sequence is read. Then, it is processed</c>
+<c>* in order to obtain a depth map an a sharpened image. Finally,</c>
+<c>* the results are displayed.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'dff/focus_pcb_solder_paste_37')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_paint ('default')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Read and display the images of a dff sequence</c>
+<l>disp_message (WindowHandle, 'Measure solder paste on pad using Depth From Focus', 'window', 12, 12, 'black', 'true')</l>
+<l>NumImages := 91</l>
+<l>Sequence := [NumImages:-1:1]</l>
+<l>read_image (ImageArray, 'dff/focus_pcb_solder_paste_' + Sequence$'02')</l>
+<l>channels_to_image (ImageArray, Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>for I := NumImages to 1 by -1</l>
+<l>    access_channel (Image, ImageDisp, I)</l>
+<l>    dev_display (ImageDisp)</l>
+<l>    disp_message (WindowHandle, 'DFF sequence of pad on a bga: ' + I$'02', 'window', 50, 150, 'white', 'false')</l>
+<l>    wait_seconds (0.05)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the depth map and the sharpened image</c>
+<l>depth_from_focus (Image, Depth, Confidence, 'bandpass', 'next_maximum')</l>
+<l>select_grayvalues_from_channels (Image, Depth, SharpenedImage)</l>
+<l>scale_image (SharpenedImage, ImageScaled, 4, 0)</l>
+<l>scale_image_max (Depth, ImageScaleMax)</l>
+<l>median_rect (ImageScaleMax, DepthMean, 25, 25)</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>dev_set_window_extents (0, 0, Width * 0.7, Height * 0.7)</l>
+<l>dev_display (SharpenedImage)</l>
+<l>disp_message (WindowHandle, 'Sharpened image', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>dev_open_window (0, Width * 0.7 + 5, Width * 0.7, Height * 0.7, 'black', WindowHandle3D)</l>
+<l>set_display_font (WindowHandle3D, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_paint (['3d_plot','texture'])</l>
+<l>compose2 (DepthMean, ImageScaled, MultiChannelImage)</l>
+<l>dev_display (MultiChannelImage)</l>
+<l>disp_message (WindowHandle3D, '3D reconstruction of \nsolder paste on a BGA pad', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program checks the right position of a label on</c>
+<c>* a shampoo bottle.</c>
+<c>* First, two shape models for the bottle and the label are created.</c>
+<c>* Then, the models are searched in a sequence of images,</c>
+<c>* and it is checked, if their relative position is within the</c>
+<c>* specified tolerances.</c>
+<c>* </c>
+<c>* init visualization</c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* load reference image for model preparation</c>
+<l>set_system ('clip_region', 'false')</l>
+<l>read_image (Image, 'packaging/shampoo_01')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* prepare the shape model for matching</c>
+<c>* </c>
+<c>* generate first model region and search ROI</c>
+<l>BottleModelRow := 131</l>
+<l>BottleModelColumn := 370</l>
+<l>BottleModelLength1 := 350</l>
+<l>BottleModelLength2 := 35</l>
+<l>BottleModelPhi := -0.1093</l>
+<l>gen_rectangle2 (Rectangle1, BottleModelRow, BottleModelColumn, BottleModelPhi, BottleModelLength1, BottleModelLength2)</l>
+<l>gen_rectangle2 (Rectangle2, BottleModelRow + 220, BottleModelColumn, -BottleModelPhi, BottleModelLength1, BottleModelLength2)</l>
+<l>union2 (Rectangle1, Rectangle2, TemplateBottleRegion)</l>
+<l>get_domain (Image, Domain)</l>
+<l>intersection (TemplateBottleRegion, Domain, TemplateBottleRegion)</l>
+<l>area_center (TemplateBottleRegion, Area, RowBottleRef, ColumnBottleRef)</l>
+<l>gen_circle (SearchROIBottle, RowBottleRef, ColumnBottleRef, 40)</l>
+<l>reduce_domain (Image, TemplateBottleRegion, ImageReduced)</l>
+<c>* </c>
+<c>* create shape model</c>
+<l>create_shape_model (ImageReduced, 5, -rad(3), rad(6), 0, 'auto', 'use_polarity', 25, 3, ModelIDBottle)</l>
+<c>* </c>
+<c>* display shape model</c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (TemplateBottleRegion)</l>
+<l>dev_set_color ('slate blue')</l>
+<l>disp_message (WindowHandle, 'bottle shape model', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* generate second model region and search ROI</c>
+<l>LabelRow1 := 180</l>
+<l>LabelRow2 := 310</l>
+<l>LabelColumn1 := 50</l>
+<l>LabelColumn2 := 470</l>
+<l>gen_rectangle1 (TemplateLabelRegion, LabelRow1, LabelColumn1, LabelRow2, LabelColumn2)</l>
+<l>area_center (TemplateLabelRegion, Area1, RowLabelRef, ColumnLabelRef)</l>
+<l>gen_circle (SearchROILabel, RowLabelRef, ColumnLabelRef, 60)</l>
+<l>reduce_domain (Image, TemplateLabelRegion, ImageReduced)</l>
+<l>inspect_shape_model (ImageReduced, ModelImages, ModelRegions, 1, 25)</l>
+<c>* </c>
+<c>* create shape model</c>
+<l>create_shape_model (ImageReduced, 5, rad(-3), rad(6), 0, 'auto', 'use_polarity', 25, 5, ModelIDLabel1)</l>
+<l>create_shape_model (ImageReduced, 5, rad(180 - 3), rad(6), 0, 'auto', 'use_polarity', 25, 5, ModelIDLabel2)</l>
+<l>ModelIDsLabel := [ModelIDLabel1,ModelIDLabel2]</l>
+<c>* </c>
+<c>* display label model</c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_display (TemplateLabelRegion)</l>
+<l>dev_set_color ('slate blue')</l>
+<l>dev_display (ModelRegions)</l>
+<l>disp_message (WindowHandle, 'create label shape model', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* MainLoop</c>
+<c>* </c>
+<c>* check relative positions of label and bottle in all images</c>
+<l>for Index := 1 to 13 by 1</l>
+<l>    read_image (Image, 'packaging/shampoo_' + Index$'.2')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'check label position', 'window', 12, 12, 'black', 'true')</l>
+<l>    count_seconds (s1)</l>
+<c>    * </c>
+<l>    reduce_domain (Image, SearchROIBottle, ImageReduced)</l>
+<l>    find_shape_model (ImageReduced, ModelIDBottle, -rad(3), rad(6), 0.7, 1, 0.5, 'least_squares', 0, 0.9, RowBottle, ColumnBottle, AngleBottle, ScoreBottle)</l>
+<c>    * prepare search ROIs in search image</c>
+<l>    concat_obj (SearchROILabel, SearchROILabel, SearchROIs)</l>
+<l>    add_channels (SearchROIs, Image, GrayRegions)</l>
+<c>    * </c>
+<c>    * search shape models</c>
+<l>    find_shape_models (GrayRegions, ModelIDsLabel, [rad(-3),rad(180 - 3)], [rad(6),rad(6)], 0.6, 1, 1, 'interpolation', 0, 0.9, Row, Column, Angle, Score, FoundModel)</l>
+<l>    count_seconds (s2)</l>
+<l>    if (|Score| != 1 or |ScoreBottle| != 1)</l>
+<l>        disp_message (WindowHandle, 'Model not found', 'window', 40, 12, 'red', 'true')</l>
+<l>    else</l>
+<l>        if (ModelIDsLabel[FoundModel] == ModelIDLabel2)</l>
+<l>            disp_message (WindowHandle, 'Label rotated by 180°', 'window', 40, 12, 'red', 'true')</l>
+<l>        else</l>
+<c>            * calculate y deviation</c>
+<l>            Diffy := (RowBottle - Row) - (RowBottleRef - RowLabelRef)</l>
+<c>            * calculate x deviation</c>
+<l>            Diffx := (ColumnBottle - Column) - (ColumnBottleRef - ColumnLabelRef)</l>
+<c>            * </c>
+<c>            *  check the rotation angle of the bottle label</c>
+<l>            Diffa := deg(AngleBottle - Angle)</l>
+<c>            * </c>
+<c>            * calculate the time elapsed</c>
+<l>            Time := s2 - s1</l>
+<c>            * </c>
+<c>            * display results</c>
+<l>            Color := 'black'</l>
+<l>            ModelColor := 'forest green'</l>
+<l>            if (abs(Diffx) &gt; 3)</l>
+<l>                Color := [Color,'red']</l>
+<l>                ModelColor := 'red'</l>
+<l>            else</l>
+<l>                Color := [Color,'forest green']</l>
+<l>            endif</l>
+<l>            if (abs(Diffy) &gt; 1)</l>
+<l>                Color := [Color,'red']</l>
+<l>                ModelColor := 'red'</l>
+<l>            else</l>
+<l>                Color := [Color,'forest green']</l>
+<l>            endif</l>
+<l>            if (abs(Diffa) &gt; 1)</l>
+<l>                Color := [Color,'red']</l>
+<l>                ModelColor := 'red'</l>
+<l>            else</l>
+<l>                Color := [Color,'forest green']</l>
+<l>            endif</l>
+<l>            dev_display_shape_matching_results (ModelIDsLabel, ['slate blue',ModelColor], Row, Column, Angle, 1, 1, FoundModel)</l>
+<l>            disp_message (WindowHandle, ['Time       = ' + (Time * 1000)$' .2' + ' ms','Diff x     = ' + Diffx$' .2','Diff y     = ' + Diffy$' .2','Diff angle = ' + Diffa$' .2'], 'window', 35, 12, Color, 'true')</l>
+<l>        endif</l>
+<c>        * </c>
+<l>    endif</l>
+<l>    if (Index &lt; 13)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Program finished', 'window', 450, 430, Color, 'true')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>clear_shape_model (ModelIDLabel1)</l>
+<l>clear_shape_model (ModelIDLabel2)</l>
+<l>clear_shape_model (ModelIDBottle)</l>
+<l>set_system ('clip_region', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

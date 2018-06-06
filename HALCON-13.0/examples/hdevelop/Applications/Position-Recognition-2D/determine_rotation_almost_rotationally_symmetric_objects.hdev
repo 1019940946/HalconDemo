@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how the orientation of a</c>
+<c>* almost rotationally symmetric object is determined</c>
+<c>* robustly using a combination of shape-based matching</c>
+<c>* and polar transform.</c>
+<c>* </c>
+<c>* The rotational symmetry leads to the problem,</c>
+<c>* that the orientation of the object cannot be</c>
+<c>* determined robustly by simple shape-based matching.</c>
+<c>* To the contrary, shape-based matching returns</c>
+<c>* high scores for any rotation, because the influence</c>
+<c>* of the important edges (that are NOT rotationally</c>
+<c>* symmetric) is too low and is outweighed by changes</c>
+<c>* in the objects appearance due to noise, perspective,</c>
+<c>* illumination, camera distortions or the like.</c>
+<c>* </c>
+<c>* We solve this problem using a two step aproach:</c>
+<c>* 1. Roughly determine the objects position</c>
+<c>*    (but arbitrary orientation):</c>
+<c>*    In this example this is done with shape-based matching</c>
+<c>*    because it is the most generic approach and at the</c>
+<c>*    same time illustrates the difficulties when</c>
+<c>*    matching nearly rotationally symmetric objects.</c>
+<c>* 2. Determine the orientation:</c>
+<c>*    This is done by transforming the object into</c>
+<c>*    polar coordinates and matching the asymmetric</c>
+<c>*    parts that define the object's orientation.</c>
+<c>*    Note that it is critical to this step, that</c>
+<c>*    the center of rotational symmetry can be</c>
+<c>*    determined with high accuracy.</c>
+<c>*    In this example this is done by choosing the</c>
+<c>*    model region for step 1 very accurately.</c>
+<c>* </c>
+<c>* Initialize parameters</c>
+<c>* </c>
+<c>* Interactive:</c>
+<c>* If  this parameter is set to 1 (true),</c>
+<c>* the user will be asked to choose the model edges</c>
+<c>* for step 2 (the matching in polar coordinates)</c>
+<c>* interactively with the mouse.</c>
+<c>* Please note that the quality of the result strongly</c>
+<c>* depends on the user defined model region.</c>
+<l>Interactive := 0</l>
+<c>* Tolerance: Half height of the search region in the</c>
+<c>*            polar transformed image for step 2</c>
+<l>Tolerance := 2.5</l>
+<c>* MinScoreMain: MinScore for shape-based matching in step 1</c>
+<l>MinScoreMain := 0.7</l>
+<c>* MinScorePolar: MinScore for shape-based matching in step 2</c>
+<l>MinScorePolar := 0.4</l>
+<c>* ContrastMain: Contrast for shape-based matching in step 1</c>
+<l>ContrastMain := 30</l>
+<c>* ContrastPolar: Contrast for shape-based matching in step 2</c>
+<l>ContrastPolar := 20</l>
+<c>* Matching parameters for both steps</c>
+<l>Greediness := 0.5</l>
+<l>MinContrast := 10</l>
+<c>* </c>
+<c>* **********************************************************</c>
+<c>* Generate model region for shape-based matching in step 1</c>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* Read model image</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'plastic_parts/cistern_valve_diaphragms_01')</l>
+<c>* </c>
+<c>* Estimate center of rotation symmetry.</c>
+<c>* It is important, that the center of the model</c>
+<c>* is equal to the rotation center of the object.</c>
+<l>threshold (Image, Region, 128, 255)</l>
+<l>boundary (Region, RegionBorder, 'inner')</l>
+<l>dilation_circle (RegionBorder, RegionDilation, 3.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 1, 20, 40)</l>
+<l>fit_circle_contour_xld (Edges, 'geohuber', -1, 0, 0, 3, 2, RowFittedCircle, ColumnFittedCircle, Radius, StartPhi, EndPhi, PointOrder)</l>
+<c>* </c>
+<c>* Generate model region and create model</c>
+<l>RegionRadius := Radius + 10</l>
+<l>Clip := RegionRadius + 50</l>
+<l>gen_circle (ModelRegion, RowFittedCircle, ColumnFittedCircle, RegionRadius)</l>
+<l>reduce_domain (Image, ModelRegion, ModelImage)</l>
+<l>create_shape_model (ModelImage, 'auto', 0, rad(360), 'auto', 'auto', 'use_polarity', ContrastMain, MinContrast, ModelID)</l>
+<c>* Correct the origin of the shape model, such that</c>
+<c>* the model center is equal to the center of the</c>
+<c>* fitted circle which is more accurate than the</c>
+<c>* center of the circle region.</c>
+<l>area_center (ModelRegion, AreaModelRegion, RowModelRegion, ColumnModelRegion)</l>
+<l>set_shape_model_origin (ModelID, RowFittedCircle - RowModelRegion, ColumnFittedCircle - ColumnModelRegion)</l>
+<l>find_shape_model (Image, ModelID, -0.39, 0.78, 0.5, 1, 0.5, 'least_squares', 0, 0.9, R, C, A, S)</l>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* Init main window and display intro screen</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, 500, WindowHandle)</l>
+<l>get_window_extents (WindowHandle, WindowRow, WindowColumn, WindowWidth, WindowHeight)</l>
+<l>get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>Aspect := real(ImageWidth) / ImageHeight</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Display main model and intro text</c>
+<l>gen_cross_contour_xld (ModelCenter, RowFittedCircle, ColumnFittedCircle, 12, 0.0)</l>
+<l>get_shape_model_contours (ModelContours, ModelID, 1)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, RowFittedCircle, ColumnFittedCircle, HomMat2DTranslate)</l>
+<l>affine_trans_contour_xld (ModelContours, ModelAffineTrans, HomMat2DTranslate)</l>
+<l>display_model (Image, ModelRegion, ModelCenter, ModelAffineTrans)</l>
+<l>display_intro_text (WindowHandle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Select asymmetric edges for step 2</c>
+<c>* </c>
+<l>AsymModelReady := 0</l>
+<l>while (not AsymModelReady)</l>
+<c>    * Zoom into object for better visualization</c>
+<l>    dev_set_part (RowFittedCircle - Clip, ColumnFittedCircle - Clip * Aspect, RowFittedCircle + Clip, ColumnFittedCircle + Clip * Aspect)</l>
+<c>    * Display main model</c>
+<l>    display_model (Image, ModelRegion, ModelCenter, ModelAffineTrans)</l>
+<c>    * </c>
+<c>    * Generate model region for step 2</c>
+<c>    * (Interactively or automatically)</c>
+<l>    dev_set_color ('blue')</l>
+<l>    if (Interactive)</l>
+<c>        * Let the user choose the asymmetric edges interactively</c>
+<l>        show_instructions (Image, ModelContours, WindowWidth, RowFittedCircle, ColumnFittedCircle, Clip, WindowHandlePolar)</l>
+<l>        draw_refinement_region (AsymEdgesRegion, WindowHandle)</l>
+<l>        display_model (Image, ModelRegion, ModelCenter, ModelAffineTrans)</l>
+<l>        display_marked_edges (Image, AsymEdgesRegion, ContrastPolar)</l>
+<l>        confirm_model (WindowHandle, RowFittedCircle, ColumnFittedCircle, Clip, AsymModelReady)</l>
+<l>        dev_set_window (WindowHandlePolar)</l>
+<l>        dev_close_window ()</l>
+<l>    else</l>
+<c>        * Use pre-defined model</c>
+<l>        gen_rectangle1 (AsymEdgesRegion, 315, 694, 343, 711)</l>
+<l>        AsymModelReady := 1</l>
+<c>        * </c>
+<c>        * Display selected region for step 2</c>
+<c>        * </c>
+<l>        display_model (Image, ModelRegion, ModelCenter, ModelAffineTrans)</l>
+<l>        display_marked_edges (Image, AsymEdgesRegion, ContrastPolar)</l>
+<l>        display_info_text (WindowHandle)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* </c>
+<c>* **********************************************************</c>
+<c>* Generate shape model in polar transformed image</c>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* Calculate parameters for polar transform</c>
+<c>* </c>
+<l>distance_pr (AsymEdgesRegion, RowFittedCircle, ColumnFittedCircle, RadiusInner, RadiusOuter)</l>
+<l>area_center (AsymEdgesRegion, Area, RowAsymEdgesRegion, ColumnAsymEdgesRegion)</l>
+<l>angle_lx (RowFittedCircle, ColumnFittedCircle, RowAsymEdgesRegion, ColumnAsymEdgesRegion, RefAngle)</l>
+<l>PolarWidth := round(RadiusOuter * rad(360))</l>
+<l>PolarHeight := round(RadiusOuter - RadiusInner)</l>
+<c>* Estimate width of model region after polar transform</c>
+<l>polar_trans_region (AsymEdgesRegion, PolarTransAsymEdgesRegion, RowFittedCircle, ColumnFittedCircle, RefAngle + rad(180), RefAngle + rad(540), RadiusInner, RadiusOuter, PolarWidth, PolarHeight, 'bilinear')</l>
+<l>smallest_rectangle1 (PolarTransAsymEdgesRegion, Row1, Column1, Row2, Column2)</l>
+<l>RegionWidth := Column2 - Column1 + 1</l>
+<c>* Extend the polar transform by the width of the transformed model region</c>
+<c>* to make sure, that the asymmetric part is completely visible even</c>
+<c>* if it is near the border of the transformed image.</c>
+<l>AngleOverlap := RegionWidth * rad(360) / PolarWidth</l>
+<l>PolarStartAngle := RefAngle - AngleOverlap / 2</l>
+<l>PolarEndAngle := RefAngle + rad(360) + AngleOverlap / 2</l>
+<l>PolarAngleRangeExtended := PolarEndAngle - PolarStartAngle</l>
+<l>PolarWidthExtended := round(RadiusOuter * PolarAngleRangeExtended)</l>
+<c>* </c>
+<c>* Perform polar transform for model image and model region</c>
+<l>polar_trans_image_ext (Image, PolarTransModelImage, RowFittedCircle, ColumnFittedCircle, PolarStartAngle, PolarEndAngle, RadiusInner, RadiusOuter, PolarWidthExtended, PolarHeight, 'bilinear')</l>
+<l>polar_trans_region (AsymEdgesRegion, PolarTransModelRegion, RowFittedCircle, ColumnFittedCircle, PolarStartAngle, PolarStartAngle + AngleOverlap, RadiusInner, RadiusOuter, RegionWidth, PolarHeight, 'bilinear')</l>
+<c>* </c>
+<c>* Create shape model for the asymmetric part in polar transformed image</c>
+<l>shape_trans (PolarTransModelRegion, RegionTrans, 'convex')</l>
+<l>reduce_domain (PolarTransModelImage, RegionTrans, PolarModelImage)</l>
+<l>create_shape_model (PolarModelImage, 1, 0, 0, 'auto', 'auto', 'use_polarity', ContrastPolar, MinContrast, ModelIDPolar)</l>
+<l>get_shape_model_contours (PolarModelContours, ModelIDPolar, 1)</l>
+<c>* Determine reference position</c>
+<l>find_shape_model (PolarModelImage, ModelIDPolar, 0, 0, MinScorePolar, 1, 0.0, 'least_squares', 0, Greediness, RowRefPolar, ColumnRefPolar, AngleRefPolar, ScoreRefPolar)</l>
+<c>* </c>
+<c>* **********************************************************</c>
+<c>* Main loop</c>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_set_part (0, 0, ImageHeight - 1, ImageWidth - 1)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_open_window (0, WindowWidth + 12, 1, 1, 'black', WindowHandlePolar)</l>
+<l>set_display_font (WindowHandlePolar, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>NumImages := 16</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'plastic_parts//cistern_valve_diaphragms_' + Index$'02')</l>
+<c>    * ****************************************</c>
+<c>    * Step 1 : First find main model roughly</c>
+<c>    * ****************************************</c>
+<l>    find_shape_model (Image, ModelID, 0, rad(360), MinScoreMain, 0, 0.0, 'least_squares', 0, Greediness, Row, Column, Angle, Score)</l>
+<l>    NumMatches := |Row|</l>
+<l>    if (NumMatches &gt; 0)</l>
+<c>        * **************************************************</c>
+<c>        * Step 2: Refine search in polar transformed image</c>
+<c>        * **************************************************</c>
+<c>        * Init result variables</c>
+<l>        gen_empty_obj (PolarResultImages)</l>
+<l>        gen_empty_obj (RefinedContours)</l>
+<l>        FinalAngle := []</l>
+<l>        RowsPolar := []</l>
+<l>        ColumnsPolar := []</l>
+<l>        AnglesPolar := []</l>
+<l>        RefinementFailed := []</l>
+<l>        for J := 0 to NumMatches - 1 by 1</l>
+<c>            * **************************************************</c>
+<c>            * Refinement in polar transformed image</c>
+<c>            * ***************************************************</c>
+<c>            * Use more than 360° to make sure, that objects at the border are</c>
+<c>            * also completely visible.</c>
+<l>            polar_trans_image_ext (Image, PolarTransImage, Row[J], Column[J], PolarStartAngle, PolarEndAngle, RadiusInner, RadiusOuter, PolarWidthExtended, PolarHeight, 'bilinear')</l>
+<c>            * Only search along the reference row</c>
+<l>            rectangle1_domain (PolarTransImage, SearchImageReduced, RowRefPolar - Tolerance, 0, RowRefPolar + Tolerance, PolarWidthExtended - 1)</l>
+<l>            find_shape_model (SearchImageReduced, ModelIDPolar, 0, 0, MinScorePolar, 1, 0.0, 'least_squares', 0, Greediness, RowPolar, ColumnPolar, AnglePolar, ScorePolar)</l>
+<c>            * Evaluate results</c>
+<l>            if (|ColumnPolar| &gt; 0)</l>
+<c>                * Calculate rotation angle from matching position</c>
+<c>                * in polar transformed image.</c>
+<c>                * (The Column represents the angle)</c>
+<c>                * </c>
+<l>                FinalAngle[J] := (ColumnPolar - ColumnRefPolar) / (PolarWidthExtended - 1) * PolarAngleRangeExtended</l>
+<c>                * </c>
+<c>                * Prepare visualization of polar transform</c>
+<l>                RowsPolar[J] := RowPolar + J * PolarHeight</l>
+<l>                ColumnsPolar[J] := ColumnPolar</l>
+<l>                AnglesPolar[J] := AnglePolar</l>
+<c>                * Transform polar matching result back to original image</c>
+<l>                vector_angle_to_rigid (0, 0, 0, RowPolar, ColumnPolar, AnglePolar, HomMat2D)</l>
+<l>                affine_trans_contour_xld (PolarModelContours, ContoursAffineTrans, HomMat2D)</l>
+<l>                polar_trans_contour_xld_inv (ContoursAffineTrans, XYTransContour, Row[J], Column[J], PolarStartAngle, PolarEndAngle, RadiusInner, RadiusOuter, PolarWidthExtended, PolarHeight, ImageWidth, ImageHeight)</l>
+<l>                concat_obj (RefinedContours, XYTransContour, RefinedContours)</l>
+<c>                * </c>
+<l>            else</l>
+<c>                * No match in polar image, keep first result</c>
+<l>                FinalAngle[J] := Angle[J]</l>
+<c>                * </c>
+<l>                RowsPolar[J] := RowRefPolar + J * PolarHeight</l>
+<l>                ColumnsPolar[J] := -999</l>
+<l>                AnglesPolar[J] := 0</l>
+<l>                RefinementFailed := [RefinementFailed,J + 1]</l>
+<l>            endif</l>
+<c>            * Build a stack of polar transformed images for visualization</c>
+<l>            concat_obj (PolarResultImages, PolarTransImage, PolarResultImages)</l>
+<l>        endfor</l>
+<l>        Title := 'Image ' + Index + '/' + NumImages</l>
+<l>        display_results (Image, PolarResultImages, RefinedContours, Row, Column, Angle, RowsPolar, ColumnsPolar, AnglesPolar, FinalAngle, ColumnRefPolar, RowRefPolar, PolarWidthExtended, PolarHeight, PolarAngleRangeExtended, RefinementFailed, ModelID, ModelIDPolar, Title, WindowHandle, WindowHandlePolar)</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'No match', 'window', 12, 12, 'black', 'true')</l>
+<l>    endif</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_shape_model (ModelIDPolar)</l>
+<l>clear_shape_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="confirm_model">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CenterRow" base_type="ctrl" dimension="0"/>
+<par name="CenterColumn" base_type="ctrl" dimension="0"/>
+<par name="Border" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Ready" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Correct?</c>
+<c>* </c>
+<c>* Display two buttons "Cancel" and "Accept"</c>
+<c>* and let the user choose one of either options.</c>
+<l>Message := 'Please choose whether the selected model'</l>
+<l>Message[1] := 'is acceptable or not by clicking'</l>
+<l>Message[2] := 'on one of the buttons below.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>OKButtonRow := CenterRow + Border / 2</l>
+<l>OKButtonColumn := CenterColumn + Border</l>
+<l>CancelButtonRow := CenterRow + Border / 2</l>
+<l>CancelButtonColumn := CenterColumn - Border</l>
+<l>ButtonRadius := Border / 5</l>
+<l>gen_circle (OKButton, OKButtonRow, OKButtonColumn, ButtonRadius)</l>
+<l>gen_circle (CancelButton, CancelButtonRow, CancelButtonColumn, ButtonRadius)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (OKButton)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (CancelButton)</l>
+<l>disp_message (WindowHandle, 'Draw\nagain', 'image', CancelButtonRow - Border / 10, CancelButtonColumn - Border / 8, 'black', 'false')</l>
+<l>disp_message (WindowHandle, ' Accept\n  and\ncontinue', 'image', OKButtonRow - Border / 10, OKButtonColumn - Border / 6, 'black', 'false')</l>
+<c>* </c>
+<c>* Wait for mouse click on one of the buttons</c>
+<l>Cancel := 0</l>
+<l>Ready := 0</l>
+<l>while (not (Cancel or Ready))</l>
+<l>    get_mbutton (WindowHandle, Row, Column, Button)</l>
+<l>    test_region_point (OKButton, Row, Column, Ready)</l>
+<l>    test_region_point (CancelButton, Row, Column, Cancel)</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="confirm_model">
+<parameters>
+<parameter id="Border"/>
+<parameter id="CenterColumn"/>
+<parameter id="CenterRow"/>
+<parameter id="Ready"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_instructions">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="ModelContours" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowWidth" base_type="ctrl" dimension="0"/>
+<par name="RowFittedCircle" base_type="ctrl" dimension="0"/>
+<par name="ColumnFittedCircle" base_type="ctrl" dimension="0"/>
+<par name="Clip" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandleInstructions" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Open a second window and display instructions</c>
+<c>* for the interactive part.</c>
+<c>* </c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, 111, 111, HomMat2DTrans1)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, 333, 111, HomMat2DTrans2)</l>
+<l>affine_trans_contour_xld (ModelContours, ContoursAffineTrans1, HomMat2DTrans1)</l>
+<l>affine_trans_contour_xld (ModelContours, ContoursAffineTrans2, HomMat2DTrans2)</l>
+<l>crop_rectangle1 (Image, ImagePart, RowFittedCircle - 111, ColumnFittedCircle - 111, RowFittedCircle + 111, ColumnFittedCircle + 111)</l>
+<l>concat_obj (ImagePart, ImagePart, ObjectsConcat)</l>
+<l>tile_images (ObjectsConcat, TiledImage, 1, 'vertical')</l>
+<l>dev_open_window_fit_image (TiledImage, 0, WindowWidth + 12, 300, -1, WindowHandleInstructions)</l>
+<l>set_display_font (WindowHandleInstructions, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ContoursAffineTrans1)</l>
+<l>dev_display (ContoursAffineTrans2)</l>
+<l>gen_contour_polygon_xld (PolygonCorrect, [133,116,113,116,133] - 50, [154,154,159.5,165,165] - 50)</l>
+<l>gen_contour_polygon_xld (PolygonWrong, [455,437,434,437,455,464,482,502,512,502,482,464,455] - 150, [154,154,159.5,165,165,182,189,182,159.5,137,130,137,154] - 50)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (PolygonCorrect)</l>
+<l>dev_display (PolygonWrong)</l>
+<l>disp_message (WindowHandleInstructions, 'Instructions', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandleInstructions, 'Correct', 'window', 40, 12, 'green', 'false')</l>
+<l>disp_message (WindowHandleInstructions, 'Wrong', 'window', 240, 12, 'red', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="show_instructions">
+<parameters>
+<parameter id="Clip"/>
+<parameter id="ColumnFittedCircle"/>
+<parameter id="Image"/>
+<parameter id="ModelContours"/>
+<parameter id="RowFittedCircle"/>
+<parameter id="WindowHandleInstructions"/>
+<parameter id="WindowWidth"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_model">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="ModelRegion" base_type="iconic" dimension="0"/>
+<par name="ModelCenter" base_type="iconic" dimension="0"/>
+<par name="ContoursAffineTrans" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ModelRegion)</l>
+<l>dev_display (ModelCenter)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ContoursAffineTrans)</l>
+<l>return ()</l>
+</body>
+<docu id="display_model">
+<parameters>
+<parameter id="ContoursAffineTrans"/>
+<parameter id="Image"/>
+<parameter id="ModelCenter"/>
+<parameter id="ModelRegion"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_marked_edges">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="AsymEdgesRegion" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="ContrastPolar" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display model for matching in polar transformed image</c>
+<c>* (More accurately, the edges determined and displayed in the</c>
+<c>* original image, the actual model may differ.)</c>
+<l>reduce_domain (Image, AsymEdgesRegion, ImageReduced)</l>
+<l>inspect_shape_model (ImageReduced, ModelImages, ModelRegions, 1, ContrastPolar)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (AsymEdgesRegion)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (ModelRegions)</l>
+<l>return ()</l>
+</body>
+<docu id="display_marked_edges">
+<parameters>
+<parameter id="AsymEdgesRegion"/>
+<parameter id="ContrastPolar"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_intro_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Message := 'To determine the correct orientation of an almost'</l>
+<l>Message[1] := 'rotationally symmetric object this example uses 2 steps:'</l>
+<l>Message[2] := ' 1. Find the position roughly (with shape-based matching)'</l>
+<l>Message[3] := ' 2. Refine the orientation by'</l>
+<l>Message[4] := '    - Transforming the object to polar coordinates'</l>
+<l>Message[5] := '    - Matching only the parts in the polar transformed'</l>
+<l>Message[6] := '      image that define the orientation unambiguously.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 330, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_intro_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="draw_refinement_region">
+<interface>
+<oo>
+<par name="AsymEdgesRegion" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="WindowHandleMain" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Let the user choose the model region for step 2 interactively</c>
+<c>* </c>
+<l>Message := 'Use the mouse to mark the NOT rotationally symmetric edges'</l>
+<l>Message[1] := 'that will be used for the refinement step'</l>
+<l>Message[2] := 'by re-drawing them with the left mouse button pressed.'</l>
+<l>Message[3] := '(Right-click to continue.)'</l>
+<l>disp_message (WindowHandleMain, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>draw_polygon (PolygonRegion, WindowHandleMain)</l>
+<l>dilation_circle (PolygonRegion, AsymEdgesRegion, 3.5)</l>
+<l>dev_set_window (WindowHandleMain)</l>
+<l>return ()</l>
+</body>
+<docu id="draw_refinement_region">
+<parameters>
+<parameter id="AsymEdgesRegion"/>
+<parameter id="WindowHandleMain"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_info_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Message := 'In step 1, the yellow model is used to find the object'</l>
+<l>Message[1] := 'in the whole image.'</l>
+<l>Message[2] := 'In step 2, the blue model is searched in the'</l>
+<l>Message[3] := 'polar transformed area around the found position.'</l>
+<l>Message[4] := 'Because only the asymmetric part is searched,'</l>
+<l>Message[5] := 'the orientation can be determined more robustly.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 320, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_info_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_results">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="PolarResultImages" base_type="iconic" dimension="0"/>
+<par name="RefinedContours" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Angle" base_type="ctrl" dimension="0"/>
+<par name="RowsPolar" base_type="ctrl" dimension="0"/>
+<par name="ColumnsPolar" base_type="ctrl" dimension="0"/>
+<par name="AnglesPolar" base_type="ctrl" dimension="0"/>
+<par name="FinalAngle" base_type="ctrl" dimension="0"/>
+<par name="ColumnRefPolar" base_type="ctrl" dimension="0"/>
+<par name="RowRefPolar" base_type="ctrl" dimension="0"/>
+<par name="PolarWidthExtended" base_type="ctrl" dimension="0"/>
+<par name="PolarHeight" base_type="ctrl" dimension="0"/>
+<par name="PolarAngleRangeExtended" base_type="ctrl" dimension="0"/>
+<par name="RefinementFailed" base_type="ctrl" dimension="0"/>
+<par name="ModelID" base_type="ctrl" dimension="0"/>
+<par name="ModelIDPolar" base_type="ctrl" dimension="0"/>
+<par name="Title" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandlePolar" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Display results</c>
+<c>* </c>
+<c>* </c>
+<c>* Generate a single image</c>
+<c>* out of the polar transformed images of all objects</c>
+<l>NumMatches := |Row|</l>
+<l>tile_images (PolarResultImages, PolarResultImageTiled, 1, 'vertical')</l>
+<c>* Generate scale</c>
+<l>ColumnScale360 := (PolarWidthExtended - 1) * rad(360) / PolarAngleRangeExtended + ColumnRefPolar</l>
+<l>gen_contour_polygon_xld (Scale, NumMatches * [PolarHeight,PolarHeight,PolarHeight,PolarHeight] + [0,15,15,0], [ColumnRefPolar,ColumnRefPolar,ColumnScale360,ColumnScale360])</l>
+<c>* Display matching positions as crosses</c>
+<l>gen_cross_contour_xld (RoughPos, RowsPolar, (PolarWidthExtended - 1) * Angle / PolarAngleRangeExtended + ColumnRefPolar, 12, rad(45))</l>
+<l>gen_cross_contour_xld (RefinedPos, RowsPolar, ColumnsPolar, 12, rad(45))</l>
+<c>* </c>
+<c>* Main window</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Rough result', 'image', 960, 24, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, '             /', 'image', 960, 24, 'white', 'false')</l>
+<l>disp_message (WindowHandle, '               Refined result', 'image', 960, 24, 'green', 'false')</l>
+<l>dev_display_shape_matching_results (ModelID, 'yellow', Row, Column, Angle, 1, 1, 0)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RefinedContours)</l>
+<l>if (|RefinementFailed| &gt; 0)</l>
+<l>    disp_message (WindowHandle, 'Oops. Refinement failed for #' + RefinementFailed, 'window', 35, 12, 'red', 'true')</l>
+<l>endif</l>
+<c>* </c>
+<c>* Polar window</c>
+<l>BorderLeft := 40</l>
+<l>BorderRight := 160</l>
+<l>BorderUp := 90</l>
+<l>BorderDown := 40</l>
+<l>ScaleFactor := .66</l>
+<l>get_image_size (PolarResultImageTiled, Width, Height)</l>
+<l>dev_set_window (WindowHandlePolar)</l>
+<l>dev_set_window_extents (0, -1, Width * ScaleFactor + BorderLeft + BorderRight, Height * ScaleFactor + BorderUp + BorderDown)</l>
+<l>dev_set_part (-BorderUp / ScaleFactor, -BorderLeft / ScaleFactor, Height + BorderDown / ScaleFactor - 1, Width + BorderRight / ScaleFactor - 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (PolarResultImageTiled)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Scale)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (RoughPos)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RefinedPos)</l>
+<l>dev_display_shape_matching_results (ModelIDPolar, 'yellow', RowsPolar, (PolarWidthExtended - 1) * Angle / PolarAngleRangeExtended + ColumnRefPolar, AnglesPolar, 1, 1, 0)</l>
+<l>dev_display_shape_matching_results (ModelIDPolar, 'green', RowsPolar, ColumnsPolar, AnglesPolar, 1, 1, 0)</l>
+<l>disp_message (WindowHandlePolar, 'Polar transformed objects', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandlePolar, ['Rough result after step 1','Matching result in polar transformed image'], 'window', 40, 12, ['yellow','green'], 'false')</l>
+<l>disp_message (WindowHandlePolar, '0°', 'image', NumMatches * PolarHeight + 20, ColumnRefPolar - 10, 'white', 'false')</l>
+<l>disp_message (WindowHandlePolar, '360°', 'image', NumMatches * PolarHeight + 20, ColumnScale360 - 30, 'white', 'false')</l>
+<c>* </c>
+<c>* Print angles</c>
+<l>for J := 0 to NumMatches - 1 by 1</l>
+<l>    disp_message (WindowHandlePolar, '#' + (J + 1), 'image', J * PolarHeight, -BorderLeft / ScaleFactor + 10, 'white', 'false')</l>
+<l>    First := deg(Angle[J])$'5.1f' + '°'</l>
+<l>    Slash := '      /'</l>
+<l>    Second := '       ' + deg(FinalAngle[J])$'5.1f' + '°'</l>
+<l>    disp_message (WindowHandlePolar, First, 'image', J * PolarHeight, PolarWidthExtended + 10, 'yellow', 'false')</l>
+<l>    disp_message (WindowHandlePolar, Slash, 'image', J * PolarHeight, PolarWidthExtended + 10, 'white', 'false')</l>
+<l>    disp_message (WindowHandlePolar, Second, 'image', J * PolarHeight, PolarWidthExtended + 10, 'green', 'false')</l>
+<c>    * Display refined result in original image</c>
+<l>    disp_message (WindowHandle, '#' + (J + 1), 'image', Row[J] - 110, Column[J] - 25, 'white', 'false')</l>
+<l>    disp_message (WindowHandle, First, 'image', Row[J] + 90, Column[J] - 140, 'yellow', 'false')</l>
+<l>    disp_message (WindowHandle, Slash, 'image', Row[J] + 90, Column[J] - 140, 'white', 'false')</l>
+<l>    disp_message (WindowHandle, Second, 'image', Row[J] + 90, Column[J] - 140, 'green', 'false')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="display_results">
+<parameters>
+<parameter id="Angle"/>
+<parameter id="AnglesPolar"/>
+<parameter id="Column"/>
+<parameter id="ColumnRefPolar"/>
+<parameter id="ColumnsPolar"/>
+<parameter id="FinalAngle"/>
+<parameter id="Image"/>
+<parameter id="ModelID"/>
+<parameter id="ModelIDPolar"/>
+<parameter id="PolarAngleRangeExtended"/>
+<parameter id="PolarHeight"/>
+<parameter id="PolarResultImages"/>
+<parameter id="PolarWidthExtended"/>
+<parameter id="RefinedContours"/>
+<parameter id="RefinementFailed"/>
+<parameter id="Row"/>
+<parameter id="RowRefPolar"/>
+<parameter id="RowsPolar"/>
+<parameter id="Title"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandlePolar"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

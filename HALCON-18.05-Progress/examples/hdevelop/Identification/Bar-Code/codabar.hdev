@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read bar codes of type Codabar</c>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* We expect to decode a single bar code per image</c>
+<l>set_bar_code_param (BarCodeHandle, 'stop_after_result_num', 1)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 120, 300, 'black', WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>for I := 1 to 6 by 1</l>
+<l>    read_image (Image, 'barcode/codabar/codabar' + (I$'.2'))</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (0, 0, Width - 1, Height - 1)</l>
+<l>    dev_display (Image)</l>
+<l>    set_bar_code_param (BarCodeHandle, 'check_char', 'present')</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Codabar', DecodedDataStrings)</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings, 'window', 12, 12, 'black', 'false')</l>
+<l>    LastChar := strlen(DecodedDataStrings) - 1</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings{0} + sum(gen_tuple_const(LastChar - 1,' ')) + DecodedDataStrings{LastChar}, 'window', 12, 12, 'forest green', 'false')</l>
+<l>    if (I &lt; 6)</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

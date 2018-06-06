@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>gen_rectangle1 (Rect, 0, 0, 5, 5)</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'stamps/swiss1')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, round(Width / 1.5), round(Height / 1.5), 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>for i := 1 to 9 by 1</l>
+<l>    read_image (Image, 'stamps/swiss' + i)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_draw ('fill')</l>
+<l>    threshold (Image, Dark, 0, 110)</l>
+<l>    fill_up (Dark, DarkFilled)</l>
+<l>    connection (DarkFilled, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, PotStamps, 'area', 'and', 10000, 100000000)</l>
+<l>    opening_rectangle1 (PotStamps, Stamps, 10, 10)</l>
+<l>    select_shape (ConnectedRegions, Lines, 'convexity', 'and', 0, 0.3)</l>
+<l>    select_shape (ConnectedRegions, Character, 'area', 'and', 10, 500)</l>
+<l>    top_hat (Lines, Rect, RegionTopHat)</l>
+<l>    connection (RegionTopHat, ConnTopHat)</l>
+<l>    select_shape (ConnTopHat, AllLines, 'area', 'and', 150, 1000000)</l>
+<l>    union1 (Character, CharacterUnion)</l>
+<l>    dilation_rectangle1 (CharacterUnion, Words, 8, 2)</l>
+<l>    connection (Words, SingleWords)</l>
+<l>    shape_trans (SingleWords, RectWords, 'rectangle1')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (AllLines)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Stamps)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Character)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (RectWords)</l>
+<l>    if (i &lt; 9)</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

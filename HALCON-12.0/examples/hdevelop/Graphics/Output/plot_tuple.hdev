@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the procedure plot_tuple to</c>
+<c>* plot functions in a cordinate system.</c>
+<c>* </c>
+<c>* Initialize window</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* Display single function with default settings</c>
+<c>* </c>
+<c>* Set parameters</c>
+<l>X := [-rad(180):0.01:rad(180)]</l>
+<l>Y1 := sin(X)</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := 'sin(x)'</l>
+<l>Color := []</l>
+<l>GenParamNames := []</l>
+<l>GenParamValues := []</l>
+<l>Title := 'Plot function with default settings'</l>
+<c>* Display function plot</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('medium slate blue')</l>
+<l>plot_tuple (WindowHandle, X, Y1, XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display two functions in one coordinate system</c>
+<c>* </c>
+<c>* This is easily possible, because both functions</c>
+<c>* share the same X values.</c>
+<c>* </c>
+<l>Y1 := sin(X)</l>
+<l>Y2 := (X * X) * 0.2 - 1</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := 'y'</l>
+<l>Color := ['medium slate blue','yellow']</l>
+<l>GenParamNames := []</l>
+<l>GenParamValues := []</l>
+<l>Title := 'Plot two functions with identical x values in one coordinate system'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, [Y1,Y2], XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Add tick marks and grid lines to the coordinate system</c>
+<c>* </c>
+<l>GenParamNames := ['ticks_x','ticks_y','grid_x','grid_y']</l>
+<l>GenParamValues := [rad(90),0.5,rad(45),0.25]</l>
+<l>Title := 'Add tick marks and grid'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, [Y1,Y2], XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Define the origin of the coordinate axes</c>
+<c>* </c>
+<c>* By default, the axes intersect in the lower left corner.</c>
+<c>* In this case, the intercept point of the axes is set to (0,0).</c>
+<c>* </c>
+<l>Y3 := sin(10 * X) * X</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := 'sin(10x)*x'</l>
+<l>Color := 'green'</l>
+<l>GenParamNames := ['origin_x','origin_y']</l>
+<l>GenParamValues := [0,0]</l>
+<l>Title := 'Define origin of coordinate axes'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y3, XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Modify the start and end values of the axes to zoom out</c>
+<c>* </c>
+<l>GenParamNames := [GenParamNames,'start_x','end_x','start_y','end_y']</l>
+<l>GenParamValues := [GenParamValues,-5,5,-10,10]</l>
+<l>Title := 'Zoom out'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y3, XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now zoom in</c>
+<c>* </c>
+<l>GenParamNames := [GenParamNames,'start_x','end_x','start_y','end_y']</l>
+<l>GenParamValues := [GenParamValues,-1,1,-1,1]</l>
+<l>Title := 'Zoom in'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y3, XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* By default, the function is plotted in the whole window.</c>
+<c>* By setting the 'clip' parameter, the plot can be clipped</c>
+<c>* to the area of the coordinate system.</c>
+<c>* </c>
+<l>GenParamNames := [GenParamNames,'clip']</l>
+<l>GenParamValues := [GenParamValues,'yes']</l>
+<l>Title := 'Clip function plot to coordinate system'</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y3, XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display different coordinate systems in one graphics window.</c>
+<c>* Additionally, each function is plotted in a different style.</c>
+<c>* </c>
+<c>* By setting the parameters 'margin', 'margin_left', 'margin_right',</c>
+<c>* margin_top, and 'margin_bottom' the position of the</c>
+<c>* coordinate system in the graphics window can be modified.</c>
+<c>* </c>
+<c>* Plot left coordinate system</c>
+<l>X := [0:10]</l>
+<l>Y := X * X</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := 'x^2'</l>
+<l>GenParamNames := ['margin_left','margin_right','margin_top','margin_bottom','style']</l>
+<l>GenParamValues := [50,550,100,200,'line']</l>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, 'slate blue', GenParamNames, GenParamValues)</l>
+<c>* </c>
+<c>* Plot center coordinate system</c>
+<l>Y := -X * X</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := '-x^2'</l>
+<l>GenParamNames := GenParamNames</l>
+<l>GenParamValues := [300,300,100,200,'filled']</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, 'red', GenParamNames, GenParamValues)</l>
+<c>* </c>
+<c>* Plot right coordinate system</c>
+<l>X := [-5:5]</l>
+<l>Y := X * X</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := 'x^2'</l>
+<l>GenParamNames := GenParamNames</l>
+<l>GenParamValues := [550,50,100,200,'cross']</l>
+<l>Title := 'Plot three functions in different styles and different coordinate systems'</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, 'green', GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Use different styles in a single coordinate system</c>
+<c>* </c>
+<c>* To display different styles in the same coordinate system,</c>
+<c>* each style has to be used with a separate call of plot_tuple.</c>
+<c>* Make sure, that the axes dimensions match for all calls of</c>
+<c>* plot_tuple.</c>
+<c>* </c>
+<c>* Plot first function with lines</c>
+<l>X := [0:10]</l>
+<l>Y := X * X</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := []</l>
+<l>Legend1 := ' x^2'</l>
+<l>Color1 := 'slate blue'</l>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, Color1, [], [])</l>
+<c>* </c>
+<c>* Plot second function with crosses</c>
+<c>* Since the axes have already been drawn with the first function,</c>
+<c>* we can set 'axes_color' to 'none' to prevent the axes to be</c>
+<c>* displayed two times.</c>
+<l>Y := -X * X</l>
+<l>Legend2 := '-x^2'</l>
+<l>Color2 := 'yellow'</l>
+<l>Title := 'Two functions with different styles in one cordinate system'</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, Color2, ['axes_color','style'], ['none','cross'])</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>Legend := [Legend1,Legend2]</l>
+<l>disp_message (WindowHandle, Legend, 'window', 100, 100, [Color1,Color2], 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Plot a curve, not a function</c>
+<c>* </c>
+<l>Angle := [0:.1:4 * rad(360)]</l>
+<l>X := Angle * sin(Angle)</l>
+<l>Y := Angle * cos(Angle)</l>
+<l>Color := 'orange'</l>
+<l>XLabel := 'x'</l>
+<l>YLabel := 'y'</l>
+<l>Title := 'X values are not restricted to increasing sequences'</l>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, Color, [], [])</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Use category strings as X values</c>
+<c>* </c>
+<l>X := ['\'original\'','\'pre-processed\'','\'noisy\'']</l>
+<l>Y := [8,5,13]</l>
+<l>Color := 'green'</l>
+<l>XLabel := 'Image Sequence'</l>
+<l>YLabel := 'Average execution time in ms'</l>
+<l>GenParamNames := ['start_y','grid_y','margin']</l>
+<l>GenParamValues := [0,5,100]</l>
+<l>Title := 'If X values are given as strings, they are used as categories'</l>
+<l>dev_clear_window ()</l>
+<l>plot_tuple (WindowHandle, X, Y, XLabel, YLabel, Color, GenParamNames, GenParamValues)</l>
+<l>disp_message (WindowHandle, Title, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how hom_vector_to_proj_hom_mat2d can be used</c>
+<c>* to specify transformations that move points at infinity and finite points.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'mreut')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* First, we will compute a transformation with finite points.</c>
+<l>hom_vector_to_proj_hom_mat2d ([0,0,512,512], [0,512,512,0], [1,1,1,1], [20,100,470,500], [10,490,400,30], [1,1,1,1], 'dlt', HomMat2D)</l>
+<l>projective_trans_image_size (Image, TransImage, HomMat2D, 'bilinear', 512, 512, 'false')</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TransImage)</l>
+<l>disp_region (Image, WindowHandle)</l>
+<l>disp_region (TransImage, WindowHandle)</l>
+<l>disp_arrow (WindowHandle, [0,0,512,512], [0,512,512,0], [20,100,470,500], [10,490,400,30], 1)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Next, we will compute a transformation that moves the lower right corner of</c>
+<c>* the image to a point at infinity in the direction (1,1).  For reasons of numerical</c>
+<c>* stability, we specify the direction (1,1) as (512,512).  Also, to see that the</c>
+<c>* resulting image has two diagonal borders, we make the output image have</c>
+<c>* a size of 1024x1024.</c>
+<l>hom_vector_to_proj_hom_mat2d ([0,0,512,512], [0,512,512,0], [1,1,1,1], [0,0,512,512], [0,512,512,0], [1,1,0,1], 'dlt', HomMat2D)</l>
+<l>projective_trans_image_size (Image, TransImage, HomMat2D, 'bilinear', 1024, 1024, 'false')</l>
+<l>dev_set_part (0, 0, 1023, 1023)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TransImage)</l>
+<l>disp_region (Image, WindowHandle)</l>
+<l>disp_region (TransImage, WindowHandle)</l>
+<l>set_line_style (WindowHandle, [10,15])</l>
+<l>disp_line (WindowHandle, 512, 512, 900, 900)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>disp_arrow (WindowHandle, 900, 900, 930, 930, 3)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now, we will make a transformation that leaves two points invariant and</c>
+<c>* transforms two points at infinity to two different points at infinity.  Note that</c>
+<c>* since the points at infinity correspond to directions, this has the effect of</c>
+<c>* creating a shear, i.e., an affine transformation.</c>
+<l>hom_vector_to_proj_hom_mat2d ([0,0,512,512], [0,512,512,0], [1,0,1,0], [0,256,512,512], [0,512,512,64], [1,0,1,0], 'dlt', HomMat2D)</l>
+<l>projective_trans_image_size (Image, TransImage, HomMat2D, 'bilinear', 512, 512, 'false')</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TransImage)</l>
+<l>disp_region (Image, WindowHandle)</l>
+<l>disp_region (TransImage, WindowHandle)</l>
+<l>disp_arrow (WindowHandle, [0,0,512,512], [0,512,512,0], [0,239,512,273], [0,478,512,34], 1)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Suppose that we would like to modify the previous transformation such that</c>
+<c>* the row axis remains fixed.  Here, numerical problems will not allow us to</c>
+<c>* specify the direction as (512,0,0), as we would expect.  Instead, we will</c>
+<c>* have to specify a very small component for the column coordinate, e.g.,</c>
+<c>* (512,0.01,0) to avoid the numerical instabilities.  Note that the numerical</c>
+<c>* difficulties are inherent in the problem and are not caused by the</c>
+<c>* implementation in HALCON.</c>
+<l>hom_vector_to_proj_hom_mat2d ([0,0,512,512], [0,512,512,0], [1,0,1,0], [0,128,512,512], [0,512,512,0.01], [1,0,1,0], 'dlt', HomMat2D)</l>
+<l>projective_trans_image_size (Image, TransImage, HomMat2D, 'bilinear', 512, 512, 'false')</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TransImage)</l>
+<l>disp_region (Image, WindowHandle)</l>
+<l>disp_region (TransImage, WindowHandle)</l>
+<l>disp_arrow (WindowHandle, [0,0,512,512], [0,512,512,0], [0,128,512,384], [0,512,512,0], 1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

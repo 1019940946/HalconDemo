@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use gen_image_interleaved.  It performs</c>
+<c>* various transformations of an image matrix with interleaved pixels into</c>
+<c>* a three-channel HALCON image.</c>
+<c>* </c>
+<c>* First of all an image matrix with interleaved pixels is calculated.</c>
+<l>read_image (Image, 'claudia')</l>
+<l>rgb3_to_interleaved (Image, ImageInterleaved)</l>
+<c>* </c>
+<l>get_image_pointer1 (ImageInterleaved, Pointer, TypeRGB, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 3, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height, Width / 3)</l>
+<c>* </c>
+<c>* A simple conversion.</c>
+<l>gen_image_interleaved (BImageRGB1, Pointer, 'rgb', Width / 3, Height, -1, 'byte', 0, 0, 0, 0, -1, 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Same as above, but now only a part of the input matrix is converted.</c>
+<l>gen_image_interleaved (BImageRGB2, Pointer, 'rgb', Width / 3, Height, -1, 'byte', Width / 6, Height / 2, 0, Width / 12, -1, 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* All 'bgr' formats are similar to the corresponding 'rgb' formats, except that the</c>
+<c>* red and blue channels are swapped. Therefore, applying gen_image_interleaved</c>
+<c>* on an image matrix with rgb triples when ColorFormat is set to 'bgr' leads to wrong colors.</c>
+<l>gen_image_interleaved (BImageBGR1, Pointer, 'bgr', Width / 3, Height, -1, 'byte', 0, 0, 0, 0, -1, 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* It is also possible to create an uint2 image from the input matrix.</c>
+<l>gen_image_interleaved (UImageRGB1, Pointer, 'rgb', Width / 3, Height, -1, 'uint2', 0, 0, 0, 0, -1, 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now the input matrix is converted to 16 bits per pixel and channel. Of course,</c>
+<c>* this affects the ColorFormat parameter.</c>
+<l>convert_image_type (ImageInterleaved, ImageConverted, 'uint2')</l>
+<l>scale_image (ImageConverted, ImageConverted, 64, 0)</l>
+<l>get_image_pointer1 (ImageConverted, UPointer, UTypeRGB, UWidth, UHeight)</l>
+<l>gen_image_interleaved (UImageRGB2, UPointer, 'rgb48', UWidth / 3, UHeight, -1, 'uint2', 0, 0, 0, 0, -1, 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Same as above, but now the pixel values are shifted by 6 bits to the right.</c>
+<c>* However, the difference between UImageRGB2 and UImageRGB3 is only visible</c>
+<c>* in the gray histogram but not in the displayed image !</c>
+<l>gen_image_interleaved (UImageRGB3, UPointer, 'rgb48', UWidth / 3, UHeight, -1, 'uint2', 0, 0, 0, 0, -1, 6)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* This call results in an error because the 16 bits per channel and pixel of the input</c>
+<c>* matrix cannot be stored in a byte image.</c>
+<l>gen_image_interleaved (ErrorImage, UPointer, 'rgb48', UWidth / 3, UHeight, -1, 'byte', 0, 0, 0, 0, -1, 0)</l>
+<c>* </c>
+<c>* This call results in an error because the selected section extends beyond the input matrix.</c>
+<l>gen_image_interleaved (ErrorImage, Pointer, 'rgb', Width / 3, Height, -1, 'byte', Width / 3, Height, 16, 16, -1, 0)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="rgb3_to_interleaved">
+<interface>
+<io>
+<par name="ImageRGB" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageInterleaved" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_image_pointer3 (ImageRGB, PointerRed, PointerGreen, PointerBlue, Type, Width, Height)</l>
+<l>gen_image_const (ImageInterleaved, 'byte', Width * 3, Height)</l>
+<c>* </c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, 1, 3, 0, 0, HomMat2DScale)</l>
+<l>affine_trans_image_size (ImageRGB, ImageAffinTrans, HomMat2DScale, 'constant', Width * 3, Height)</l>
+<c>* </c>
+<l>decompose3 (ImageAffinTrans, ImageRed, ImageGreen, ImageBlue)</l>
+<l>gen_grid_region (RegionGrid, 2 * Height, 3, 'lines', Width * 3, Height + 1)</l>
+<l>move_region (RegionGrid, RegionMoved, -1, 0)</l>
+<l>clip_region (RegionMoved, RegionClipped, 0, 0, Height - 1, (3 * Width) - 1)</l>
+<c>* NOTE: Due to internal limitations, the images ImageRed, ImageGreen, and ImageBlue</c>
+<c>* cannot be displayed by HDevelop.Trying to display one of these images results in the</c>
+<c>* error message 'Internal error: number of chords too big for num_max'. However, this</c>
+<c>* affects by no means the continuation or the results of this example program, and</c>
+<c>* therefore, is no reason to be alarmed !</c>
+<l>reduce_domain (ImageRed, RegionClipped, ImageRed)</l>
+<l>move_region (RegionGrid, RegionMoved, -1, 1)</l>
+<l>clip_region (RegionMoved, RegionClipped, 0, 0, Height - 1, (3 * Width) - 1)</l>
+<l>reduce_domain (ImageGreen, RegionClipped, ImageGreen)</l>
+<l>move_region (RegionGrid, RegionMoved, -1, 2)</l>
+<l>clip_region (RegionMoved, RegionClipped, 0, 0, Height - 1, (3 * Width) - 1)</l>
+<l>reduce_domain (ImageBlue, RegionClipped, ImageBlue)</l>
+<l>overpaint_gray (ImageInterleaved, ImageRed)</l>
+<l>overpaint_gray (ImageInterleaved, ImageGreen)</l>
+<l>overpaint_gray (ImageInterleaved, ImageBlue)</l>
+<l>return ()</l>
+</body>
+<docu id="rgb3_to_interleaved">
+<short lang="en_US">Transforms a three channel color image into a single channel image with interleaved color information.</short>
+<parameters>
+<parameter id="ImageInterleaved"/>
+<parameter id="ImageRGB"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

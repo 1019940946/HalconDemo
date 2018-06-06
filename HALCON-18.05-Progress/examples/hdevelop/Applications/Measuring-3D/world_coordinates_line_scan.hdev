@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the camera calibration</c>
+<c>* for images taken with linescan cameras.</c>
+<c>* Furthermore, the transformation of coordinates, contours, and images</c>
+<c>* from the image geometry into the world plane and vice versa is demonstrated.</c>
+<c>* </c>
+<c>* First, some initializations...</c>
+<l>dev_close_window ()</l>
+<l>NumCalibImages := 17</l>
+<l>read_image (Image, 'calib/calib_line_scan_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>OWFMaxExtent := 750</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, OWFMaxExtent, OWFMaxExtent, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('white')</l>
+<c>* </c>
+<c>* Set the start values for the internal camera parameters</c>
+<l>gen_cam_par_line_scan (0.06, 0, 10e-6, 10e-6, Width / 2.0, 0, Width, Height, 0, 5e-5, 0, StartCamParam)</l>
+<c>*   ... and set some control parameters</c>
+<l>CalTabDescrFile := 'caltab_30mm.descr'</l>
+<l>FMAPAlpha := 0.5</l>
+<l>DCScaleFac := 1</l>
+<c>* </c>
+<c>* Create the camera calibration model</c>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], StartCamParam)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalTabDescrFile)</l>
+<c>* </c>
+<c>* Determine the calibration marks and the poses of the calibration plates</c>
+<c>* for all the calibration images and accumulate them in the</c>
+<c>* calibration data model.</c>
+<l>for I := 1 to NumCalibImages by 1</l>
+<l>    read_image (Image, 'calib/calib_line_scan_' + I$'02d')</l>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, I - 1, 'alpha', FMAPAlpha)</l>
+<l>    get_calib_data (CalibDataID, 'camera', 0, 'init_params', StartCamPar)</l>
+<c>    * Read the caltab and the marks' contours found for visualization</c>
+<l>    get_calib_data_observ_contours (Caltab, CalibDataID, 'caltab', 0, 0, I - 1)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Caltab)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, I - 1, Row, Column, Index, StartPose)</l>
+<l>    disp_cross (WindowHandle, Row, Column, 20, 0)</l>
+<l>    Message := 'The start pose of the          '</l>
+<l>    Message[1] := 'calibration plate in image ' + I$'02d' + '  '</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Carry out the camera calibration</c>
+<c>* By default all camera parameters are estimated by the camera</c>
+<c>* calibration.</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Please wait...', 'window', 12, 12, 'black', 'true')</l>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParam)</l>
+<l>dev_clear_window ()</l>
+<l>Message := ['Error of the','calibration = ' + Error$'.2f']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read a test image that shows a caliper together with a calibration plate.</c>
+<l>read_image (Image, 'caliper/caliper_line_scan')</l>
+<c>* </c>
+<c>* Extract the calibration marks and carry out the calibration</c>
+<c>* where only the pose of the calibration plate is determined,</c>
+<c>* the internal camera parameters are left unchanged.</c>
+<c>* </c>
+<c>* First, set the previously determined camera parameters</c>
+<c>* as the new start parameter in the model.</c>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], CamParam)</l>
+<c>* Exclude all parameters from the optimization and estimate only the</c>
+<c>* pose of the calibration plate.</c>
+<l>set_calib_data (CalibDataID, 'camera', 'general', 'excluded_settings', 'all')</l>
+<l>set_calib_data (CalibDataID, 'camera', 'general', 'calib_settings', 'pose')</l>
+<l>find_calib_object (Image, CalibDataID, 0, 0, NumCalibImages, 'alpha', FMAPAlpha)</l>
+<c>* Access the uncalibrated pose measurement</c>
+<l>get_calib_data_observ_points (CalibDataID, 0, 0, NumCalibImages, Row1, Column1, Index1, Pose)</l>
+<l>calibrate_cameras (CalibDataID, ErrorPoseOnly)</l>
+<c>* Access the calibrated pose measurement</c>
+<l>get_calib_data (CalibDataID, 'calib_obj_pose', [0,NumCalibImages], 'pose', NFinalPose)</l>
+<l>dev_display (Image)</l>
+<l>get_calib_data_observ_contours (Caltab, CalibDataID, 'caltab', 0, 0, NumCalibImages)</l>
+<l>dev_display (Caltab)</l>
+<l>get_calib_data_observ_points (CalibDataID, 0, 0, I - 1, Row, Column, Index, StartPose)</l>
+<l>disp_cross (WindowHandle, Row, Column, 20, 0)</l>
+<l>Message := ['Error of the','calibration = ' + ErrorPoseOnly$'.2f']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Simulate an image of the calibration plate</c>
+<l>SCGrayBackground := 5</l>
+<l>SCGrayCaltab := 120</l>
+<l>SCGrayMarks := 15</l>
+<l>SCScaleFac := 1</l>
+<l>sim_caltab (SimImage, CalTabDescrFile, CamParam, NFinalPose, SCGrayBackground, SCGrayCaltab, SCGrayMarks, SCScaleFac)</l>
+<l>dev_display (SimImage)</l>
+<l>Message := ['Simulated image','of the calibration plate']</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* To demonstrate that the determined pose of the calibration plate</c>
+<c>* can be modified by transformations in the world coordinate system,</c>
+<c>* the calibration plate was not placed directly on the caliper but</c>
+<c>* with a tilt of about 21.8 degrees around its x-axis.</c>
+<c>* If measurements must be carried out in the plane of the caliper,</c>
+<c>* it is necessary to adapt the pose to that plane.</c>
+<c>* If the relation between the calibration plate and the measurement plane</c>
+<c>* is known, this adaptation can easily be applied by modifying the</c>
+<c>* corresponding homogeneous transformation matrix.</c>
+<l>HMRLPhi := rad(21.8)</l>
+<l>HMTLTx := 0</l>
+<l>HMTLTy := 0</l>
+<l>HMTLTz := 0.00673</l>
+<l>pose_to_hom_mat3d (NFinalPose, HomMat3D)</l>
+<l>hom_mat3d_rotate_local (HomMat3D, HMRLPhi, 'x', HomMat3D)</l>
+<l>hom_mat3d_translate_local (HomMat3D, HMTLTx, HMTLTy, HMTLTz, HomMat3D)</l>
+<l>hom_mat3d_to_pose (HomMat3D, PoseNewOrigin)</l>
+<c>* </c>
+<c>* Now, it is possible to transform image coordinates into world coordinates</c>
+<c>* </c>
+<c>* First, the image coordinates of the pitch lines are determined with a measure object.</c>
+<l>if (true)</l>
+<l>    Row := 1960</l>
+<l>    Col := 1525</l>
+<l>    Phi := 0.955</l>
+<l>    Length1 := 840</l>
+<l>    Length2 := 10</l>
+<l>else</l>
+<l>    dev_display (Image)</l>
+<l>    draw_rectangle2 (WindowHandle, Row, Col, Phi, Length1, Length2)</l>
+<l>endif</l>
+<l>MPSigma := 1.5</l>
+<l>MPThreshold := 3</l>
+<l>MPTransition := 'negative'</l>
+<l>MPSelect := 'all'</l>
+<l>GCCXSize := 6</l>
+<l>GCCXAngle := 0</l>
+<l>gen_measure_rectangle2 (Row, Col, Phi, Length1, Length2, Width, Height, 'bilinear', MeasureHandle)</l>
+<l>measure_pairs (Image, MeasureHandle, MPSigma, MPThreshold, MPTransition, MPSelect, RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<l>RowPitchLine := (RowEdgeFirst + RowEdgeSecond) / 2.0</l>
+<l>ColPitchLine := (ColumnEdgeFirst + ColumnEdgeSecond) / 2.0</l>
+<l>dev_display (Image)</l>
+<l>gen_cross_contour_xld (Cross, RowPitchLine, ColPitchLine, GCCXSize, GCCXAngle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>gen_rectangle2 (Rectangle, Row, Col, Phi, Length1, Length2)</l>
+<l>dev_set_draw ('fill')</l>
+<c>* </c>
+<c>* Then, they are transformed into world coordinates</c>
+<l>image_points_to_world_plane (CamParam, PoseNewOrigin, RowPitchLine, ColPitchLine, 'mm', X1, Y1)</l>
+<c>* </c>
+<c>* Now, the distances between the pitch lines is calculated</c>
+<l>distance_pp (Y1[0:|Y1| - 2], X1[0:|X1| - 2], Y1[1:|Y1| - 1], X1[1:|X1| - 1], Distance)</l>
+<l>ErrorPitchLines := gen_tuple_const(|Distance|,1) - Distance</l>
+<l>disp_message (WindowHandle, 'Mean distance = ' + mean(Distance)$'.5f' + ' mm', 'window', 12, 12, 'black', 'true')</l>
+<l>Message := 'Error:'</l>
+<l>Message[1] := '  Mean:        ' + (mean(ErrorPitchLines) * 1000)$'5.2f' + ' microns'</l>
+<l>Message[2] := '  Max:         ' + max(fabs(ErrorPitchLines) * 1000)$'5.2f' + ' microns'</l>
+<l>Message[3] := '  Deviation:   ' + (deviation(ErrorPitchLines) * 1000)$'5.2f' + ' microns'</l>
+<l>disp_message (WindowHandle, Message, 'window', 37, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Alternatively, the measurement can be carried out in an</c>
+<c>* image that is projected into the measurement plane.</c>
+<l>dev_clear_window ()</l>
+<l>parameters_image_to_world_plane_entire (Image, CamParam, PoseNewOrigin, Width, Height, ScaleForEntireImage, PoseForEntireImage)</l>
+<l>if (true)</l>
+<l>    gen_image_to_world_plane_map (Map, CamParam, PoseForEntireImage, Width, Height, Width, Height, ScaleForEntireImage, 'bilinear')</l>
+<l>    map_image (Image, Map, ImageMapped)</l>
+<l>else</l>
+<l>    image_to_world_plane (Image, ImageMapped, CamParam, PoseForEntireImage, Width, Height, ScaleForEntireImage, 'bilinear')</l>
+<l>endif</l>
+<l>if (true)</l>
+<l>    Row := 1350</l>
+<l>    Col := 790</l>
+<l>    Phi := rad(90)</l>
+<l>    Length1 := 465</l>
+<l>    Length2 := 20</l>
+<l>else</l>
+<l>    dev_display (ImageMapped)</l>
+<l>    draw_rectangle2 (WindowHandle, Row, Col, Phi, Length1, Length2)</l>
+<l>endif</l>
+<l>gen_measure_rectangle2 (Row, Col, Phi, Length1, Length2, Width, Height, 'bilinear', MeasureHandle)</l>
+<l>measure_pairs (ImageMapped, MeasureHandle, MPSigma, MPThreshold, MPTransition, MPSelect, RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<l>RowPitchLine := (RowEdgeFirst + RowEdgeSecond) / 2.0</l>
+<l>ColPitchLine := (ColumnEdgeFirst + ColumnEdgeSecond) / 2.0</l>
+<l>dev_display (ImageMapped)</l>
+<l>gen_cross_contour_xld (Cross, RowPitchLine, ColPitchLine, 6, 0)</l>
+<l>dev_set_draw ('margin')</l>
+<l>gen_rectangle2 (Rectangle, Row, Col, Phi, Length1, Length2)</l>
+<l>dev_set_draw ('fill')</l>
+<c>* </c>
+<c>* Now, again the distances between the pitch lines is calculated</c>
+<l>distance_pp (RowPitchLine[0:|RowPitchLine| - 2], ColPitchLine[0:|ColPitchLine| - 2], RowPitchLine[1:|RowPitchLine| - 1], ColPitchLine[1:|ColPitchLine| - 1], Distance)</l>
+<l>Distance := Distance * ScaleForEntireImage * 1000.0</l>
+<l>ErrorPitchLines := gen_tuple_const(|Distance|,1) - Distance</l>
+<l>disp_message (WindowHandle, 'Mean distance = ' + mean(Distance)$'.5f' + ' mm', 'window', 12 + 500, 12, 'black', 'true')</l>
+<l>Message := 'Error:'</l>
+<l>Message[1] := '   Mean:       ' + (mean(ErrorPitchLines) * 1000)$'5.2f' + ' microns'</l>
+<l>Message[2] := '   Max:        ' + (max(fabs(ErrorPitchLines)) * 1000)$'5.2f' + ' microns'</l>
+<l>Message[3] := '   Deviation   ' + (deviation(ErrorPitchLines) * 1000)$'5.2f' + ' microns'</l>
+<l>disp_message (WindowHandle, Message, 'window', 37 + 500, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* It is possible to transform xld contours and points that were extracted from</c>
+<c>*  the original image into the measurement plane</c>
+<l>ESPAlpha := 2</l>
+<l>ESPLow := 20</l>
+<l>ESPHigh := 40</l>
+<l>SSXMin := 0.7</l>
+<l>SSXMax := 1.0</l>
+<l>FECXMaxNumPoints := -1</l>
+<l>FECXMaxClosureDist := 0</l>
+<l>FECXClippingEndPoints := 0</l>
+<l>FECXVossTabSize := 200</l>
+<l>FECXIterations := 3</l>
+<l>FECXClippingFactor := 2</l>
+<c>* Get the observed caltab contour for the image.</c>
+<l>get_calib_data_observ_contours (CaltabCont, CalibDataID, 'caltab', 0, 0, NumCalibImages)</l>
+<l>gen_region_contour_xld (CaltabCont, Caltab, 'filled')</l>
+<l>dev_clear_window ()</l>
+<l>reduce_domain (Image, Caltab, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', ESPAlpha, ESPLow, ESPHigh)</l>
+<l>select_shape_xld (Edges, SelectedXLD, 'circularity', 'and', SSXMin, SSXMax)</l>
+<l>fit_ellipse_contour_xld (SelectedXLD, 'fitzgibbon', FECXMaxNumPoints, FECXMaxClosureDist, FECXClippingEndPoints, FECXVossTabSize, FECXIterations, FECXClippingFactor, RowMark, ColMark, Phi1, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>gen_cross_contour_xld (CrossMark, RowMark, ColMark, GCCXSize, GCCXAngle)</l>
+<l>dev_display (ImageMapped)</l>
+<l>contour_to_world_plane_xld (SelectedXLD, ContoursWorld, CamParam, PoseForEntireImage, ScaleForEntireImage)</l>
+<l>image_points_to_world_plane (CamParam, PoseForEntireImage, RowMark, ColMark, ScaleForEntireImage, XMark, YMark)</l>
+<l>gen_cross_contour_xld (CrossMarkWorld, YMark, XMark, GCCXSize, GCCXAngle)</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 577, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mapped image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_arrow (WindowHandle, 2700, 400, 650, 700, 10)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* It is also possible, to project world coordinates into the linescan image</c>
+<c>* </c>
+<c>* First, the linescan image is projected into the plane of the calibration plate</c>
+<l>PITWPCCenterRow := 2500</l>
+<l>PITWPCCenterCol := 1500</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageReduced)</l>
+<l>dev_display (CrossMark)</l>
+<l>parameters_image_to_world_plane_centered (CamParam, NFinalPose, PITWPCCenterRow, PITWPCCenterCol, Width, Height, ScaleForCenteredImage, PoseForCenteredImage)</l>
+<l>image_to_world_plane (Image, ImageMappedCP, CamParam, PoseForCenteredImage, Width, Height, ScaleForCenteredImage, 'bilinear')</l>
+<c>* </c>
+<c>* Then, the calibration marks are extracted 'manually'</c>
+<l>dev_set_color ('yellow')</l>
+<l>find_calib_object (ImageMappedCP, CalibDataID, 0, 0, NumCalibImages + 1, 'alpha', FMAPAlpha)</l>
+<l>get_calib_data_observ_contours (CaltabCont, CalibDataID, 'caltab', 0, 0, NumCalibImages + 1)</l>
+<l>gen_region_contour_xld (CaltabCont, Caltab, 'filled')</l>
+<l>reduce_domain (ImageMappedCP, Caltab, ImageReducedCP)</l>
+<l>edges_sub_pix (ImageReducedCP, Edges, 'canny', ESPAlpha, ESPLow, ESPHigh)</l>
+<l>select_shape_xld (Edges, ContoursWorld, 'circularity', 'and', SSXMin, SSXMax)</l>
+<l>fit_circle_contour_xld (ContoursWorld, 'algebraic', FECXMaxNumPoints, FECXMaxClosureDist, FECXClippingEndPoints, FECXIterations, FECXClippingFactor, YMarkFromWorldContours, XMarkFromWorldContours, Radius, StartPhi1, EndPhi1, PointOrder1)</l>
+<c>* and projected into the line scan image</c>
+<l>pose_to_hom_mat3d (PoseForCenteredImage, HomMat3DForCenteredImage)</l>
+<l>affine_trans_point_3d (HomMat3DForCenteredImage, XMarkFromWorldContours * ScaleForCenteredImage, YMarkFromWorldContours * ScaleForCenteredImage, gen_tuple_const(|XMarkFromWorldContours|,0), XCamMark, YCamMark, ZCamMark)</l>
+<l>project_3d_point (XCamMark, YCamMark, ZCamMark, CamParam, RowMarkFromWorldContour, ColMarkFromWorldContour)</l>
+<l>gen_cross_contour_xld (CrossMarkFromWorldContour, RowMarkFromWorldContour, ColMarkFromWorldContour, GCCXSize, GCCXAngle)</l>
+<l>calc_min_distance_between_point_sets (RowMark, ColMark, RowMarkFromWorldContour, ColMarkFromWorldContour, DR, DC, D)</l>
+<l>disp_message (WindowHandle, 'Mean distance = ' + mean(D)$'.3f' + ' pixel', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 530, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Mapped image', 'window', 100, 12, 'black', 'true')</l>
+<l>disp_arrow (WindowHandle, 1100, 1050, 2850, 550, 10)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="parameters_image_to_world_plane_entire">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="WidthMappedImage" base_type="ctrl" dimension="0"/>
+<par name="HeightMappedImage" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ScaleForEntireImage" base_type="ctrl" dimension="0"/>
+<par name="PoseForEntireImage" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Transform the image border into the WCS (scale = 1)</c>
+<l>full_domain (Image, ImageFull)</l>
+<l>get_domain (ImageFull, Domain)</l>
+<l>gen_contour_region_xld (Domain, ImageBorder, 'border')</l>
+<l>contour_to_world_plane_xld (ImageBorder, ImageBorderWCS, CamParam, Pose, 1)</l>
+<l>smallest_rectangle1_xld (ImageBorderWCS, MinY, MinX, MaxY, MaxX)</l>
+<c>* Determine the scale of the mapping</c>
+<l>ExtentX := MaxX - MinX</l>
+<l>ExtentY := MaxY - MinY</l>
+<l>ScaleX := ExtentX / WidthMappedImage</l>
+<l>ScaleY := ExtentY / HeightMappedImage</l>
+<l>ScaleForEntireImage := max([ScaleX,ScaleY])</l>
+<c>* Shift the pose by the minimum X and Y coordinates</c>
+<l>set_origin_pose (Pose, MinX, MinY, 0, PoseForEntireImage)</l>
+<l>return ()</l>
+</body>
+<docu id="parameters_image_to_world_plane_entire">
+<short lang="en_US">Determine scale and pose such that the whole image fits into the rectified image.</short>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="HeightMappedImage"/>
+<parameter id="Image"/>
+<parameter id="Pose"/>
+<parameter id="PoseForEntireImage"/>
+<parameter id="ScaleForEntireImage"/>
+<parameter id="WidthMappedImage"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="calc_min_distance_between_point_sets">
+<interface>
+<ic>
+<par name="Row1" base_type="ctrl" dimension="0"/>
+<par name="Col1" base_type="ctrl" dimension="0"/>
+<par name="Row2" base_type="ctrl" dimension="0"/>
+<par name="Col2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DR" base_type="ctrl" dimension="0"/>
+<par name="DC" base_type="ctrl" dimension="0"/>
+<par name="D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>DR := []</l>
+<l>DC := []</l>
+<l>D := []</l>
+<l>num := |Row1|</l>
+<l>for i := 0 to num - 1 by 1</l>
+<l>    distance_pp (gen_tuple_const(num,Row1[i]), gen_tuple_const(num,Col1[i]), Row2, Col2, Distance)</l>
+<l>    tuple_sort_index (Distance, Indices)</l>
+<l>    DR := [DR,Row1[i] - Row2[Indices[0]]]</l>
+<l>    DC := [DC,Col1[i] - Col2[Indices[0]]]</l>
+<l>    D := [D,Distance[Indices[0]]]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="calc_min_distance_between_point_sets">
+<short lang="en_US">Calculates the minimum distance from each point of the first point set to points of the second set.</short>
+<parameters>
+<parameter id="Col1"/>
+<parameter id="Col2"/>
+<parameter id="D"/>
+<parameter id="DC"/>
+<parameter id="DR"/>
+<parameter id="Row1"/>
+<parameter id="Row2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="parameters_image_to_world_plane_centered">
+<interface>
+<ic>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="CenterRow" base_type="ctrl" dimension="0"/>
+<par name="CenterCol" base_type="ctrl" dimension="0"/>
+<par name="WidthMappedImage" base_type="ctrl" dimension="0"/>
+<par name="HeightMappedImage" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ScaleForCenteredImage" base_type="ctrl" dimension="0"/>
+<par name="PoseForCenteredImage" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Determine the scale for the mapping</c>
+<c>* (here, the scale is determined such that in the</c>
+<c>*   surroundings of the given point  the image scale of the</c>
+<c>*   mapped image is similar to the image scale of the original image)</c>
+<l>Dist_ICS := 1</l>
+<l>image_points_to_world_plane (CamParam, Pose, CenterRow, CenterCol, 1, CenterX, CenterY)</l>
+<l>image_points_to_world_plane (CamParam, Pose, CenterRow + Dist_ICS, CenterCol, 1, BelowCenterX, BelowCenterY)</l>
+<l>image_points_to_world_plane (CamParam, Pose, CenterRow, CenterCol + Dist_ICS, 1, RightOfCenterX, RightOfCenterY)</l>
+<l>distance_pp (CenterY, CenterX, BelowCenterY, BelowCenterX, Dist_WCS_Vertical)</l>
+<l>distance_pp (CenterY, CenterX, RightOfCenterY, RightOfCenterX, Dist_WCS_Horizontal)</l>
+<l>ScaleVertical := Dist_WCS_Vertical / Dist_ICS</l>
+<l>ScaleHorizontal := Dist_WCS_Horizontal / Dist_ICS</l>
+<l>ScaleForCenteredImage := (ScaleVertical + ScaleHorizontal) / 2.0</l>
+<c>* Determine the parameters for set_origin_pose such</c>
+<c>* that the point given via get_mbutton will be in the center of the</c>
+<c>* mapped image</c>
+<l>DX := CenterX - ScaleForCenteredImage * WidthMappedImage / 2.0</l>
+<l>DY := CenterY - ScaleForCenteredImage * HeightMappedImage / 2.0</l>
+<l>DZ := 0</l>
+<l>set_origin_pose (Pose, DX, DY, DZ, PoseForCenteredImage)</l>
+<l>return ()</l>
+</body>
+<docu id="parameters_image_to_world_plane_centered">
+<short lang="en_US">Determines scale and pose for the operator image_to_world_plane such that a given point appears in the center and that the scale of the rectified image is similar to the scale of the original image.</short>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="CenterCol"/>
+<parameter id="CenterRow"/>
+<parameter id="HeightMappedImage"/>
+<parameter id="Pose"/>
+<parameter id="PoseForCenteredImage"/>
+<parameter id="ScaleForCenteredImage"/>
+<parameter id="WidthMappedImage"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

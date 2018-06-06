@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'patras')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Simulate a Bayer image by sampling the channels of the original image.</c>
+<l>simulate_bayer_image (Image, ImageCFA)</l>
+<l>dev_display (ImageCFA)</l>
+<l>disp_message (WindowHandle, 'Bayer image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Compare the interpolation modes that are available in cfa_to_rgb.</c>
+<l>Interpolations := ['bilinear','bilinear_dir','bilinear_enhanced']</l>
+<l>NumIntModes := |Interpolations|</l>
+<l>gen_empty_obj (RGBImages)</l>
+<l>gen_empty_obj (SubImages)</l>
+<l>for I := 0 to NumIntModes - 1 by 1</l>
+<l>    Interpolation := Interpolations[I]</l>
+<c>    * Reconstruct an RGB image from the Bayer image.</c>
+<l>    cfa_to_rgb (ImageCFA, RGBImage, 'bayer_gb', Interpolation)</l>
+<c>    * Calculate the differences between the original and the reconstructed image.</c>
+<l>    sub_image (Image, RGBImage, ImageSub, 1, 128)</l>
+<c>    * Visualize the results.</c>
+<l>    dev_display (RGBImage)</l>
+<l>    disp_message (WindowHandle, 'RGB image (\'' + Interpolation + '\')', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    dev_display (ImageSub)</l>
+<l>    disp_message (WindowHandle, 'Difference image', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Remember the results for further visualizations.</c>
+<l>    concat_obj (RGBImages, RGBImage, RGBImages)</l>
+<l>    concat_obj (SubImages, ImageSub, SubImages)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Compare the interpolation modes in two selected zoomed image parts.</c>
+<l>PartWidth := 140</l>
+<l>PartHeight := 93</l>
+<l>PartsRow := [122,62]</l>
+<l>PartsColumn := [79,471]</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, PartWidth * 3 * 2, PartHeight * 3 * 2, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>concat_obj (Image, RGBImages, OrigRGBImages)</l>
+<l>concat_obj (Image, SubImages, OrigSubImages)</l>
+<l>LabelResults := ['Original','\'bilinear\'','\'bilinear_dir\'','\'bilinear_enhanced\'']</l>
+<l>for IPart := 0 to |PartsRow| - 1 by 1</l>
+<c>    * Visualize the resulting RGB images.</c>
+<l>    tile_images_offset (OrigRGBImages, RGBImagesTiled, [0,0,PartHeight,PartHeight], [0,PartWidth,0,PartWidth], gen_tuple_const(NumIntModes + 1,PartsRow[IPart]), gen_tuple_const(NumIntModes + 1,PartsColumn[IPart]), gen_tuple_const(NumIntModes + 1,PartsRow[IPart] + PartHeight - 1), gen_tuple_const(NumIntModes + 1,PartsColumn[IPart] + PartWidth - 1), PartWidth * 2, PartHeight * 2)</l>
+<l>    dev_display (RGBImagesTiled)</l>
+<l>    R := [0:|LabelResults| - 1] / 2</l>
+<l>    C := [0:|LabelResults| - 1] % 2</l>
+<l>    disp_message (WindowHandle, LabelResults, 'image', 3 + PartHeight * R, 3 + PartWidth * C, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Visualize the difference images.</c>
+<l>    tile_images_offset (OrigSubImages, SubImagesTiled, [0,0,PartHeight,PartHeight], [0,PartWidth,0,PartWidth], gen_tuple_const(NumIntModes + 1,PartsRow[IPart]), gen_tuple_const(NumIntModes + 1,PartsColumn[IPart]), gen_tuple_const(NumIntModes + 1,PartsRow[IPart] + PartHeight - 1), gen_tuple_const(NumIntModes + 1,PartsColumn[IPart] + PartWidth - 1), PartWidth * 2, PartHeight * 2)</l>
+<l>    dev_display (SubImagesTiled)</l>
+<l>    R := [0:|LabelResults| - 1] / 2</l>
+<l>    C := [0:|LabelResults| - 1] % 2</l>
+<l>    disp_message (WindowHandle, LabelResults, 'image', 3 + PartHeight * R, 3 + PartWidth * C, 'black', 'true')</l>
+<l>    if (IPart &lt; |PartsRow| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="simulate_bayer_image">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageCFA" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<l>gen_checker_region (RegionChecker, Width, Height + 1, 1, 1)</l>
+<l>move_region (RegionChecker, MaskGreen, -1, 0)</l>
+<l>gen_grid_region (RegionGrid, 2, 2, 'points', Width, Height)</l>
+<l>move_region (RegionGrid, MaskBlue, 0, 1)</l>
+<l>move_region (RegionGrid, MaskRed, 1, 0)</l>
+<l>decompose3 (Image, ImageRed, ImageGreen, ImageBlue)</l>
+<l>reduce_domain (ImageRed, MaskRed, ImageMaskRed)</l>
+<l>reduce_domain (ImageGreen, MaskGreen, ImageMaskGreen)</l>
+<l>reduce_domain (ImageBlue, MaskBlue, ImageMaskBlue)</l>
+<l>gen_image_const (ImageCFA, 'byte', Width, Height)</l>
+<l>paint_gray (ImageMaskRed, ImageCFA, ImageCFA)</l>
+<l>paint_gray (ImageMaskGreen, ImageCFA, ImageCFA)</l>
+<l>paint_gray (ImageMaskBlue, ImageCFA, ImageCFA)</l>
+<l>return ()</l>
+</body>
+<docu id="simulate_bayer_image">
+<short lang="en_US">Simulate a Bayer image by sampling the channels of the original image</short>
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageCFA"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

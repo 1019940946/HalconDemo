@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example compares the calibration results obtained</c>
+<c>* for the camera models 'division' and 'polynomial'.</c>
+<c>* A sequence of calibration images was acquired with a camera</c>
+<c>* that has a lens with strong radial distortions. Multiple</c>
+<c>* calibrations of the camera are performed by appending a new</c>
+<c>* image from the sequence to the calibration data for each</c>
+<c>* successive calibration turn.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>read_image (Image, 'calib/calib_distorted_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 400, 400, WindowHandle)</l>
+<l>get_window_extents (WindowHandle, MainR, MainC, MainWidth, MainHeight)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_polynomial (0.005, 0, 0, 0, 0, 0, 9.3e-6, 9.3e-6, Width * 0.5, Height * 0.5, Width, Height, StartCamParPoly)</l>
+<l>gen_cam_par_area_scan_division (0.005, 0, 9.3e-6, 9.3e-6, Width * 0.5, Height * 0.5, Width, Height, StartCamParDiv)</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Determine the marks and pose of\nthe calibration plate for the camera\nmodels \'division\' and \'polynomial\'', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>create_calib_data ('calibration_object', 1, 1, DivCalibDataID)</l>
+<l>set_calib_data_cam_param (DivCalibDataID, 0, [], StartCamParDiv)</l>
+<l>set_calib_data_calib_object (DivCalibDataID, 0, 'caltab_100mm.descr')</l>
+<c>* </c>
+<l>create_calib_data ('calibration_object', 1, 1, PolyCalibDataID)</l>
+<l>set_calib_data_cam_param (PolyCalibDataID, 0, [], StartCamParPoly)</l>
+<l>set_calib_data_calib_object (PolyCalibDataID, 0, 'caltab_100mm.descr')</l>
+<c>* </c>
+<c>* Determine marks and pose of the calibration plate to perform the calibration</c>
+<c>* set_calib_model_params_specific (DivCalibDataID, 'camera', 0, 'excluded_params', 'pose')</c>
+<c>* set_calib_model_params_specific (PolyCalibDataID, 'camera', 0, 'excluded_params', 'pose')</c>
+<l>StatFDiv := []</l>
+<l>StatKappaDiv := []</l>
+<l>StatSxDiv := []</l>
+<l>StatCyDiv := []</l>
+<l>StatFPoly := []</l>
+<l>StatK1Poly := []</l>
+<l>StatSxPoly := []</l>
+<l>StatCyPoly := []</l>
+<l>NumImgs := 69</l>
+<l>NumImgsSkip := 13</l>
+<l>ImgsBaseFN := 'calib/calib_distorted_'</l>
+<c>* Choose, in which order the calibration images</c>
+<c>* shall be used. You can select between an ascending</c>
+<c>* order:</c>
+<l>Indices := [1:NumImgs]</l>
+<c>* and a random order, which is selected by</c>
+<c>* uncommenting the following line:</c>
+<l>* Indices := [34,16,52,29,63,65,45,14,10,3,38,18,49,36,59,6,21,43,50,47,1,11,26,44,13,28,66,68,48,54,40,67,2,55,30,17,69,64,56,60,23,5,58,27,20,57,9,31,25,46,4,53,61,39,37,32,7,15,22,41,19,51,12,42,62,33,8,35,24]</l>
+<c>* </c>
+<c>* If you use the images in ascending order, the calibration</c>
+<c>* first uses the images with calibration plates that are not</c>
+<c>* tilted and then the images with the tilted calibration plates.</c>
+<c>* Within the graphs you see that the standard deviation</c>
+<c>* is significantly improved after adding the tilted</c>
+<c>* calibration plates.</c>
+<c>* If you use the images in random order, the standard deviation</c>
+<c>* is also improved, but at an earlier stage of the calibration.</c>
+<c>* Note that the random sequence has been created with the</c>
+<c>* following line and has been hard coded to get repeatable</c>
+<c>* results:</c>
+<l>* Indices := sort_index(rand(NumImgs)) + 1</l>
+<c>* </c>
+<l>MaxDF := 0</l>
+<l>MaxDSx := 0</l>
+<l>MaxDSy := 0</l>
+<l>for K := 1 to NumImgs by 1</l>
+<l>    I := Indices[K - 1]</l>
+<l>    read_image (Image, ImgsBaseFN + I$'02')</l>
+<l>    find_calib_object (Image, DivCalibDataID, 0, 0, K, [], [])</l>
+<l>    find_calib_object (Image, PolyCalibDataID, 0, 0, K, [], [])</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    get_calib_data_observ_points (DivCalibDataID, 0, 0, K, Row, Column, Index, StartPose)</l>
+<l>    disp_caltab (WindowHandle, 'caltab_100mm.descr', StartCamParDiv, StartPose, 1)</l>
+<c>    * </c>
+<l>    dev_set_color ('magenta')</l>
+<l>    get_calib_data_observ_points (PolyCalibDataID, 0, 0, K, Row, Column, Index, StartPose)</l>
+<l>    disp_caltab (WindowHandle, 'caltab_100mm.descr', StartCamParPoly, StartPose, 1)</l>
+<l>    disp_message (WindowHandle, 'Extracting calibration features', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Perform calibration</c>
+<c>    * (if a minimum number of images has been processed)</c>
+<l>    if (K &gt; NumImgsSkip)</l>
+<l>        calibrate_cameras (DivCalibDataID, ErrorsDiv)</l>
+<l>        calibrate_cameras (PolyCalibDataID, ErrorsPoly)</l>
+<l>        get_calib_data (DivCalibDataID, 'camera', 0, 'params', CamParamDiv)</l>
+<l>        get_calib_data (PolyCalibDataID, 'camera', 0, 'params', CamParamPoly)</l>
+<l>        get_calib_data (DivCalibDataID, 'camera', 0, 'params_deviations', DeviationsDiv)</l>
+<l>        get_calib_data (PolyCalibDataID, 'camera', 0, 'params_deviations', DeviationsPoly)</l>
+<c>        * </c>
+<l>        get_cam_par_data (CamParamDiv, 'focus', FocusDiv)</l>
+<l>        get_cam_par_data (CamParamDiv, 'kappa', KappaDiv)</l>
+<l>        get_cam_par_data (CamParamDiv, 'sx', SxDiv)</l>
+<l>        get_cam_par_data (CamParamDiv, 'cy', CyDiv)</l>
+<l>        StatFDiv := [StatFDiv,FocusDiv,DeviationsDiv[0]]</l>
+<l>        StatKappaDiv := [StatKappaDiv,KappaDiv,DeviationsDiv[1]]</l>
+<l>        StatSxDiv := [StatSxDiv,SxDiv,DeviationsDiv[2]]</l>
+<l>        StatCyDiv := [StatCyDiv,CyDiv,DeviationsDiv[5]]</l>
+<l>        get_cam_par_data (CamParamPoly, 'focus', FocusPoly)</l>
+<l>        get_cam_par_data (CamParamPoly, 'k1', K1Poly)</l>
+<l>        get_cam_par_data (CamParamPoly, 'sx', SxPoly)</l>
+<l>        get_cam_par_data (CamParamPoly, 'cy', CyPoly)</l>
+<l>        StatFPoly := [StatFPoly,FocusPoly,DeviationsPoly[0]]</l>
+<l>        StatK1Poly := [StatK1Poly,K1Poly,DeviationsPoly[1]]</l>
+<l>        StatSxPoly := [StatSxPoly,SxPoly,DeviationsPoly[6]]</l>
+<l>        StatCyPoly := [StatCyPoly,CyPoly,DeviationsPoly[9]]</l>
+<c>        * </c>
+<l>        MaxDF := max([MaxDF,DeviationsDiv[0],DeviationsPoly[0]])</l>
+<l>        MaxDSx := max([MaxDSx,DeviationsDiv[2],DeviationsPoly[6]])</l>
+<l>        MaxDSy := max([MaxDSy,DeviationsDiv[3],DeviationsPoly[7]])</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle, ['Extraction completed!','Proceed to the inspection of the','standard deviations'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>clear_calib_data (PolyCalibDataID)</l>
+<l>clear_calib_data (DivCalibDataID)</l>
+<c>* </c>
+<l>WinWidth := 600</l>
+<l>WinHeight := 300</l>
+<l>dev_open_window (0, MainWidth + 13, WinWidth, WinHeight, 'black', WindowHandleDiv)</l>
+<l>dev_open_window (MainHeight + 62, 0, MainWidth, 2 * WinHeight - MainHeight, 'black', WindowlHandleCmp)</l>
+<l>dev_open_window (WinHeight + 62, MainWidth + 13, WinWidth, WinHeight, 'black', WindowHandlePoly)</l>
+<c>* </c>
+<c>* Inspect focal length</c>
+<l>ImgNumRange := [NumImgsSkip + 1,NumImgs]</l>
+<l>plot_stats_graph (StatFDiv, WindowHandleDiv, 'Focal length - Division', [], true, ['Focal length','Std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_stats_graph (StatFPoly, WindowHandlePoly, 'Focal length - Polynomial', [], true, ['Focal length','Std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_compare_graph (StatFPoly, StatFDiv, WindowlHandleCmp, ['Standard deviation - Focal length','(comparison)'], ['polynomial','divisional'], ImgNumRange)</l>
+<l>inspect_images (WindowHandle, WindowHandleDiv, NumImgs, NumImgsSkip, PlotStartC, PlotEndC, Indices, ImgsBaseFN, 'Focal length - Division')</l>
+<l>wait_seconds (.5)</l>
+<c>* Inspect radial distortion parameters (Kappa and K1)</c>
+<l>plot_stats_graph (StatKappaDiv, WindowHandleDiv, 'Kappa - Division', [], false, ['kappa','std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_stats_graph (StatK1Poly, WindowHandlePoly, 'K1 - Polynomial', [], false, ['K1','std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>dev_set_window (WindowlHandleCmp)</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowlHandleCmp, '[comparison not available]', 'window', 130, 120, 'white', 'false')</l>
+<l>inspect_images (WindowHandle, WindowHandleDiv, NumImgs, NumImgsSkip, PlotStartC, PlotEndC, Indices, ImgsBaseFN, 'Kappa - Division')</l>
+<l>wait_seconds (.5)</l>
+<c>* Inspect Sx</c>
+<l>plot_stats_graph (StatSxDiv, WindowHandleDiv, 'Sx - Division', [], true, ['sx','std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_stats_graph (StatSxPoly, WindowHandlePoly, 'Sx - Polynomial', [], true, ['sx','std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_compare_graph (StatSxPoly, StatSxDiv, WindowlHandleCmp, ['Standard deviation - Sx','(comparison)'], ['polynomial','divisional'], ImgNumRange)</l>
+<l>inspect_images (WindowHandle, WindowHandleDiv, NumImgs, NumImgsSkip, PlotStartC, PlotEndC, Indices, ImgsBaseFN, 'Sx - Division')</l>
+<l>wait_seconds (.5)</l>
+<c>* Inspect Cy</c>
+<l>plot_stats_graph (StatCyDiv, WindowHandleDiv, 'Cy - Division', [], true, ['sy','std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_stats_graph (StatCyPoly, WindowHandlePoly, 'Cy - Polynomial', [], true, ['sy','std. deviation'], ImgNumRange, PlotStartC, PlotEndC)</l>
+<l>plot_compare_graph (StatCyPoly, StatCyDiv, WindowlHandleCmp, ['Standard deviation - Cy','(comparison)'], ['polynomial','divisional'], ImgNumRange)</l>
+<l>inspect_images (WindowHandle, WindowHandleDiv, NumImgs, NumImgsSkip, PlotStartC, PlotEndC, Indices, ImgsBaseFN, 'Cy - Division')</l>
+<l>disp_message (WindowHandle, 'End of program', 'window', 12, 12, 'black', 'true')</l>
+<l>gray_window (WindowHandleDiv)</l>
+<l>gray_window (WindowHandlePoly)</l>
+<l>gray_window (WindowlHandleCmp)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="plot_stats_graph">
+<interface>
+<ic>
+<par name="Stat" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Name" base_type="ctrl" dimension="0"/>
+<par name="MaxDev" base_type="ctrl" dimension="0"/>
+<par name="PositiveOnly" base_type="ctrl" dimension="0"/>
+<par name="Legend" base_type="ctrl" dimension="0"/>
+<par name="ImgNumRange" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="PlotStartC" base_type="ctrl" dimension="0"/>
+<par name="PlotEndC" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>get_window_extents (WindowHandle, Row, Column, WinWidth, WinHeight)</l>
+<l>GraphWidth := 0.6 * WinWidth</l>
+<l>GraphHeight := 0.77 * WinHeight</l>
+<l>PlotStartR := 0.5 * (WinHeight - GraphHeight) - 2</l>
+<l>PlotEndR := 0.5 * (WinHeight + GraphHeight) - 2</l>
+<l>PlotStartC := 0.5 * (WinWidth - GraphWidth) - 5</l>
+<l>PlotEndC := 0.5 * (WinWidth + GraphWidth) + 5</l>
+<l>Marker := 10</l>
+<l>B := 2</l>
+<l>Sequence := [0:2:|Stat| - 2]</l>
+<l>F := subset(Stat,Sequence)</l>
+<l>DF := subset(Stat,Sequence + 1)</l>
+<c>* Generate X grid</c>
+<l>Resolut := real(GraphWidth) / (|F| - 1)</l>
+<l>X := [PlotStartC + 5:Resolut:PlotStartC + 5 + GraphWidth]</l>
+<c>* Prepare mixed (error-bars) graph (left axis)</c>
+<l>MinDFF := min([F + DF,F - DF])</l>
+<l>MaxDFF := max([F + DF,F - DF])</l>
+<l>RangeDFF := MaxDFF - MinDFF</l>
+<l>MaxDFF := MaxDFF + 0.2 * RangeDFF</l>
+<l>MinDFF := MinDFF - 0.2 * RangeDFF</l>
+<l>if (PositiveOnly)</l>
+<l>    MinDFF := max([MinDFF,0.0])</l>
+<l>endif</l>
+<c>* Update range</c>
+<l>RangeDFF := MaxDFF - MinDFF</l>
+<l>NormF := (F - MinDFF) / RangeDFF</l>
+<c>* Prepare Y values</c>
+<l>Y := GraphHeight * (F - MinDFF) / RangeDFF</l>
+<l>DY := GraphHeight * DF / RangeDFF</l>
+<c>* </c>
+<l>gen_contour_polygon_xld (Graph, PlotEndR - Y, X)</l>
+<l>gen_contour_polygon_xld (FinalF, (PlotEndR - Y[|Y| - 1]) * [1,1], [PlotStartC - Marker,PlotStartC])</l>
+<c>* </c>
+<l>gen_empty_obj (ErrBars)</l>
+<l>for I := 0 to |X| - 1 by 1</l>
+<l>    gen_contour_polygon_xld (ErrBar, PlotEndR - [Y[I] - DY[I],Y[I] - DY[I],Y[I] - DY[I],Y[I] + DY[I],Y[I] + DY[I],Y[I] + DY[I]], [X[I] - B,X[I] + B,X[I],X[I],X[I] + B,X[I] - B])</l>
+<l>    concat_obj (ErrBars, ErrBar, ErrBars)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Prepare Deviations-Only graph (right y-axis)</c>
+<l>DF := subset(Stat,Sequence + 1)</l>
+<l>MinDF := min(DF)</l>
+<l>if (|MaxDev| == 1)</l>
+<l>    MaxDF := MaxDev</l>
+<l>else</l>
+<l>    MaxDF := max(DF)</l>
+<l>endif</l>
+<l>RangeDF := MaxDF - MinDF</l>
+<l>MaxDF := MaxDF + 0.2 * RangeDF</l>
+<l>MinDF := MinDF - 0.2 * RangeDF</l>
+<l>if (PositiveOnly)</l>
+<l>    MinDF := max([MinDF,0.0])</l>
+<l>endif</l>
+<c>* Update range</c>
+<l>RangeDF := MaxDF - MinDF</l>
+<l>Z := GraphHeight * (DF - MinDF) / RangeDF</l>
+<l>gen_contour_polygon_xld (DevGraph, PlotEndR - Z, X)</l>
+<l>gen_contour_polygon_xld (FinalDF, (PlotEndR - Z[|Z| - 1]) * [1,1], [PlotEndC,PlotEndC + Marker])</l>
+<c>* </c>
+<l>gen_contour_polygon_xld (XAxis, [PlotEndR + 3,PlotEndR,PlotEndR,PlotEndR + 3], [PlotStartC,PlotStartC,PlotEndC,PlotEndC])</l>
+<l>* gen_contour_polygon_xld (XAxis, [PlotEndR,PlotEndR], [PlotStartC,PlotEndC])</l>
+<l>gen_contour_polygon_xld (XMark, [PlotEndR,PlotEndR + Marker], [PlotStartC,PlotStartC] + 5)</l>
+<l>concat_obj (XAxis, XMark, XAxis)</l>
+<l>gen_contour_polygon_xld (XMark, [PlotEndR,PlotEndR + Marker], [PlotEndC,PlotEndC] - 5)</l>
+<l>concat_obj (XAxis, XMark, XAxis)</l>
+<c>* </c>
+<l>gen_contour_polygon_xld (YAxisMixed, [PlotStartR,PlotStartR,PlotEndR,PlotEndR], [PlotStartC - Marker,PlotStartC,PlotStartC,PlotStartC - Marker])</l>
+<l>concat_obj (YAxisMixed, FinalF, YAxisMixed)</l>
+<l>gen_contour_polygon_xld (YAxisDev, [PlotStartR,PlotStartR,PlotEndR,PlotEndR], [PlotEndC + Marker,PlotEndC,PlotEndC,PlotEndC + Marker])</l>
+<l>concat_obj (YAxisDev, FinalDF, YAxisDev)</l>
+<c>* </c>
+<l>GraphLineWidth := 3</l>
+<l>GraphColor := 'cyan'</l>
+<l>DevColor := 'yellow'</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (XAxis)</l>
+<l>dev_set_color (GraphColor)</l>
+<l>dev_display (YAxisMixed)</l>
+<l>dev_set_line_width (GraphLineWidth)</l>
+<l>dev_display (Graph)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color (GraphColor)</l>
+<l>dev_display (ErrBars)</l>
+<l>dev_set_line_width (GraphLineWidth)</l>
+<l>dev_set_color (DevColor)</l>
+<l>dev_display (DevGraph)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (YAxisDev)</l>
+<c>* </c>
+<l>get_string_extents (WindowHandle, Name, Ascent, Descent, StrWidth, StrHeight)</l>
+<l>if (|Legend| == 2)</l>
+<l>    Colors := [GraphColor,DevColor]</l>
+<l>    for I := 0 to |Legend| - 1 by 1</l>
+<l>        get_string_extents (WindowHandle, Legend[I] + ' ---', Ascent, Descent, StrWidth, StrHeight)</l>
+<l>        disp_message (WindowHandle, Legend[I] + ' ---', 'window', PlotStartR + StrHeight * I + 10, PlotEndC - StrWidth - 10, Colors[I], 'false')</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>PlotCenterC := 0.5 * (PlotStartC + PlotEndC)</l>
+<c>* Print labels (left y-axis)</c>
+<l>disp_message (WindowHandle, Name, 'window', 10, PlotCenterC - StrWidth / 2, 'white', 'false')</l>
+<l>disp_message (WindowHandle, MaxDFF$'g', 'window', PlotStartR - StrHeight / 2, 10, GraphColor, 'false')</l>
+<l>disp_message (WindowHandle, F[|F| - 1]$'g', 'window', PlotEndR - Y[|Y| - 1] - StrHeight / 2, 10, GraphColor, 'false')</l>
+<l>if (abs(Y[|Y| - 1]) &gt; StrHeight)</l>
+<l>    disp_message (WindowHandle, MinDFF$'g', 'window', PlotEndR - StrHeight / 2, 10, GraphColor, 'false')</l>
+<l>endif</l>
+<c>* Print labels (right y-axis)</c>
+<l>disp_message (WindowHandle, MaxDF$'g', 'window', PlotStartR - StrHeight / 2, PlotEndC + Marker + 10, DevColor, 'false')</l>
+<l>disp_message (WindowHandle, DF[|DF| - 1]$'g', 'window', PlotEndR - Z[|Z| - 1] - StrHeight / 2, PlotEndC + Marker + 10, DevColor, 'false')</l>
+<l>if (abs(Z[|Z| - 1]) &gt; StrHeight)</l>
+<l>    disp_message (WindowHandle, MinDF$'g', 'window', PlotEndR - StrHeight / 2, PlotEndC + Marker + 10, DevColor, 'false')</l>
+<l>endif</l>
+<l>get_string_extents (WindowHandle, 'Images', Ascent, Descent, StrWidth, StrHeight)</l>
+<l>disp_message (WindowHandle, 'Images', 'window', PlotEndR + Marker + 5, PlotCenterC - StrWidth / 2, 'white', 'false')</l>
+<l>ImgNumStr := ImgNumRange[0]$'d'</l>
+<l>get_string_extents (WindowHandle, ImgNumStr, Ascent, Descent, StrWidth, StrHeight)</l>
+<l>disp_message (WindowHandle, ImgNumStr, 'window', PlotEndR + Marker + 5, PlotStartC - StrWidth / 2 + 5, 'white', 'false')</l>
+<l>ImgNumStr := ImgNumRange[1]$'d'</l>
+<l>get_string_extents (WindowHandle, ImgNumStr, Ascent, Descent, StrWidth, StrHeight)</l>
+<l>disp_message (WindowHandle, ImgNumStr, 'window', PlotEndR + Marker + 5, PlotEndC - StrWidth / 2 - 5, 'white', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="plot_stats_graph">
+<parameters>
+<parameter id="ImgNumRange"/>
+<parameter id="Legend"/>
+<parameter id="MaxDev"/>
+<parameter id="Name"/>
+<parameter id="PlotEndC"/>
+<parameter id="PlotStartC"/>
+<parameter id="PositiveOnly"/>
+<parameter id="Stat"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="plot_compare_graph">
+<interface>
+<ic>
+<par name="StatPoly" base_type="ctrl" dimension="0"/>
+<par name="StatDiv" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Name" base_type="ctrl" dimension="0"/>
+<par name="Legend" base_type="ctrl" dimension="0"/>
+<par name="ImgNumRange" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>get_window_extents (WindowHandle, Row, Column, WinWidth, WinHeight)</l>
+<l>GraphWidth := 0.7 * WinWidth</l>
+<l>GraphHeight := 0.77 * WinHeight</l>
+<l>PlotStartR := 0.5 * (WinHeight - GraphHeight) - 5</l>
+<l>PlotEndR := 0.5 * (WinHeight + GraphHeight) - 5</l>
+<l>PlotStartC := 0.8 * (WinWidth - GraphWidth)</l>
+<l>PlotEndC := 0.8 * WinWidth + 0.2 * GraphWidth + 10</l>
+<c>* </c>
+<l>Marker := 10</l>
+<l>GraphLineWidth := 3</l>
+<l>ColorPoly := 'cyan'</l>
+<l>ColorDiv := 'yellow'</l>
+<l>FXX := '.4e'</l>
+<c>* </c>
+<l>Sequence := [1:2:|StatPoly| - 1]</l>
+<c>* </c>
+<l>Poly := subset(StatPoly,Sequence)</l>
+<l>Step := real(GraphWidth) / (|Poly| - 1)</l>
+<l>PolyX := [PlotStartC + 5:Step:PlotStartC + 5 + GraphWidth]</l>
+<c>* </c>
+<l>Sequence := [1:2:|StatDiv| - 1]</l>
+<l>Div := subset(StatDiv,Sequence)</l>
+<l>Step := real(GraphWidth) / (|Div| - 1)</l>
+<l>DivX := [PlotStartC + 5:Step:PlotStartC + 5 + GraphWidth]</l>
+<c>* </c>
+<c>* Prepare y-axis</c>
+<l>PolyLg := log10(Poly)</l>
+<l>DivLg := log10(Div)</l>
+<l>MinV := min([PolyLg,DivLg])</l>
+<l>MaxV := max([PolyLg,DivLg])</l>
+<l>RangeV := MaxV - MinV</l>
+<l>MaxV := MaxV + 0.1 * RangeV</l>
+<l>MinV := MinV - 0.1 * RangeV</l>
+<c>* Update range</c>
+<l>RangeV := MaxV - MinV</l>
+<l>PolyY := GraphHeight * (PolyLg - MinV) / RangeV</l>
+<l>DivY := GraphHeight * (DivLg - MinV) / RangeV</l>
+<c>* </c>
+<l>LastPoly := Poly[|Poly| - 1]</l>
+<l>LastDiv := Div[|Div| - 1]</l>
+<l>LastPolyY := PolyY[|PolyY| - 1]</l>
+<l>LastDivY := DivY[|DivY| - 1]</l>
+<c>* </c>
+<l>MinLg := ceil(MinV) - MinV</l>
+<l>MaxLg := floor(MaxV) - MinV</l>
+<l>gen_empty_obj (LgMarkers)</l>
+<l>for MrkLg := MinLg to MaxLg by 1</l>
+<l>    LgMark := PlotEndR - GraphHeight * MrkLg / RangeV</l>
+<l>    for J := 1 to 5 by 1</l>
+<l>        if (LgMark + J * J &gt; PlotStartR and LgMark + J * J &lt; PlotEndR)</l>
+<l>            gen_contour_polygon_xld (LgMarker, (LgMark + J * J) * [1,1], [PlotStartC,PlotStartC + Marker - 1.5 * J])</l>
+<l>            concat_obj (LgMarkers, LgMarker, LgMarkers)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<l>gen_contour_polygon_xld (GraphPoly, PlotEndR - PolyY, PolyX)</l>
+<l>gen_contour_polygon_xld (FinalPoly, (PlotEndR - LastPolyY) * [1,1], [PlotStartC - Marker,PlotStartC])</l>
+<l>gen_contour_polygon_xld (GraphDiv, PlotEndR - DivY, DivX)</l>
+<l>gen_contour_polygon_xld (FinalDiv, (PlotEndR - LastDivY) * [1,1], [PlotStartC - Marker,PlotStartC])</l>
+<c>* </c>
+<l>gen_contour_polygon_xld (XAxis, [PlotEndR + 3,PlotEndR,PlotEndR,PlotEndR + 3], [PlotStartC,PlotStartC,PlotEndC,PlotEndC])</l>
+<l>gen_contour_polygon_xld (XMark, [PlotEndR,PlotEndR + Marker], [PlotStartC,PlotStartC] + 5)</l>
+<l>concat_obj (XAxis, XMark, XAxis)</l>
+<l>gen_contour_polygon_xld (XMark, [PlotEndR,PlotEndR + Marker], [PlotEndC,PlotEndC] - 5)</l>
+<l>concat_obj (XAxis, XMark, XAxis)</l>
+<c>* </c>
+<l>gen_contour_polygon_xld (YAxis, [PlotStartR,PlotStartR,PlotEndR,PlotEndR], [PlotStartC - Marker,PlotStartC,PlotStartC,PlotStartC - Marker])</l>
+<l>concat_obj (YAxis, FinalPoly, YAxis)</l>
+<l>concat_obj (YAxis, FinalDiv, YAxis)</l>
+<c>* </c>
+<l>dev_set_color ('white')</l>
+<l>dev_display (XAxis)</l>
+<l>dev_display (YAxis)</l>
+<l>dev_display (LgMarkers)</l>
+<l>dev_set_color (ColorPoly)</l>
+<l>dev_set_line_width (GraphLineWidth)</l>
+<l>dev_display (GraphPoly)</l>
+<l>dev_set_color (ColorDiv)</l>
+<l>dev_display (GraphDiv)</l>
+<l>dev_set_line_width (1)</l>
+<c>* </c>
+<l>PlotCenterC := 0.5 * (PlotStartC + PlotEndC)</l>
+<l>for I := 0 to |Name| - 1 by 1</l>
+<l>    get_string_extents (WindowHandle, Name[I], Ascent, Descent, StrWidth, StrHeight)</l>
+<l>    disp_message (WindowHandle, Name[I], 'window', 10 + StrHeight * I, PlotCenterC - StrWidth / 2, 'white', 'false')</l>
+<l>endfor</l>
+<l>if (|Legend| == 2)</l>
+<l>    Colors := [ColorPoly,ColorDiv]</l>
+<l>    for I := 0 to |Legend| - 1 by 1</l>
+<l>        get_string_extents (WindowHandle, Legend[I] + ' ---', Ascent, Descent, StrWidth, StrHeight)</l>
+<l>        disp_message (WindowHandle, Legend[I] + ' ---', 'window', PlotStartR + StrHeight * I + 10, PlotEndC - StrWidth - 10, Colors[I], 'false')</l>
+<l>    endfor</l>
+<l>endif</l>
+<c>* Print labels (left y-axis)</c>
+<l>disp_message (WindowHandle, exp(log(10) * MaxV)$FXX, 'window', PlotStartR - StrHeight / 2, 10, 'white', 'false')</l>
+<l>if (LastPolyY &gt; LastDivY and LastPolyY - LastDivY &lt; StrHeight)</l>
+<l>    disp_message (WindowHandle, LastPoly$FXX, 'window', PlotEndR - LastPolyY - StrHeight, 10, ColorPoly, 'false')</l>
+<l>    disp_message (WindowHandle, LastDiv$FXX, 'window', PlotEndR - LastDivY, 10, ColorDiv, 'false')</l>
+<l>elseif (LastPolyY &lt; LastDivY and LastDivY - LastPolyY &lt; StrHeight)</l>
+<l>    disp_message (WindowHandle, LastDiv$FXX, 'window', PlotEndR - LastDivY - StrHeight, 10, ColorDiv, 'false')</l>
+<l>    disp_message (WindowHandle, LastPoly$FXX, 'window', PlotEndR - LastPolyY, 10, ColorPoly, 'false')</l>
+<l>else</l>
+<l>    disp_message (WindowHandle, LastDiv$FXX, 'window', PlotEndR - LastDivY - StrHeight / 2, 10, ColorDiv, 'false')</l>
+<l>    disp_message (WindowHandle, LastPoly$FXX, 'window', PlotEndR - LastPolyY - StrHeight / 2, 10, ColorPoly, 'false')</l>
+<l>endif</l>
+<c>* </c>
+<l>if (0 &lt; min([LastPolyY,LastDivY]) - StrHeight)</l>
+<l>    disp_message (WindowHandle, exp(log(10) * MinV)$FXX, 'window', PlotEndR - StrHeight / 2, 10, 'white', 'false')</l>
+<l>endif</l>
+<l>get_string_extents (WindowHandle, 'images', Ascent, Descent, StrWidth, StrHeight)</l>
+<l>disp_message (WindowHandle, 'Images', 'window', PlotEndR + Marker + 5, PlotCenterC - StrWidth / 2, 'white', 'false')</l>
+<l>ImgNumStr := ImgNumRange[0]$'d'</l>
+<l>get_string_extents (WindowHandle, ImgNumStr, Ascent, Descent, StrWidth, StrHeight)</l>
+<l>disp_message (WindowHandle, ImgNumStr, 'window', PlotEndR + Marker + 5, PlotStartC - StrWidth / 2 + 5, 'white', 'false')</l>
+<l>ImgNumStr := ImgNumRange[1]$'d'</l>
+<l>get_string_extents (WindowHandle, ImgNumStr, Ascent, Descent, StrWidth, StrHeight)</l>
+<l>disp_message (WindowHandle, ImgNumStr, 'window', PlotEndR + Marker + 5, PlotEndC - StrWidth / 2 - 5, 'white', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="plot_compare_graph">
+<parameters>
+<parameter id="ImgNumRange"/>
+<parameter id="Legend"/>
+<parameter id="Name"/>
+<parameter id="StatDiv"/>
+<parameter id="StatPoly"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="inspect_images">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleDiv" base_type="ctrl" dimension="0"/>
+<par name="NumImgs" base_type="ctrl" dimension="0"/>
+<par name="NumImgsSkip" base_type="ctrl" dimension="0"/>
+<par name="PlotStartC" base_type="ctrl" dimension="0"/>
+<par name="PlotEndC" base_type="ctrl" dimension="0"/>
+<par name="Perm" base_type="ctrl" dimension="0"/>
+<par name="ImgsBaseFN" base_type="ctrl" dimension="0"/>
+<par name="GraphName" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDialog)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>Column := 0</l>
+<l>Button := 0</l>
+<l>LastImage := -1</l>
+<l>Button := 0</l>
+<l>while (Button == 0)</l>
+<l>    try</l>
+<l>        get_mposition (WindowHandleDiv, Row, Column, Button)</l>
+<l>    catch (Exception)</l>
+<l>        Button := 0</l>
+<l>    endtry</l>
+<l>*     if (|Button| &gt; 0 and Button != 0)</l>
+<l>*         break</l>
+<l>*     endif</l>
+<l>    K := int((NumImgs - NumImgsSkip) * (Column - PlotStartC) / (PlotEndC - PlotStartC)) + NumImgsSkip + 1</l>
+<l>    if (K &lt; NumImgsSkip + 1)</l>
+<l>        K := NumImgsSkip + 1</l>
+<l>    elseif (K &gt; NumImgs)</l>
+<l>        K := NumImgs</l>
+<l>    endif</l>
+<l>    I := Perm[K - 1]</l>
+<l>    if (I != LastImage)</l>
+<l>        read_image (Image, ImgsBaseFN + I$'.02')</l>
+<c>        * </c>
+<l>        set_system ('flush_graphic', 'false')</l>
+<l>        dev_display (Image)</l>
+<l>        set_system ('flush_graphic', 'true')</l>
+<l>        disp_message (WindowHandle, ['Image: ' + K,'Move the mouse over the graph','\'' + GraphName + '\' to inspect','the corresponding images. Click','mouse to terminate the inspection'], 'window', 10, 10, 'magenta', 'false')</l>
+<l>        LastImage := I</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDialog)</l>
+<l>dev_display (Image)</l>
+<l>return ()</l>
+</body>
+<docu id="inspect_images">
+<parameters>
+<parameter id="GraphName"/>
+<parameter id="ImgsBaseFN"/>
+<parameter id="NumImgs"/>
+<parameter id="NumImgsSkip"/>
+<parameter id="Perm"/>
+<parameter id="PlotEndC"/>
+<parameter id="PlotStartC"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleDiv"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gray_window">
+<interface>
+<ic>
+<par name="WindowHandlePoly" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandlePoly)</l>
+<l>dump_window_image (ImageGray, WindowHandlePoly)</l>
+<l>rgb1_to_gray (ImageGray, GrayImage)</l>
+<l>dev_display (GrayImage)</l>
+<l>return ()</l>
+</body>
+<docu id="gray_window">
+<parameters>
+<parameter id="WindowHandlePoly"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

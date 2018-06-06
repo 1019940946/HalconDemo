@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of a Matrox frame grabber board based on MIL-Lite</c>
+<c>* </c>
+<c>* </c>
+<c>* open the board with the desired camera configuration file</c>
+<l>info_framegrabber ('MilLite', 'info_boards', Information, BoardList)</l>
+<l>MyDevice := BoardList[0]</l>
+<l>MyCameraType := 'M_DEFAULT'</l>
+<l>MyPort := -1</l>
+<c>* </c>
+<l>open_framegrabber ('MilLite', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>*     grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

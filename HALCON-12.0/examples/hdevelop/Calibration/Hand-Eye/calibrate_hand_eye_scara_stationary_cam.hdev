@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example explains how to perform the hand-eye calibration for</c>
+<c>* a SCARA robot. In this case, the camera is stationary with respect</c>
+<c>* to the robot and observes the workspace of the robot. The</c>
+<c>* calibration plate is attached to the robot tool.</c>
+<c>* Finally, the calibration result as well as data that is required</c>
+<c>* to determine the position of the objects to be grasped is written</c>
+<c>* to file. This information is then used by the example program</c>
+<c>* pick_and_place_scara_stationary_cam.hdev.</c>
+<c>* </c>
+<c>* Provide the description file of the calibration plate and the</c>
+<c>* camera parameters of the previously calibrated camera</c>
+<l>CalibObjDescr := 'calibrate_hand_eye_scara_setup_01_calplate.cpd'</l>
+<l>CalibrationPlateThickness := 0.003</l>
+<l>CameraParam := [0.0165251,-642.277,4.65521e-006,4.65e-006,595.817,521.75,1280,1024]</l>
+<c>* </c>
+<c>* Set the thickness of the objects to be grasped to be able to</c>
+<c>* define the pose of the measurement plane correctly</c>
+<l>ObjectThickness := 0.001</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 1280, 1024, 640, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* 1. Acquire calibration images and corresponding robot poses</c>
+<c>* </c>
+<c>* Create a new calibration model</c>
+<l>create_calib_data ('hand_eye_scara_stationary_cam', 1, 1, CalibDataID)</l>
+<c>* Set the camera parameters in the calibration model</c>
+<l>set_calib_data_cam_param (CalibDataID, 0, 'area_scan_division', CameraParam)</l>
+<c>* Set the calibration plate in the calibration model</c>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalibObjDescr)</l>
+<l>for Index := 1 to 10 by 1</l>
+<c>    * Read the calibration image</c>
+<l>    read_image (CalibImage, '3d_machine_vision/handeye/scara_stationary_cam_setup_01_calib_' + Index$'02')</l>
+<c>    * Read the corresponding robot pose (pose of the tool in the</c>
+<c>    * robot base coordinate system)</c>
+<l>    read_pose ('scara_stationary_cam_setup_01_tool_in_base_pose_' + Index$'02' + '.dat', ToolInBasePose)</l>
+<c>    * Set the robot pose in the calibration model</c>
+<l>    set_calib_data (CalibDataID, 'tool', Index, 'tool_in_base_pose', ToolInBasePose)</l>
+<c>    * Determine the pose of the calibration plate in the camera</c>
+<c>    * coordinate system and set the pose in the calibration model</c>
+<l>    find_calib_object (CalibImage, CalibDataID, 0, 0, Index, [], [])</l>
+<c>    * Visualize</c>
+<l>    dev_display (CalibImage)</l>
+<l>    get_calib_data_observ_pose (CalibDataID, 0, 0, Index, ObjInCameraPose)</l>
+<l>    disp_caltab (WindowHandle, CalibObjDescr, CameraParam, ObjInCameraPose, 1)</l>
+<l>    disp_message (WindowHandle, 'Calibration image ' + Index + ' of 10', 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.2)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 2. Perform the hand-eye calibration</c>
+<c>* </c>
+<l>calibrate_hand_eye (CalibDataID, Errors)</l>
+<c>* Get the result of the calibration, i.e., the pose of</c>
+<c>* the robot base in the camera coordinate system</c>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'base_in_cam_pose', BaseInCamPosePre)</l>
+<c>* Free the calibration model</c>
+<l>clear_calib_data (CalibDataID)</l>
+<c>* Visualize</c>
+<l>disp_preliminary_result (WindowHandle, BaseInCamPosePre, Errors)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 3. Fix the pose ambiguity</c>
+<c>* </c>
+<c>* When calibrating a SCARA robot, it is impossible to determine</c>
+<c>* all pose parameters unambiguously. In case of a stationary</c>
+<c>* camera, the Z translation of ObjInToolPose cannot be determined.</c>
+<c>* Therefore, it is necessary to fix the unknown translation in</c>
+<c>* Z by moving the robot to a pose of known height in the camera</c>
+<c>* coordinate system. For this, the calibration plate is (detached from</c>
+<c>* the robot and) placed at an arbitrary position such that it can be</c>
+<c>* observed by the camera. The pose of the calibration plate must</c>
+<c>* then be determined in the camera coordinate system</c>
+<c>* (-&gt; ObjInCamPoseRef). Afterwards, the tool of the robot is manually</c>
+<c>* moved to the origin of the calibration plate (-&gt; ToolInBasePoseRef).</c>
+<c>* The two poses can be used to fix the Z ambiguity by using the</c>
+<c>* procedure fix_scara_ambiguity_stationary_cam.</c>
+<l>read_image (ImageRef, '3d_machine_vision/handeye/scara_stationary_cam_setup_01_calib_ref')</l>
+<l>get_calib_plate_pose (ImageRef, CameraParam, CalibObjDescr, ObjInCamPoseRef)</l>
+<l>read_pose ('scara_stationary_cam_setup_01_tool_in_base_pose_ref.dat', ToolInBasePoseRef)</l>
+<l>fix_scara_ambiguity_stationary_cam (BaseInCamPosePre, ToolInBasePoseRef, ObjInCamPoseRef, ZCorrection)</l>
+<l>set_origin_pose (BaseInCamPosePre, 0, 0, ZCorrection, BaseInCamPose)</l>
+<c>* </c>
+<c>* Visualize</c>
+<l>disp_final_results (WindowHandle, BaseInCamPosePre, BaseInCamPose)</l>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+<c>* </c>
+<c>* After the hand-eye calibration is performed, the resulting pose</c>
+<c>* BaseInCamPose can be used in robotic grasping applications:</c>
+<c>* Let us assume that the camera acquires an image of the object that</c>
+<c>* should be grasped. From the image, the pose of the object in the</c>
+<c>* camera coordinate system must be determined (-&gt; ObjInCamPose) by</c>
+<c>* using image processing.</c>
+<c>* Based on this pose and the result of the calibration</c>
+<c>* (BaseInCamPose), the robot pose can be computed that is necessary</c>
+<c>* to grasp the object (-&gt; ObjInBasePose):</c>
+<l>pose_invert (BaseInCamPose, CamInBasePose)</l>
+<l>ObjInCamPose := [0.0035,-0.0128,0.7981,1.345,356.158,180.194,0]</l>
+<l>pose_compose (CamInBasePose, ObjInCamPose, ObjInBasePose)</l>
+<c>* </c>
+<c>* 4. Prepare additional data required for the pose estimation of the</c>
+<c>*    objects to be grasped</c>
+<c>* </c>
+<c>* Determine the pose of the measurement plane</c>
+<l>set_origin_pose (ObjInCamPoseRef, 0, 0, CalibrationPlateThickness - ObjectThickness, MPInCamPose)</l>
+<c>* </c>
+<c>* 5. Write the results for using them in a pick-and-place application</c>
+<c>* - Results of hand-eye calibration</c>
+<l>write_pose (CamInBasePose, 'cam_in_base_pose.dat')</l>
+<c>* - Data required for pose estimation of the objects to be grasped</c>
+<c>*   from the original image</c>
+<l>write_cam_par (CameraParam, 'camera_parameters.dat')</l>
+<l>write_pose (MPInCamPose, 'measurement_plane_in_cam_pose.dat')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="fix_scara_ambiguity_stationary_cam">
+<interface>
+<ic>
+<par name="BaseInCamPosePre" base_type="ctrl" dimension="0"/>
+<par name="ToolInBasePose" base_type="ctrl" dimension="0"/>
+<par name="ObjInCamPose" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ZCorrection" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>pose_invert (BaseInCamPosePre, CamInBasePose)</l>
+<l>pose_compose (CamInBasePose, ObjInCamPose, ObjInBasePose)</l>
+<l>ZCorrection := ObjInBasePose[2] - ToolInBasePose[2]</l>
+<l>return ()</l>
+</body>
+<docu id="fix_scara_ambiguity_stationary_cam">
+<parameters>
+<parameter id="BaseInCamPosePre"/>
+<parameter id="ObjInCamPose"/>
+<parameter id="ToolInBasePose"/>
+<parameter id="ZCorrection"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_calib_plate_pose">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="CameraParam" base_type="ctrl" dimension="0"/>
+<par name="CalibObjDescr" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, 'area_scan_division', CameraParam)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalibObjDescr)</l>
+<l>find_calib_object (Image, CalibDataID, 0, 0, 0, [], [])</l>
+<l>get_calib_data_observ_pose (CalibDataID, 0, 0, 0, Pose)</l>
+<l>clear_calib_data (CalibDataID)</l>
+<l>return ()</l>
+</body>
+<docu id="get_calib_plate_pose">
+<parameters>
+<parameter id="CalibObjDescr"/>
+<parameter id="CameraParam"/>
+<parameter id="Image"/>
+<parameter id="Pose"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_preliminary_result">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="BaseInCamPose" base_type="ctrl" dimension="0"/>
+<par name="Errors" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Preliminary result of the SCARA hand-eye calibration', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['Ambiguous pose of the robot base in the camera','coordinate system:'], 'window', 80, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['tx = ' + BaseInCamPose[0]$'7.4f' + ' m','ty = ' + BaseInCamPose[1]$'7.4f' + ' m','tz = ' + BaseInCamPose[2]$'7.4f' + ' m','a = ' + BaseInCamPose[3]$'6.2f' + ' °','b = ' + BaseInCamPose[4]$'6.2f' + ' °','g = ' + BaseInCamPose[5]$'6.2f' + ' °'], 'window', 130, 40, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Errors:', 'window', 253, 12, 'black', 'true')</l>
+<l>DispErrors := []</l>
+<l>DispErrors := [DispErrors,'                     |   RMS    |  Maximum |']</l>
+<l>DispErrors := [DispErrors,'|--------------------+----------+----------|']</l>
+<l>DispErrors := [DispErrors,'| Translational part | ' + (Errors[0] * 1e3)$'5.3f' + ' mm | ' + (Errors[2] * 1e3)$'5.3f' + ' mm |']</l>
+<l>DispErrors := [DispErrors,'| Rotational part    | ' + Errors[1]$'5.3f' + ' °  | ' + Errors[3]$'5.3f' + ' °  |']</l>
+<l>disp_message (WindowHandle, DispErrors, 'window', 285, 40, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_preliminary_result">
+<parameters>
+<parameter id="BaseInCamPose"/>
+<parameter id="Errors"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_final_results">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="BaseInCamPose" base_type="ctrl" dimension="0"/>
+<par name="FinalBaseInCamPose" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Final result of the SCARA hand-eye calibration', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['Ambiguous pose of the robot base in the camera','coordinate system:'], 'window', 80, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['tx = ' + BaseInCamPose[0]$'7.4f' + ' m','ty = ' + BaseInCamPose[1]$'7.4f' + ' m','tz = ' + BaseInCamPose[2]$'7.4f' + ' m','a = ' + BaseInCamPose[3]$'6.2f' + ' °','b = ' + BaseInCamPose[4]$'6.2f' + ' °','g = ' + BaseInCamPose[5]$'6.2f' + ' °'], 'window', 130, 40, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['Final pose of the robot base in the camera','coordinate system after fixing the ambiguity:'], 'window', 253, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ['tx = ' + FinalBaseInCamPose[0]$'7.4f' + ' m','ty = ' + FinalBaseInCamPose[1]$'7.4f' + ' m','tz = ' + FinalBaseInCamPose[2]$'7.4f' + ' m','a = ' + FinalBaseInCamPose[3]$'6.2f' + ' °','b = ' + FinalBaseInCamPose[4]$'6.2f' + ' °','g = ' + FinalBaseInCamPose[5]$'6.2f' + ' °'], 'window', 303, 40, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_final_results">
+<parameters>
+<parameter id="BaseInCamPose"/>
+<parameter id="FinalBaseInCamPose"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

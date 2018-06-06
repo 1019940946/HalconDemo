@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use the operator</c>
+<c>* find_text to segment text in an image before</c>
+<c>* performing OCR.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'ocr/dongle_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read the OCR classifier from file</c>
+<l>read_ocr_class_mlp ('DotPrint', OCRHandle)</l>
+<c>* </c>
+<c>* Create the text model and specify the text properties</c>
+<l>create_text_model_reader ('manual', [], TextModel)</l>
+<c>* </c>
+<l>set_text_model_param (TextModel, 'char_width', 24)</l>
+<l>set_text_model_param (TextModel, 'char_height', 32)</l>
+<l>set_text_model_param (TextModel, 'is_dotprint', 'true')</l>
+<l>set_text_model_param (TextModel, 'max_line_num', 2)</l>
+<l>set_text_model_param (TextModel, 'return_interpunctations', 'false')</l>
+<l>set_text_model_param (TextModel, 'return_separators', 'false')</l>
+<l>set_text_model_param (TextModel, 'stroke_width', 4)</l>
+<l>set_text_model_param (TextModel, 'eliminate_horizontal_lines', 'true')</l>
+<c>* Define different text line structures for each line.</c>
+<c>* Note that for the second line two structures are defined,</c>
+<c>* because sometimes the '/' is classified as separator and</c>
+<c>* sometimes as character.</c>
+<l>set_text_model_param (TextModel, 'text_line_structure_0', '6 1 8')</l>
+<l>set_text_model_param (TextModel, 'text_line_structure_1', '8 10')</l>
+<l>set_text_model_param (TextModel, 'text_line_structure_2', '19')</l>
+<c>* Define the regular expression, which is later used</c>
+<c>* in do_ocr_word_mlp to increase the robustness of the OCR.</c>
+<l>TextPattern1 := '(FLEXID[0-9][A-Z][0-9]{3}[A-F0-9]{4})'</l>
+<l>TextPattern2 := '([A-Z]{3}[0-9]{5}.?[A-Z][0-9]{4}[A-Z][0-9]{4})'</l>
+<l>Expression := TextPattern1 + '|' + TextPattern2</l>
+<c>* </c>
+<c>* Main loop</c>
+<l>NumImages := 8</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'ocr/dongle_' + I$'02')</l>
+<c>    * </c>
+<c>    * Preprocessing:</c>
+<c>    * The domain is reduced to the dark area where the</c>
+<c>    * text is assumed to be found.</c>
+<c>    * Then, the contrast is improved and the image</c>
+<c>    * is aligned horizontally</c>
+<l>    binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<l>    opening_rectangle1 (Region, RegionOpening, 400, 50)</l>
+<l>    erosion_rectangle1 (RegionOpening, RegionOpening, 11, 11)</l>
+<l>    connection (RegionOpening, ConnectedRegions)</l>
+<l>    select_shape_std (ConnectedRegions, SelectedRegion, 'max_area', 70)</l>
+<l>    reduce_domain (Image, SelectedRegion, ImageReduced)</l>
+<l>    scale_image_max (ImageReduced, ImageScaleMax)</l>
+<l>    text_line_orientation (SelectedRegion, ImageScaleMax, 30, rad(-30), rad(30), OrientationAngle)</l>
+<l>    rotate_image (ImageScaleMax, ImageRotate, deg(-OrientationAngle), 'constant')</l>
+<c>    * </c>
+<c>    * Find text and display results for every segmented region</c>
+<l>    find_text (ImageRotate, TextModel, TextResult)</l>
+<l>    get_text_result (TextResult, 'num_lines', NumLines)</l>
+<l>    dev_display (ImageRotate)</l>
+<l>    for J := 0 to NumLines - 1 by 1</l>
+<l>        get_text_object (Line, TextResult, ['line',J])</l>
+<c>        * The OCR uses regular expressions to read the text</c>
+<c>        * more robustly.</c>
+<l>        do_ocr_word_mlp (Line, ImageRotate, OCRHandle, Expression, 3, 5, Class, Confidence, Word, Score)</l>
+<c>        * </c>
+<c>        * Display results</c>
+<l>        smallest_rectangle1 (Line, Row1, Column1, Row2, Column2)</l>
+<l>        count_obj (Line, NumberOfCharacters)</l>
+<l>        dev_set_colored (6)</l>
+<l>        dev_display (Line)</l>
+<l>        dev_set_color ('white')</l>
+<l>        for K := 1 to NumberOfCharacters by 1</l>
+<l>            select_obj (Line, Character, K)</l>
+<l>            set_tposition (WindowHandle, Row2[0] + 4, Column1[K - 1])</l>
+<l>            write_string (WindowHandle, Word{K - 1})</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Clean up memory</c>
+<l>    clear_text_result (TextResult)</l>
+<l>endfor</l>
+<c>* Clean up memory</c>
+<l>clear_text_model (TextModel)</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

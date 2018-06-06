@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Training of the OCR</c>
+<c>* The font is used in "bottle.hdev"</c>
+<c>* </c>
+<c>* </c>
+<c>* Step 0: Preparations</c>
+<l>FontName := 'bottle'</l>
+<c>* </c>
+<c>* Step 1: Segmentation</c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Bottle, 'bottle2')</l>
+<l>get_image_size (Bottle, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 2 * Width, 2 * Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 27, 'mono', 'true', 'false')</l>
+<l>threshold (Bottle, RawSegmentation, 0, 95)</l>
+<l>fill_up_shape (RawSegmentation, RemovedNoise, 'area', 1, 5)</l>
+<l>opening_circle (RemovedNoise, ThickStructures, 2.5)</l>
+<l>fill_up (ThickStructures, Solid)</l>
+<l>opening_rectangle1 (Solid, Cut, 1, 7)</l>
+<l>connection (Cut, ConnectedPatterns)</l>
+<l>intersection (ConnectedPatterns, ThickStructures, NumberCandidates)</l>
+<l>select_shape (NumberCandidates, Numbers, 'area', 'and', 300, 9999)</l>
+<l>sort_region (Numbers, FinalNumbers, 'first_point', 'true', 'column')</l>
+<l>dev_display (Bottle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (FinalNumbers)</l>
+<c>* </c>
+<c>* Step2: Training file generation</c>
+<l>TrainingNames := ['0','1','0','8','9','4']</l>
+<l>TrainingFileName := FontName + '.trf'</l>
+<l>sort_region (FinalNumbers, SortedRegions, 'first_point', 'true', 'column')</l>
+<l>shape_trans (SortedRegions, RegionTrans, 'rectangle1')</l>
+<l>area_center (RegionTrans, Area, Row, Column)</l>
+<l>MeanRow := mean(Row)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainingFileName)</l>
+<l>dev_set_check ('give_error')</l>
+<l>for I := 0 to |TrainingNames| - 1 by 1</l>
+<l>    select_obj (SortedRegions, CharaterRegions, I + 1)</l>
+<l>    append_ocr_trainf (CharaterRegions, Bottle, TrainingNames[I], TrainingFileName)</l>
+<l>    disp_message (WindowID, TrainingNames[I], 'image', MeanRow - 40, Column[I] - 6, 'yellow', 'false')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Step3: Training</c>
+<l>CharNames := uniq(sort(TrainingNames))</l>
+<l>create_ocr_class_mlp (8, 10, 'constant', 'default', CharNames, 10, 'none', 10, 42, OCRHandle)</l>
+<l>trainf_ocr_class_mlp (OCRHandle, TrainingFileName, 200, 1, 0.01, Error, ErrorLog)</l>
+<l>write_ocr_class_mlp (OCRHandle, FontName)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

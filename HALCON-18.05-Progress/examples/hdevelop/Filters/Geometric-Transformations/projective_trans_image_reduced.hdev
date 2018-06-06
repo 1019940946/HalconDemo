@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to use hom_mat3d_project and</c>
+<c>* projective_trans_image to rotate an image with a reduced domain in 3D.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'mreut')</l>
+<c>* Segment the image.</c>
+<l>threshold (Image, Region, 180, 255)</l>
+<l>reduce_domain (Image, Region, ImageReduced)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* To create a smooth (i.e., flicker-free) display, automatic flushing of</c>
+<c>* the window after every display operation is disabled.</c>
+<c>* flush_buffer is used in the loop below to trigger the update of the</c>
+<c>* window's contents.</c>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>Iter := 1440</l>
+<c>* Set the increments for the 3D rotation angles.  Note that they are chosen such</c>
+<c>* that their common divisor is as small as possible (0.1).  This leads to a</c>
+<c>* sequence of images that has a maximum length before repeating itself.</c>
+<l>DAlpha := 1.5</l>
+<l>DBeta := 1.7</l>
+<l>DGamma := 1.9</l>
+<c>* Initialize the 3D rotation angles.</c>
+<l>Alpha := 0.0</l>
+<l>Beta := 0.0</l>
+<l>Gamma := 0.0</l>
+<c>* Set the camera parameters of the virtual camera that looks at the plane</c>
+<c>* of the image.</c>
+<l>PrincipalRow := Height / 2</l>
+<l>PrincipalColumn := Width / 2</l>
+<l>Focus := (Width + Height) / 2</l>
+<c>* Set the parameters of the torus knot on which the center of the image</c>
+<c>* moves in 3D.</c>
+<c>* This will generate the torus knot T(6,5).</c>
+<l>M := 6</l>
+<l>N := 5</l>
+<c>* Set the dimensions of the torus knot.</c>
+<l>H := Height / 4.0</l>
+<l>W := Width / 4.0</l>
+<l>D := (Width + Height) / 6.0</l>
+<l>for J := 1 to Iter by 1</l>
+<c>    * Rotate the plane in 3D.</c>
+<l>    hom_mat3d_identity (HomMat3D)</l>
+<l>    hom_mat3d_rotate (HomMat3D, rad(Gamma), 'z', PrincipalRow, PrincipalColumn, Focus, HomMat3D)</l>
+<l>    hom_mat3d_rotate (HomMat3D, rad(Beta), 'y', PrincipalRow, PrincipalColumn, Focus, HomMat3D)</l>
+<l>    hom_mat3d_rotate (HomMat3D, rad(Alpha), 'x', PrincipalRow, PrincipalColumn, Focus, HomMat3D)</l>
+<c>    * Translate the center of the image to a point on the torus knot.</c>
+<l>    T := rad(J / 4.0)</l>
+<l>    X := H * (cos(N * T) + 0.5 * cos(M * T) * cos(N * T))</l>
+<l>    Y := W * (sin(N * T) + 0.5 * cos(M * T) * sin(N * T))</l>
+<l>    Z := D * sin(M * T)</l>
+<l>    hom_mat3d_translate (HomMat3D, X, Y, Z, HomMat3D)</l>
+<c>    * Project the plane of the image, i.e., create a 2D projective transformation</c>
+<c>    * from the plane of the input image to the plane of the output image.</c>
+<l>    hom_mat3d_project (HomMat3D, PrincipalRow, PrincipalColumn, Focus, ProjectionMatrix)</l>
+<c>    * Some transformations may result in a singular transformation matrix.</c>
+<c>    * Hence, we will need to perform error handling here.</c>
+<l>    dev_set_check ('~give_error')</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    projective_trans_image (ImageReduced, TransImage, ProjectionMatrix, 'nearest_neighbor', 'false', 'true')</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error == H_MSG_TRUE)</l>
+<c>        * Display the image and call flush_buffer display the contents of the window.</c>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (TransImage)</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>    endif</l>
+<c>    * Increment the rotation angles.</c>
+<l>    Alpha := fmod(Alpha + DAlpha,360)</l>
+<l>    Beta := fmod(Beta + DBeta,360)</l>
+<l>    Gamma := fmod(Gamma + DGamma,360)</l>
+<l>endfor</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

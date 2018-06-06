@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *************************************************************</c>
+<c>* This example program demonstrates how to read 2d data codes</c>
+<c>* of the symbol type 'Micro QR Code'. In the first step a data code</c>
+<c>* model is created. In the next step the data codes are read</c>
+<c>* and the results are displayed in the graphics window.</c>
+<c>* </c>
+<c>* **********************   Attention  *************************</c>
+<c>* Note that there are symbols that cannot be found with the</c>
+<c>* standard default parameters. The reasons for that could be:</c>
+<c>* - the contrast is too low</c>
+<c>* - some symbols are printed light on dark,</c>
+<c>*   which is not covered by the standard model</c>
+<c>* - the symbols are too big (&gt;48x48 modules)</c>
+<c>* - the modules are printed as small unconnected dots</c>
+<c>* *************************************************************</c>
+<c>* </c>
+<c>* Initialize image path and visual settings</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>ImageFiles := 'datacode/micro_qr/micro_qr_board_'</l>
+<l>ImageNum := 6</l>
+<l>read_image (Image, ImageFiles + '01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* Display short description</c>
+<l>Message := 'This simple program demonstrates how to'</l>
+<l>Message[1] := 'read Micro QR data codes in a sequence'</l>
+<l>Message[2] := 'of images with the standard default'</l>
+<l>Message[3] := 'parameter setting.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 1: Create data code model</c>
+<c>* ----------------------------------------------------</c>
+<c>* Create a 2d data code model of the 2d data code class</c>
+<c>* 'QR Code'. The operator returns a handle to the</c>
+<c>* 2d data code model which can be used for all further</c>
+<c>* operations on the data code.</c>
+<l>create_data_code_2d_model ('Micro QR Code', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Step 2: Read the data codes</c>
+<c>* ----------------------------------------------------</c>
+<c>* Search and read the data codes in each image and</c>
+<c>* display the decoded string for each found data code</c>
+<l>for Index := 1 to ImageNum by 1</l>
+<l>    read_image (Image, ImageFiles + Index$'.2d')</l>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    disp_message (WindowHandle, 'Image ' + Index + ' of ' + ImageNum, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings, 'window', 40, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * If no data code could be found</c>
+<l>    if (|DecodedDataStrings| == 0)</l>
+<l>        disp_message (WindowHandle, 'No data code found.\nPlease adjust the parameters.', 'window', 40, 12, 'red', 'true')</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Deactivate the following lines to run the program without breaks</c>
+<l>    if (Index &lt; ImageNum)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

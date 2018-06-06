@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to</c>
+<c>* read a flat structure in an OPC UA Server.</c>
+<c>* </c>
+<c>* Please change this address to your own configuration.</c>
+<l>Device := 'opc.tcp://localhost:4840'</l>
+<c></c>
+<c>* Initialize handles</c>
+<l>IOServerHandle := []</l>
+<l>BuildInfoHandle := []</l>
+<c></c>
+<l>try</l>
+<c>    * Get the revision of the interface.</c>
+<l>    query_io_interface ('OPC_UA', 'revision', Revision)</l>
+<c>    * </c>
+<c>    * Connect to the server.</c>
+<l>    open_io_device ('OPC_UA', Device, [], [], IOServerHandle)</l>
+<c>    * </c>
+<c>    * The BuildInfo node is a flat structure</c>
+<c>    * that should be available on most servers.</c>
+<l>    control_io_device (IOServerHandle, 'translate', ['','/Objects/Server/ServerStatus/BuildInfo'], BuildInfoNode)</l>
+<l>    open_io_channel (IOServerHandle, BuildInfoNode, [], [], BuildInfoHandle)</l>
+<c>    * </c>
+<c>    * Structures can only be read or written one at the time</c>
+<c>    * as they return the results as a tuple of elements</c>
+<l>    read_io_channel (BuildInfoHandle, Value, StatusCode)</l>
+<c>    * </c>
+<c>    * At the end, close the handles to release the memory.</c>
+<l>    close_io_channel (BuildInfoHandle)</l>
+<l>    close_io_device (IOServerHandle)</l>
+<l>catch (Exception)</l>
+<l>    get_extended_error_info (OpName, ErrorCode, ErrorMessage)</l>
+<l>    close_io_channel (BuildInfoHandle)</l>
+<l>    close_io_device (IOServerHandle)</l>
+<l>    stop ()</l>
+<l>endtry</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

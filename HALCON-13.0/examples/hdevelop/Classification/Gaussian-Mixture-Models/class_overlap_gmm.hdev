@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use a GMM for classifying</c>
+<c>* two-dimensional data.  2D data is used because it can easily be visualized</c>
+<c>* as regions and images.  The example uses three classes that overlap</c>
+<c>* substantially.  It generates samples from each class and trains the GMM with</c>
+<c>* the samples.  Then, the GMM is used classify the complete 2D feature space.</c>
+<c>* This also computes the probabilities of each class, as well as the k-sigma</c>
+<c>* probability of each feature vector.  The latter can be used to reject all feature</c>
+<c>* vectors that do not belong to any of the three classes with a certain</c>
+<c>* probability.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 199)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* Generate three overlapping ellipses as the regions from which the training</c>
+<c>* samples are drawn.</c>
+<l>gen_ellipse (RegionClass1, 60, 60, rad(-45), 60, 40)</l>
+<l>gen_ellipse (RegionClass2, 70, 130, rad(-145), 70, 30)</l>
+<l>gen_ellipse (RegionClass3, 140, 100, rad(100), 55, 40)</l>
+<c>* Sample feature points from each region by segmenting a different noisy image</c>
+<c>* for each region and intersecting the segmented region with the class region.</c>
+<l>gen_image_const (Image, 'byte', 200, 200)</l>
+<l>add_noise_white (Image, ImageNoise1, 60)</l>
+<l>add_noise_white (Image, ImageNoise2, 60)</l>
+<l>add_noise_white (Image, ImageNoise3, 60)</l>
+<l>threshold (ImageNoise1, RegionNoise1, 40, 255)</l>
+<l>threshold (ImageNoise2, RegionNoise2, 40, 255)</l>
+<l>threshold (ImageNoise3, RegionNoise3, 40, 255)</l>
+<l>intersection (RegionClass1, RegionNoise1, SamplesClass1)</l>
+<l>intersection (RegionClass2, RegionNoise2, SamplesClass2)</l>
+<l>intersection (RegionClass3, RegionNoise3, SamplesClass3)</l>
+<c>* Display the samples of each class.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (SamplesClass1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SamplesClass2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (SamplesClass3)</l>
+<l>Message := 'Training samples of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Read out the sample points and add them as training samples to the GMM.</c>
+<l>concat_obj (SamplesClass1, SamplesClass2, Samples)</l>
+<l>concat_obj (Samples, SamplesClass3, Samples)</l>
+<l>create_class_gmm (2, 3, 1, 'full', 'none', 2, 42, GMMHandle)</l>
+<l>for Class := 0 to 2 by 1</l>
+<l>    select_obj (Samples, SamplesClass, Class + 1)</l>
+<l>    get_region_points (SamplesClass, Rows, Cols)</l>
+<l>    for J := 0 to |Rows| - 1 by 1</l>
+<l>        add_sample_class_gmm (GMMHandle, real([Rows[J],Cols[J]]), Class, 1.5)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>get_sample_num_class_gmm (GMMHandle, NumSamples)</l>
+<c>* Train the GMM.</c>
+<l>train_class_gmm (GMMHandle, 100, 0.001, 'training', 1e-4, Centers, Iter)</l>
+<c>* Now determine the probability for the occurrence of each class for all points in</c>
+<c>* the 2D feature space and accumulate them in three real images.  Furthermore,</c>
+<c>* store the most likely class in a class label image.  Finally, store the</c>
+<c>* k-sigma probability in an image to reject feature vectors that do not belong</c>
+<c>* to any of the classes.</c>
+<l>gen_image_const (ProbClass1, 'real', 200, 200)</l>
+<l>gen_image_const (ProbClass2, 'real', 200, 200)</l>
+<l>gen_image_const (ProbClass3, 'real', 200, 200)</l>
+<l>gen_image_const (ProbKSigma, 'real', 200, 200)</l>
+<l>gen_image_const (LabelClass, 'byte', 200, 200)</l>
+<l>for R := 0 to 199 by 1</l>
+<l>    for C := 0 to 199 by 1</l>
+<l>        Features := real([R,C])</l>
+<l>        classify_class_gmm (GMMHandle, Features, 3, Class, ClassProb, Density, KSigmaProb)</l>
+<l>        Index := sort_index(Class)</l>
+<l>        set_grayval (ProbClass1, R, C, ClassProb[Index[0]])</l>
+<l>        set_grayval (ProbClass2, R, C, ClassProb[Index[1]])</l>
+<l>        set_grayval (ProbClass3, R, C, ClassProb[Index[2]])</l>
+<l>        set_grayval (ProbKSigma, R, C, KSigmaProb)</l>
+<l>        set_grayval (LabelClass, R, C, Class[0])</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>label_to_region (LabelClass, Classes)</l>
+<c>* Threshold the k-sigma probability image to reject feature vectors that do not</c>
+<c>* belong to any of the three classes.</c>
+<l>threshold (ProbKSigma, AcceptanceRegion, 0.01, 1.0)</l>
+<c>* Intersect the class regions with the acceptance region.</c>
+<l>intersection (Classes, AcceptanceRegion, Classes)</l>
+<l>compose3 (ProbClass1, ProbClass2, ProbClass3, Probs)</l>
+<c>* Display the probabilities of each class.</c>
+<l>dev_display (ProbClass1)</l>
+<l>Message := 'Probability of class 1'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ProbClass2)</l>
+<l>Message := 'Probability of class 2'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ProbClass3)</l>
+<l>Message := 'Probability of class 3'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'red', 'true')</l>
+<l>stop ()</l>
+<c>* Display the probabilities of the three classes as an RGB image.</c>
+<l>dev_display (Probs)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClass1)</l>
+<l>dev_display (RegionClass2)</l>
+<l>dev_display (RegionClass3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>Message := 'Probabilities of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the posterior probability.</c>
+<l>dev_display (ProbKSigma)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClass1)</l>
+<l>dev_display (RegionClass2)</l>
+<l>dev_display (RegionClass3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>Message := 'k-sigma prob. of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the most likely class for each point in the feature space.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_colored (3)</l>
+<l>dev_display (Classes)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClass1)</l>
+<l>dev_display (RegionClass2)</l>
+<l>dev_display (RegionClass3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>Message := 'Most probable classes'</l>
+<l>Message[1] := '(k-sigma probability &gt;= 0.01)'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>clear_class_gmm (GMMHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *************************************************************</c>
+<c>* This example shows how to use a GigE Vision camera with</c>
+<c>* static link aggregation (LAG) from the GigEVision2 interface.</c>
+<c>* *************************************************************</c>
+<c>* </c>
+<c>* System requirements and setup:</c>
+<c>* Windows either 32 Bit or 64 Bit.</c>
+<c>* At least two network cards which are teamed and use static LAG.</c>
+<c>* HALCON filter driver installed on the teamed adapter.</c>
+<c>* Ideally JumboFrames are enabled on all adapters which belong</c>
+<c>* to the team to enhance performance.</c>
+<c>* GigE Vision Camera connected to all ports which belong to the team.</c>
+<c>* </c>
+<c>* Get the list of connected devices</c>
+<c>* </c>
+<l>info_framegrabber ('GigEVision2', 'device', Information, ValueList)</l>
+<c>* </c>
+<c>* </c>
+<c>* Open first device (this is assumed to be the static LAG device)</c>
+<c>* </c>
+<l>open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', ValueList[0], 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Check correct versions and that the filter driver is really used</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, '[System]GevTLSubsystemInfo', GevTLSubsystemInfo)</l>
+<l>get_framegrabber_param (AcqHandle, '[Stream]GevStreamActiveEngine', GevStreamActiveEngine)</l>
+<l>if (GevStreamActiveEngine != 'FilterDriver')</l>
+<c>    * You need to check your setup, filter driver is not used!</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<c>* Depending on the sending strategy of the camera, there might be</c>
+<c>* greater packet gaps than usual. In this case, we might need to</c>
+<c>* increase the maximal number of packet gaps in a block to avoid</c>
+<c>* that the block is discarded unnecessarily.</c>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, '[Stream]GevStreamMaxPacketGaps', 100)</l>
+<c>* </c>
+<c>* </c>
+<c>* Adapt frame rate if available:</c>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, 'AcquisitionFrameRateEnable', true)</l>
+<l>* set_framegrabber_param (AcqHandle, 'AcquisitionFrameRate', 1.0)</l>
+<c>* </c>
+<c>* </c>
+<c>* You might need to adapt the maximal block duration to the frame rate of the</c>
+<c>* camera when it is a high resolution camera. E.g. one frame per second</c>
+<c>* equals to 1000ms (you might need to add some overhead):</c>
+<c>* </c>
+<l>* set_framegrabber_param (AcqHandle, '[Stream]GevStreamMaxBlockDuration', 1000000000)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Check current statistic counters</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, '[Stream]GevStreamDeliveredPacketCount', GevStreamDeliveredPacketCount)</l>
+<l>get_framegrabber_param (AcqHandle, '[Stream]GevStreamResendCommandCount', GevStreamResendCommandCount)</l>
+<c>* </c>
+<c>* </c>
+<c>* Start the acquisition</c>
+<c>* Use F9 to stop</c>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">while (true)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,3]" as_ord="1">    grab_image_async (Image, AcqHandle, -1)</l>
+<c>    * Image Acquisition: Do something</c>
+<c>    * If interested check the statistics</c>
+<l>    get_framegrabber_param (AcqHandle, '[Stream]GevStreamDeliveredPacketCount', GevStreamDeliveredPacketCount)</l>
+<l>    get_framegrabber_param (AcqHandle, '[Stream]GevStreamResendCommandCount', GevStreamResendCommandCount)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<c>* </c>
+<c>* </c>
+<c>* Close the framegrabber handle</c>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

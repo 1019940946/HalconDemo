@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images via the direct show interface.</c>
+<c>* (query current parameter settings, show test images)</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('DirectShow', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('DirectShow', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<l>info_framegrabber ('DirectShow', 'defaults', DefaultInfo, DefaultInfoValues)</l>
+<l>info_framegrabber ('DirectShow', 'parameters', ParamInfo, ParamInfoValues)</l>
+<l>info_framegrabber ('DirectShow', 'device', DeviceInfo, DeviceInfoValues)</l>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* open a camera which are supported by direct show.</c>
+<l>open_framegrabber ('DirectShow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>info_framegrabber ('DirectShow', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 600, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, 599)</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>    if (HalconError == H_MSG_TRUE)</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (|ParameterValue| &gt; 1)</l>
+<l>            for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (WindowHandle, ParameterValue[j])</l>
+<l>        else</l>
+<l>            if (|ParameterValue| == 1)</l>
+<l>                write_string (WindowHandle, ParameterValue)</l>
+<l>            else</l>
+<l>                write_string (WindowHandle, '-')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_set_check ('give_error')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

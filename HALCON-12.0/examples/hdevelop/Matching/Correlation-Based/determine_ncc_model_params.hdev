@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's</c>
+<c>* operator determine_ncc_model_params to determine</c>
+<c>* the parameters for a correlation-based matching.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>for Index := 1 to 3 by 1</l>
+<l>    if (Index == 1)</l>
+<l>        read_image (Image, 'smd/smd_on_chip_05')</l>
+<l>        gen_rectangle1 (Rectangle, 180, 180, 430, 450)</l>
+<l>    elseif (Index == 2)</l>
+<l>        read_image (Image, 'fabrik')</l>
+<l>        gen_rectangle1 (Rectangle, 335, 275, 420, 355)</l>
+<l>    elseif (Index == 3)</l>
+<l>        read_image (Image, 'mreut')</l>
+<l>        gen_rectangle1 (Rectangle, 110, 195, 185, 275)</l>
+<l>    endif</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Rectangle)</l>
+<l>    reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>    determine_ncc_model_params (ImageReduced, 'auto', -0.39, 0.79, 'use_polarity', 'all', ParameterName, ParameterValue)</l>
+<l>    Message := 'NCC model parameters:'</l>
+<l>    for I := 0 to |ParameterName| - 1 by 1</l>
+<l>        Message[I + 1] := ParameterName[I] + ': ' + ParameterValue[I]</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index &lt; 3)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

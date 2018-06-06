@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the basic use of message queues</c>
+<c>* for data delivery among multiple threads. In particular, it</c>
+<c>* demonstrates how to abort running threads.</c>
+<c>* This is illustrated by an application that detects and counts</c>
+<c>* oranges and lemons in the images.</c>
+<c>* The main thread first starts two image acquisition threads</c>
+<c>* (simulating multiple independent image sources)</c>
+<c>* and a processing thread that handles input coming from</c>
+<c>* both sources.</c>
+<c>* The acquired images are delivered to the processing thread</c>
+<c>* through a message queue.</c>
+<c>* As soon as the application should come to an end,</c>
+<c>* the main thread stops the acquisition and processing threads.</c>
+<c>* </c>
+<c>* Create the queue to deliver acquired images.</c>
+<c>* and a stop-acquisition event used to control the acquisition threads.</c>
+<l>create_message_queue (QueueImages)</l>
+<l>create_event ('', '', StopAcq)</l>
+<c>* </c>
+<c>* Open window for reporting the results as they are delivered</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 808, 220, 'black', WindowResults)</l>
+<l>set_display_font (WindowResults, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This example demonstrates the basic use of message queues for data'</l>
+<l>Message[1] := 'delivery among multiple threads.'</l>
+<l>Message[2] := 'In particular, it demonstrates how to abort running threads.'</l>
+<l>Message[3] := ' '</l>
+<l>Message[4] := 'The main thread first starts two image acquisition threads'</l>
+<l>Message[5] := 'and a processing thread.'</l>
+<l>Message[6] := 'After 10 seconds, these threads are terminated.'</l>
+<l>disp_message (WindowResults, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowResults, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Create and train the MLP classifier to detect oranges/lemons</c>
+<c>* within the acquired images.</c>
+<l>display_status (WindowResults, 0, 0, 0, 0, 1, 0, [])</l>
+<l>create_and_train_mlp (MLPHandle)</l>
+<l>display_status (WindowResults, 0, 0, 0, 0, 0, 0, [])</l>
+<c>* </c>
+<c>* Start the acquisition and processing threads</c>
+<l>par_start&lt;ProcessingThread&gt; : processing_thread (QueueImages, WindowResults, MLPHandle)</l>
+<l>par_start&lt;AcqThread1&gt; : acquisition_thread (QueueImages, 1, StopAcq)</l>
+<l>par_start&lt;AcqThread2&gt; : acquisition_thread (QueueImages, 2, StopAcq)</l>
+<c>* </c>
+<c>* Wait until the machine operator or external signal stops the process</c>
+<c>* -&gt; here this is simulated by a simple wait function.</c>
+<l>wait_seconds (10)</l>
+<c>* </c>
+<c>* Set the stop-acquisition event, instructing the acquisition threads</c>
+<c>* to stop at the next loop.</c>
+<l>signal_event (StopAcq)</l>
+<c>* </c>
+<c>* Abort the message queue dequeuing operation.</c>
+<c>* This call ensures that the attempts to receive a new message from the queue</c>
+<c>* (dequeue_message) by the processing thread immediately results in the error code</c>
+<c>* H_ERR_MQCNCL, no matter if the thread is already waiting or will do so in future</c>
+<c>* and regardless the actual status of the queue (empty/non-empty).</c>
+<l>set_message_queue_param (QueueImages, 'abort_dequeuing', 1)</l>
+<c>* </c>
+<c>* Final cleanup</c>
+<l>par_join ([ProcessingThread,AcqThread1,AcqThread2])</l>
+<c>* </c>
+<l>clear_class_mlp (MLPHandle)</l>
+<l>clear_event (StopAcq)</l>
+<c>* </c>
+<c>* Note that the 'flush_queue' operation is optional, the queue contents would</c>
+<c>* be fully destroyed when releasing the queue (clear_message_queue).</c>
+<c>* Releasing a message or a message-queue handle destroys all tuple or iconic</c>
+<c>* data it contains. However, one has to be careful if the messages</c>
+<c>* might contain handles (such as handles to 3D object models). Any handle is treated</c>
+<c>* as a simple integer, therefore releasing this integer does not release</c>
+<c>* the resource behind it. In such cases, the application would need to dequeue</c>
+<c>* all the messages and perform such cleanup manually.</c>
+<l>set_message_queue_param (QueueImages, 'flush_queue', 1)</l>
+<l>clear_message_queue (QueueImages)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="processing_thread">
+<interface>
+<ic>
+<par name="QueueImages" base_type="ctrl" dimension="0"/>
+<par name="WindowResults" base_type="ctrl" dimension="0"/>
+<par name="MLPHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Procedure implementing the processing thread</c>
+<c>* </c>
+<c>* Open windows for reporting the results as they are delivered</c>
+<l>dev_open_window (200, 0, 400, 300, 'black', WindowImage1)</l>
+<l>set_display_font (WindowImage1, 14, 'mono', 'true', 'false')</l>
+<l>dev_open_window (200, 408, 400, 300, 'black', WindowImage2)</l>
+<l>set_display_font (WindowImage2, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>Line1Oranges := 0</l>
+<l>Line1Lemons := 0</l>
+<l>Line2Oranges := 0</l>
+<l>Line2Lemons := 0</l>
+<l>count_seconds (Start)</l>
+<l>End := Start + 10</l>
+<l>display_status (WindowResults, Line1Oranges, Line1Lemons, Line2Oranges, Line2Lemons, 0, 0, 10)</l>
+<c>* </c>
+<c>* Process the acquired data in a loop, until the message delivery</c>
+<c>* through the message queue is aborted from the main thread</c>
+<l>while (1)</l>
+<c>    * Receive next message from the "image" queue.</c>
+<c>    * This queue is filled by the multiple acquisition threads.</c>
+<l>    dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+<l>    dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>    try</l>
+<l>        dequeue_message (QueueImages, 'timeout', 'infinite', MessageData)</l>
+<l>    catch (Exception)</l>
+<c>        * If dequeue_message returns the H_ERR_MQCNCL error code,</c>
+<c>        * this means that the message queue was "disconnected"</c>
+<c>        * from the main thread and the processing thread should stop execution</c>
+<c>        * Any other errors are simply rethrown</c>
+<l>        if (Exception[0] == 2890)</l>
+<l>            break</l>
+<l>        else</l>
+<l>            throw (Exception)</l>
+<l>        endif</l>
+<l>    endtry</l>
+<l>    dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressHandledExceptionsDlg)</l>
+<c>    * </c>
+<c>    * Read the input image from the message</c>
+<l>    get_message_obj (Image, MessageData, 'image')</l>
+<c>    * </c>
+<c>    * Segment the image</c>
+<l>    classify_image_class_mlp (Image, ClassRegions, MLPHandle, 0.5)</l>
+<l>    select_obj (ClassRegions, ClassOranges, 1)</l>
+<l>    select_obj (ClassRegions, ClassLemons, 2)</l>
+<l>    select_obj (ClassRegions, ClassBackground, 3)</l>
+<c>    * </c>
+<c>    * Apply post processing</c>
+<l>    closing_circle (ClassOranges, RegionClosingOranges, 3.5)</l>
+<l>    connection (RegionClosingOranges, ConnectedRegionsOranges)</l>
+<l>    select_shape (ConnectedRegionsOranges, SelectedRegionsOranges, 'area', 'and', 20000, 99999)</l>
+<l>    fill_up (SelectedRegionsOranges, RegionFillUpOranges)</l>
+<l>    area_center (RegionFillUpOranges, AreasOranges, RowsOranges, ColumnsOranges)</l>
+<l>    shape_trans (RegionFillUpOranges, RegionFillUpOranges, 'convex')</l>
+<c>    * </c>
+<l>    closing_circle (ClassLemons, RegionClosingLemons, 3.5)</l>
+<l>    connection (RegionClosingLemons, ConnectedRegionsLemons)</l>
+<l>    select_shape (ConnectedRegionsLemons, SelectedRegionsLemons, 'area', 'and', 15000, 99999)</l>
+<l>    fill_up (SelectedRegionsLemons, RegionFillUpLemons)</l>
+<l>    area_center (RegionFillUpLemons, AreasLemons, RowsLemons, ColumnsLemons)</l>
+<l>    shape_trans (RegionFillUpLemons, RegionFillUpLemons, 'convex')</l>
+<c>    * </c>
+<c>    * Count the objects</c>
+<l>    count_obj (RegionFillUpOranges, NumOranges)</l>
+<l>    count_obj (RegionFillUpLemons, NumLemons)</l>
+<c>    * </c>
+<c>    * Read the input line ID (image source) which produced this image,</c>
+<c>    * and release the message itself, which won't be needed any more.</c>
+<l>    get_message_tuple (MessageData, 'line_id', InputLineID)</l>
+<l>    clear_message (MessageData)</l>
+<c>    * </c>
+<c>    * Update the intermediate processing results and display them</c>
+<c>    * Display also the current image highlighting the recognized objects</c>
+<l>    if (InputLineID[0] == 1)</l>
+<l>        WindowHandle := WindowImage1</l>
+<l>        Line1Oranges := Line1Oranges + NumOranges</l>
+<l>        Line1Lemons := Line1Lemons + NumLemons</l>
+<l>    else</l>
+<l>        WindowHandle := WindowImage2</l>
+<l>        Line2Oranges := Line2Oranges + NumOranges</l>
+<l>        Line2Lemons := Line2Lemons + NumLemons</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_line_width (5)</l>
+<l>    dev_set_color ('goldenrod')</l>
+<l>    dev_display (RegionFillUpOranges)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (RegionFillUpLemons)</l>
+<l>    disp_message (WindowHandle, 'Line #' + InputLineID[0], 'window', 12, 12, 'white', 'false')</l>
+<c>    * </c>
+<l>    count_seconds (Seconds)</l>
+<l>    Countdown := End - Seconds</l>
+<l>    display_status (WindowResults, Line1Oranges, Line1Lemons, Line2Oranges, Line2Lemons, 0, 0, Countdown)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Processing stopped, update the results display as "finished", close the image display windows</c>
+<l>display_status (WindowResults, Line1Oranges, Line1Lemons, Line2Oranges, Line2Lemons, 0, 1, [])</l>
+<l>return ()</l>
+</body>
+<docu id="processing_thread">
+<parameters>
+<parameter id="MLPHandle"/>
+<parameter id="QueueImages"/>
+<parameter id="WindowResults"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="acquisition_thread">
+<interface>
+<ic>
+<par name="QueueImages" base_type="ctrl" dimension="0"/>
+<par name="InputLineID" base_type="ctrl" dimension="0"/>
+<par name="StopAcq" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Procedure implementing/simulating the acquisition thread.</c>
+<c>* </c>
+<c>* Proceed until the stop acquisition event is signalled from the main thread</c>
+<l>try_wait_event (StopAcq, Busy)</l>
+<l>while (Busy)</l>
+<c>    * Read a random citrus image</c>
+<l>    read_random_citrus_image (Image)</l>
+<c>    * </c>
+<c>    * Create a message and store the acquired image in it</c>
+<l>    create_message (MessageImg)</l>
+<l>    set_message_obj (Image, MessageImg, 'image')</l>
+<c>    * </c>
+<c>    * Add also the "input line ID" to the message:</c>
+<c>    * The multiple acquisition threads in this example simulate</c>
+<c>    * multiple independent image sources</c>
+<l>    set_message_tuple (MessageImg, 'line_id', InputLineID)</l>
+<c>    * </c>
+<c>    * Send the message to the queue which is used to deliver</c>
+<c>    * input images from the multiple acquisition threads</c>
+<c>    * to the processing thread.</c>
+<l>    enqueue_message (QueueImages, MessageImg, [], [])</l>
+<l>    clear_message (MessageImg)</l>
+<c>    * </c>
+<c>    * Pretend non-trivial acquisition time</c>
+<l>    tuple_rand (1, RandTimeout)</l>
+<l>    wait_seconds (RandTimeout)</l>
+<c>    * </c>
+<c>    * Re-check the stop event status</c>
+<l>    try_wait_event (StopAcq, Busy)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Because there are multiple acquisition threads, it's necessary to signal</c>
+<c>* the stop acquisition event again to allow the other threads to "see" it</c>
+<l>signal_event (StopAcq)</l>
+<l>return ()</l>
+</body>
+<docu id="acquisition_thread">
+<parameters>
+<parameter id="InputLineID"/>
+<parameter id="QueueImages"/>
+<parameter id="StopAcq"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_status">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Line1Oranges" base_type="ctrl" dimension="0"/>
+<par name="Line1Lemons" base_type="ctrl" dimension="0"/>
+<par name="Line2Oranges" base_type="ctrl" dimension="0"/>
+<par name="Line2Lemons" base_type="ctrl" dimension="0"/>
+<par name="Training" base_type="ctrl" dimension="0"/>
+<par name="Finished" base_type="ctrl" dimension="0"/>
+<par name="Countdown" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Helper routine to print the actual (intermediate/final)</c>
+<c>* processing results in textual form</c>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<c>* Display the overall extraction results</c>
+<l>disp_message (WindowHandle, 'Total fruits: ' + (Line1Oranges + Line2Oranges) + ' oranges, ' + (Line1Lemons + Line2Lemons) + ' lemons', 'window', 12, 12, 'green', 'false')</l>
+<c>* Display the individual results</c>
+<l>Message := []</l>
+<l>Message[0] := 'Line #1: ' + Line1Oranges + ' oranges, ' + Line1Lemons + ' lemons'</l>
+<l>Message[1] := 'Line #2: ' + Line2Oranges + ' oranges, ' + Line2Lemons + ' lemons'</l>
+<l>disp_message (WindowHandle, Message, 'window', 50, 12, 'white', 'false')</l>
+<c>* Display some further messages</c>
+<l>if (Finished)</l>
+<l>    disp_message (WindowHandle, 'Finished processing', 'window', 110, 12, 'magenta', 'false')</l>
+<l>elseif (Training)</l>
+<l>    disp_message (WindowHandle, 'Training MLP...', 'window', 110, 12, 'cyan', 'false')</l>
+<l>else</l>
+<l>    disp_message (WindowHandle, 'Processing... ' + ceil(Countdown) + 's left', 'window', 110, 12, 'yellow', 'false')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_status">
+<parameters>
+<parameter id="Countdown"/>
+<parameter id="Finished"/>
+<parameter id="Line1Lemons"/>
+<parameter id="Line1Oranges"/>
+<parameter id="Line2Lemons"/>
+<parameter id="Line2Oranges"/>
+<parameter id="Training"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="read_random_citrus_image">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Helper routine to select a random item from set of citrus</c>
+<c>* images and read the image</c>
+<c>* </c>
+<l>tuple_rand (1, Rand)</l>
+<l>tuple_floor (Rand * 15 + 1, ImageIndexDouble)</l>
+<l>tuple_int (ImageIndexDouble, ImageIndex)</l>
+<l>read_image (Image, 'color/citrus_fruits_' + ImageIndex$'.02')</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="read_random_citrus_image">
+<parameters>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_and_train_mlp">
+<interface>
+<oc>
+<par name="MLPHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Helper procedure to create and train an MLP classifier</c>
+<c>* to recognize orange and lemon fruits in an image</c>
+<c>* </c>
+<c>* Create an MLP classifier</c>
+<l>create_class_mlp (3, 3, 3, 'softmax', 'normalization', 10, 42, MLPHandle)</l>
+<c>* </c>
+<c>* Read a training image and add samples for the classes</c>
+<c>* 'oranges' and 'background' to the classifier</c>
+<l>read_image (Image, 'color/citrus_fruits_01')</l>
+<l>gen_rectangle1 (OrangeRegion, 100, 130, 230, 200)</l>
+<l>gen_rectangle1 (BackgroundRegion, 30, 20, 50, 50)</l>
+<l>gen_empty_region (EmptyRegion)</l>
+<l>gen_empty_obj (TrainingRegions1)</l>
+<l>concat_obj (TrainingRegions1, OrangeRegion, TrainingRegions1)</l>
+<l>concat_obj (TrainingRegions1, EmptyRegion, TrainingRegions1)</l>
+<l>concat_obj (TrainingRegions1, BackgroundRegion, TrainingRegions1)</l>
+<l>add_samples_image_class_mlp (Image, TrainingRegions1, MLPHandle)</l>
+<c>* </c>
+<c>* Read a training image and add samples for the classes</c>
+<c>* 'lemons' and 'background' to the classifier</c>
+<l>read_image (Image, 'color/citrus_fruits_03')</l>
+<l>gen_rectangle1 (LemonRegion, 180, 130, 230, 240)</l>
+<l>gen_rectangle1 (BackgroundRegion, 400, 20, 430, 50)</l>
+<l>gen_empty_obj (TrainingRegions2)</l>
+<l>concat_obj (TrainingRegions2, EmptyRegion, TrainingRegions2)</l>
+<l>concat_obj (TrainingRegions2, LemonRegion, TrainingRegions2)</l>
+<l>concat_obj (TrainingRegions2, BackgroundRegion, TrainingRegions2)</l>
+<l>add_samples_image_class_mlp (Image, TrainingRegions2, MLPHandle)</l>
+<c>* </c>
+<c>* Train the classifier</c>
+<l>train_class_mlp (MLPHandle, 300, 1, 0.01, Error, ErrorLog)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="create_and_train_mlp">
+<parameters>
+<parameter id="MLPHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

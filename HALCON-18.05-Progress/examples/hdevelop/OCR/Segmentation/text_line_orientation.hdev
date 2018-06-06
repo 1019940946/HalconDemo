@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>for J := 1 to 5 by 1</l>
+<l>    read_image (Image, 'dot_print_rotated/dot_print_rotated_' + J$'02d')</l>
+<l>    text_line_orientation (Image, Image, 48, rad(-30), rad(30), OrientationAngle)</l>
+<l>    rotate_image (Image, ImageRotate, -OrientationAngle / rad(180) * 180, 'constant')</l>
+<l>    dots_image (ImageRotate, ImageDots, 3, 'dark', 2)</l>
+<l>    scale_image_max (ImageDots, ImageScaleMax)</l>
+<l>    intensity (ImageRotate, ImageRotate, Mean, Deviation)</l>
+<l>    threshold (ImageScaleMax, RegionThresh, Mean - 35, 255)</l>
+<l>    connection (RegionThresh, ConnectedDots)</l>
+<l>    select_shape (ConnectedDots, SelectedDots, 'area', 'and', 8, 1000)</l>
+<l>    opening_circle (SelectedDots, SelectedDotsOpening, 1.5)</l>
+<l>    union1 (SelectedDotsOpening, Region)</l>
+<l>    closing_circle (Region, RegionClosing, 9.5)</l>
+<l>    connection (RegionClosing, ConnectedRegions)</l>
+<c>    * Connect split parts</c>
+<l>    smallest_rectangle1 (ConnectedRegions, Row11, Column11, Row21, Column21)</l>
+<l>    gen_rectangle1 (Rectangle1, Row11, Column11, Row21, Column21)</l>
+<l>    union1 (Rectangle1, RegionUnion3)</l>
+<l>    connection (RegionUnion3, ConnectedRegions2)</l>
+<l>    select_shape (ConnectedRegions2, SelectedRegions, ['area','height','width'], 'and', [1000,30,20], [3200,70,70])</l>
+<c>    * Get rectangular shape</c>
+<l>    smallest_rectangle1 (SelectedRegions, Row1, Column1, Row2, Column2)</l>
+<l>    gen_rectangle1 (RectangularShape, Row1, Column1, Row2, Column2)</l>
+<c>    * Build lines</c>
+<l>    union1 (SelectedRegions, RegionUnion)</l>
+<l>    dilation_rectangle1 (RegionUnion, RegionDilation, 50, 1)</l>
+<l>    connection (RegionDilation, ConnectedLines)</l>
+<l>    select_shape (ConnectedLines, SelectedLines, 'area', 'and', 10000, 99999)</l>
+<c>    * Element of lines</c>
+<l>    intersection (SelectedLines, RectangularShape, ElementOfLines)</l>
+<l>    intersection (ElementOfLines, SelectedDotsOpening, RegionDots)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageRotate)</l>
+<l>    dev_set_color ('gray')</l>
+<l>    dev_display (ElementOfLines)</l>
+<l>    dev_set_color (['green','cyan'])</l>
+<l>    dev_display (RegionDots)</l>
+<c>    * </c>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

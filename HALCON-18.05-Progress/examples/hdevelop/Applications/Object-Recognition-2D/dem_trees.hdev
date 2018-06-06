@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>read_image (Mreut, 'mreut_y')</l>
+<l>read_image (MreutDem, 'mreut_dgm_2.0')</l>
+<l>get_image_size (Mreut, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>get_system ('clip_region', Information)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<c>* do texture segmentation</c>
+<l>texture_laws (Mreut, ImageTexture, 'ee', 2, 5)</l>
+<l>median_separate (ImageTexture, ImageSMedian, 25, 25, 'mirrored')</l>
+<l>threshold (ImageSMedian, TexturedRegion, 30, 255)</l>
+<l>dev_display (Mreut)</l>
+<l>dev_display (TexturedRegion)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* find high objects</c>
+<l>scale_image_max (MreutDem, ImageScaleMax)</l>
+<l>dual_rank (ImageScaleMax, ImageRank, 'circle', 15, 10, 'mirrored')</l>
+<l>sub_image (ImageScaleMax, ImageRank, ImageSubRank, 1, 0)</l>
+<l>threshold (ImageSubRank, High, 5, 255)</l>
+<l>zoom_region (High, HighLarge, 8, 8)</l>
+<l>move_region (HighLarge, HighLargeMoved, -250, -600)</l>
+<l>clip_region (HighLargeMoved, HighClipped, 0, 0, 511, 511)</l>
+<l>threshold (Mreut, Dark, 0, 130)</l>
+<l>intersection (TexturedRegion, Dark, RegionIntersection)</l>
+<l>fill_up (RegionIntersection, RegionFillUp)</l>
+<l>connection (RegionFillUp, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 250, 10000000)</l>
+<l>closing_circle (SelectedRegions, TexureAndHigh, 2.5)</l>
+<l>dev_display (Mreut)</l>
+<l>dev_display (TexureAndHigh)</l>
+<l>set_system ('clip_region', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

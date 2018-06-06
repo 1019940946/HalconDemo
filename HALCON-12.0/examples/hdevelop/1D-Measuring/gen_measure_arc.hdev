@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  Example for the application of the HALCON Measure Tool</c>
+<c>* (in this program: pure image processing without visualization)</c>
+<c>* </c>
+<l>read_image (Zeiss1, 'zeiss1')</l>
+<l>get_image_size (Zeiss1, Width, Height)</l>
+<l>Row := 275</l>
+<l>Column := 335</l>
+<l>Radius := 107</l>
+<l>AngleStart := -rad(55)</l>
+<l>AngleExtend := rad(170)</l>
+<c>* Prepare the extraction of straight edges perpendicular to an annular arc</c>
+<l>gen_measure_arc (Row, Column, Radius, AngleStart, AngleExtend, 10, Width, Height, 'nearest_neighbor', MeasureHandle)</l>
+<c>* Extract straight edges perpendicular to a rectangle</c>
+<l>measure_pos (Zeiss1, MeasureHandle, 1, 10, 'all', 'all', RowEdge, ColumnEdge, Amplitude, Distance)</l>
+<l>distance_pp (RowEdge[1], ColumnEdge[1], RowEdge[2], ColumnEdge[2], IntermedDist)</l>
+<c>* Delete the measure object</c>
+<l>close_measure (MeasureHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

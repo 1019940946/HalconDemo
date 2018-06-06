@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read bar codes of type Code 39</c>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 120, 300, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>Colors := ['forest green','magenta']</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>for I := 1 to 6 by 1</l>
+<l>    read_image (Image, 'barcode/code39/code39' + (I$'.2'))</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    set_bar_code_param (BarCodeHandle, 'element_size_max', 6)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'Code 39', DecodedDataStrings)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'symbol_regions')</l>
+<l>    get_bar_code_result (BarCodeHandle, 'all', 'decoded_strings', BarCodeResults)</l>
+<l>    for J := 0 to |DecodedDataStrings| - 1 by 1</l>
+<l>        dev_set_color (Colors[J])</l>
+<l>        select_obj (BarCodeObjects, ObjectSelected, J + 1)</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings, 'window', 12, 12, Colors, 'true')</l>
+<l>    if (I &lt; 6)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

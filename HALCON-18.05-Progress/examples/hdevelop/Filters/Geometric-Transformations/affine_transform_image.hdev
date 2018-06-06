@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_time ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_set_color ('red')</l>
+<l>read_image (Image, 'forest_road')</l>
+<l>threshold (Image, Region, 160, 255)</l>
+<l>opening_circle (Region, RegionOpening, 9.5)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>Scale := 1</l>
+<l>for Phi := 0 to 360 by 1</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Phi), 256, 256, HomMat2DRotate)</l>
+<l>    hom_mat2d_scale (HomMat2DRotate, Scale, Scale, 256, 256, HomMat2DScale)</l>
+<l>    affine_trans_image (Image, ImageAffineTrans, HomMat2DScale, 'nearest_neighbor', 'false')</l>
+<l>    affine_trans_region (RegionOpening, RegionAffineTrans, HomMat2DScale, 'nearest_neighbor')</l>
+<l>    dev_display (ImageAffineTrans)</l>
+<l>    dev_display (RegionAffineTrans)</l>
+<l>    Scale := Scale / 1.005</l>
+<l>endfor</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_time ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

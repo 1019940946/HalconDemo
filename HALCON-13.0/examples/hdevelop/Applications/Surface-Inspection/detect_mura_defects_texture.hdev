@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to detect mura defects</c>
+<c>* in highly textured images</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>Path := 'lcd/mura_defects_texture_'</l>
+<l>read_image (Image, Path + '01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('red')</l>
+<l>for F := 1 to 2 by 1</l>
+<l>    read_image (Image, Path + F$'.2i')</l>
+<l>    decompose3 (Image, R, G, B)</l>
+<c>    * Defects are characterized by dark patches. Hence, by substracting the</c>
+<c>    * estimated background illumination from the original image the</c>
+<c>    * defects become more apparent.</c>
+<l>    estimate_background_illumination (B, ImageFFT1)</l>
+<l>    sub_image (B, ImageFFT1, ImageSub, 2, 100)</l>
+<c>    * Median filter smoothes out the fine texture, simplifying the following</c>
+<c>    * segmentation and final detection of defects.</c>
+<l>    median_image (ImageSub, ImageMedian, 'circle', 9, 'mirrored')</l>
+<l>    watersheds_threshold (ImageMedian, Basins, 20)</l>
+<c>    * Dark patches corresponding to defects have a very low energy.</c>
+<l>    cooc_feature_image (Basins, ImageMedian, 6, 0, Energy, Correlation, Homogeneity, Contrast)</l>
+<l>    Mask := Energy [&lt;=] 0.05</l>
+<l>    select_mask_obj (Basins, Defects, Mask)</l>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Defects)</l>
+<l>    count_obj (Defects, NDefects)</l>
+<l>    disp_message (WindowHandle, NDefects + ' \'mura\' defects detected', 'window', 12, 12, 'red', 'true')</l>
+<l>    if (F &lt; 2)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="estimate_background_illumination">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="IlluminationImage" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<l>rft_generic (Image, ImageFFT, 'to_freq', 'none', 'complex', Width)</l>
+<l>gen_gauss_filter (ImageGauss, 50, 50, 0, 'n', 'rft', Width, Height)</l>
+<l>convol_fft (ImageFFT, ImageGauss, ImageConvol)</l>
+<l>rft_generic (ImageConvol, IlluminationImage, 'from_freq', 'none', 'byte', Width)</l>
+<l>return ()</l>
+</body>
+<docu id="estimate_background_illumination">
+<parameters>
+<parameter id="IlluminationImage"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

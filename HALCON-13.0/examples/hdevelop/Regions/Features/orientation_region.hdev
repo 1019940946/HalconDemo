@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Clips, 'clip')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Clips, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'white', WindowID)</l>
+<l>threshold (Clips, Dark, 0, 70)</l>
+<l>connection (Dark, Single)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_draw ('fill')</l>
+<l>select_shape (Single, Selected, 'area', 'and', 5000, 10000)</l>
+<l>orientation_region (Selected, Phi)</l>
+<l>area_center (Selected, Area, Row, Column)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (7)</l>
+<l>Length := 80</l>
+<l>disp_arrow (WindowID, Row, Column, Row + cos(Phi + 1.5708) * Length, Column + sin(Phi + 1.5708) * Length, 3)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

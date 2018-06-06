@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  This example creates a 3D model from 4 images taken from different points of view.</c>
+<c>*  It shows the recommended workflow necessary for pairwise reconstruction.</c>
+<c>* </c>
+<c>* Prepare visualization.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 450, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>create_pose (0, 0.15, 1.1, 285, 0.0, 340, 'Rp+T', 'gba', 'point', VisPose)</l>
+<c>* </c>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Display introduction.</c>
+<l>disp_message_block1 (Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reconstruct a 3D scene from 4 images.</c>
+<c>* </c>
+<c>* Create the camera parameters and poses of the camera setup.</c>
+<l>create_pose (0.01581839460406891, -0.09941803310558929, -0.3079308956836844, 350.8986040828125, 354.3536799369792, 274.1973698039017, 'Rp+T', 'gba', 'point', Pose0)</l>
+<l>create_pose (-0.0610990419307257, -0.002271718614999785, -0.2908451228380092, 357.0205814462478, 13.76778713838595, 180.8404608013425, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>create_pose (0.1295595213888085, 0.008700667656398355, -0.2907671083855236, 359.5252715412015, 340.1552597815647, 186.7269327119646, 'Rp+T', 'gba', 'point', Pose2)</l>
+<l>create_pose (-0.002511462805750264, 0.04993629457003283, -0.3163552193027631, 11.35872955146744, 356.2723992222004, 278.7311409718954, 'Rp+T', 'gba', 'point', Pose3)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006293514957349972, 2500.065236683032, 220452185.674881, -10081734372562.31, -0.4183670467256539, -0.6510897392899374, 5.997228888825512e-006, 6e-006, 379.9069516343566, 238.6476534735865, 754, 480, CameraParam0)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006252103562665604, 2077.165661942883, 215482901.8985172, -14429210147341.05, 0.1083804351479329, 0.3835446626749631, 6.00045860452822e-006, 6e-006, 362.237050607805, 222.8537502628182, 754, 480, CameraParam1)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006291770937768317, 2740.017474393686, 408948248.9701511, -53210859408641.49, 0.8912666517231493, -0.08614139886182107, 5.987011694133451e-006, 6e-006, 350.976441288551, 247.0148935059016, 754, 480, CameraParam2)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006304883279770778, 3453.765936751207, 79448888.72374359, -9045248420236.699, 0.3594982688784551, 0.1242759165303407, 5.995710533653186e-006, 6e-006, 361.3360662853614, 240.066997869204, 754, 480, CameraParam3)</l>
+<c>* Create a camera setup model.</c>
+<l>create_camera_setup_model (4, CameraSetupModelID)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 0, [], CameraParam0, Pose0)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 1, [], CameraParam1, Pose1)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 2, [], CameraParam2, Pose2)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 3, [], CameraParam3, Pose3)</l>
+<c>* </c>
+<c>* Create a multi-view stereo model using surface_pairwise.</c>
+<l>create_stereo_model (CameraSetupModelID, 'surface_pairwise', [], [], StereoModelID)</l>
+<l>set_stereo_model_image_pairs (StereoModelID, [0,1,2], [1,2,3])</l>
+<c>* </c>
+<c>* **** 1) Set a suitable bounding box.</c>
+<c>* </c>
+<c>* Create an initial bounding box.</c>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', [-0.1,-0.1,-0.1,0.1,0.1,0.1])</l>
+<l>dev_open_window (0, 608, 400, 450, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>disp_message_block2 (Message)</l>
+<c>* Based on the stereo setup and the object height,</c>
+<c>* we estimate an initial bounding box.</c>
+<l>estimate_bounding_box_3d_reconstruction (StereoModelID, 0.05, BoundingBox)</l>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', BoundingBox)</l>
+<c>* </c>
+<c>* The following procedures help to visualize the camera setup and the currently</c>
+<c>* set bounding box. This way, it is easy to configure the bounding box.</c>
+<l>CameraSize := 0.01</l>
+<l>ConeLength := 0.3</l>
+<l>gen_camera_setup_object_model_3d (CameraSetupModelID, CameraSize, ConeLength, ObjectModel3DCamera, ObjectModel3DCone)</l>
+<l>gen_bounding_box_object_model_3d (StereoModelID, ObjectModel3DBoundingBox)</l>
+<l>Title := 'Initial bounding box with the cameras of the stereo setup'</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModel3DBoundingBox,ObjectModel3DCone,ObjectModel3DCamera], CameraParam0, VisPose, ['lut','color_0','alpha','disp_pose_0'], ['sqrt','green',0.5,'true'], Title, [], Instructions, VisPose)</l>
+<c>* </c>
+<c>* Clear the camera setup, which is no longer required.</c>
+<l>clear_camera_setup_model (CameraSetupModelID)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<c>* Configure further stereo model parameters. For the first run, we only set the</c>
+<c>* desired disparity method. We also enable the persistence mode which later</c>
+<c>* will give us access to intermediate results.</c>
+<l>set_stereo_model_param (StereoModelID, 'persistence', 1)</l>
+<l>set_stereo_model_param (StereoModelID, 'disparity_method', 'binocular')</l>
+<c>* </c>
+<c>* Read and display input images.</c>
+<l>read_image (Images, 'universal_joint_part/universal_joint_part_scene_0_camera_' + [0:3])</l>
+<l>get_image_size (Images, ImageWidth, ImageHeight)</l>
+<l>tile_images (Images, TiledImage, 2, 'vertical')</l>
+<l>display_reconstruction_message (TiledImage, WindowHandle1, 'binocular')</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle2)</l>
+<l>disp_message_block3 (Message)</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* **** 2) Perform stereo reconstruction, query and analyze intermediate results.</c>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModelSceneUnoptimized)</l>
+<c>* </c>
+<c>* ** a) Visualize the bounding box in combination with the reconstructed object model.</c>
+<l>disp_message_block4 (WindowHandle2, Message)</l>
+<l>create_pose (0, 0.024, 0.53, 355, 0.0, 0.0, 'Rp+T', 'gba', 'point', VisPose)</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModelSceneUnoptimized,ObjectModel3DBoundingBox], CameraParam0, VisPose, ['point_size_0','alpha_1','color_0','color_1','disp_pose_0'], [1,0.2,'yellow','white','true'], 'Initial result with bounding box', [], Instructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DBoundingBox)</l>
+<l>clear_object_model_3d (ObjectModelSceneUnoptimized)</l>
+<c>* </c>
+<c>* Further reduce bounding box.</c>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', [-0.08,-0.07,-0.045,0.04,0.03,0.0])</l>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModelSceneUnoptimizedBBSmall)</l>
+<l>gen_bounding_box_object_model_3d (StereoModelID, ObjectModel3DBoundingBox)</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModelSceneUnoptimizedBBSmall,ObjectModel3DBoundingBox], CameraParam0, VisPose, ['point_size_0','alpha_1','color_0','color_1','disp_pose_0'], [1,0.2,'yellow','white','true'], 'Initial result with bounding box', [], Instructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DBoundingBox)</l>
+<l>clear_object_model_3d (ObjectModelSceneUnoptimizedBBSmall)</l>
+<c>* </c>
+<c>* ** b) Inspect first rectified image pair and epipolar lines.</c>
+<l>get_stereo_model_object (FromImage, StereoModelID, [0,1], 'from_image_rect')</l>
+<l>get_stereo_model_object (ToImage, StereoModelID, [0,1], 'to_image_rect')</l>
+<c>* </c>
+<l>concat_obj (FromImage, ToImage, RectifiedImages)</l>
+<l>tile_images (RectifiedImages, TiledRectifiedImages, 2, 'horizontal')</l>
+<l>get_image_size (TiledRectifiedImages, Width, Height)</l>
+<l>gen_empty_obj (EpipolarLines)</l>
+<l>for Row := 210 to 600 by 30</l>
+<l>    gen_contour_polygon_xld (Line, [Row,Row], [0,Width - 1])</l>
+<l>    concat_obj (EpipolarLines, Line, EpipolarLines)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display rectified image pair and epipolar lines.</c>
+<l>disp_message_block5 (WindowHandle2, Message)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TiledRectifiedImages)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (EpipolarLines)</l>
+<l>Message := 'Rectified images and epipolar lines'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* ** c) Inspect disparity images.</c>
+<l>get_stereo_model_object (DisparityImage, StereoModelID, [0,1], 'disparity_image')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (DisparityImage)</l>
+<l>Message := 'Disparity image'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>disp_message_block6 (WindowHandle2, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Increases the robustness of the returned matches by making a concurrent direct and reverse match.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_filter', 'left_right_check')</l>
+<c>* </c>
+<c>* Subpixel refinement of the disparities.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_sub_disparity', 'interpolation')</l>
+<c>* </c>
+<c>* Use a coarse-to-fine scheme.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_num_levels', 4)</l>
+<c>* </c>
+<c>* ** d) Display the score image.</c>
+<l>get_stereo_model_object (ScoreImage, StereoModelID, [0,1], 'score_image')</l>
+<l>ScoreThreshold := 0.7</l>
+<l>disp_message_block7 (WindowHandle2, Message)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_lut ('rainbow')</l>
+<l>dev_display (ScoreImage)</l>
+<l>Title := 'Score image'</l>
+<l>dev_disp_text (Title, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Restrict the reconstructed points to disparities with high score.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_score_thresh', ScoreThreshold)</l>
+<c>* </c>
+<c>* Use a threshold to visualize all disparities receiving a high score.</c>
+<l>threshold (ScoreImage, ScoreRegion, ScoreThreshold, 1)</l>
+<l>reduce_domain (DisparityImage, ScoreRegion, DisparityImageReduced)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_set_lut ('default')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (DisparityImageReduced)</l>
+<l>Title := 'Disparity image excluding disparities with a score &lt; ' + ScoreThreshold</l>
+<l>dev_disp_text (Title, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>disp_message_block8 (WindowHandle2, Message)</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Final readjustment of the parameters.</c>
+<c>* </c>
+<c>* Reduce the bounding box.</c>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', [-0.08,-0.07,-0.045,0.04,0.028,0.0])</l>
+<c>* Increases the robustness of the returned matches by making a concurrent direct and reverse match.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_filter', 'left_right_check')</l>
+<c>* Subpixel refinement of the disparities.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_sub_disparity', 'interpolation')</l>
+<c>* Use a coarse-to-fine scheme.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_num_levels', 4)</l>
+<c>* Restrict the reconstructed points to disparities with high score.</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_score_thresh', ScoreThreshold)</l>
+<c>* Perform the reconstruction again.</c>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModelSceneOptimized)</l>
+<c>* Turn off persistence mode.</c>
+<l>set_stereo_model_param (StereoModelID, 'persistence', 0)</l>
+<c>* </c>
+<c>* Display the final result.</c>
+<l>disp_message_block9 (Message)</l>
+<l>create_pose (0.025, 0.03, 0.25, 345, 0, 0, 'Rp+T', 'gba', 'point', VisPose)</l>
+<l>visualize_object_model_3d (WindowHandle1, ObjectModelSceneOptimized, CameraParam0, VisPose, ['point_size','color'], [2,'yellow'], 'Final result', [], Instructions, VisPose)</l>
+<c>* </c>
+<c>* Clean up.</c>
+<l>clear_object_model_3d (ObjectModelSceneOptimized)</l>
+<l>clear_stereo_model (StereoModelID)</l>
+<l>disp_end_of_program_message (WindowHandle2, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_reconstruction_message">
+<interface>
+<io>
+<par name="TiledImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Method" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display a message that reconstruction is in progress.</c>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>get_image_size (TiledImage, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_set_part (Row1, Column1, Row2, Column2)</l>
+<l>Message := 'Method: \'' + Method + '\''</l>
+<l>Message[1] := 'Reconstruct scene from 4 different views...'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', 'box', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_reconstruction_message">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Method">
+<sem_type>string</sem_type>
+</parameter>
+<parameter id="TiledImage">
+<multichannel>false</multichannel>
+<multivalue>true</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block1">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := 'This example shows some methods to check the output'</l>
+<l>Message[1] := 'of a 3D object reconstruction using the method \'surface_pairwise\'.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := '1) First, you have to set a suitable bounding box'</l>
+<l>Message[4] := '   based on the camera setup.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := '2) Then, after an initial reconstruction, you can check'</l>
+<l>Message[7] := '   different aspects of the result.'</l>
+<l>Message[8] := '     a) Limit the bounding box even further based on the'</l>
+<l>Message[9] := '        reconstructed 3D object model.'</l>
+<l>Message[10] := '     b) Check the rectified images and epipolar lines.'</l>
+<l>Message[11] := '     c) Check the disparity images.'</l>
+<l>Message[12] := '     d) Check the score images.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block1">
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block2">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '1) Setting a suitable bounding box'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The bounding box should be set such'</l>
+<l>Message[3] := 'that the object to be reconstructed'</l>
+<l>Message[4] := 'fits completely, but also tightly,'</l>
+<l>Message[5] := 'into the bounding box.'</l>
+<l>Message[6] := ''</l>
+<l>Message[7] := 'If these requirements are not met,'</l>
+<l>Message[8] := 'the reconstruction will take longer'</l>
+<l>Message[9] := 'or even fail completely since internal'</l>
+<l>Message[10] := 'parameters derived from the'</l>
+<l>Message[11] := 'bounding box are estimated wrongly.'</l>
+<l>Message[12] := ' '</l>
+<l>Message[13] := 'Here, the procedure estimate_bounding_box_'</l>
+<l>Message[14] := 'parameters_3d_reconstruction'</l>
+<l>Message[15] := 'is used to estimate a bounding box based'</l>
+<l>Message[16] := 'on the camera setup.'</l>
+<l>Message[17] := ' '</l>
+<l>Message[18] := 'Please note that even if the '</l>
+<l>Message[19] := 'reconstruction was successful, '</l>
+<l>Message[20] := 'the bounding box should be adapted'</l>
+<l>Message[21] := 'to perfectly fit the desired parts'</l>
+<l>Message[22] := 'of the object.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block2">
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block3">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '2) Configure parameters of pairwise'</l>
+<l>Message[1] := 'reconstruction'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'To be able to access to intermediate'</l>
+<l>Message[4] := 'results, we enable the persistence mode.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'Then we choose the disparity method.'</l>
+<l>Message[7] := 'The choice of the disparity method has'</l>
+<l>Message[8] := 'a major impact for a meaningful '</l>
+<l>Message[9] := 'reconstruction.'</l>
+<l>Message[10] := ' '</l>
+<l>Message[11] := 'Depending on the disparity method,'</l>
+<l>Message[12] := 'more parameters have to be set.'</l>
+<l>Message[13] := 'For the first run, we use'</l>
+<l>Message[14] := 'the default settings.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block3">
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block4">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '2) Query and analyze intermediate results'</l>
+<l>Message[1] := '   a) Adapt the bounding box'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'The estimated bounding box does not fit'</l>
+<l>Message[4] := 'the reconstructed object closely'</l>
+<l>Message[5] := 'and contains many outliers.'</l>
+<l>Message[6] := ' '</l>
+<l>Message[7] := 'Especially in x- and y- direction'</l>
+<l>Message[8] := '(red and green arrows), the bounding box'</l>
+<l>Message[9] := 'can be reduced even further.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block4">
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block5">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '2) Query and analyze intermediate results'</l>
+<l>Message[1] := '   b) Rectification of the input images'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'If the object features appear on the same'</l>
+<l>Message[4] := 'epipolar line in in the rectified images,'</l>
+<l>Message[5] := 'the rectification has succeeded.'</l>
+<l>Message[6] := ' '</l>
+<l>Message[7] := 'If this is not the case, the camera '</l>
+<l>Message[8] := 'calibration is of bad quality. This'</l>
+<l>Message[9] := 'leads to misplaced or wrongly'</l>
+<l>Message[10] := 'reconstructed 3D objects.'</l>
+<l>Message[11] := 'In these cases, try to calibrate the'</l>
+<l>Message[12] := 'setup anew.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block5">
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block6">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '2) Query and analyze intermediate results'</l>
+<l>Message[1] := '   c) Disparity images'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'If the disparity image does not really'</l>
+<l>Message[4] := 'resemble the shape of the object, adjusting'</l>
+<l>Message[5] := 'the parameters of the disparity method'</l>
+<l>Message[6] := 'usually leads to better results.'</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'Read the documentation carefully to'</l>
+<l>Message[9] := 'optimize the parameter settings for'</l>
+<l>Message[10] := 'the chosen disparity method.'</l>
+<l>Message[11] := ' '</l>
+<l>Message[12] := 'In this example, the default parameters'</l>
+<l>Message[13] := 'of the chosen method already work pretty well.'</l>
+<l>Message[14] := 'However, there are some outliers and the'</l>
+<l>Message[15] := 'disparities have not been calculated in'</l>
+<l>Message[16] := 'sub-pixel precision.'</l>
+<l>Message[17] := ' '</l>
+<l>Message[18] := 'We deal with this by setting sub-disparity'</l>
+<l>Message[19] := 'mode and a few other parameters.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block6">
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block7">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '2) Query and analyze intermediate results'</l>
+<l>Message[1] := '   d) Score image'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'Since outliers often receive'</l>
+<l>Message[4] := 'a small score, it can be helpful'</l>
+<l>Message[5] := 'to exclude these points from'</l>
+<l>Message[6] := 'being reconstructed. This can'</l>
+<l>Message[7] := 'be done by setting a score threshold.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block7">
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block8">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Query and analyze intermediate results'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The effect of a score threshold can'</l>
+<l>Message[3] := 'easily be checked with HDevelop\'s'</l>
+<l>Message[4] := 'histogram tool and a simple threshold'</l>
+<l>Message[5] := 'on the score image and \'reduce_domain\'.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block8">
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block9">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := 'Readjust the parameters of the model'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'Adapt the parameters until you'</l>
+<l>Message[3] := 'are satisfied with the result.'</l>
+<l>Message[4] := 'Alternatively, the reconstruction'</l>
+<l>Message[5] := 'can also be performed'</l>
+<l>Message[6] := 'using the method \'surface_fusion\'.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block9">
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a Crevis USB camera</c>
+<c>* (trigger mode)</c>
+<c>* </c>
+<c>* </c>
+<c>* Open first Crevis camera with Mono8 PixelFormat</c>
+<l>open_framegrabber ('Crevis', 1, 1, 0, 0, 0, 0, 'default', 8, 'default', -1, 'default', 'default', '-1', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'external_trigger', 'true')</l>
+<l>set_framegrabber_param (AcqHandle, 'trigger_source', 'line1')</l>
+<l>set_framegrabber_param (AcqHandle, 'trigger_signal', 'rising')</l>
+<l>set_framegrabber_param (AcqHandle, 'exposure_time', 10.0)</l>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 2000)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>get_framegrabber_param (AcqHandle, 'external_trigger', ExternalTrigger)</l>
+<l>get_framegrabber_param (AcqHandle, 'trigger_source', TriggerSource)</l>
+<l>get_framegrabber_param (AcqHandle, 'trigger_signal', TriggerSignal)</l>
+<l>get_framegrabber_param (AcqHandle, 'exposure_time', ExposureTime)</l>
+<l>get_framegrabber_param (AcqHandle, 'grab_timeout', GrabTimeout)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageSize[0] / 2, ImageSize[1] / 2, 'black', WindowID)</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>count_seconds (SecondsOld)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (SecondsNew)</l>
+<l>    FrameRate := 1 / (SecondsNew - SecondsOld)</l>
+<l>    SecondsOld := SecondsNew</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Software trigger</c>
+<l>set_framegrabber_param (AcqHandle, 'trigger_source', 'software')</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    set_framegrabber_param (AcqHandle, 'do_force_trigger', 1)</l>
+<l>    grab_image_async (Image1, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'external_trigger', 'false')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

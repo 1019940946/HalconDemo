@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* GS1 DataBar Truncated bar code</c>
+<c>* Note: GS1 DataBar Truncated is the same symbology as GS1 DataBar</c>
+<c>* Omnidirectional, but smaller in height.</c>
+<c>* </c>
+<c>* Create bar code reader</c>
+<l>create_bar_code_model ('element_size_min', 1.5, BarCodeHandle)</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>NumImages := 2</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'barcode/gs1databar_truncated/gs1databar_truncated_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read bar codes</c>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'barcode/gs1databar_truncated/gs1databar_truncated_' + I$'.2d')</l>
+<l>    dev_display (Image)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, 'GS1 DataBar Truncated', DecodedDataStrings)</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings, 'image', 5, 5, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Release memory allocated by the bar code reader</c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

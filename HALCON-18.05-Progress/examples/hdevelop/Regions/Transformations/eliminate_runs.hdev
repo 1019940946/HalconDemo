@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Eliminate runs of a region of a given length.</c>
+<c>* </c>
+<l>read_image (Die2, 'die/die_02')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Die2, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>threshold (Die2, Region, 0, 60)</l>
+<l>gen_circle (Circle, 200, 200, 15.5)</l>
+<l>eliminate_runs (Circle, CircleRed, 14, 1000)</l>
+<l>opening (Region, Circle, RegionOpening1)</l>
+<c>* This opening is a little bit faster</c>
+<l>opening (Region, CircleRed, RegionOpening2)</l>
+<l>dev_display (Die2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RegionOpening1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RegionOpening2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

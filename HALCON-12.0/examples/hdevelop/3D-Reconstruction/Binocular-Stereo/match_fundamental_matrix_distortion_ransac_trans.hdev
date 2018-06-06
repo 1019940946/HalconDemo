@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use match_fundamental_matrix_distortion_ransac</c>
+<c>* in an application in which the camera is mounted stationary above a conveyor</c>
+<c>* belt. Therefore, the motion of the object between the two images is a</c>
+<c>* pure translation.</c>
+<c>* </c>
+<c>* In this example the disparity map of a scene is calculated</c>
+<c>* without calibration.</c>
+<c>* An essential step for the reconstruction is the estimation of</c>
+<c>* the fundamental matrix using point correspondences.</c>
+<c>* The operator match_fundamental_matrix_distortion_ransac_trans</c>
+<c>* not only returns the fundamental matrix, but also estimates</c>
+<c>* the radial distortion of the camera. This leads to a reconstruction</c>
+<c>* with higher accuracy.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<c>* Read and display the images</c>
+<l>read_image (Image1, 'stereo/uncalib/pcb_l')</l>
+<l>read_image (Image2, 'stereo/uncalib/pcb_r')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>set_window_param (WindowHandle, 'background_color', 'gray')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image1)</l>
+<l>disp_message (WindowHandle, 'Left image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image2)</l>
+<l>disp_message (WindowHandle, 'Right image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reconstruction</c>
+<c>* (first without taking radial distortions into account)</c>
+<c>* </c>
+<c>* Extract points to be matched from the images</c>
+<l>points_foerstner (Image1, 1, 2, 3, 200, 0.1, 'gauss', 'true', Rows1, Columns1, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>points_foerstner (Image2, 1, 2, 3, 200, 0.1, 'gauss', 'true', Rows2, Columns2, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* </c>
+<c>* We will first perform a matching of the fundamental matrix that does not</c>
+<c>* take the radial distortions into account to show the errors that are</c>
+<c>* caused by neglecting the radial distortions.</c>
+<l>match_fundamental_matrix_ransac (Image1, Image2, Rows1, Columns1, Rows2, Columns2, 'ncc', 10, 0, 0, 100, 200, 0, 0.5, 'trans_gold_standard', 1, 42, FMatrixU, CovFMat, ErrorU, Points1U, Points2U)</l>
+<c>* Perform a projective rectification of the images to put them into the</c>
+<c>* epipolar standard configuration in which the epipolar lines should be</c>
+<c>* horizontal. Of course, since the radial distortions are not taken into</c>
+<c>* account, this is impossible. The epipolar lines are actually curves</c>
+<c>* because of the radial distortions.</c>
+<l>gen_binocular_proj_rectification (Map1U, Map2U, FMatrixU, [], Width, Height, Width, Height, 1, 'no_map', CovFMatRect, H1, H2)</l>
+<l>projective_trans_point_2d (H1, [0,0,Height,Height], [0,Width,0,Width], [1,1,1,1], R1, C1, W1)</l>
+<l>R1 := int(floor(R1 / W1))</l>
+<l>C1 := int(floor(C1 / W1))</l>
+<l>projective_trans_point_2d (H2, [0,0,Height,Height], [0,Width,0,Width], [1,1,1,1], R2, C2, W2)</l>
+<l>R2 := int(floor(R2 / W2))</l>
+<l>C2 := int(floor(C2 / W2))</l>
+<l>WidthMapped := max([C1,C2])</l>
+<l>HeightMapped := max([R1,R2])</l>
+<l>projective_trans_image_size (Image1, Image1MappedU, H1, 'bilinear', WidthMapped, HeightMapped, 'false')</l>
+<l>projective_trans_image_size (Image2, Image2MappedU, H2, 'bilinear', WidthMapped, HeightMapped, 'false')</l>
+<c>* Compute the disparities in the projectively rectified images. Since the</c>
+<c>* radial distortions are not taken into account, a significant error in</c>
+<c>* the disparities results.</c>
+<l>binocular_disparity_mg (Image1MappedU, Image2MappedU, DisparityU, ScoreU, 1, 30, 8, 0, 'false', 'default_parameters', 'fast_accurate')</l>
+<c>* </c>
+<c>* Visualization</c>
+<c>* </c>
+<c>* For visualization purposes, we crop out a rectangular part of the</c>
+<c>* reconstructed disparities that contains values that are not influenced</c>
+<c>* by border effects. Furthermore, we scale the disparities appropriately.</c>
+<l>get_domain (Image1MappedU, DomainU)</l>
+<l>reduce_domain (DisparityU, DomainU, DisparityU)</l>
+<l>scale_image (DisparityU, DisparityUScaled, 5, -250)</l>
+<l>compose2 (DisparityUScaled, Image1MappedU, ImagePlotU)</l>
+<l>get_image_size (DisparityU, WidthD, HeightD)</l>
+<l>crop_part (DisparityUScaled, DisparityUScaled, 45, 170, WidthD - 300, HeightD - 90)</l>
+<l>crop_part (ImagePlotU, ImagePlotU, 45, 170, WidthD - 300, HeightD - 90)</l>
+<c>* Display the disparites as a 3D plot. Note that the disparities do not</c>
+<c>* constitute a 3D reconstruction (which cannot be performed in the</c>
+<c>* uncalibrated case). However, the disparities are monotonically related</c>
+<c>* to the 3D reconstruction. Therefore, they give a good impression of the</c>
+<c>* quality of the reconstruction.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_paint (['3d_plot','texture',1,0.88,0.14,0.32,0.31,0.23,0.01,0.0,0.0])</l>
+<l>set_window_param (WindowHandle, 'scale_plot', 'false')</l>
+<l>set_window_param (WindowHandle, 'plot_quality', 'best')</l>
+<l>set_window_param (WindowHandle, 'display_grid', 'false')</l>
+<l>set_window_param (WindowHandle, 'display_axes', 'false')</l>
+<l>dev_display (DisparityUScaled)</l>
+<l>Message := 'Disparities if radial distortions'</l>
+<l>Message[1] := 'are not taken into account'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the disparities along with the gray values of the image.</c>
+<l>dev_display (ImagePlotU)</l>
+<l>Message[2] := '(textured)'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Reconstruction</c>
+<c>* (now with taking radial distortions into account)</c>
+<c>* </c>
+<c>* Now, we will perform a matching of the fundamental matrix that takes the</c>
+<c>* radial distortions into account to show the huge improvement in the</c>
+<c>* quality of the reconstruction that is caused by taking the radial</c>
+<c>* distortions into account.</c>
+<l>match_fundamental_matrix_distortion_ransac (Image1, Image2, Rows1, Columns1, Rows2, Columns2, 'ncc', 10, 0, 0, 100, 200, 0, 0.5, 'trans_gold_standard', 1, 42, FMatrix, Kappa, Error, Points1, Points2)</l>
+<c>* Construct camera parameters for the purpose of rectifying the images,</c>
+<c>* i.e., to remove the radial distortions.</c>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>CamParDist := [0.0,Kappa,1.0,1.0,0.5 * (Width - 1),0.5 * (Height - 1),Width,Height]</l>
+<c>* Remove the radial distortions from the images.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParDist, 0, CamPar)</l>
+<l>change_radial_distortion_image (Image1, Image1, Image1Rect, CamParDist, CamPar)</l>
+<l>change_radial_distortion_image (Image2, Image2, Image2Rect, CamParDist, CamPar)</l>
+<c>* Perform a projective rectification of the images to put them into the</c>
+<c>* epipolar standard configuration in which the epipolar lines are</c>
+<c>* horizontal. Since we are taking the radial distortions into account,</c>
+<c>* this is possible, in contrast to the example above.</c>
+<l>gen_binocular_proj_rectification (Map1, Map2, FMatrix, [], Width, Height, Width, Height, 1, 'no_map', CovFMatRect, H1, H2)</l>
+<l>projective_trans_point_2d (H1, [0,0,Height,Height], [0,Width,0,Width], [1,1,1,1], R1, C1, W1)</l>
+<l>R1 := int(floor(R1 / W1))</l>
+<l>C1 := int(floor(C1 / W1))</l>
+<l>projective_trans_point_2d (H2, [0,0,Height,Height], [0,Width,0,Width], [1,1,1,1], R2, C2, W2)</l>
+<l>R2 := int(floor(R2 / W2))</l>
+<l>C2 := int(floor(C2 / W2))</l>
+<l>WidthMapped := max([C1,C2])</l>
+<l>HeightMapped := max([R1,R2])</l>
+<l>projective_trans_image_size (Image1Rect, Image1Mapped, H1, 'bilinear', WidthMapped, HeightMapped, 'false')</l>
+<l>projective_trans_image_size (Image2Rect, Image2Mapped, H2, 'bilinear', WidthMapped, HeightMapped, 'false')</l>
+<c>* Compute the disparities in the projectively rectified and undistorted</c>
+<c>* images. Since the radial distortions are taken into account, the results</c>
+<c>* are significantly better than in the example above.</c>
+<l>binocular_disparity_mg (Image1Mapped, Image2Mapped, Disparity, Score, 1, 30, 8, 0, 'false', 'default_parameters', 'fast_accurate')</l>
+<c>* </c>
+<c>* Visualization</c>
+<c>* </c>
+<c>* For visualization purposes, we crop out a rectangular part of the</c>
+<c>* reconstructed disparities that contains values that are not influenced</c>
+<c>* by border effects. Furthermore, we scale the disparities appropriately.</c>
+<l>get_domain (Image1Mapped, Domain)</l>
+<l>reduce_domain (Disparity, Domain, Disparity)</l>
+<l>scale_image (Disparity, DisparityScaled, 5, -450)</l>
+<l>compose2 (DisparityScaled, Image1Mapped, ImagePlot)</l>
+<l>get_image_size (Disparity, WidthD, HeightD)</l>
+<l>crop_part (DisparityScaled, DisparityScaled, 30, 170, WidthD - 300, HeightD - 60)</l>
+<l>crop_part (ImagePlot, ImagePlot, 30, 170, WidthD - 300, HeightD - 60)</l>
+<c>* Display the disparites as a 3D plot. Note that the disparities do not</c>
+<c>* constitute a 3D reconstruction (which cannot be performed in the</c>
+<c>* uncalibrated case). However, the disparities are monotonically related</c>
+<c>* to the 3D reconstruction. In fact, if the radial distortions are taken</c>
+<c>* into account and if the principal point of the camera is close to the</c>
+<c>* image center, the reconstruction can be performed up to an ambiguity</c>
+<c>* in overall rotation, translation, and scale of the scene plus an</c>
+<c>* additional ambiguity in the scale of the reconstruction in the viewing</c>
+<c>* direction (i.e., an additional ambiguity in the z-scale).</c>
+<l>dev_display (DisparityScaled)</l>
+<l>Message := 'Disparities if radial distortions'</l>
+<l>Message[1] := 'are taken into account'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the disparities along with the gray values of the image.</c>
+<l>dev_display (ImagePlot)</l>
+<l>Message[2] := '(textured)'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON TWAIN interface in</c>
+<c>* 'interactive' mode</c>
+<c>* </c>
+<l>open_framegrabber ('TWAIN', -1, -1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'interactive', 'default', -1, 1, AcqHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 4, Height / 4, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<c>* If desired, once the device is configured, the user interface</c>
+<c>* can be disabled</c>
+<l>set_framegrabber_param (AcqHandle, 'userinterface', 'hide')</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_display (Image)</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

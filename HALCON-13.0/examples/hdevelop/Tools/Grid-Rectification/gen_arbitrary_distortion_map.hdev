@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example illustrates how to use the operator gen_arbitrary_distortion_map.</c>
+<c>* </c>
+<l>GridSpacing := 50</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image, 'calib/grid_space.cal.k.000')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width * 0.5, Height * 0.5, 'black', DistortedWindow)</l>
+<l>set_display_font (DistortedWindow, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_open_window (0, (Width * 0.5) + 12, 6 * GridSpacing, 6 * GridSpacing, 'black', RectifiedWindow)</l>
+<l>set_display_font (RectifiedWindow, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_division (0.025, 0.0, 0.000011, 0.000011, 384.0, 288.0, 768, 576, StartCamParam)</l>
+<c>* Make sure that the file 'CaltabDescrName' is in the current directory,</c>
+<c>* the HALCONROOT/calib directory, or use an absolute path</c>
+<l>CaltabDescrName := 'caltab_small.descr'</l>
+<l>for I := 0 to 8 by 1</l>
+<l>    dev_set_window (DistortedWindow)</l>
+<c>    * Read next image</c>
+<l>    read_image (Image, 'calib/grid_space.cal.k.' + (I$'03'))</l>
+<l>    dev_display (Image)</l>
+<c>    * Find the calibration table</c>
+<l>    find_caltab (Image, Caltab, CaltabDescrName, 3, 112, 5)</l>
+<c>    * Find the landmarks and the pose of the calibration table</c>
+<l>    find_marks_and_pose (Image, Caltab, CaltabDescrName, StartCamParam, 128, 10, 18, 0.9, 15, 100, RCoordTmp, CCoordTmp, StartPoseTmp)</l>
+<l>    dev_set_color ('green')</l>
+<c>    * Display centers of landmarks found</c>
+<l>    gen_cross_contour_xld (Cross, RCoordTmp, CCoordTmp, 12, 0.785398)</l>
+<l>    dev_display (Cross)</l>
+<l>    disp_message (DistortedWindow, 'Extracted marks in original image', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    dev_set_window (RectifiedWindow)</l>
+<l>    dev_set_part (1, 1, -1, -1)</l>
+<l>    gen_arbitrary_distortion_map (Map, GridSpacing, RCoordTmp, CCoordTmp, 7, Width, Height, 'bilinear')</l>
+<l>    map_image (Image, Map, ImageMapped)</l>
+<l>    get_image_size (ImageMapped, MapWidth, MapHeight)</l>
+<l>    dev_set_part (0, 0, MapHeight - 1, MapWidth - 1)</l>
+<l>    dev_display (ImageMapped)</l>
+<l>    disp_message (RectifiedWindow, 'Rectified grid', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    if (I &lt; 8)</l>
+<l>        disp_continue_message (DistortedWindow, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

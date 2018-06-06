@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates the use of the operator 'pose_invert'.</c>
+<c>* This operator inverts the input pose and returns it in InvertedPose.</c>
+<c>* Additionally it is shown how a pose can be inverted using homogenous</c>
+<c>* matrices. Depending on whether mainly poses or mainly homogenous</c>
+<c>* matrices are used, the first or the second alternative is chosen.</c>
+<c>* </c>
+<c>* Two poses are created</c>
+<l>create_pose (0.1, 0.1, 0.1, 90, 90, 90, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>create_pose (0.1, 0.4, 0.1, 23, 23, 90, 'Rp+T', 'gba', 'point', Pose2)</l>
+<c>* </c>
+<c>* Invert just one input pose</c>
+<l>pose_invert (Pose, PoseInvert)</l>
+<c>* Invert all given input poses, the results are returned in tuple PoseInvert2</c>
+<l>pose_invert ([Pose,Pose2], PoseInvert2)</l>
+<c>* </c>
+<c>* The pose is converted into a homogenous matrix, inverted and is then</c>
+<c>* converted back into a pose.</c>
+<l>pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>hom_mat3d_invert (HomMat3D, HomMat3DInvert)</l>
+<l>hom_mat3d_to_pose (HomMat3DInvert, PoseInvertAlternative)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

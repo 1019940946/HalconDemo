@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This program tests the CL serial communication of the BitFlow interface</c>
+<c>* </c>
+<c>* This code will only work with Camera Link boards</c>
+<c>* </c>
+<c>* This program turns on loopback mode on the board's UART so all bytes sent</c>
+<c>* are receieved back immediately</c>
+<c>* </c>
+<c>* </c>
+<c>* Test writing and reading</c>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, 1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_open', 'default')</l>
+<c>* </c>
+<c>* Turn on Loopback mode</c>
+<l>set_framegrabber_param (AcqHandle, 'register_poke:NS_LOOP', 1)</l>
+<c>* </c>
+<c>* Test simple writing and reading</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'abcdefghijklmnopqrstuvwxyz1')</l>
+<l>set_framegrabber_param (AcqHandle, 'read_buf_size', 27)</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'abcdefghijklmnopqrstuvwxyz1')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Test two writes and reading</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'abcdefghijklm')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'nopqrstuvwxyz2')</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'abcdefghijklmnopqrstuvwxyz2')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Test flushing the buffer</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'abcdefghijklm')</l>
+<l>wait_seconds (1)</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_flush', 'default')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'nopqrstuvwxyz')</l>
+<l>set_framegrabber_param (AcqHandle, 'read_buf_size', 13)</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'nopqrstuvwxyz')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Test setting comm parameters</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_param', 'timeout 2000')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_param', 'baud_rate 230400')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_param', 'data_bits 7')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_param', 'parity E')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_param', 'stop_bits 2')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'abcdefghijklmnopqrstuvwxyz')</l>
+<l>set_framegrabber_param (AcqHandle, 'read_buf_size', 26)</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'abcdefghijklmnopqrstuvwxyz')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* change buad rate again and test</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_param', 'baud_rate 9600:data_bits 8:parity N:stop_bits 1:timeout 1000')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'abcdefghijklmnopqrstuvwxyz3')</l>
+<l>set_framegrabber_param (AcqHandle, 'read_buf_size', 27)</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'abcdefghijklmnopqrstuvwxyz3')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Test writing and reading large block of data</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz')</l>
+<l>set_framegrabber_param (AcqHandle, 'read_buf_size', 130)</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Test not reading the whole message</c>
+<l>set_framegrabber_param (AcqHandle, 'do_comm_write', '1b9d')</l>
+<l>set_framegrabber_param (AcqHandle, 'read_buf_size', 1)</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != '1')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'b')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != '9')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<l>get_framegrabber_param (AcqHandle, 'do_comm_read_str', readValue)</l>
+<l>if (readValue != 'd')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Close board</c>
+<l>close_framegrabber (AcqHandle)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

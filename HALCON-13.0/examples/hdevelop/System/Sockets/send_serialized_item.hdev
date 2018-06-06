@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* This example program shows how to use the serialization of HALCON</c>
+<c>* objects and tuples in HALCON.  In this example, a shape based model</c>
+<c>* is created and a connection to an existing socket of another HALCON</c>
+<c>* process is opened.  Consequently, to see how this program</c>
+<c>* works, please start another HDevelop with the program</c>
+<c>* 'receive_serialized_item.hdev'.</c>
+<c>* ***********************************************************************</c>
+<c>* Initialize program</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, 524, 400, 512, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>Names := ['german','italian','greek','spanish']</l>
+<c>* </c>
+<l>Message := 'Please open a second HDevelop and'</l>
+<l>Message[1] := 'start the example program'</l>
+<l>Message[2] := 'receive_serialized_item.hdev'</l>
+<l>Message[3] := ' '</l>
+<l>Message[4] := 'After that, press F5 to continue'</l>
+<l>Message[5] := 'and establish a socket connection'</l>
+<l>Message[6] := 'between the two processes.'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<c>* Open a socket connection</c>
+<l>open_socket_connect ('127.0.0.1', 3000, [], [], Socket)</l>
+<c>* </c>
+<l>disp_message (WindowHandle2, 'Connected ...', 'window', 12, 12, 'green', 'false')</l>
+<c>* </c>
+<c>* Send a serialized item of type tuple over a socket connection</c>
+<l>serialize_tuple (Names, SerializedItemHandle)</l>
+<l>send_serialized_item (Socket, SerializedItemHandle)</l>
+<l>clear_serialized_item (SerializedItemHandle)</l>
+<c>* </c>
+<c>* Train shape models</c>
+<l>for I := 0 to 3 by 1</l>
+<l>    read_image (Image, 'coins/20cent_' + Names[I])</l>
+<l>    Message := 'Train coin ' + (I + 1) + '/4 (' + Names[I] + ')'</l>
+<l>    disp_message (WindowHandle2, Message, 'window', 30 + I * 40, 12, 'white', 'false')</l>
+<l>    train_coin_model (Image, ModelID)</l>
+<l>    serialize_shape_model (ModelID, SerializedItemHandle)</l>
+<c>    * Send a serialized item of type shape based model over a socket connection</c>
+<l>    send_serialized_item (Socket, SerializedItemHandle)</l>
+<l>    Message := 'Send model'</l>
+<l>    disp_message (WindowHandle2, Message, 'window', 50 + I * 40, 12, 'white', 'false')</l>
+<l>    clear_serialized_item (SerializedItemHandle)</l>
+<l>    clear_shape_model (ModelID)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Receive the resulting image and the names of the coins</c>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (1)</l>
+<c>* </c>
+<l>disp_message (WindowHandle2, 'Receive matching results ...', 'window', 195, 12, 'green', 'false')</l>
+<c>* </c>
+<l>for I := 1 to 13 by 1</l>
+<c>    * Receive name of the recognized coin</c>
+<l>    receive_serialized_item (Socket, SerializedItemHandle)</l>
+<l>    deserialize_tuple (SerializedItemHandle, CoinName)</l>
+<l>    clear_serialized_item (SerializedItemHandle)</l>
+<c>    * Receive part of the image and the contours</c>
+<l>    receive_serialized_item (Socket, SerializedItemHandle)</l>
+<l>    deserialize_object (Objects, SerializedItemHandle)</l>
+<l>    select_obj (Objects, ImagePart, 1)</l>
+<l>    count_obj (Objects, Number)</l>
+<l>    Sequence := [2:Number - 1]</l>
+<l>    select_obj (Objects, Contours, Sequence)</l>
+<l>    clear_serialized_item (SerializedItemHandle)</l>
+<c>    * Display the result</c>
+<l>    dev_display (ImagePart)</l>
+<l>    dev_display (Contours)</l>
+<l>    Message := '#' + I + ': Found ' + CoinName + ' coin'</l>
+<l>    disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle2, 'Result ' + I + ' received', 'window', 195 + I * 20, 12, 'white', 'false')</l>
+<l>    wait_seconds (0.7)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Continue to close a socket</c>
+<l>close_socket (Socket)</l>
+<l>disp_message (WindowHandle2, 'Connection closed.', 'window', 480, 12, 'green', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="train_coin_model">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="ModelID" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>threshold (Image, Region, 70, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape_std (ConnectedRegions, SelectedRegions, 'max_area', 0)</l>
+<l>shape_trans (SelectedRegions, RegionTrans, 'convex')</l>
+<l>area_center (RegionTrans, Area, Row, Column)</l>
+<l>gen_circle (Coin, Row, Column, 120)</l>
+<l>Contrast := 20</l>
+<l>HysteresisContrast := [Contrast / 2,Contrast + 6,10]</l>
+<l>reduce_domain (Image, Coin, ImageReduced)</l>
+<c>* Called during the test phase to see if Contrast is selected correctly</c>
+<l>* inspect_shape_model (ImageReduced, ModelImages, ModelRegions, 1, HysteresisContrast)</l>
+<l>create_shape_model (ImageReduced, 0, 0, rad(360), 0, 'no_pregeneration', 'ignore_local_polarity', HysteresisContrast, 5, ModelID)</l>
+<l>return ()</l>
+</body>
+<docu id="train_coin_model">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ModelID"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

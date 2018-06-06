@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Searching the best matching of a template and an image</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image1, 'passat/passat_00')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<c>* Interpolate 2 video half images</c>
+<l>fill_interlace (Image1, Image1Filled, 'odd')</l>
+<l>Row := 201</l>
+<l>Column := 472</l>
+<l>gen_rectangle1 (Rectangle, Row - 12, Column - 8, Row + 12, Column + 8)</l>
+<l>reduce_domain (Image1Filled, Rectangle, ImageReduced)</l>
+<c>* Preparing a pattern for template matching</c>
+<l>create_template (ImageReduced, 5, 1, 'none', 'original', TemplateID)</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>Files := []</l>
+<c>* Get list of file names</c>
+<l>for i := 1 to 40 by 1</l>
+<l>    File := 'passat/passat_' + (round(i)$'.2')</l>
+<l>    Files := [Files,File]</l>
+<l>endfor</l>
+<l>read_image (Images, Files)</l>
+<l>fill_interlace (Images, ImageFilled, 'odd')</l>
+<l>dev_update_pc ('off')</l>
+<l>for i := 1 to 40 by 1</l>
+<l>    select_obj (ImageFilled, Image1, i)</l>
+<l>    dev_display (Image1)</l>
+<l>    gen_rectangle1 (RearchRectangle, Row - 50, Column - 90, Row + 50, Column + 90)</l>
+<l>    reduce_domain (Image1, RearchRectangle, ImageSearch)</l>
+<l>    best_match (ImageSearch, TemplateID, 30, 'false', RowNew, ColumnNew, Error)</l>
+<l>    if (Error &lt; 255)</l>
+<l>        disp_rectangle1 (WindowID, Row - 12, Column - 8, Row + 12, Column + 8)</l>
+<l>        Row := RowNew</l>
+<l>        Column := ColumnNew</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Pattern matching with adaptation to illumination changes</c>
+<c>* - Rotational invariant</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>open_framegrabber ('File', 1, 1, 320, 240, -1, -1, 'default', -1, 'default', -1, 'default', 'pendulum/pendulum', 'default', -1, -1, AcqHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (5)</l>
+<c>* </c>
+<c>* Define pattern for virtual image acquisition device</c>
+<c>* </c>
+<l>Length1 := 32.0</l>
+<l>Length2 := 12.5</l>
+<l>Phi := -0.315</l>
+<l>Row := 112.5</l>
+<l>Column := 92.0</l>
+<l>gen_rectangle2 (Rectangle, Row, Column, Phi, Length1, Length2)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>create_template_rot (ImageReduced, 4, 0, rad(360), rad(2), 'sort', 'original', TemplateID)</l>
+<l>TemplH2 := Length2</l>
+<l>TemplW2 := Length1</l>
+<l>TemplPhi := Phi</l>
+<l>intensity (ImageReduced, Image, TemplMean, Deviation)</l>
+<c>* </c>
+<c>* Pattern matching loop</c>
+<c>* Press mouse button to exit</c>
+<c>* </c>
+<l>Button := 0</l>
+<l>while (Button == 0)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (Seconds1)</l>
+<c>    * </c>
+<c>    * Pattern Matching</c>
+<c>    * </c>
+<l>    best_match_rot_mg (Image, TemplateID, 0, rad(360), 30, 'false', 4, Row, Column, Angle, Error)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := 1000 * (Seconds2 - Seconds1)</l>
+<l>    disp_message (WindowID, 'Template found in ' + Time$'4.2f' + ' ms', 'image', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowID)</l>
+<l>    if (Error &lt; 255)</l>
+<l>        gen_rectangle2 (Rectangle, Row, Column, TemplPhi + Angle, Length1, Length2)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>        intensity (ImageReduced, Image, Mean, Deviation)</l>
+<l>        set_offset_template (TemplateID, Mean - TemplMean)</l>
+<l>    endif</l>
+<c>    * --------------------------</c>
+<c>    * Exit with mouse click</c>
+<c>    * --------------------------</c>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowID, Row1, Column1, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>    wait_seconds (min2(Time * 1000,0.04))</l>
+<l>endwhile</l>
+<l>clear_template (TemplateID)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

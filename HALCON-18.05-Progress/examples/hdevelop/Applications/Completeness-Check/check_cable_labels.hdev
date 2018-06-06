@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how the operator find_ncc_models can be used to</c>
+<c>* search multiple models in an image using just one operator call.</c>
+<c>* </c>
+<c>* In the presented application, the correct type of cable</c>
+<c>* is determined using a style number printed on the cable.</c>
+<c>* If the style identifier is not present, an unknown cable type is</c>
+<c>* reported. Additionally, several labels are required to be printed on each</c>
+<c>* cable type. For each style and label, an NCC model is created and</c>
+<c>* later used in the search.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (ImageClass1, 'label/cable_labels_01')</l>
+<l>read_image (ImageClass2, 'label/cable_labels_02')</l>
+<l>get_image_size (ImageClass1, Width, Height)</l>
+<c>* Configure the graphics window.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ImageClass1, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<c>* Define a color and a label for each class type.</c>
+<l>ClassLabels := ['type 1','type 2','STYLE','80°C','30V','VW-1']</l>
+<l>ClassColors := ['green','blue','cyan','magenta','yellow','coral']</l>
+<c>* Show a visualization that explains the task to be solved.</c>
+<l>explain_task (ImageClass1, ImageClass2, ClassColors, WindowHandle)</l>
+<l>stop ()</l>
+<c>* Initialize arrays and define the search range for the rotation.</c>
+<l>ClassIds := []</l>
+<l>ModelIds := []</l>
+<l>LabelIds := []</l>
+<l>AngleStart := rad(-5)</l>
+<l>AngleExtent := rad(10)</l>
+<c>* </c>
+<c>* In the training images, define the type identifier</c>
+<c>* and the labels using regions and the gray values they contain.</c>
+<c>* </c>
+<c>* Define an NCC model for cable type 1.</c>
+<l>dev_display (ImageClass1)</l>
+<l>gen_rectangle1 (ROIClass1, 573.0, 417.6, 620.7, 543.9)</l>
+<l>reduce_domain (ImageClass1, ROIClass1, ImageReduced)</l>
+<l>create_ncc_model (ImageReduced, 'auto', AngleStart, AngleExtent, 'auto', 'use_polarity', ModelID)</l>
+<l>ModelIds := [ModelIds,ModelID]</l>
+<l>dev_set_color (ClassColors[1])</l>
+<l>dev_display (ROIClass1)</l>
+<l>dev_disp_text ('Train cable ' + ClassLabels[0], 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* Define an NCC model for cable type 2.</c>
+<l>dev_display (ImageClass2)</l>
+<l>gen_rectangle1 (ROIClass2, 498.7, 263.2, 544.8, 428.7)</l>
+<l>reduce_domain (ImageClass2, ROIClass2, ImageReduced)</l>
+<l>create_ncc_model (ImageReduced, 'auto', AngleStart, AngleExtent, 'auto', 'use_polarity', ModelID)</l>
+<l>ModelIds := [ModelIds,ModelID]</l>
+<l>dev_set_color (ClassColors[0])</l>
+<l>dev_display (ROIClass2)</l>
+<l>dev_disp_text ('Train cable ' + ClassLabels[1], 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* Define one NCC model for each of the different labels.</c>
+<l>dev_display (ImageClass2)</l>
+<c>* Define the gray values defining the labels using rectangle regions.</c>
+<l>gen_rectangle1 (ROILabel1, 495.3, 49.8, 544.8, 215.4)</l>
+<l>gen_rectangle1 (ROILabel2, 494.4, 489.3, 544.0, 615.6)</l>
+<l>gen_rectangle1 (ROILabel3, 489.3, 680.5, 533.7, 777.7)</l>
+<l>gen_rectangle1 (ROILabel4, 479.0, 842.6, 535.4, 999.6)</l>
+<l>concat_obj (ROILabel1, ROILabel2, ROILabels)</l>
+<l>concat_obj (ROILabels, ROILabel3, ROILabels)</l>
+<l>concat_obj (ROILabels, ROILabel4, ROILabels)</l>
+<l>count_obj (ROILabels, NumberLabels)</l>
+<c>* Create the NCC model for each label.</c>
+<l>for Index := 1 to NumberLabels by 1</l>
+<l>    select_obj (ROILabels, ObjectSelected, Index)</l>
+<l>    reduce_domain (ImageClass2, ObjectSelected, ImageReduced)</l>
+<l>    create_ncc_model (ImageReduced, 'auto', AngleStart, AngleExtent, 'auto', 'use_polarity', ModelID)</l>
+<l>    get_ncc_model_params (ModelID, NumLevels, AngleStart1, AngleExtent, AngleStep, Metric)</l>
+<l>    ModelIds := [ModelIds,ModelID]</l>
+<l>    dev_set_color (ClassColors[1 + Index])</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>endfor</l>
+<l>dev_disp_text ('Train four additional labels that have to be printed on the cable.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* In each image a style label for the cable type and the labels 'style', '80°C'</c>
+<c>* 'VW-1' and '30 V' have to be present.</c>
+<l>CableTypeFound := false</l>
+<l>tuple_gen_const (|ModelIds|, 1, NumMatches)</l>
+<l>NumImages := 5</l>
+<l>Loops := 20</l>
+<l>T1 := 0</l>
+<l>T2 := 0</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image2, 'label/cable_labels_' + Index$'02')</l>
+<c>    * To speed up the search, reduce the domain in which the models are searched.</c>
+<l>    threshold (Image2, Region, 60, 150)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    reduce_domain (Image2, RegionFillUp, ImageReduced)</l>
+<c>    * </c>
+<c>    * It is of course possible to search for all models individually</c>
+<c>    * using find_ncc_model. However, this is not as fast as one call</c>
+<c>    * to find_ncc_models.</c>
+<c>    * </c>
+<c>    * To get a more precise time measurement, we repeat the</c>
+<c>    * measurement multiple times.</c>
+<l>    count_seconds (Start)</l>
+<l>    for I := 1 to Loops by 1</l>
+<l>        for M := 0 to |ModelIds| - 1 by 1</l>
+<l>            find_ncc_model (ImageReduced, ModelIds[M], AngleStart, AngleExtent, 0.7, 1, 0.5, 'true', 0, Row1, Column1, Angle1, Score1)</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>    TimeSingle := (End - Start) / Loops * 1000</l>
+<l>    T1 := T1 + TimeSingle</l>
+<c>    * Perform the matching with find_ncc_models.</c>
+<c>    * Each label has to be present, therefore one result per NCC model is searched.</c>
+<l>    count_seconds (Start)</l>
+<l>    for I := 1 to Loops by 1</l>
+<l>        find_ncc_models (ImageReduced, ModelIds, AngleStart, AngleExtent, 0.7, NumMatches, 0.5, 'true', 0, Row, Column, Angle, Score, Model)</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>    TimeAll := (End - Start) / Loops * 1000</l>
+<l>    T2 := T2 + TimeAll</l>
+<c>    * Determine which type of cable is present in the image and</c>
+<c>    * report which labels were found.</c>
+<l>    analyze_result (ModelIds, Model, ClassLabels, Text, TextColors)</l>
+<l>    dev_display (Image2)</l>
+<c>    * </c>
+<l>    dev_disp_text ('Results for image ' + Index + ' :', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text (Text, 'window', 60, 'left', TextColors, [], [])</l>
+<c>    * Display the found NCC models each in its own color.</c>
+<l>    dev_display_ncc_matching_results (ModelIds, ClassColors, Row, Column, Angle, Model)</l>
+<l>    dev_disp_text (['1x find_ncc_models:' + TimeAll$'5.2f' + ' ms','5x find_ncc_model:' + TimeSingle$'6.2f' + ' ms'], 'window', 'top', 'right', 'black', ['box_color','shadow'], ['#fef5ec','false'])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display result of the time measurements.</c>
+<l>dump_window_image (Image, WindowHandle)</l>
+<l>gauss_filter (Image, ImageGauss, 11)</l>
+<l>dev_display (ImageGauss)</l>
+<l>dev_disp_text (['Total time find_ncc_models:' + T2$'6.2f' + ' ms','Total time find_ncc_model:' + T1$'7.2f' + ' ms','Speedup: ' + ((T1 / T2 - 1) * 100)$'21.0f' + ' %'], 'window', 'center', 'center', 'black', ['box_color','shadow'], ['#fef5ec','false'])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="explain_task">
+<interface>
+<io>
+<par name="ImageClass1" base_type="iconic" dimension="0"/>
+<par name="ImageClass2" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="ClassColors" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure is used to generate an image showing both cable types</c>
+<c>* and indicate the labels that will be searched using regions.</c>
+<l>get_image_size (ImageClass1, Width, Height)</l>
+<c>* Create an image showing both cable types.</c>
+<l>crop_part (ImageClass1, ImagePart, Height / 4, 0, Width, Height / 2)</l>
+<l>crop_part (ImageClass2, ImagePart2, Height / 4, 0, Width, Height / 2)</l>
+<l>concat_obj (ImagePart, ImagePart2, ObjectsConcat)</l>
+<l>tile_images_offset (ObjectsConcat, TiledImage, [0,Height / 2], [0,0], [0,0], [0,0], [Height / 2,Height / 2], [Width,Width], Width, Height)</l>
+<c>* </c>
+<l>dev_display (TiledImage)</l>
+<c>* Define a region encircling the first cable identifier.</c>
+<l>dev_set_color (ClassColors[0])</l>
+<l>gen_rectangle1 (ROI_0, 314, 418, 370, 553)</l>
+<l>dev_display (ROI_0)</l>
+<c>* Define a region encircling the second cable identifier.</c>
+<l>dev_set_color (ClassColors[1])</l>
+<l>gen_rectangle1 (ROI_1, 757, 267, 805, 427)</l>
+<l>dev_display (ROI_1)</l>
+<c>* Define a region for each label and display it.</c>
+<l>dev_set_color ('red')</l>
+<l>gen_rectangle1 (ROI_2, 325, 187, 385, 364)</l>
+<l>gen_rectangle1 (ROI_3, 308, 600, 368, 753)</l>
+<l>gen_rectangle1 (ROI_4, 306, 810, 357, 946)</l>
+<l>gen_rectangle1 (ROI_5, 299, 1003, 354, 1098)</l>
+<l>dev_display (ROI_2)</l>
+<l>dev_display (ROI_3)</l>
+<l>dev_display (ROI_4)</l>
+<l>dev_display (ROI_5)</l>
+<l>Message := 'Using the operator find_ncc_models, distinguish between two types'</l>
+<l>Message[1] := 'of cables (blue, green) and check that four predefined labels (red)'</l>
+<l>Message[2] := 'are printed on both cable types.'</l>
+<l>dev_disp_text (Message, 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="explain_task">
+<parameters>
+<parameter id="ClassColors"/>
+<parameter id="ImageClass1"/>
+<parameter id="ImageClass2"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="analyze_result">
+<interface>
+<ic>
+<par name="ModelIds" base_type="ctrl" dimension="0"/>
+<par name="Model" base_type="ctrl" dimension="0"/>
+<par name="ClassLabels" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Text" base_type="ctrl" dimension="0"/>
+<par name="TextColors" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure analyzes the results of find_ncc_models and determines</c>
+<c>* 1. Which cable type is present in the image?</c>
+<c>* 2. Which labels are present?</c>
+<c>* A message is generated detailing which cable and labels were found.</c>
+<c>* If the cable type or a label is missing,</c>
+<c>* this part of the message is printed in red.</c>
+<l>CableTypeFound := false</l>
+<l>for I := 0 to |ModelIds| - 1 by 1</l>
+<l>    if (I &lt; 2)</l>
+<l>        if (CableTypeFound)</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>        if (find(Model,I) != -1)</l>
+<l>            Text := 'Cable is of ' + ClassLabels[I]</l>
+<l>            TextColors := 'black'</l>
+<l>            CableTypeFound := true</l>
+<l>        else</l>
+<c>            * Cable of unknown type.</c>
+<l>            Text := 'Cable type is missing'</l>
+<l>            TextColors := 'red'</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        if (find(Model,I) == -1)</l>
+<l>            Text := [Text,ClassLabels[I] + ' label is missing']</l>
+<l>            TextColors := [TextColors,'red']</l>
+<l>        else</l>
+<l>            Text := [Text,ClassLabels[I] + ' label is present']</l>
+<l>            TextColors := [TextColors,'black']</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="analyze_result">
+<parameters>
+<parameter id="ClassLabels"/>
+<parameter id="Model"/>
+<parameter id="ModelIds"/>
+<parameter id="Text"/>
+<parameter id="TextColors"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

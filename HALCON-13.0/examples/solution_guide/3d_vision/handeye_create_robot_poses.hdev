@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<c>* directory for pose files: adapt to your needs</c>
+<l>DataNameStart := './robot_pose_'</l>
+<l>i := 0</l>
+<l>dev_close_window ()</l>
+<c>* let user specify pose type</c>
+<l>input_pose_type (PoseType)</l>
+<c>* create poses interactively</c>
+<l>CreateNextPose := 'true'</l>
+<l>while (CreateNextPose == 'true')</l>
+<l>    input_pose (PoseType, Pose)</l>
+<l>    write_pose (Pose, DataNameStart + i$'03d' + '.dat')</l>
+<l>    i := i + 1</l>
+<l>    ask_yes_no ('Create another pose?', 'YES', 'NO', CreateNextPose)</l>
+<l>endwhile</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="ask_yes_no">
+<interface>
+<ic>
+<par name="TextQuestion" base_type="ctrl" dimension="0"/>
+<par name="TextYes" base_type="ctrl" dimension="0"/>
+<par name="TextNo" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Answer" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_open_window (0, 0, 450, 120, 'white', WindowHandle)</l>
+<l>dev_set_part (0, 0, 129, 449)</l>
+<l>set_display_font (WindowHandle, 12, 'mono', 'false', 'false')</l>
+<l>dev_set_color ('blue')</l>
+<l>disp_message (WindowHandle, TextQuestion, 'window', 10, 0, 'black', 'false')</l>
+<l>disp_message (WindowHandle, TextYes + ' -&gt; left mouse button', 'window', 50, 50, 'blue', 'false')</l>
+<l>disp_message (WindowHandle, TextNo + '  -&gt; right mouse button', 'window', 100, 50, 'blue', 'false')</l>
+<l>get_mbutton (WindowHandle, Row, Column, Button)</l>
+<l>if (Button == 1)</l>
+<l>    Answer := 'true'</l>
+<l>else</l>
+<l>    Answer := 'false'</l>
+<l>endif</l>
+<l>dev_close_window ()</l>
+<l>return ()</l>
+</body>
+<docu id="ask_yes_no">
+<short lang="en_US">ask user to answer yes/no with left/right mouse mouse button click; returns true/false</short>
+<parameters>
+<parameter id="Answer"/>
+<parameter id="TextNo"/>
+<parameter id="TextQuestion"/>
+<parameter id="TextYes"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="input_pose">
+<interface>
+<ic>
+<par name="PoseType" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* open text window and initialize it</c>
+<l>dev_open_window (0, 0, 400, 200, 'light gray', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 299)</l>
+<l>set_display_font (WindowHandle, 12, 'mono', 'false', 'false')</l>
+<l>dev_set_color ('blue')</l>
+<c>* initialize variables depending on pose type</c>
+<l>if (PoseType == 'abg' or PoseType == 'zyx')</l>
+<l>    TextsRotation := ['Rx','Ry','Rz']</l>
+<l>else</l>
+<l>    if (PoseType == 'gba' or PoseType == 'xyz')</l>
+<l>        TextsRotation := ['Rx','Ry','Rz']</l>
+<l>    else</l>
+<l>        if (PoseType == 'zyz')</l>
+<l>            TextsRotation := ['Rz left','Ry','Rz right']</l>
+<l>        else</l>
+<c>            * this line should not be reached (unknown pose type)</c>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<c>* request user input for pose parameters</c>
+<l>disp_message (WindowHandle, 'Specify pose (type: ' + PoseType + ')', 'window', 10, 0, 'black', 'false')</l>
+<l>input_numeric_value (WindowHandle, 50, 50, 'Tx [m]:   ', '', Tx)</l>
+<l>input_numeric_value (WindowHandle, 70, 50, 'Ty [m]:   ', '', Ty)</l>
+<l>input_numeric_value (WindowHandle, 90, 50, 'Tz [m]:   ', '', Tz)</l>
+<l>input_numeric_value (WindowHandle, 110, 50, TextsRotation[0] + ' [deg]: ', '', Rl)</l>
+<l>input_numeric_value (WindowHandle, 130, 50, TextsRotation[1] + ' [deg]: ', '', Rm)</l>
+<l>input_numeric_value (WindowHandle, 150, 50, TextsRotation[2] + ' [deg]: ', '', Rr)</l>
+<c>* create pose</c>
+<l>if (PoseType == 'abg' or PoseType == 'zyx')</l>
+<l>    create_pose (Tx, Ty, Tz, Rl, Rm, Rr, 'Rp+T', 'abg', 'point', Pose)</l>
+<l>else</l>
+<l>    if (PoseType == 'gba' or PoseType == 'xyz')</l>
+<l>        create_pose (Tx, Ty, Tz, Rl, Rm, Rr, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>    else</l>
+<l>        if (PoseType == 'zyz')</l>
+<l>            hom_mat3d_identity (HomMat3DIdentity)</l>
+<l>            hom_mat3d_translate (HomMat3DIdentity, Tx, Ty, Tz, HomMat3DTranslate)</l>
+<l>            hom_mat3d_rotate_local (HomMat3DTranslate, rad(Rl), 'z', HomMat3DT_Rl)</l>
+<l>            hom_mat3d_rotate_local (HomMat3DT_Rl, rad(Rm), 'y', HomMat3DT_Rl_Rm)</l>
+<l>            hom_mat3d_rotate_local (HomMat3DT_Rl_Rm, rad(Rr), 'z', HomMat3D)</l>
+<l>            hom_mat3d_to_pose (HomMat3D, Pose)</l>
+<l>        else</l>
+<c>            * this line should not be reached (unknown pose type)</c>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>dev_close_window ()</l>
+<l>return ()</l>
+</body>
+<docu id="input_pose">
+<short lang="en_US">let user input pose of a specified type</short>
+<parameters>
+<parameter id="Pose"/>
+<parameter id="PoseType"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="input_pose_type">
+<interface>
+<oc>
+<par name="PoseType" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* open text window and initialize it</c>
+<l>dev_open_window (0, 0, 400, 200, 'light gray', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 299)</l>
+<l>set_display_font (WindowHandle, 12, 'mono', 'false', 'false')</l>
+<l>dev_set_color ('blue')</l>
+<c>* request user input for pose parameters</c>
+<l>disp_message (WindowHandle, 'Specify pose type (xyz/abg, zyx/gba, zyz)', 'window', 10, 10, 'black', 'false')</l>
+<l>disp_message (WindowHandle, 'type: ', 'window', 50, 50, 'black', 'false')</l>
+<l>read_string (WindowHandle, 'xyz', 32, Type)</l>
+<c>* check and possibly convert type</c>
+<l>CorrectInput := 'false'</l>
+<l>while (CorrectInput == 'false')</l>
+<l>    if (Type == 'abg' or Type == 'zyx' or Type == 'gba' or Type == 'xyz' or Type == 'zyz')</l>
+<l>        PoseType := Type</l>
+<l>        CorrectInput := 'true'</l>
+<l>    else</l>
+<l>        clear_window (WindowHandle)</l>
+<l>        disp_message (WindowHandle, 'Unknown pose type, select xyz/abg, zyx/gba, zyz!', 'window', 10, 0, 'black', 'false')</l>
+<l>        disp_message (WindowHandle, 'type: ', 'window', 50, 50, 'black', 'false')</l>
+<l>        read_string (WindowHandle, 'xyz', 32, Type)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_close_window ()</l>
+<l>return ()</l>
+</body>
+<docu id="input_pose_type">
+<short lang="en_US">let user input pose type</short>
+<parameters>
+<parameter id="PoseType"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="input_numeric_value">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Text" base_type="ctrl" dimension="0"/>
+<par name="DefaultValue" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="NumericValue" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>MaxStringLength := 32</l>
+<l>disp_message (WindowHandle, Text, 'window', Row, Column, 'black', 'false')</l>
+<l>read_string (WindowHandle, DefaultValue, MaxStringLength, StringValue)</l>
+<l>NumericValue := number(StringValue)</l>
+<l>return ()</l>
+</body>
+<docu id="input_numeric_value">
+<short lang="en_US">let the user input a numeric value via a text window</short>
+<parameters>
+<parameter id="Column"/>
+<parameter id="DefaultValue"/>
+<parameter id="NumericValue"/>
+<parameter id="Row"/>
+<parameter id="Text"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

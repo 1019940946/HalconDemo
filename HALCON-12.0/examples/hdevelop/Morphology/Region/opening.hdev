@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Apply an opening to a region</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (letters, 'letters')</l>
+<l>get_image_size (letters, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>dev_display (letters)</l>
+<l>threshold (letters, Region, 0, 100)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_obj (ConnectedRegions, ObjectSelected, 100)</l>
+<c>* Erosion of a region with a circular structuring element</c>
+<l>erosion_circle (ObjectSelected, RegionErosion, 1.5)</l>
+<l>opening (Region, RegionErosion, RegionOpening)</l>
+<l>dev_display (letters)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RegionOpening)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

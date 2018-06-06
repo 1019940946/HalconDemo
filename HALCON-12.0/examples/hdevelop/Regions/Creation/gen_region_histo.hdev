@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>gen_rectangle1 (Rectangle, 345, 280, 410, 350)</l>
+<l>gray_histo (Rectangle, Image, AbsoluteHisto, RelativeHisto)</l>
+<l>create_funct_1d_array (AbsoluteHisto, Function)</l>
+<l>smooth_funct_1d_gauss (Function, 2, SmoothedFunction)</l>
+<l>funct_1d_to_pairs (SmoothedFunction, XValues, YValues)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>gen_region_histo (HistoRegion1, AbsoluteHisto, 255, 255, 1)</l>
+<l>gen_region_histo (HistoRegion2, YValues, 255, 255, 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (HistoRegion1)</l>
+<l>dev_display (Rectangle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (HistoRegion2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

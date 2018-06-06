@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how an MLP can be used for regression (function</c>
+<c>* approximation).  First, 21 samples of a noisy sine wave are created.  Then, an</c>
+<c>* MLP with linear output activations is trained with the noisy data.  Finally, the</c>
+<c>* output of the trained MLP and the true noise-free sine wave are plotted.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 500, 500, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 499, 499)</l>
+<c>* Initialize the random number generator.  create_class_mlp will overwrite</c>
+<c>* the seed.  Therefore, we will only get identical results if we call rand once</c>
+<c>* before calling create_class_mlp.</c>
+<l>D := rand(1)</l>
+<c>* Create the MLP.</c>
+<l>create_class_mlp (1, 3, 1, 'linear', 'none', 1, 9, MLPHandle)</l>
+<c>* Generate the noisy samples of the sine wave.</c>
+<l>D := []</l>
+<l>T := []</l>
+<l>Noise := 0.2</l>
+<l>NData := 21</l>
+<l>for J := 0 to NData - 1 by 1</l>
+<l>    D := [D,real(J) / (NData - 1)]</l>
+<l>    T := [T,sin(rad(360) * D[J]) + Noise * (rand(1) - 0.5)]</l>
+<l>endfor</l>
+<c>* Plot the samples.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>disp_cross (WindowHandle, 250 - T * 200, D * 500, 20, 0)</l>
+<c>* Train the MLP.</c>
+<l>for J := 0 to NData - 1 by 1</l>
+<l>    add_sample_class_mlp (MLPHandle, D[J], T[J])</l>
+<l>endfor</l>
+<l>train_class_mlp (MLPHandle, 200, 0.00001, 0.00001, Error, ErrorLog)</l>
+<c>* Generate a plot of the output of the MLP and the true sine wave.  Y will</c>
+<c>* contain the output of the MLP, while G will contain the ground truth (i.e., the</c>
+<c>* true sine wave).</c>
+<l>NPlot := 101</l>
+<l>X := []</l>
+<l>Y := []</l>
+<l>G := []</l>
+<l>for J := 0 to NPlot - 1 by 1</l>
+<l>    X := [X,real(J) / (NPlot - 1)]</l>
+<l>    evaluate_class_mlp (MLPHandle, X[J], R)</l>
+<l>    Y := [Y,R]</l>
+<l>    G := [G,sin(rad(360) * X[J])]</l>
+<l>endfor</l>
+<l>dev_set_color ('blue')</l>
+<l>for J := 0 to NPlot - 2 by 1</l>
+<l>    disp_line (WindowHandle, 250 - G[J] * 200, X[J] * 500, 250 - G[J + 1] * 200, X[J + 1] * 500)</l>
+<l>endfor</l>
+<l>dev_set_color ('green')</l>
+<l>for J := 0 to NPlot - 2 by 1</l>
+<l>    disp_line (WindowHandle, 250 - Y[J] * 200, X[J] * 500, 250 - Y[J + 1] * 200, X[J + 1] * 500)</l>
+<l>endfor</l>
+<l>clear_class_mlp (MLPHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

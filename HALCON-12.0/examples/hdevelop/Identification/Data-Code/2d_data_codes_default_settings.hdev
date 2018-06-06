@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***************************************************************</c>
+<c>* This program demonstrates how to read 2d data codes with the</c>
+<c>* three basic default settings for standard recognition, enhanced</c>
+<c>* recognition, and maximum recognition.</c>
+<c>* In the first step you can choose the symbol types to be</c>
+<c>* processed. Then the corresponding images are obtained and the</c>
+<c>* data code models for each default setting is created.</c>
+<c>* In the next step the data codes of each symbol type are searched</c>
+<c>* in the corresponding images with each generated data code model</c>
+<c>* and the results are displayed in the graphics window.</c>
+<c>* ****************************************************************</c>
+<c>* </c>
+<c>* Initialize visual settings</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>Message := 'This program demonstrates how to read 2d data'</l>
+<l>Message[1] := 'codes with the following default settings:'</l>
+<l>Message[2] := ' \'standard recognition\''</l>
+<l>Message[3] := ' \'enhanced recognition\''</l>
+<l>Message[4] := ' \'maximum recognition\''</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'Note that you can choose the desired symbol'</l>
+<l>Message[7] := 'types by (un)commenting the corresponding'</l>
+<l>Message[8] := 'lines in the code.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 1: Choose the symbol type</c>
+<c>* -------------------------------------------------------</c>
+<c>* Choose the symbol types by (un)commenting the corresponding</c>
+<c>* lines. Note that you can choose more than one symbol type.</c>
+<l>SymbolType := []</l>
+<l>SymbolType := [SymbolType,'QR Code']</l>
+<l>SymbolType := [SymbolType,'Micro QR Code']</l>
+<l>SymbolType := [SymbolType,'PDF417']</l>
+<l>SymbolType := [SymbolType,'Aztec Code']</l>
+<l>SymbolType := [SymbolType,'Data Matrix ECC 200']</l>
+<c>* </c>
+<c>* Loop over all chosen symbol types</c>
+<c>* -------------------------------------------------------</c>
+<c>* Get images of the chosen symbol types, create the</c>
+<c>* corresponding data code model with each default setting,</c>
+<c>* read the data codes with each model and display the results</c>
+<l>for Index := 0 to |SymbolType| - 1 by 1</l>
+<c>    * </c>
+<c>    * Step 2 : Get image names for the current symbol type</c>
+<c>    * ----------------------------------------------------</c>
+<c>    * Ecc 200</c>
+<l>    if (SymbolType[Index] == 'Data Matrix ECC 200')</l>
+<l>        list_image_files ('datacode/ecc200', 'default', [], ImageFiles)</l>
+<l>        ImageFiles := regexp_select(ImageFiles,'(ecc200_cpu_)|(ecc200_disturbed_0)')</l>
+<c>        * QR Code</c>
+<l>    elseif (SymbolType[Index] == 'QR Code')</l>
+<l>        list_image_files ('datacode/qrcode', 'default', [], ImageFiles)</l>
+<l>        ImageFiles := regexp_select(ImageFiles,'qr_workpiece')</l>
+<c>        * Micro QR Code</c>
+<l>    elseif (SymbolType[Index] == 'Micro QR Code')</l>
+<l>        list_image_files ('datacode/micro_qr', 'default', [], ImageFiles)</l>
+<l>        ImageFiles := regexp_select(ImageFiles,'micro_qr')</l>
+<c>        * PDF417</c>
+<l>    elseif (SymbolType[Index] == 'PDF417')</l>
+<l>        list_image_files ('datacode/pdf417', 'default', [], ImageFiles)</l>
+<l>        ImageFiles := regexp_select(ImageFiles,'(pdf417_hd)|(pdf417_misc)')</l>
+<c>        * Aztec</c>
+<l>    elseif (SymbolType[Index] == 'Aztec Code')</l>
+<l>        list_image_files ('datacode/aztec', 'default', [], ImageFiles)</l>
+<l>        ImageFiles := regexp_select(ImageFiles,'aztec')</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Step 3: Create data code models</c>
+<c>    * ---------------------------------------------------</c>
+<c>    * Create a model of the current symbol type for each</c>
+<c>    * default setting standard, enhanced, and maximum.</c>
+<l>    create_data_code_2d_model (SymbolType[Index], 'default_parameters', 'standard_recognition', DataCodeHandleStandard)</l>
+<l>    create_data_code_2d_model (SymbolType[Index], 'default_parameters', 'enhanced_recognition', DataCodeHandleEnhanced)</l>
+<l>    create_data_code_2d_model (SymbolType[Index], 'default_parameters', 'maximum_recognition', DataCodeHandleMaximum)</l>
+<c>    * </c>
+<c>    * Loop over all images</c>
+<c>    * ----------------------------------------------------</c>
+<c>    * Search and read the data codes in each image and</c>
+<c>    * display the decoded string for each found data code</c>
+<l>    NLoops := 20</l>
+<l>    for I := 0 to |ImageFiles| - 1 by 1</l>
+<l>        read_image (Image, ImageFiles[I])</l>
+<l>        dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>        dev_display (Image)</l>
+<c>        * </c>
+<c>        * Step 4: Read the data codes</c>
+<c>        * -------------------------------------------</c>
+<c>        * Find and decode the data codes with each</c>
+<c>        * data code model and measure the runtime</c>
+<c>        * </c>
+<c>        * Standard mode</c>
+<l>        find_data_code_2d (Image, SymbolXLDs, DataCodeHandleStandard, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        count_seconds (T1)</l>
+<l>        for N := 1 to NLoops by 1</l>
+<l>            find_data_code_2d (Image, SymbolXLDs, DataCodeHandleStandard, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        endfor</l>
+<l>        count_seconds (T2)</l>
+<l>        FoundStandard := |DecodedDataStrings|</l>
+<l>        TimeStandard := 1000 * (T2 - T1) / real(NLoops)</l>
+<c>        * </c>
+<c>        * Enhanced mode</c>
+<l>        find_data_code_2d (Image, SymbolXLDs, DataCodeHandleEnhanced, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        count_seconds (T1)</l>
+<l>        for N := 1 to NLoops by 1</l>
+<l>            find_data_code_2d (Image, SymbolXLDs, DataCodeHandleEnhanced, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        endfor</l>
+<l>        count_seconds (T2)</l>
+<l>        FoundEnhanced := |DecodedDataStrings|</l>
+<l>        TimeEnhanced := 1000 * (T2 - T1) / real(NLoops)</l>
+<c>        * </c>
+<c>        * Maximum mode</c>
+<l>        find_data_code_2d (Image, SymbolXLDs, DataCodeHandleMaximum, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        count_seconds (T1)</l>
+<l>        for N := 1 to NLoops by 1</l>
+<l>            find_data_code_2d (Image, SymbolXLDs, DataCodeHandleMaximum, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        endfor</l>
+<l>        count_seconds (T2)</l>
+<l>        FoundMaximum := |DecodedDataStrings|</l>
+<l>        TimeMaximum := 1000 * (T2 - T1) / real(NLoops)</l>
+<c>        * </c>
+<c>        * Generate the message for the runtimes</c>
+<c>        * ---------------------------------------</c>
+<l>        ResultMessage := 'Runtime of recognition modes:'</l>
+<l>        Color := gen_tuple_const(4,'black')</l>
+<c>        * Standard</c>
+<l>        ResultMessage[1] := ' standard mode:' + TimeStandard$'7.2f' + ' ms'</l>
+<l>        if (FoundStandard == 0)</l>
+<l>            ResultMessage[1] := ResultMessage[1] + ' (no symbol found)'</l>
+<l>            Color[1] := 'red'</l>
+<l>        endif</l>
+<c>        * Enhanced</c>
+<l>        ResultMessage[2] := ' enhanced mode:' + TimeEnhanced$'7.2f' + ' ms'</l>
+<l>        if (FoundEnhanced == 0)</l>
+<l>            ResultMessage[2] := ResultMessage[2] + ' (no symbol found)'</l>
+<l>            Color[2] := 'red'</l>
+<l>        endif</l>
+<c>        * Maximum</c>
+<l>        ResultMessage[3] := ' maximum mode: ' + TimeMaximum$'7.2f' + ' ms'</l>
+<l>        if (FoundMaximum == 0)</l>
+<l>            ResultMessage[3] := ResultMessage[3] + ' (no symbol found)'</l>
+<l>            Color[3] := 'red'</l>
+<l>        endif</l>
+<c>        * </c>
+<c>        * Step 5: Display the results</c>
+<c>        * --------------------------------------------</c>
+<l>        TitleMessage := SymbolType[Index] + ': Image ' + (I + 1) + ' of ' + |ImageFiles|</l>
+<l>        display_found_data_codes (SymbolXLDs, WindowHandle, DecodedDataStrings, TitleMessage, ResultMessage, 'forest green', Color)</l>
+<c>        * </c>
+<c>        * Deacivate the following lines to run the program without breaks</c>
+<l>        if (I &lt; |ImageFiles| - 1 or Index &lt; |SymbolType| - 1)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Clear the 2d data code models</c>
+<l>    clear_data_code_2d_model (DataCodeHandleStandard)</l>
+<l>    clear_data_code_2d_model (DataCodeHandleEnhanced)</l>
+<l>    clear_data_code_2d_model (DataCodeHandleMaximum)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_found_data_codes">
+<interface>
+<io>
+<par name="SymbolXLDs" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="DecodedDataStrings" base_type="ctrl" dimension="0"/>
+<par name="TitleMessage" base_type="ctrl" dimension="0"/>
+<par name="ResultMessage" base_type="ctrl" dimension="0"/>
+<par name="ColorDecodedStrings" base_type="ctrl" dimension="0"/>
+<par name="ColorResult" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays the results of the search for</c>
+<c>* 2d data codes. The data strings are displayed accordingly</c>
+<c>* to their length so that the whole string is visible.</c>
+<c>* If the data strings are too long only the first 50 chars</c>
+<c>* are displayed.</c>
+<c>* </c>
+<c>* Input parameters are the XLD contours of the decoded</c>
+<c>* data symbols, the decoded data strings, the windowhandle,</c>
+<c>* a title message, a result message, the color of the decoded</c>
+<c>* strings and the color of the result message.</c>
+<c>* </c>
+<c>* Display the result of the search for each found data code</c>
+<l>for J := 0 to |DecodedDataStrings| - 1 by 1</l>
+<c>    * </c>
+<c>    * Display the XLD contour</c>
+<l>    select_obj (SymbolXLDs, SymbolXLD, J + 1)</l>
+<l>    get_contour_xld (SymbolXLD, Row, Column)</l>
+<l>    dev_display (SymbolXLD)</l>
+<c>    * </c>
+<c>    * Display messages</c>
+<c>    * ------------------</c>
+<c>    * Determine the length of the dislayed decoded data string</c>
+<l>    get_window_extents (WindowHandle, Row1, Column1, Width, Height)</l>
+<l>    get_string_extents (WindowHandle, DecodedDataStrings[J], Ascent, Descent, TWidth, THeight)</l>
+<l>    if (TWidth &gt; Width)</l>
+<l>        DecodedDataStrings[J] := DecodedDataStrings[J]{0:50} + '...'</l>
+<l>        get_string_extents (WindowHandle, DecodedDataStrings[J], Ascent, Descent, TWidth, THeight)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Split the decoded string in new lines for better readability</c>
+<l>    tuple_regexp_replace (DecodedDataStrings[J], ['[\\r\\f,^#;]','replace_all'], '\n', DecodedData)</l>
+<l>    tuple_split (DecodedData, '\n', DecodedDataSubstrings)</l>
+<c>    * </c>
+<c>    * Determine the position of the displayed decoded data string</c>
+<l>    if (max(Row) &gt; 420 and min(Row) &lt; 40)</l>
+<l>        TPosRow := max(Row) - 30</l>
+<l>    elseif (max(Row) &gt; 420)</l>
+<l>        TPosRow := min(Row) - 20</l>
+<l>    elseif (min(Row) &lt; 100)</l>
+<l>        TPosRow := max(Row) - 20</l>
+<l>    else</l>
+<l>        TPosRow := max(Row) - 30</l>
+<l>    endif</l>
+<l>    TPosColumn := max([min([mean(Column) - TWidth / 2,Width - 32 - TWidth]),12])</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings[J], 'image', TPosRow, TPosColumn, ColorDecodedStrings, 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display the title message and result message</c>
+<l>disp_message (WindowHandle, TitleMessage, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ResultMessage, 'window', 40, 12, ColorResult, 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_found_data_codes">
+<parameters>
+<parameter id="ColorDecodedStrings"/>
+<parameter id="ColorResult"/>
+<parameter id="DecodedDataStrings"/>
+<parameter id="ResultMessage"/>
+<parameter id="SymbolXLDs"/>
+<parameter id="TitleMessage"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

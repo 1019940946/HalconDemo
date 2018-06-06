@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  This example creates a 3D model from 4 images taken from different points of view.</c>
+<c>*  The program is split into 3 parts:</c>
+<c>*  1) Perform a full 3D reconstruction from 4 images using three different methods.</c>
+<c>*     Then, the results are segmented, i.e., only parts of the reconstructed model</c>
+<c>*     are used that have a good score.</c>
+<c>*     Note that the different methods use the score quite differently.</c>
+<c>*  2) Again, perform a 3D reconstruction. But this time do the thresholding within</c>
+<c>*     the operator reconstruct_surface_stereo to save reconstruction time.</c>
+<c>*  3) Compare the results of the reconstructed point cloud.</c>
+<c>* </c>
+<c>* </c>
+<c>* Introduction</c>
+<c>* </c>
+<c>* Prepare visualization.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 754, 480, 600, -1, WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>create_pose (0.02, 0.035, 1.5, 285, 0.0, 340, 'Rp+T', 'gba', 'point', VisPose)</l>
+<c>* </c>
+<l>Method := ['binocular','binocular_mg','binocular_ms']</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Part 1</c>
+<c>* Reconstruct 3D scene from 4 images and segment the result based on the score.</c>
+<c>* </c>
+<c>* Prepare camera setup</c>
+<l>create_pose (0.01581839460406891, -0.09941803310558929, -0.3079308956836844, 350.8986040828125, 354.3536799369792, 274.1973698039017, 'Rp+T', 'gba', 'point', Pose0)</l>
+<l>create_pose (-0.0610990419307257, -0.002271718614999785, -0.2908451228380092, 357.0205814462478, 13.76778713838595, 180.8404608013425, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>create_pose (0.1295595213888085, 0.008700667656398355, -0.2907671083855236, 359.5252715412015, 340.1552597815647, 186.7269327119646, 'Rp+T', 'gba', 'point', Pose2)</l>
+<l>create_pose (-0.002511462805750264, 0.04993629457003283, -0.3163552193027631, 11.35872955146744, 356.2723992222004, 278.7311409718954, 'Rp+T', 'gba', 'point', Pose3)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006293514957349972, 2500.065236683032, 220452185.674881, -10081734372562.31, -0.4183670467256539, -0.6510897392899374, 5.997228888825512e-006, 6e-006, 379.9069516343566, 238.6476534735865, 754, 480, CameraParam0)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006252103562665604, 2077.165661942883, 215482901.8985172, -14429210147341.05, 0.1083804351479329, 0.3835446626749631, 6.00045860452822e-006, 6e-006, 362.237050607805, 222.8537502628182, 754, 480, CameraParam1)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006291770937768317, 2740.017474393686, 408948248.9701511, -53210859408641.49, 0.8912666517231493, -0.08614139886182107, 5.987011694133451e-006, 6e-006, 350.976441288551, 247.0148935059016, 754, 480, CameraParam2)</l>
+<l>gen_cam_par_area_scan_polynomial (0.006304883279770778, 3453.765936751207, 79448888.72374359, -9045248420236.699, 0.3594982688784551, 0.1242759165303407, 5.995710533653186e-006, 6e-006, 361.3360662853614, 240.066997869204, 754, 480, CameraParam3)</l>
+<c>* Create a camera setup model.</c>
+<l>create_camera_setup_model (4, CameraSetupModelID)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 0, [], CameraParam0, Pose0)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 1, [], CameraParam1, Pose1)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 2, [], CameraParam2, Pose2)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 3, [], CameraParam3, Pose3)</l>
+<c>* </c>
+<c>* Create and initialize a multi-view stereo model.</c>
+<l>create_stereo_model (CameraSetupModelID, 'surface_pairwise', [], [], StereoModelID)</l>
+<c>* Clear the camera setup, which is no longer required.</c>
+<l>clear_camera_setup_model (CameraSetupModelID)</l>
+<c>* Configure the rectification parameter first</c>
+<l>set_stereo_model_param (StereoModelID, 'rectif_interpolation', 'bilinear')</l>
+<l>set_stereo_model_param (StereoModelID, 'rectif_sub_sampling', 2.0)</l>
+<c>* Then set the image pairs</c>
+<l>set_stereo_model_image_pairs (StereoModelID, [0,1,2], [1,2,3])</l>
+<c>* Define bounding box</c>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', [-0.1,-0.1,-0.07,0.1,0.1,0.0])</l>
+<c>* Configure further stereo model parameters</c>
+<l>set_stereo_model_param (StereoModelID, 'sub_sampling_step', 1)</l>
+<l>set_stereo_model_param (StereoModelID, 'color', 'median')</l>
+<c>* </c>
+<c>* Display introduction.</c>
+<l>Message := 'Reconstruct a 3D scene with the methods:'</l>
+<l>Message := [Message,' - ' + Method]</l>
+<l>Message := [Message,' ','Each scene is fully reconstructed and then']</l>
+<l>Message := [Message,'segmented based on different score thresholds.']</l>
+<l>Message := [Message,' ','Note that the score has a different meaning for']</l>
+<l>Message := [Message,'the different methods.']</l>
+<l>Message := [Message,'Sometimes, high values mean a high confidence,']</l>
+<l>Message := [Message,'sometimes, high values mean a low confidence.']</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read and display input images.</c>
+<l>read_image (Images, 'universal_joint_part/universal_joint_part_scene_0_camera_' + [0:3])</l>
+<l>get_image_size (Images, ImageWidth, ImageHeight)</l>
+<l>tile_images (Images, TiledImage, 2, 'vertical')</l>
+<l>get_window_extents (WindowHandle1, Row, Column, Width, Height)</l>
+<l>dev_open_window (0, Width + 8, 1000 - Width, Height, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>create_pose (0.033, 0.02, 0.38, 0, 0, 0, 'Rp+T', 'gba', 'point', VisPose)</l>
+<c>* </c>
+<c>* </c>
+<c>* For each method:</c>
+<c>* - reconstruct the scene, then</c>
+<c>* - segment the reconstructed scene with different thresholds.</c>
+<l>for I := 0 to |Method| - 1 by 1</l>
+<c>    * Choose reconstruction method.</c>
+<l>    set_stereo_model_param (StereoModelID, 'disparity_method', Method[I])</l>
+<c>    * Set specific parameters and thresholds for each method.</c>
+<l>    if (Method[I] == 'binocular')</l>
+<l>        set_stereo_model_param (StereoModelID, 'binocular_filter', 'left_right_check')</l>
+<l>        set_stereo_model_param (StereoModelID, 'binocular_sub_disparity', 'interpolation')</l>
+<c>        * The score for method 'binocular' with 'ncc' lies in the range of 0.5 to 1.</c>
+<c>        * The higher the score, the better.</c>
+<l>        ScoreRange := [0.5,1.0]</l>
+<l>        LowThresh := [0.6,0.8]</l>
+<l>        HighThresh := gen_tuple_const(|LowThresh|,1)</l>
+<l>        ScoreThresh := LowThresh</l>
+<l>    elseif (Method[I] == 'binocular_mg')</l>
+<c>        * The score for method 'binocular_mg' lies in the range of 0 to 10.</c>
+<c>        * The lower the score, the better.</c>
+<l>        ScoreRange := [10,0]</l>
+<l>        HighThresh := [1,0.5]</l>
+<l>        LowThresh := gen_tuple_const(|HighThresh|,0)</l>
+<l>        ScoreThresh := HighThresh</l>
+<l>    elseif (Method[I] == 'binocular_ms')</l>
+<c>        * The score for method 'binocular_ms' with similarity measure 'census_dense'</c>
+<c>        * lies in the range of 0 to a few hundred.</c>
+<c>        * The lower the score, the better.</c>
+<l>        ScoreRange := [400,0]</l>
+<l>        HighThresh := [250,170]</l>
+<l>        LowThresh := gen_tuple_const(|HighThresh|,0)</l>
+<l>        ScoreThresh := HighThresh</l>
+<l>    endif</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<l>    display_reconstruction_message (TiledImage, WindowHandle1, Method[I])</l>
+<c>    * </c>
+<c>    * Perform stereo reconstruction.</c>
+<l>    count_seconds (S1)</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModelScene)</l>
+<l>    count_seconds (S2)</l>
+<c>    * </c>
+<c>    * Display result</c>
+<l>    TimeFullReconstruction[I] := (S2 - S1) * 1000</l>
+<l>    wait_seconds (1 - TimeFullReconstruction[I] / 1000)</l>
+<l>    select_obj (Images, Image1, 1)</l>
+<l>    Title[0] := 'Method: \'' + Method[I] + '\', best possible score: ' + ScoreRange[1]</l>
+<l>    Title[1] := 'Reconstructed scene (all points) in ' + TimeFullReconstruction[I]$'.1f' + ' ms'</l>
+<l>    display_score (WindowHandle2, ObjectModelScene, CameraParam0, ScoreRange, ScoreRange[0])</l>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModelScene, CameraParam0, VisPose, ['lut','color_attrib','color_attrib_start','color_attrib_end'], ['sqrt','red',0,255], Title, [], Instructions, VisPose)</l>
+<c>    * </c>
+<c>    * Segment the result based on the score with different thresholds</c>
+<l>    for J := 0 to |LowThresh| - 1 by 1</l>
+<c>        * </c>
+<c>        * Segment only points with a good score.</c>
+<l>        select_points_object_model_3d (ObjectModelScene, 'score', LowThresh[J], HighThresh[J], ObjectModel3DThresholded)</l>
+<c>        * </c>
+<c>        * Display result</c>
+<l>        if (ScoreRange[0] &lt; ScoreRange[1])</l>
+<l>            Title[1] := 'Thresholded scene (' + LowThresh[J] + ' &lt; \'score\' &lt; ' + HighThresh[J] + ')'</l>
+<l>        else</l>
+<l>            Title[1] := 'Thresholded scene (' + HighThresh[J] + ' &gt; \'score\' &gt; ' + LowThresh[J] + ')'</l>
+<l>        endif</l>
+<l>        display_score (WindowHandle2, ObjectModel3DThresholded, CameraParam0, ScoreRange, ScoreThresh[J])</l>
+<l>        visualize_object_model_3d (WindowHandle1, ObjectModel3DThresholded, CameraParam0, VisPose, ['lut','color_attrib','color_attrib_start','color_attrib_end'], ['sqrt','red',0,255], Title, [], Instructions, VisPose)</l>
+<c>        * Clear thresholded model.</c>
+<l>        clear_object_model_3d (ObjectModel3DThresholded)</l>
+<l>        Scores[I] := ScoreThresh[J]</l>
+<l>    endfor</l>
+<c>    * Clear original model.</c>
+<l>    clear_object_model_3d (ObjectModelScene)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Part 2</c>
+<c>* Reconstruct scene with internal thresholding.</c>
+<c>* This leads to fewer data points and faster processing.</c>
+<c>* </c>
+<c>* Display introduction</c>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Part 2'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'In contrast to the method shown before,'</l>
+<l>Message[3] := 'the score threshold can be set before the\nreconstruction.'</l>
+<l>Message[4] := 'In effect, the reconstruction gets faster,'</l>
+<l>Message[5] := 'because less points have to be processed.'</l>
+<l>Message[6] := ' '</l>
+<l>Message[7] := 'In the next part, the scenes are reconstructed'</l>
+<l>Message[8] := 'using the score thresholds as parameter.'</l>
+<l>Message[9] := 'After that, the results and execution times are'</l>
+<l>Message[10] := 'displayed next to each other for comparison.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* For each method:</c>
+<c>* - reconstruct the thresholded scene.</c>
+<l>for I := 0 to |Method| - 1 by 1</l>
+<c>    * Set method and score threshold.</c>
+<l>    set_stereo_model_param (StereoModelID, 'disparity_method', Method[I])</l>
+<l>    set_stereo_model_param (StereoModelID, 'binocular_score_thresh', Scores[I])</l>
+<c>    * </c>
+<l>    display_reconstruction_message (TiledImage, WindowHandle1, Method[I])</l>
+<c>    * </c>
+<c>    * Perform stereo reconstruction with threshold.</c>
+<l>    count_seconds (S1)</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModelSceneThresholded)</l>
+<l>    count_seconds (S2)</l>
+<c>    * </c>
+<c>    * Display result</c>
+<l>    TimeReconstruction[I] := (S2 - S1) * 1000</l>
+<l>    wait_seconds (1 - TimeReconstruction[I] / 1000)</l>
+<l>    Title := 'Method: \'' + Method[I] + '\''</l>
+<l>    Title[1] := 'Reconstructed scene (\'score_thres\' = ' + Scores[I] + ')'</l>
+<l>    Title[2] := 'Full: ' + TimeFullReconstruction[I]$'.1f' + 'ms  Thresholded: ' + TimeReconstruction[I]$'.1f' + ' ms'</l>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModelSceneThresholded, CameraParam0, VisPose, ['lut','color_attrib','color_attrib_start','color_attrib_end'], ['sqrt','red',0,255], Title, [], Instructions, VisPose)</l>
+<c>    * Store reconstructed models for later</c>
+<l>    AllObjectModels[I] := ObjectModelSceneThresholded</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Part 3</c>
+<c>* Compare results</c>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>Instructions[3] := 'Lock object:   Right button'</l>
+<l>Title := 'Compare thresholded results of all methods'</l>
+<l>create_pose (-0.15, 0, 3.5, -25, 0, 0, 'Rp+T', 'gba', 'point', VisPose1)</l>
+<l>create_pose (0, 0, 3.5, -25, 0, 0, 'Rp+T', 'gba', 'point', VisPose2)</l>
+<l>create_pose (0.15, 0, 3.5, -25, 0, 0, 'Rp+T', 'gba', 'point', VisPose3)</l>
+<l>Colors := ['wheat','khaki','light blue']</l>
+<l>Labels := Method + '\n' + TimeReconstruction$'.0f' + ' ms'</l>
+<l>dev_clear_window ()</l>
+<l>dev_resize_window_fit_image (Image1, 0, 0, [1000,1000], [600,600])</l>
+<l>visualize_object_model_3d (WindowHandle1, AllObjectModels, [], [VisPose1,VisPose2,VisPose3], ['color_0','color_1','color_2','color_attrib','color_attrib_start','color_attrib_end'], [Colors,'red',0,255], Title, Labels, Instructions, PoseOut)</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_object_model_3d (AllObjectModels)</l>
+<l>disp_end_of_program_message (WindowHandle1, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_score">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="ScoreRange" base_type="ctrl" dimension="0"/>
+<par name="Thresh" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<c></c>
+<l>GradientColor := 'green'</l>
+<l>BorderColor := 'yellow'</l>
+<l>color_string_to_rgb ('green', RGB)</l>
+<l>Step := RGB / real(Width)</l>
+<l>gen_image_surface_first_order (R, 'byte', 0, Step[0], 0, 0, 0, Width, 1)</l>
+<l>gen_image_surface_first_order (G, 'byte', 0, Step[1], 0, 0, 0, Width, 1)</l>
+<l>gen_image_surface_first_order (B, 'byte', 0, Step[2], 0, 0, 0, Width, 1)</l>
+<l>compose3 (R, G, B, Legend)</l>
+<l>Column := floor((real(Thresh) - ScoreRange[0]) / (ScoreRange[1] - ScoreRange[0]) * 255)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_part (-9, 0, 0, 255)</l>
+<l>gen_rectangle1 (Rectangle, 0, Column, 0, 255)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Legend)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color (BorderColor)</l>
+<l>dev_display (Rectangle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* </c>
+<l>disp_object_model_3d (WindowHandle, ObjectModel3D, [], [], ['color','color_attrib','color_attrib_start','color_attrib_end','disp_background'], [GradientColor,'score',ScoreRange[0],ScoreRange[1],'true'])</l>
+<l>dev_disp_text ('Scene with color-coded score', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text (ScoreRange[0], 'window', 'bottom', 'left', 'white', 'box', 'false')</l>
+<l>dev_disp_text (ScoreRange[1], 'window', 'bottom', 'right', 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Score', 'window', 'bottom', 'center', 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="display_score">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="ObjectModel3D"/>
+<parameter id="ScoreRange"/>
+<parameter id="Thresh"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_reconstruction_message">
+<interface>
+<io>
+<par name="TiledImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Method" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display a message that reconstruction is in progress.</c>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>get_image_size (TiledImage, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_set_part (Row1, Column1, Row2, Column2)</l>
+<l>Message := 'Method: \'' + Method + '\''</l>
+<l>Message[1] := 'Reconstruct scene from 4 different views...'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="display_reconstruction_message">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Method"/>
+<parameter id="TiledImage"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

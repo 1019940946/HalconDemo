@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use dual quaternions for rigid transformations</c>
+<c>* like rotations, translations, and screws.</c>
+<c>* </c>
+<c>* Set initial objects and parameters.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 1024, 768, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>tuple_gen_const (220, '', Labels)</l>
+<l>Colors := 'color_' + [0:220]</l>
+<l>StepSize := 0.05</l>
+<l>WaitSeconds := 0.05</l>
+<l>create_pose (-2, 4, 500, 125, 0, 325, 'Rp+T', 'gba', 'point', VisPose1)</l>
+<l>create_pose (-31, 32, 990, 125, 0, 325, 'Rp+T', 'gba', 'point', VisPose2)</l>
+<l>gen_initial_object_model_3d (ObjectModel3DInitial)</l>
+<c>* </c>
+<c>* Display introduction.</c>
+<l>Message := 'This example shows how to use dual quaternions'</l>
+<l>Message[1] := 'for rigid transformations like rotations, translations,'</l>
+<l>Message[2] := 'and screws.'</l>
+<l>disp_object_model_3d (WindowHandle, ObjectModel3DInitial, [], VisPose1, ['disp_pose','color','alpha'], ['true','orange',0.5])</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 1) Apply a rotation using a dual quaternion.</c>
+<l>disp_message_block_1 (WindowHandle, Message)</l>
+<l>stop ()</l>
+<c>* Define the quaternion that specify the start and the final rotation.</c>
+<l>Rotation := rad(135)</l>
+<l>DualQuatStart := [1,0,0,0,0,0,0,0]</l>
+<l>DualQuatRotation := [cos(Rotation / 2),0,0,sin(Rotation / 2),0,0,0,0]</l>
+<c>* Visualize rotation.</c>
+<l>for Index := 0 to 1 + StepSize by StepSize</l>
+<c>    * Interpolate the dual quaternions successively that lie between the start and the final rotation.</c>
+<l>    dual_quat_interpolate (DualQuatStart, DualQuatRotation, Index, DualQuatRotationInterpolated)</l>
+<c>    * Convert the dual quaternion into a pose.</c>
+<l>    dual_quat_to_pose (DualQuatRotationInterpolated, PoseRotation)</l>
+<c>    * Transform the initial 3D object model and display it.</c>
+<l>    rigid_trans_object_model_3d (ObjectModel3DInitial, PoseRotation, ObjectModel3DRotation)</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DRotation], [], VisPose1, ['disp_pose_0','color_0','color_1','alpha'], ['true','orange','white',0.5])</l>
+<l>    wait_seconds (WaitSeconds)</l>
+<l>endfor</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DRotation], [], VisPose1, ['disp_pose_0','color_0','color_1','alpha'], ['true','orange','green',0.5], Message, [], Instructions, VisPose1)</l>
+<c>* </c>
+<c>* Zoom out.</c>
+<l>zoom_visualization_pose (WindowHandle, VisPose1, VisPose2, [ObjectModel3DInitial,ObjectModel3DRotation], ['disp_pose_0','color_0','color_1','alpha'], ['true','orange','green',0.5], StepSize)</l>
+<c>* </c>
+<c>* 2) Apply a translation using a dual quaternion.</c>
+<c>* </c>
+<l>create_message_block_2 (Message)</l>
+<c>* Define dual quaternion for the translation.</c>
+<l>Tx := 50</l>
+<l>Ty := 50</l>
+<l>Tz := 80</l>
+<l>DualQuatTrans := [1,0,0,0,0,Tx / 2,Ty / 2,Tz / 2]</l>
+<c>* Create visualization of translation arrow.</c>
+<l>create_pose (Tx, Ty, Tz, 0, 0, 0, 'Rp+T', 'gba', 'point', TransPose)</l>
+<l>gen_arrow_object_model_3d (0.2, [0,0,0,0,0,0,0], TransPose, OM3DArrow)</l>
+<l>tuple_gen_const (|OM3DArrow|, 'khaki', ColorOM3DArrow)</l>
+<c>* Interpolate the translation and visualize it.</c>
+<l>NumOM3D := |[ObjectModel3DInitial,ObjectModel3DRotation,OM3DArrow]| - 1</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DRotation,OM3DArrow], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','green',ColorOM3DArrow,0.5], Message, [], Instructions, VisPose2)</l>
+<l>for Index := 0 to 1 + StepSize by StepSize</l>
+<l>    dual_quat_interpolate (DualQuatStart, DualQuatTrans, Index, DualQuatTransInterpolated)</l>
+<l>    dual_quat_to_pose (DualQuatTransInterpolated, PoseTrans)</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DRotation, PoseTrans, ObjectModel3DTrans)</l>
+<l>    NumOM3D := |[ObjectModel3DInitial,ObjectModel3DRotation,ObjectModel3DTrans,OM3DArrow]| - 1</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DRotation,ObjectModel3DTrans,OM3DArrow], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','green','white',ColorOM3DArrow,0.5])</l>
+<l>    wait_seconds (WaitSeconds)</l>
+<l>endfor</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DRotation,ObjectModel3DTrans], [], VisPose2, ['disp_pose_0','color_0','color_1','color_2','alpha'], ['true','orange','green','cyan',0.5], Message, [], Instructions, VisPose2)</l>
+<c>* </c>
+<c>* 3.1) Apply screw (rotation and translation) using a dual quaternion.</c>
+<c>* </c>
+<l>create_message_block_3 (Message)</l>
+<c>* Define dual quaternion for the screw and perform interpolation.</c>
+<l>dual_quat_interpolate (DualQuatStart, DualQuatTrans, [0:StepSize / 5:1], DualQuatTransInterpolated1)</l>
+<l>dual_quat_to_pose (DualQuatTransInterpolated1, PosesTrans)</l>
+<l>dual_quat_interpolate (DualQuatStart, DualQuatRotation, [0:StepSize / 5:1], DualQuatRotationInterpolated1)</l>
+<l>dual_quat_to_pose (DualQuatRotationInterpolated1, PosesRotTrans)</l>
+<l>dual_quat_compose (DualQuatTrans, DualQuatRotation, DualQuatRotTrans)</l>
+<l>dual_quat_interpolate (DualQuatStart, DualQuatRotTrans, [0:StepSize / 5:1], DualQuatRotTransInterpolated)</l>
+<l>dual_quat_to_pose (DualQuatRotTransInterpolated, PosesRotTrans)</l>
+<c>* Get parameters of screw (for visualization).</c>
+<l>dual_quat_to_screw (DualQuatRotTrans, 'moment', Lx, Ly, Lz, Mx, My, Mz, Rotation, d)</l>
+<l>create_pose (Lx, Ly, Lz, 0, 0, 0, 'Rp+T', 'gba', 'point', L)</l>
+<l>create_pose (Mx, My, Mz, 0, 0, 0, 'Rp+T', 'gba', 'point', M)</l>
+<l>dual_quat_to_screw (DualQuatRotTrans, 'point', Lx, Ly, Lz, Px, Py, Pz, Rotation, d)</l>
+<l>create_pose (Px, Py, Pz, 0, 0, 0, 'Rp+T', 'gba', 'point', P)</l>
+<c>* Extract rotation around (L,M) of the screw (for visualization).</c>
+<l>PosesRotationTransXY := PosesRotTrans</l>
+<l>IndexRotation := [2:7:|PosesRotTrans| - 1]</l>
+<l>PosesRotationTransXY[IndexRotation] := 0</l>
+<c>* Extract translation in Z direction of the screw (for visualization).</c>
+<l>PosesTransZ := PosesTrans</l>
+<l>IndexTransX := [0:7:|PosesTrans| - 1]</l>
+<l>IndexTransY := [1:7:|PosesTrans| - 1]</l>
+<l>PosesTransZ[IndexTransX] := 0</l>
+<l>PosesTransZ[IndexTransY] := 0</l>
+<c>* d*L visualizes the translation in Z direction.</c>
+<l>dLLineStart := PosesRotationTransXY[|PosesRotTrans| - 7:|PosesRotTrans| - 1]</l>
+<l>dLLineEnd := PosesRotTrans[|PosesRotTrans| - 7:|PosesRotTrans| - 1]</l>
+<c>* Create visualization of the screw parameters.</c>
+<l>gen_curve_object_model_3d (0.2, false, [P - (d / 2) * L,P + (d + d / 6) * L], OM3DScrewAxis)</l>
+<l>tuple_gen_const (|OM3DScrewAxis|, 'white', ColorOM3DScrewAxis)</l>
+<l>gen_curve_object_model_3d (0.2, true, PosesRotTrans, OM3DScrewLine)</l>
+<l>tuple_gen_const (|OM3DScrewLine|, 'khaki', ColorOM3DScrewLine)</l>
+<l>gen_curve_object_model_3d (0.2, true, PosesRotationTransXY, OM3DRotationLine)</l>
+<l>tuple_gen_const (|OM3DRotationLine|, 'light gray', ColorOM3DRotationLine)</l>
+<l>gen_arrow_object_model_3d (0.2, dLLineStart, dLLineEnd, OM3DArrowdL)</l>
+<l>tuple_gen_const (|OM3DArrowdL|, 'light gray', ColorOM3DArrowdL)</l>
+<l>gen_arrow_object_model_3d (0.3, [0,0,0,0,0,0,0], P, OM3DArrowP)</l>
+<l>tuple_gen_const (|OM3DArrowP|, 'light blue', ColorOM3DArrowP)</l>
+<l>gen_arrow_object_model_3d (0.3, [0,0,0,0,0,0,0], (d / 2) * L, OM3DArrowL)</l>
+<l>tuple_gen_const (|OM3DArrowL|, 'spring green', ColorOM3DArrowL)</l>
+<l>gen_arrow_object_model_3d (0.3, [0,0,0,0,0,0,0], M, OM3DArrowM)</l>
+<l>tuple_gen_const (|OM3DArrowM|, 'orange', ColorOM3DArrowM)</l>
+<c>* Concatenate the 3D object models and their colors.</c>
+<l>OM3DVisualization := [OM3DArrowP,OM3DArrowL,OM3DArrowM,OM3DScrewAxis,OM3DRotationLine,OM3DArrowdL,OM3DScrewLine]</l>
+<l>ColorsOM3DVisualization := [ColorOM3DArrowP,ColorOM3DArrowL,ColorOM3DArrowM,ColorOM3DScrewAxis,ColorOM3DRotationLine,ColorOM3DArrowdL,ColorOM3DScrewLine]</l>
+<c>* Create labels for visualize_object_model_3d.</c>
+<l>Labels[3] := 'P = L x M'</l>
+<l>Labels[4] := 'L'</l>
+<l>Labels[6] := 'M'</l>
+<l>Labels[8] := '(L,M)'</l>
+<l>IndexLabelRotationLine := int(8 + |OM3DRotationLine| / 2)</l>
+<l>IndexLabeldLLine := 9 + |OM3DRotationLine|</l>
+<l>Labels[IndexLabelRotationLine] := 'theta'</l>
+<l>Labels[IndexLabeldLLine] := 'd*L'</l>
+<c>* Visualize rotation and translation part, as well as the screw.</c>
+<l>NumOM3D := |[ObjectModel3DInitial,ObjectModel3DTrans,ColorsOM3DVisualization]| - 1</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,0.5], Message, Labels[0:NumOM3D], Instructions, VisPose2)</l>
+<c>* Visualize rotation around (L,M).</c>
+<l>NumOM3D := |[ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization,ObjectModel3DRotation]| - 1</l>
+<l>for Index := 0 to |PosesRotationTransXY| / 7 - 1 by 2</l>
+<l>    Pose := PosesRotationTransXY[7 * Index:(Index + 1) * 7 - 1]</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DInitial, Pose, ObjectModel3DRotation)</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization,ObjectModel3DRotation], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,'white',0.5])</l>
+<l>endfor</l>
+<c>* Visualize translation in Z direction.</c>
+<l>for Index := 0 to |PosesTransZ| / 7 - 1 by 2</l>
+<l>    Pose := PosesTransZ[7 * Index:(Index + 1) * 7 - 1]</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DRotation, Pose, ObjectModel3DTransZ)</l>
+<l>    NumOM3D := |[ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization,ObjectModel3DTrans]| - 1</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization,ObjectModel3DTransZ], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,'white',0.5])</l>
+<l>endfor</l>
+<c>* Visualize screw.</c>
+<l>for Index := 0 to |PosesRotTrans| / 7 - 1 by 1</l>
+<l>    Pose := PosesRotTrans[7 * Index:(Index + 1) * 7 - 1]</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DInitial, Pose, ObjectModel3DTransRotation)</l>
+<l>    NumOM3D := |[ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization,ObjectModel3DTransRotation]| - 1</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization,ObjectModel3DTransRotation], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,'white',0.5])</l>
+<l>endfor</l>
+<l>PoseAfterFirstScrew := Pose</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTransRotation,OM3DVisualization], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D - 1],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,0.5], Message, Labels[0:NumOM3D - 1], Instructions, VisPose2)</l>
+<c>* </c>
+<c>* 3.2) Use screw to perform another transformation.</c>
+<c>* </c>
+<l>create_message_block_4 (Message)</l>
+<c>* Set screw parameters.</c>
+<l>create_pose (-1, 0, 0, 0, 0, 0, 'Rp+T', 'gba', 'point', L)</l>
+<l>create_pose (TransPose[0] / 2, TransPose[1] / 2, TransPose[2] / 2, 0, 0, 0, 'Rp+T', 'gba', 'point', P)</l>
+<l>d := TransPose[0]</l>
+<l>screw_to_dual_quat ('point', L[0], L[1], L[2], P[0], P[1], P[2], -rad(90), d, DualQuaternionScrew)</l>
+<c>* Create visualization of the screw parameters.</c>
+<l>dual_quat_interpolate (DualQuatStart, DualQuaternionScrew, [0:StepSize / 5:1], DualQuatScrewInterpolated)</l>
+<l>dual_quat_to_pose (DualQuatScrewInterpolated, ScrewPoses)</l>
+<l>pose_invert (PoseAfterFirstScrew, PoseAfterFirstScrewInv)</l>
+<l>pose_compose (ScrewPoses, PoseAfterFirstScrew, ScrewPosesLine)</l>
+<l>gen_curve_object_model_3d (0.2, false, [P - (1.5 * d) * L,P + d * L], OM3DScrewAxis)</l>
+<l>tuple_gen_const (|OM3DScrewAxis|, 'white', ColorOM3DScrewAxis)</l>
+<l>gen_curve_object_model_3d (0.2, true, ScrewPosesLine, OM3DScrewLine)</l>
+<l>tuple_gen_const (|OM3DScrewLine|, 'khaki', ColorOM3DScrewLine)</l>
+<l>gen_arrow_object_model_3d (0.3, [0,0,0,0,0,0,0], P, OM3DArrowP)</l>
+<l>tuple_gen_const (|OM3DArrowP|, 'light blue', ColorOM3DArrowP)</l>
+<l>gen_arrow_object_model_3d (0.3, [0,0,0,0,0,0,0], (d / 2) * L, OM3DArrowL)</l>
+<l>tuple_gen_const (|OM3DArrowL|, 'light blue', ColorOM3DArrowL)</l>
+<l>gen_arrow_object_model_3d (0.3, [0,0,0,0,0,0,0], M, OM3DArrowM)</l>
+<l>tuple_gen_const (|OM3DArrowM|, 'orange', ColorOM3DArrowM)</l>
+<c>* </c>
+<l>OM3DVisualization := [OM3DArrowP,OM3DArrowL,OM3DArrowM,OM3DScrewAxis,OM3DScrewLine]</l>
+<l>ColorsOM3DVisualization := [ColorOM3DArrowP,ColorOM3DArrowL,ColorOM3DArrowM,ColorOM3DScrewAxis,ColorOM3DScrewLine]</l>
+<c>* </c>
+<l>Labels[IndexLabelRotationLine] := ''</l>
+<l>Labels[IndexLabeldLLine] := ''</l>
+<c>* Visualize screw.</c>
+<l>NumOM3D := |[ObjectModel3DInitial,ObjectModel3DTrans,OM3DVisualization]| - 1</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTransRotation,OM3DVisualization], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,0.5], Message, Labels[0:NumOM3D], Instructions, VisPose2)</l>
+<l>for Index := 0 to |ScrewPoses| / 7 - 1 by 1</l>
+<l>    Pose := ScrewPoses[7 * Index:(Index + 1) * 7 - 1]</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DTransRotation, Pose, ObjectModel3DScrew)</l>
+<l>    NumOM3D := |[ObjectModel3DInitial,ObjectModel3DTransRotation,OM3DVisualization,ObjectModel3DScrew]| - 1</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTransRotation,OM3DVisualization,ObjectModel3DScrew], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,'white',0.5])</l>
+<l>endfor</l>
+<l>create_message_block_5 (Message)</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DTransRotation,OM3DVisualization,ObjectModel3DScrew], [], VisPose2, ['disp_pose_0',Colors[0:NumOM3D],'alpha'], ['true','orange','cyan',ColorsOM3DVisualization,'green',0.5], Message, Labels[0:NumOM3D], Instructions, VisPose2)</l>
+<c>* </c>
+<c>* 4) Move back to initial pose using the conjugate dual quaternions.</c>
+<c>* </c>
+<c>* Get the conjugate of the first screw that was performed.</c>
+<l>pose_to_dual_quat (PoseAfterFirstScrew, DualQuaternionAfterFirstScrew)</l>
+<l>dual_quat_conjugate (DualQuaternionAfterFirstScrew, DualQuaternionConjugateFirstScrew)</l>
+<c>* Get the conjugate of the second screw that was performed.</c>
+<l>dual_quat_conjugate (DualQuaternionScrew, DualQuaternionConjugateSecondScrew)</l>
+<c>* </c>
+<l>dual_quat_compose (DualQuaternionConjugateFirstScrew, DualQuaternionConjugateSecondScrew, DualQuaternionConjugateComposed)</l>
+<c>* Visualize the movement.</c>
+<l>for Index := 0 to 1 + StepSize by StepSize</l>
+<l>    dual_quat_interpolate (DualQuatStart, DualQuaternionConjugateComposed, Index, DualQuatConjugateInterpolated)</l>
+<l>    dual_quat_to_pose (DualQuatConjugateInterpolated, PoseConjugate)</l>
+<l>    rigid_trans_object_model_3d (ObjectModel3DScrew, PoseConjugate, ObjectModel3DConjugateTrans)</l>
+<l>    NumOM3D := |[ObjectModel3DInitial,ObjectModel3DConjugateTrans]| - 1</l>
+<l>    disp_object_model_3d (WindowHandle, [ObjectModel3DInitial,ObjectModel3DConjugateTrans], [], VisPose2, ['disp_pose_0','color_0','color_1','alpha'], ['true','orange','white',0.5])</l>
+<l>    wait_seconds (WaitSeconds)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_object_model_3d (ObjectModel3DInitial)</l>
+<l>clear_object_model_3d (ObjectModel3DRotation)</l>
+<l>clear_object_model_3d (ObjectModel3DConjugateTrans)</l>
+<l>clear_object_model_3d (ObjectModel3DScrew)</l>
+<l>clear_object_model_3d (ObjectModel3DTrans)</l>
+<l>clear_object_model_3d (ObjectModel3DTransRotation)</l>
+<l>clear_object_model_3d (ObjectModel3DTransZ)</l>
+<l>clear_object_model_3d (OM3DArrow)</l>
+<l>clear_object_model_3d (OM3DArrowdL)</l>
+<l>clear_object_model_3d (OM3DArrowL)</l>
+<l>clear_object_model_3d (OM3DArrowM)</l>
+<l>clear_object_model_3d (OM3DArrowP)</l>
+<l>clear_object_model_3d (OM3DRotationLine)</l>
+<l>clear_object_model_3d (OM3DScrewAxis)</l>
+<l>clear_object_model_3d (OM3DScrewLine)</l>
+<c>* </c>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_initial_object_model_3d">
+<interface>
+<oc>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure initializes an object model.</c>
+<c>* </c>
+<l>X := [-30,30,30,-30,-30,30,30,-30]</l>
+<l>Y := [-20,-5,20,20,-20,20,20,20]</l>
+<l>Z := [-10,-10,-10,-10,10,0,0,10]</l>
+<l>gen_object_model_3d_from_points (X / 2, Y / 2, Z / 2, ObjectModel3DTmp)</l>
+<l>convex_hull_object_model_3d (ObjectModel3DTmp, ObjectModel3D)</l>
+<l>clear_object_model_3d (ObjectModel3DTmp)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_initial_object_model_3d">
+<chapters lang="de_DE">
+<item>3D-Objektmodell</item>
+<item>Generierung</item>
+</chapters>
+<chapters lang="en_US">
+<item>3D Object Model</item>
+<item>Creation</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="ObjectModel3D">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_curve_object_model_3d">
+<interface>
+<ic>
+<par name="LineThickness" base_type="ctrl" dimension="0"/>
+<par name="ArrowBool" base_type="ctrl" dimension="0"/>
+<par name="PosesCurve" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="OM3DCurve" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure draws an interpolated curve that is described by the points in PosesLines.</c>
+<c>* </c>
+<c>* Get parameters.</c>
+<l>ConeRadius := 2.5 * LineThickness</l>
+<l>ConeLength := 3 * ConeRadius</l>
+<c>* </c>
+<c>* If a cone for arrow is needed, calculate first length of line.</c>
+<l>LineLength := 0</l>
+<l>if (ArrowBool)</l>
+<l>    for Index := 0 to |PosesCurve| / 7 - 2 by 1</l>
+<l>        LinePose1 := PosesCurve[7 * Index:(Index + 1) * 7 - 1]</l>
+<l>        LinePose2 := PosesCurve[7 * (Index + 1):(Index + 2) * 7 - 1]</l>
+<l>        DirectionVector := LinePose2 - LinePose1</l>
+<l>        Norm := sqrt(DirectionVector[0] * DirectionVector[0] + DirectionVector[1] * DirectionVector[1] + DirectionVector[2] * DirectionVector[2])</l>
+<l>        LineLength := LineLength + Norm</l>
+<l>    endfor</l>
+<l>endif</l>
+<c>* </c>
+<c>* Create lines.</c>
+<l>OM3DCurve := []</l>
+<l>LineLengthTmp := 0</l>
+<l>for Index := 0 to |PosesCurve| / 7 - 2 by 1</l>
+<l>    if (ArrowBool and LineLengthTmp &gt; (LineLength - ConeLength))</l>
+<c>        * The rest of the line is not needed.</c>
+<l>        continue</l>
+<l>    endif</l>
+<l>    LinePose1 := PosesCurve[7 * Index:(Index + 1) * 7 - 1]</l>
+<l>    LinePose2 := PosesCurve[7 * (Index + 1):(Index + 2) * 7 - 1]</l>
+<l>    DirectionVector := LinePose2 - LinePose1</l>
+<l>    Norm := sqrt(DirectionVector[0] * DirectionVector[0] + DirectionVector[1] * DirectionVector[1] + DirectionVector[2] * DirectionVector[2])</l>
+<l>    cosineRotation := DirectionVector[2] / Norm</l>
+<l>    Rotation := acos(cosineRotation)</l>
+<l>    tuple_vector_cross_product ([0,0,1], DirectionVector[0:2], Normal)</l>
+<l>    NormNormal := sqrt(Normal[0] * Normal[0] + Normal[1] * Normal[1] + Normal[2] * Normal[2])</l>
+<l>    if (NormNormal == 0.0)</l>
+<c>        * Line points in positive or negative z-direction.</c>
+<l>        if (DirectionVector[2] &gt;= 0)</l>
+<c>            * Line points in positive z-direction.</c>
+<l>            PoseLine := [LinePose1[0],LinePose1[1],LinePose1[2],0,0,0,0]</l>
+<l>        else</l>
+<c>            * Line points in negative z-direction.</c>
+<l>            PoseLine := [LinePose1[0],LinePose1[1],LinePose1[2],180,0,0,0]</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        Normal := Normal / NormNormal</l>
+<l>        screw_to_dual_quat ('moment', Normal[0], Normal[1], Normal[2], 0, 0, 0, Rotation, 0, DualQuat)</l>
+<l>        dual_quat_to_pose (DualQuat, PoseLine)</l>
+<l>        PoseLine := [LinePose1[0],LinePose1[1],LinePose1[2],PoseLine[3],PoseLine[4],PoseLine[5],0]</l>
+<l>    endif</l>
+<l>    LineLengthTmp := LineLengthTmp + Norm</l>
+<l>    if (ArrowBool and LineLengthTmp &gt; (LineLength - ConeLength))</l>
+<l>        Norm := abs(Norm - ConeLength)</l>
+<l>    endif</l>
+<l>    gen_cylinder_object_model_3d (PoseLine, LineThickness, 0, Norm, OM3DsLinesTmp)</l>
+<l>    OM3DCurve := [OM3DCurve,OM3DsLinesTmp]</l>
+<l>endfor</l>
+<l>if (ArrowBool)</l>
+<c>    * Add arrow at the end of the curve</c>
+<c>    * Create cone.</c>
+<l>    pi := rad(180)</l>
+<l>    X := 0</l>
+<l>    Y := 0</l>
+<l>    Z := ConeLength</l>
+<l>    for Index := 0 to 2 * pi by 0.1</l>
+<l>        X := [X,ConeRadius * cos(Index)]</l>
+<l>        Y := [Y,ConeRadius * sin(Index)]</l>
+<l>        Z := [Z,0]</l>
+<l>    endfor</l>
+<l>    gen_object_model_3d_from_points (X, Y, Z, Cone3DTmp)</l>
+<l>    convex_hull_object_model_3d (Cone3DTmp, ConeObjectModel3D)</l>
+<l>    clear_object_model_3d (Cone3DTmp)</l>
+<c>    * Estimate good position for cone of the arrow.</c>
+<l>    PoseCone := PoseLine</l>
+<l>    rigid_trans_object_model_3d (ConeObjectModel3D, PoseCone, ConeObjectModel3D)</l>
+<l>    OM3DCurve := [OM3DCurve,ConeObjectModel3D]</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="gen_curve_object_model_3d">
+<chapters lang="de_DE">
+<item>3D-Objektmodell</item>
+<item>Generierung</item>
+</chapters>
+<chapters lang="en_US">
+<item>3D Object Model</item>
+<item>Creation</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="ArrowBool">
+<sem_type>integer</sem_type>
+</parameter>
+<parameter id="LineThickness">
+<sem_type>number</sem_type>
+</parameter>
+<parameter id="OM3DCurve">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="PosesCurve">
+<multivalue>true</multivalue>
+<sem_type>pose</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_arrow_object_model_3d">
+<interface>
+<ic>
+<par name="ArrowThickness" base_type="ctrl" dimension="0"/>
+<par name="ArrowStart" base_type="ctrl" dimension="0"/>
+<par name="ArrowEnd" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="OM3DsArrow" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* This procedure draws an arrow that starts at the point ArrowStart and ends at ArrowEnd.</c>
+<c>* </c>
+<c>* Get parameters.</c>
+<l>ConeRadius := 2.5 * ArrowThickness</l>
+<l>ConeLength := 3 * ConeRadius</l>
+<c>* </c>
+<c>* Create cone.</c>
+<l>pi := rad(180)</l>
+<l>X := 0</l>
+<l>Y := 0</l>
+<l>Z := ConeLength</l>
+<l>for Index := 0 to 2 * pi by 0.1</l>
+<l>    X := [X,ConeRadius * cos(Index)]</l>
+<l>    Y := [Y,ConeRadius * sin(Index)]</l>
+<l>    Z := [Z,0]</l>
+<l>endfor</l>
+<l>gen_object_model_3d_from_points (X, Y, Z, OM3DConeTmp)</l>
+<l>convex_hull_object_model_3d (OM3DConeTmp, OM3DCone)</l>
+<l>clear_object_model_3d (OM3DConeTmp)</l>
+<c>* </c>
+<c>* Create Arrow.</c>
+<l>DirectionVector := ArrowEnd[0:2] - ArrowStart[0:2]</l>
+<l>Norm := sqrt(DirectionVector[0] * DirectionVector[0] + DirectionVector[1] * DirectionVector[1] + DirectionVector[2] * DirectionVector[2])</l>
+<l>CosineRotation := DirectionVector[2] / Norm</l>
+<l>Rotation := acos(CosineRotation)</l>
+<l>tuple_vector_cross_product ([0,0,1], DirectionVector[0:2], Normal)</l>
+<l>NormNormal := sqrt(Normal[0] * Normal[0] + Normal[1] * Normal[1] + Normal[2] * Normal[2])</l>
+<l>if (NormNormal == 0.0)</l>
+<c>    * Line points in z-direction.</c>
+<l>    PoseLine := [ArrowStart[0],ArrowStart[1],ArrowStart[2],0,0,0,0]</l>
+<l>else</l>
+<l>    Normal := Normal / NormNormal</l>
+<l>    screw_to_dual_quat ('moment', Normal[0], Normal[1], Normal[2], 0, 0, 0, Rotation, 0, DualQuat)</l>
+<l>    dual_quat_to_pose (DualQuat, PoseLine)</l>
+<l>    PoseLine := [ArrowStart[0],ArrowStart[1],ArrowStart[2],PoseLine[3],PoseLine[4],PoseLine[5],0]</l>
+<l>endif</l>
+<l>gen_cylinder_object_model_3d (PoseLine, ArrowThickness, 0, abs(Norm - ConeLength), OM3DLine)</l>
+<l>PoseCone := PoseLine</l>
+<l>PoseCone[0:2] := PoseCone[0:2] + abs(Norm - ConeLength) * DirectionVector / Norm</l>
+<l>rigid_trans_object_model_3d (OM3DCone, PoseCone, OM3DCone)</l>
+<l>OM3DsArrow := [OM3DLine,OM3DCone]</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="gen_arrow_object_model_3d">
+<chapters lang="de_DE">
+<item>3D-Objektmodell</item>
+<item>Generierung</item>
+</chapters>
+<chapters lang="en_US">
+<item>3D Object Model</item>
+<item>Creation</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="ArrowEnd">
+<sem_type>number</sem_type>
+</parameter>
+<parameter id="ArrowStart">
+<sem_type>number</sem_type>
+</parameter>
+<parameter id="ArrowThickness">
+<sem_type>number</sem_type>
+</parameter>
+<parameter id="OM3DsArrow">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="zoom_visualization_pose">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="VisPoseStart" base_type="ctrl" dimension="0"/>
+<par name="VisPoseEnd" base_type="ctrl" dimension="0"/>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+<par name="GenParamName" base_type="ctrl" dimension="0"/>
+<par name="GenParamValue" base_type="ctrl" dimension="0"/>
+<par name="StepSize" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure interpolates the visualization poses VisPoseStart and</c>
+<c>* VisPoseOut.</c>
+<l>for T := StepSize to 1 by StepSize</l>
+<l>    pose_average ([VisPoseStart,VisPoseEnd], [1 - T,T], 'direct', 'auto', 'auto', VisPose, Quality)</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3D, [], VisPose, GenParamName, GenParamValue)</l>
+<l>    wait_seconds (0.05)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="zoom_visualization_pose">
+<chapters lang="de_DE">
+<item>Transformationen</item>
+<item>Posen</item>
+</chapters>
+<chapters lang="en_US">
+<item>Transformations</item>
+<item>Poses</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="GenParamName"/>
+<parameter id="GenParamValue"/>
+<parameter id="ObjectModel3D"/>
+<parameter id="StepSize"/>
+<parameter id="VisPoseEnd"/>
+<parameter id="VisPoseStart"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block_1">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '1) Rotations:'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'A  rotation by theta about the axis n=[n_x,n_y,n_z] can be performed by a dual quaternion'</l>
+<l>Message[3] := 'of the form'</l>
+<l>Message[4] := '   dq := qr + e*qd '</l>
+<l>Message[5] := 'with the dual unit number e (e^2=0), '</l>
+<l>Message[6] := '   qr := [cos(theta/2), n_x*sin(theta/2), n_y*sin(theta/2), n_z*sin(theta/2)], and '</l>
+<l>Message[7] := '   qd := [0, 0, 0, 0].'</l>
+<l>Message[8] := ' '</l>
+<l>Message[9] := 'Here, a rotation by 135 degrees is performed about the z-axis (blue arrow).'</l>
+<l>disp_text (WindowHandle, Message, 'window', 12, 12, 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block_1">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_message_block_4">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '3.2) Screws: '</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'If the screw parameters are known, the screw can '</l>
+<l>Message[3] := 'be easily realized with dual quaternions. '</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'The following screw is performed about'</l>
+<l>Message[6] := 'the axis (L,M) with L:=[-1,0,0], P:=[25,25,40], '</l>
+<l>Message[7] := 'a screw angle of -90 degrees, and d:=50. '</l>
+<l>return ()</l>
+</body>
+<docu id="create_message_block_4">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_message_block_2">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '2) Translations: '</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'To translate objects along a vector'</l>
+<l>Message[3] := 't:=[t_x,t_y,t_z], use'</l>
+<l>Message[4] := '   dq := qr + e*qd'</l>
+<l>Message[5] := 'with'</l>
+<l>Message[6] := '   qr := [1, 0, 0, 0], and '</l>
+<l>Message[7] := '   qd := [0, t_x/2, t_y/2, t_z/2].'</l>
+<l>Message[8] := ' '</l>
+<l>Message[9] := 'In this example, t := [50, 50, 80]. '</l>
+<l>return ()</l>
+</body>
+<docu id="create_message_block_2">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_message_block_3">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '3.1) Screws: '</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The combination of a rotation and a translation'</l>
+<l>Message[3] := 'can be interpreted as a screw.'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'M ....... moment of screw axis'</l>
+<l>Message[6] := 'L ....... direction of the screw axis'</l>
+<l>Message[7] := '(L,M) ... screw axis'</l>
+<l>Message[8] := 'theta ... screw angle'</l>
+<l>Message[9] := 'd ....... screw translation'</l>
+<l>return ()</l>
+</body>
+<docu id="create_message_block_3">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_message_block_5">
+<interface>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := '4) Rotation with conjugate dual quaternion: '</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'After these two screws, you can create '</l>
+<l>Message[3] := 'a dual quaternion that moves the object '</l>
+<l>Message[4] := 'back to the initial pose by conjugating'</l>
+<l>Message[5] := 'both screws and then composing these two'</l>
+<l>Message[6] := 'conjugated screws.'</l>
+<l>return ()</l>
+</body>
+<docu id="create_message_block_5">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Message"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

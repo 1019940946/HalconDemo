@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<l>Size := 512</l>
+<l>Radius1 := 32 * 3</l>
+<l>Radius2 := 32 * 2</l>
+<l>ScaleFactor := 1. / 32.</l>
+<l>Foreground := 200</l>
+<l>gen_image_const (Image, 'byte', Size, Size)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Size, Size, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>gen_ellipse (Ellipse, Size / 2, Size / 2, 0, Radius1, Radius2)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>PhisRegion := []</l>
+<l>PhisImage := []</l>
+<l>PhisZoomed := []</l>
+<l>RasRegion := []</l>
+<l>RasImage := []</l>
+<l>RasZoomed := []</l>
+<l>RbsRegion := []</l>
+<l>RbsImage := []</l>
+<l>RbsZoomed := []</l>
+<l>for Angle := 0 to 180 by 1</l>
+<c>    * Create test image</c>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Angle), Size / 2, Size / 2, HomMat2DRotate)</l>
+<l>    affine_trans_region (Ellipse, EllipseRot, HomMat2DRotate, 'constant')</l>
+<l>    elliptic_axis (EllipseRot, RaRegion, RbRegion, PhiRegion)</l>
+<l>    paint_region (EllipseRot, Image, ImageEllipse, Foreground, 'fill')</l>
+<l>    zoom_image_factor (ImageEllipse, ImageZoomed, ScaleFactor, ScaleFactor, 'constant')</l>
+<l>    threshold (ImageEllipse, Region, 1, 255)</l>
+<l>    elliptic_axis_gray (Region, ImageEllipse, RaImage, RbImage, PhiImage)</l>
+<l>    threshold (ImageZoomed, RegionZoomed, 1, 255)</l>
+<l>    area_center_gray (RegionZoomed, ImageZoomed, AreaZoomed, RowZoomed, ColumnZoomed)</l>
+<l>    elliptic_axis_gray (RegionZoomed, ImageZoomed, RaZoomed, RbZoomed, PhiZoomed)</l>
+<c>    * Store area and position of reference region and results from zoomed image</c>
+<l>    PhisRegion := [PhisRegion,PhiRegion]</l>
+<l>    PhisImage := [PhisImage,PhiImage]</l>
+<l>    PhisZoomed := [PhisZoomed,PhiZoomed]</l>
+<l>    RasRegion := [RasRegion,RaRegion]</l>
+<l>    RasImage := [RasImage,RaImage]</l>
+<l>    RasZoomed := [RasZoomed,RaZoomed / ScaleFactor]</l>
+<l>    RbsRegion := [RbsRegion,RbRegion]</l>
+<l>    RbsImage := [RbsImage,RbImage]</l>
+<l>    RbsZoomed := [RbsZoomed,RbZoomed / ScaleFactor]</l>
+<c>    * Visualize extraction results</c>
+<l>    gen_ellipse_contour_xld (ContEllipse, RowZoomed, ColumnZoomed, PhiZoomed, RaZoomed, RbZoomed, 0, rad(360), 'positive', 1)</l>
+<l>    dev_display (ImageZoomed)</l>
+<l>    disp_message (WindowHandle, ['Gray values &gt; 0','Corresponding ellipse'], 'window', 12, 12, ['red','green'], 'false')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (RegionZoomed)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (ContEllipse)</l>
+<l>    wait_seconds (0.01)</l>
+<l>endfor</l>
+<c>* Determine the extraction errors</c>
+<l>DiffPhiRegionZoomed := fmod((PhisRegion - PhisZoomed) * 180. / 3.14,180.0)</l>
+<l>DiffRaRegionZoomed := (RasRegion - RasZoomed) * ScaleFactor</l>
+<l>DiffRbRegionZoomed := (RbsRegion - RbsZoomed) * ScaleFactor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

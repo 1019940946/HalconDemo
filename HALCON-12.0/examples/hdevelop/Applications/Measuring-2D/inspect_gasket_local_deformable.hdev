@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use local deformable</c>
+<c>* matching to find and inspect objects that are deformed.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>Smoothness := 25</l>
+<l>read_image (ModelImage, 'gasket/gasket_model')</l>
+<l>read_image (Image, 'gasket/gasket_01')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ModelImage, 0, 0, 500, -1, WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>get_window_extents (WindowHandle1, Row, Column, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, Width + 12, 1024 - Width - 36, -1, WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create variation model</c>
+<l>sobel_amp (ModelImage, EdgeAmplitude, 'thin_max_abs', 5)</l>
+<l>create_variation_model (425, 410, 'byte', 'direct', VariationModelID)</l>
+<l>prepare_direct_variation_model (ModelImage, EdgeAmplitude, VariationModelID, 30, 1.5)</l>
+<c>* </c>
+<c>* Create locally deformable model</c>
+<l>create_local_deformable_model (ModelImage, 'auto', rad(-10), rad(20), 'auto', 0.9, 1.1, 'auto', 0.9, 1.1, 'auto', 'none', 'use_polarity', 'auto', 'auto', [], [], ModelID)</l>
+<l>get_deformable_model_contours (ModelContours, ModelID, 1)</l>
+<l>area_center (ModelImage, Area, Row, Column)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, Row, Column, HomMat2DTranslate)</l>
+<l>affine_trans_contour_xld (ModelContours, ContoursAffinTrans, HomMat2DTranslate)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (ContoursAffinTrans)</l>
+<l>disp_message (WindowHandle1, 'Model image and contours', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Process images iteratively</c>
+<l>NumImages := 7</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'gasket/gasket_' + Index$'02')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle2, 'Search ...', 'window', 12, 12, 'black', 'true')</l>
+<c>    * Find the model in the search image.</c>
+<c>    * As result, the rectified image, the respective</c>
+<c>    * vector field, and the found contours are queried.</c>
+<l>    count_seconds (S1)</l>
+<l>    find_local_deformable_model (Image, ImageRectified, VectorField, DeformedContours, ModelID, rad(-10), rad(20), 1, 1, 1, 1, 0.93, 1, 0.7, 0, 0.4, ['image_rectified','vector_field','deformed_contours'], ['deformation_smoothness','expand_border','subpixel'], [Smoothness,0,1], Score, Row, Column)</l>
+<l>    count_seconds (S2)</l>
+<l>    Time := S2 - S1</l>
+<l>    if (|Score| &gt; 0)</l>
+<l>        gen_warped_mesh_region (VectorField, MeshRegion, Smoothness)</l>
+<l>        gen_region_contour_xld (DeformedContours, EdgeRegion, 'margin')</l>
+<l>        dilation_circle (EdgeRegion, RegionDilation, 2 * Smoothness)</l>
+<l>        intersection (RegionDilation, MeshRegion, RegionIntersection)</l>
+<l>        dev_set_line_width (1)</l>
+<l>        dev_set_color ('yellow')</l>
+<l>        dev_display (RegionIntersection)</l>
+<l>        Found[Index] := |Score|</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (DeformedContours)</l>
+<l>        disp_message (WindowHandle2, ['Match found in ' + Time$'1.2f' + ' s','Score: ' + Score$'.2f'], 'window', 12, 12, 'black', 'true')</l>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_display (ImageRectified)</l>
+<l>        compare_variation_model (ImageRectified, Region, VariationModelID)</l>
+<l>        connection (Region, ConnectedRegions)</l>
+<l>        select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 30, 99999)</l>
+<l>        count_obj (SelectedRegions, Number)</l>
+<l>        if (Number &gt; 0)</l>
+<l>            area_center (SelectedRegions, Area, Row1, Column1)</l>
+<l>            elliptic_axis (SelectedRegions, Ra, Rb, Phi)</l>
+<l>            tuple_gen_const (Number, 1, Ones)</l>
+<l>            PointOrder := []</l>
+<l>            for Idx := 0 to Number - 1 by 1</l>
+<l>                PointOrder := [PointOrder,'positive']</l>
+<l>            endfor</l>
+<l>            gen_ellipse_contour_xld (ContEllipse, Row1, Column1, Phi, Ra + 10, Rb + 10, 0 * Ones, 6.28318 * Ones, PointOrder, 1.5)</l>
+<l>            dev_set_color ('red')</l>
+<l>            dev_display (ContEllipse)</l>
+<l>            disp_message (WindowHandle1, 'Part not OK!', 'window', 12, 12, 'red', 'true')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle1, 'Part OK', 'window', 12, 12, 'forest green', 'true')</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle2, 'Nothing found', 'window', 12, 12, 'black', 'true')</l>
+<l>    endif</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_deformable_model (ModelID)</l>
+<l>clear_variation_model (VariationModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_warped_mesh_region">
+<interface>
+<io>
+<par name="VectorField" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="WarpedMesh" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Step" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_empty_obj (WarpedMesh)</l>
+<l>count_obj (VectorField, Number)</l>
+<l>for Index := 1 to Number by 1</l>
+<c>    * For visualization we use the returned vector field</c>
+<c>    * and generate a grid of the deformation in the search image.</c>
+<l>    select_obj (VectorField, ObjectSelected, Index)</l>
+<l>    vector_field_to_real (ObjectSelected, DRow, DCol)</l>
+<l>    get_image_size (VectorField, Width, Height)</l>
+<l>    for ContR := 0.5 to Height[0] - 1 by Step</l>
+<l>        Col1 := [0.5:Width[0] - 1]</l>
+<l>        tuple_gen_const (Width[0] - 1, ContR, Row1)</l>
+<l>        get_grayval_interpolated (DRow, Row1, Col1, 'bilinear', GrayRow)</l>
+<l>        get_grayval_interpolated (DCol, Row1, Col1, 'bilinear', GrayCol)</l>
+<l>        gen_region_points (Region, GrayRow, GrayCol)</l>
+<l>        concat_obj (WarpedMesh, Region, WarpedMesh)</l>
+<l>    endfor</l>
+<l>    for ContC := 0.5 to Width[0] - 1 by Step</l>
+<l>        Row1 := [0.5:Height[0] - 1]</l>
+<l>        tuple_gen_const (Height[0] - 1, ContC, Col1)</l>
+<l>        get_grayval_interpolated (DRow, Row1, Col1, 'bilinear', GrayRow)</l>
+<l>        get_grayval_interpolated (DCol, Row1, Col1, 'bilinear', GrayCol)</l>
+<l>        gen_region_points (Region, GrayRow, GrayCol)</l>
+<l>        concat_obj (WarpedMesh, Region, WarpedMesh)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="gen_warped_mesh_region">
+<parameters>
+<parameter id="Step"/>
+<parameter id="VectorField"/>
+<parameter id="WarpedMesh"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

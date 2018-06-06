@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of a LinX GingaDG frame grabber board</c>
+<c>* (continuous grabbing mode)</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>Width := 640</l>
+<l>Height := 480</l>
+<c>* </c>
+<l>NumBuffers := 100</l>
+<l>dev_open_window (0, 0, Width * 0.5, Height * 0.5, 'black', WindowHandle)</l>
+<l>MyCameraType := 'teli/CSB4000_TRIG_DEMAND'</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>open_framegrabber ('GingaDG', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, 'default', 0, -1, AcqHandle)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'num_buffers', NumBuffers)</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'overwrite_method', 'abort')</l>
+<l>set_framegrabber_param (AcqHandle, 'ring_buffer_stop_margin', 5)</l>
+<l>stop ()</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 150 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    mean_image (Image, ImageMean, 9, 9)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (ImageMean)</l>
+<l>endfor</l>
+<l>wait_seconds (0.5)</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'disbale')</l>
+<l>get_framegrabber_param (AcqHandle, 'ring_buffer_last_index', LastFrame)</l>
+<l>get_framegrabber_param (AcqHandle, 'ring_buffer_current_index', CurrentFrame)</l>
+<l>stop ()</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'walk_ring_buffer', 'enable')</l>
+<l>ObjectCount := LastFrame - CurrentFrame</l>
+<l>for i := 1 to ObjectCount by 1</l>
+<l>    grab_image (Image1, AcqHandle)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image1)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

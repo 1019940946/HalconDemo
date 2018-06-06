@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Purpose of this example is to examine the deviation of the ncc detection</c>
+<c>* results from its reference model while the focus of the lens changes</c>
+<c>* iteratively over the sequence. The matching scheme used here is the</c>
+<c>* ncc model.  The over all motion in x and y direction of the detected models</c>
+<c>* are finally depicted (in pixel unit).</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (ImageRef, 'pcb_focus/pcb_focus_telecentric_061')</l>
+<l>get_image_size (ImageRef, Width, Height)</l>
+<l>dev_open_window_fit_image (ImageRef, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (1)</l>
+<c>* </c>
+<c>* Create ncc model</c>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,1,2]" as_ord="2">gen_rectangle1 (ModelRegion, 81.5, 148.5, 419.5, 633.5)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,2]" as_ord="2">reduce_domain (ImageRef, ModelRegion, TemplateImage)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TemplateImage)</l>
+<l>disp_message (WindowHandle, 'Creating the ncc model may take a few seconds ... ', 'window', 12, 12, 'black', 'true')</l>
+<l>create_ncc_model (TemplateImage, 'auto', -rad(5), rad(10), 'auto', 'use_polarity', ModelID)</l>
+<c>* </c>
+<c>* Deactivate automatic flushing of the window for flicker free display</c>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<c>* Find ncc model in image</c>
+<l>area_center (ModelRegion, Area, ModelRow, ModelColumn)</l>
+<l>Rows := []</l>
+<l>Columns := []</l>
+<l>for Index := 1 to 121 by 1</l>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[2,3]" as_ord="1">    read_image (Image, 'pcb_focus/pcb_focus_telecentric_' + Index$'03' + '.png')</l>
+<l>    find_ncc_model (Image, ModelID, -rad(5), rad(10), 0.5, 1, 0.5, 'true', 0, Row, Column, Angle, Score)</l>
+<l>    Rows := [Rows,Row]</l>
+<l>    Columns := [Columns,Column]</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display_ncc_matching_results (ModelID, 'green', Row, Column, Angle, 0)</l>
+<l>    disp_message (WindowHandle, 'Finding ncc model in image:  ' + Index$'03', 'window', 12, 12, 'white', 'false')</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>endfor</l>
+<c>* </c>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<c>* </c>
+<c>* Display results</c>
+<l>dev_display (Image)</l>
+<l>wait_seconds (1)</l>
+<l>gen_contour_polygon_xld (Contour, Rows, Columns)</l>
+<l>fit_line_contour_xld (Contour, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>gen_contour_polygon_xld (Regression, [RowBegin,RowEnd], [ColBegin,ColEnd])</l>
+<c>* Resize window so that pixels appear square</c>
+<l>Ratio := (394 - 389 + 1) / real(252 - 250 + 1)</l>
+<l>dev_resize_window_fit_size (0, 0, Height * Ratio, Height, 640, 480)</l>
+<l>dev_set_part (250, 389, 252, 394)</l>
+<l>dev_display (ImageRef)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Contour)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Regression)</l>
+<l>disp_message (WindowHandle, ['Deviation of ncc matches in (x,y)-direction','while defocusing lens'], 'image', 249.75, 389, 'white', 'false')</l>
+<l>disp_message (WindowHandle, '  Deviation (green), Tukey\'s robust regression (yellow) in pixel', 'image', 251.75, 389.25, 'white', 'false')</l>
+<c>* </c>
+<c>* Close all handles</c>
+<l>clear_ncc_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

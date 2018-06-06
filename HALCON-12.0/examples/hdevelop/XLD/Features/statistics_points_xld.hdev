@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to analyze two dimensional</c>
+<c>* statistical data with *_points_xld operators</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'letters')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'white', WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Segment the image.</c>
+<c>* </c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>* Connect the i's and j's with their dots.</c>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<c>* Compute the correct connected components.</c>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<c>* Reduce each connected component (character) to its original shape.</c>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<c>* Sort the characters line-by-line.</c>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<c>* Compute the true class of each character.</c>
+<l>count_obj (Characters, Number)</l>
+<l>Classes := []</l>
+<l>for J := 0 to 25 by 1</l>
+<l>    Classes := [Classes,gen_tuple_const(20,chr(ord('a') + J))]</l>
+<l>endfor</l>
+<l>Classes := [Classes,gen_tuple_const(20,'.')]</l>
+<c>* Construct the necessary training file from the segmented characters.</c>
+<l>write_ocr_trainf (Characters, Image, Classes, 'letters.trf')</l>
+<c>* Create the classifier. We read out the classes from the training file. Therefore,</c>
+<c>* the training part of the program is generic and can be used to train any MLP</c>
+<c>* OCR classifier.</c>
+<l>read_ocr_trainf_names ('letters.trf', CharacterNames, CharacterCount)</l>
+<l>create_ocr_class_mlp (8, 10, 'weighted', ['anisometry','compactness'], CharacterNames, 5, 'none', 26, 42, OCRHandle)</l>
+<l>count_obj (Characters, Number)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Characters)</l>
+<l>disp_message (WindowHandle, ['Click Run (F5) to extract and analyze','\'anisometry\' and \'compactness\' features!'], 'window', 227, 0, 'blue', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract anisometry and compactness features and display ellipses computed by elliptic_axis_points_xld</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<c>* for the sake of simplicity only the letters 'a' to 'l' are used</c>
+<l>Colors := ['red','green','blue','black','cyan','magenta','red','green','blue','black','cyan','magenta']</l>
+<l>for ClassIndex := 0 to 11 by 1</l>
+<l>    Anisometries := []</l>
+<l>    Compactnesses := []</l>
+<l>    for Index := 1 + 20 * ClassIndex to 20 + 20 * ClassIndex by 1</l>
+<l>        select_obj (Characters, ObjectSelected, Index)</l>
+<l>        reduce_domain (Image, ObjectSelected, ImageReduced)</l>
+<l>        get_features_ocr_class_mlp (ImageReduced, OCRHandle, 'true', Features)</l>
+<c>        * transform features into visible domain</c>
+<l>        tuple_concat (Anisometries, Height / 2 - (Features[0] * 600) + 250, Anisometries)</l>
+<l>        tuple_concat (Compactnesses, (Features[1] * 1000) + 800, Compactnesses)</l>
+<l>    endfor</l>
+<l>    dev_set_color (Colors[ClassIndex])</l>
+<l>    gen_cross_contour_xld (Cross, Anisometries, Compactnesses, 6, 0.785398)</l>
+<l>    dev_display (Cross)</l>
+<c>    * put statistical data in XLD contour</c>
+<l>    gen_contour_polygon_xld (StatisticalDataXLD, Anisometries, Compactnesses)</l>
+<l>    area_center_points_xld (StatisticalDataXLD, Area, Row, Column)</l>
+<l>    elliptic_axis_points_xld (StatisticalDataXLD, Ra, Rb, Phi)</l>
+<l>    smallest_rectangle1_xld (StatisticalDataXLD, SRRow1, SRCol1, SRRow2, SRCol2)</l>
+<c>    * display character name</c>
+<l>    set_tposition (WindowHandle, SRRow2, SRCol2)</l>
+<l>    write_string (WindowHandle, CharacterNames[ClassIndex])</l>
+<c>    * display ellipse and center of mass</c>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 12, Phi)</l>
+<l>    gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Ra, Rb, 0, 6.28318, 'positive', 0.1)</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_display (ContEllipse)</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle, '\'anisometry\'', 'image', 0, 0, 'black', 'false')</l>
+<l>disp_message (WindowHandle, '\'compactness\'', 'image', 945, 565, 'black', 'false')</l>
+<l>disp_message (WindowHandle, ['Displaying ellipses.','Click Run (F5) for moments!'], 'image', 5, 285, 'blue', 'false')</l>
+<l>dev_set_color ('black')</l>
+<l>disp_arrow (WindowHandle, Height - 75, 75, Height - 75, Width - 75, 3)</l>
+<l>disp_arrow (WindowHandle, Height - 75, 75, 75, 75, 3)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract features (again) and display second moments</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<c>* for the sake of simplicity only the letters 'a' to 'l' are used</c>
+<l>for ClassIndex := 0 to 11 by 1</l>
+<l>    Anisometries := []</l>
+<l>    Compactnesses := []</l>
+<l>    for Index := 1 + 20 * ClassIndex to 20 + 20 * ClassIndex by 1</l>
+<l>        select_obj (Characters, ObjectSelected, Index)</l>
+<l>        reduce_domain (Image, ObjectSelected, ImageReduced)</l>
+<l>        get_features_ocr_class_mlp (ImageReduced, OCRHandle, 'true', Features)</l>
+<c>        * transform features into visible domain</c>
+<l>        tuple_concat (Anisometries, Height / 2 - (Features[0] * 600) + 250, Anisometries)</l>
+<l>        tuple_concat (Compactnesses, (Features[1] * 1000) + 800, Compactnesses)</l>
+<l>    endfor</l>
+<l>    dev_set_color (Colors[ClassIndex])</l>
+<l>    gen_cross_contour_xld (Cross, Anisometries, Compactnesses, 6, 0.785398)</l>
+<l>    dev_display (Cross)</l>
+<c>    * put statistical data in an XLD contour</c>
+<l>    gen_contour_polygon_xld (StatisticalDataXLD, Anisometries, Compactnesses)</l>
+<l>    area_center_points_xld (StatisticalDataXLD, Area, Row, Column)</l>
+<l>    moments_points_xld (StatisticalDataXLD, M11, M20, M02)</l>
+<l>    smallest_rectangle1_xld (StatisticalDataXLD, SRRow1, SRCol1, SRRow2, SRCol2)</l>
+<c>    * display character name</c>
+<l>    set_tposition (WindowHandle, SRRow2, SRCol2)</l>
+<l>    write_string (WindowHandle, CharacterNames[ClassIndex])</l>
+<c>    * display M02 and M20 as lines</c>
+<l>    dev_set_line_width (2)</l>
+<l>    disp_line (WindowHandle, Row, Column, Row, Column + 0.01 * M02)</l>
+<l>    disp_line (WindowHandle, Row, Column, Row - 0.01 * M20, Column)</l>
+<l>    dev_set_line_width (1)</l>
+<c>    * display the center of mass</c>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 12, Phi)</l>
+<l>    dev_display (Cross)</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle, '\'anisometry\'', 'image', 0, 0, 'black', 'false')</l>
+<l>disp_message (WindowHandle, '\'compactness\'', 'image', 945, 565, 'black', 'false')</l>
+<l>disp_message (WindowHandle, ['Displaying moments','M20 and M02.'], 'image', 5, 460, 'blue', 'false')</l>
+<l>dev_set_color ('black')</l>
+<l>disp_arrow (WindowHandle, Height - 75, 75, Height - 75, Width - 75, 3)</l>
+<l>disp_arrow (WindowHandle, Height - 75, 75, 75, 75, 3)</l>
+<c>* clear up mlp handle</c>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

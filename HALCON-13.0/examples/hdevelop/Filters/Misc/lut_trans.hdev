@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Invert an image using the proper look-up table</c>
+<l>read_image (Image, 'monkey')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>lut := []</l>
+<l>for i := 0 to 255 by 1</l>
+<l>    lut := [lut,255 - i]</l>
+<l>endfor</l>
+<l>dev_update_pc ('on')</l>
+<l>lut_trans (Image, ImageInverse, lut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

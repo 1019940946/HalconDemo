@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the use of the operator dyn_threshold for</c>
+<c>* the segmentation of the raised dots of braille chharacters.</c>
+<c>* The operator dyn_threshold is especially usefull if the</c>
+<c>* background is inhomogeneously illuminated. In this example,</c>
+<c>* the segmentation with a simple threshold is not possible</c>
+<c>* because the brightness of the background increases from</c>
+<c>* left to right.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Preparation</c>
+<l>read_image (Image, 'photometric_stereo/embossed_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_get_window (WindowHandle)</l>
+<l>if (WindowHandle &gt;= 0)</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>else</l>
+<l>    dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>endif</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>Message := 'Original image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Use a strong mean filter on the image to blur out the braille points</c>
+<l>mean_image (Image, ImageMean, 59, 59)</l>
+<c>* </c>
+<l>dev_display (ImageMean)</l>
+<l>Message := 'Mean filtered image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compare the original image with the blurred one and determine the</c>
+<c>* region where the gray values of the two images differ by more than 15</c>
+<l>dyn_threshold (Image, ImageMean, RegionDynThresh, 15, 'not_equal')</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionDynThresh)</l>
+<l>Message := 'Regions segmented with dyn_threshold'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Post-process the found regions</c>
+<l>closing_circle (RegionDynThresh, RegionClosing, 8.5)</l>
+<l>opening_circle (RegionClosing, RegionOpening, 6.5)</l>
+<l>connection (RegionOpening, ConnectedRegions)</l>
+<l>smallest_circle (ConnectedRegions, Row, Column, Radius)</l>
+<l>gen_circle_contour_xld (ContCircle, Row, Column, Radius, 0, 6.28318, 'positive', 1)</l>
+<c>* </c>
+<c>* Show the results</c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ContCircle)</l>
+<l>Message := 'Results of braille segmentation after morphology'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example compares the operators elliptic_axis_xld and area_center_xld</c>
+<c>* to their counterparts elliptic_axis_points_xld and area_center_points_xld.</c>
+<c>* While the features computed by the first two operators are based on the area</c>
+<c>* enclosed by the contour, the second two operators depend on the contour points only.</c>
+<c>* As a consequence the *_points_xld operators are more robust in the case of</c>
+<c>* open contours which cannot be closed by a straight line, such that they</c>
+<c>* do not intersect themselves.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'clip')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>read_image (Image, 'clip')</l>
+<c>* </c>
+<c>* Find lines that match the clips</c>
+<c>* </c>
+<l>lines_gauss (Image, Lines, 5.0, 0.8, 2.0, 'dark', 'true', 'bar-shaped', 'false')</l>
+<l>union_adjacent_contours_xld (Lines, ClipContours, 50, 1, 'attr_keep')</l>
+<l>select_shape_xld (ClipContours, ClipContours, 'width', 'and', 20, 99999)</l>
+<l>close_contours_xld (ClipContours, ClosedContours)</l>
+<c>* </c>
+<c>* Calculate XLD features</c>
+<c>* </c>
+<l>elliptic_axis_points_xld (ClipContours, RaPoints, RbPoints, PhiPoints)</l>
+<l>elliptic_axis_xld (ClipContours, Ra, Rb, Phi)</l>
+<l>count_obj (ClipContours, Number)</l>
+<l>dev_display (Image)</l>
+<c>* the lines that close the contour are drawn in yellow</c>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ClosedContours)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (ClipContours)</l>
+<l>dev_update_window ('off')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>area_center_points_xld (ClipContours, Area, RowPoints, ColumnPoints)</l>
+<l>area_center_xld (ClipContours, Area, Row, Column, PointOrder)</l>
+<c>* Some contours are closed badly, such that the area computed by area_center_xld is too small</c>
+<l>select_shape_xld (ClipContours, BadClosed, 'area', 'and', 150, 5000)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 12, 0.785398)</l>
+<l>dev_display (Cross)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (BadClosed)</l>
+<c>* </c>
+<c>* Display the XLD features</c>
+<c>* </c>
+<l>for Index := 1 to Number by 1</l>
+<l>    Sin := sin(Phi[Index - 1])</l>
+<l>    Cos := cos(Phi[Index - 1])</l>
+<l>    gen_ellipse_contour_xld (ContEllipse, Row[Index - 1], Column[Index - 1], Phi[Index - 1], Ra[Index - 1], Rb[Index - 1], 0, 6.28318, 'positive', 1.5)</l>
+<l>    if (Rb[Index - 1] &gt; 0)</l>
+<l>        dev_set_color ('green')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>    endif</l>
+<l>    dev_display (ContEllipse)</l>
+<l>*     dev_set_color ('spring green')</l>
+<l>    disp_arrow (WindowHandle, Row[Index - 1], Column[Index - 1], Row[Index - 1] - 50 * Sin, Column[Index - 1] + 50 * Cos, 3)</l>
+<l>endfor</l>
+<l>Message := 'Ellipses by elliptic_axis_xld.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'blue', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (ClipContours)</l>
+<l>dev_update_window ('off')</l>
+<l>gen_cross_contour_xld (Cross, RowPoints, ColumnPoints, 12, 0.785398)</l>
+<c>* </c>
+<c>* Display point XLD features</c>
+<c>* </c>
+<l>dev_display (Cross)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    Sin := sin(PhiPoints[Index - 1])</l>
+<l>    Cos := cos(PhiPoints[Index - 1])</l>
+<l>    gen_ellipse_contour_xld (ContEllipse, RowPoints[Index - 1], ColumnPoints[Index - 1], PhiPoints[Index - 1], RaPoints[Index - 1], RbPoints[Index - 1], 0, 6.28318, 'positive', 1.5)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (ContEllipse)</l>
+<l>    dev_set_color ('spring green')</l>
+<l>    disp_arrow (WindowHandle, RowPoints[Index - 1], ColumnPoints[Index - 1], RowPoints[Index - 1] - 50 * Sin, ColumnPoints[Index - 1] + 50 * Cos, 3)</l>
+<l>endfor</l>
+<l>Message := 'Ellipses by elliptic_axis_points_xld.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'blue', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

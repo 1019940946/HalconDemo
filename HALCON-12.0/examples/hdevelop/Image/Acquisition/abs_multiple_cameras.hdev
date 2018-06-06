@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example or the usage of the ABS interface</c>
+<c>* The example shows how to trigger multiple cameras simultaneous</c>
+<c>* </c>
+<c>* open camera by their "UserDevID" see also AbsCameraConfig.exe to set it</c>
+<l>open_framegrabber ('ABS', 1, 1, 0, 0, 0, 0, 'default', -1, 'gray', -1, 'default', 'default', '-1', -1, -1, AcqHandle1)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>open_framegrabber ('ABS', 1, 1, 0, 0, 0, 0, 'default', -1, 'gray', -1, 'default', 'default', '-1', -1, -1, AcqHandle2)</l>
+<l>open_framegrabber ('ABS', 1, 1, 0, 0, 0, 0, 'default', -1, 'gray', -1, 'default', 'default', '-1', -1, -1, AcqHandle3)</l>
+<l>dev_set_check ('give_error')</l>
+<c>* </c>
+<c>* Features</c>
+<c>* To use the global software trigger for a set of cameras you have to activate</c>
+<c>* this feature by setting "grab_async_with_global_sw_trigger" to "true"</c>
+<c>* to switch this feature off set the parameter back to "false"</c>
+<l>set_framegrabber_param (AcqHandle1, 'grab_async_with_global_sw_trigger', 'true')</l>
+<l>dev_set_check ('~give_error')</l>
+<l>set_framegrabber_param (AcqHandle2, 'grab_async_with_global_sw_trigger', 'true')</l>
+<l>set_framegrabber_param (AcqHandle3, 'grab_async_with_global_sw_trigger', 'true')</l>
+<l>dev_set_check ('give_error')</l>
+<c>* </c>
+<c>* </c>
+<c>* optional calculate whitebalance (disable errors for mono cameras)</c>
+<l>dev_set_check ('~give_error')</l>
+<l>set_framegrabber_param (AcqHandle1, 'do_whitebalance', 'true')</l>
+<l>set_framegrabber_param (AcqHandle2, 'do_whitebalance', 'true')</l>
+<l>set_framegrabber_param (AcqHandle3, 'do_whitebalance', 'true')</l>
+<l>dev_set_check ('give_error')</l>
+<c>* </c>
+<c>* Select the cameras for async trigger operation</c>
+<l>grab_image_start (AcqHandle1, -1)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>grab_image_start (AcqHandle2, -1)</l>
+<l>grab_image_start (AcqHandle3, -1)</l>
+<l>dev_set_check ('give_error')</l>
+<c>* enter grabing loop</c>
+<l>for i := 1 to 300 by 1</l>
+<c>    * AcqHandle will be ignored for "fire_global_sw_trigger" but</c>
+<c>    * have to be a valid handle</c>
+<c>    * (triggers all cameras simultaneously via software trigger)</c>
+<l>    set_framegrabber_param (AcqHandle1, 'do_fire_global_sw_trigger', 'true')</l>
+<c>    * after global software trigger grab the new images</c>
+<l>    grab_image_async (Image1, AcqHandle1, -1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    grab_image_async (Image2, AcqHandle2, -1)</l>
+<l>    grab_image_async (Image3, AcqHandle3, -1)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle1)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+<l>close_framegrabber (AcqHandle3)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

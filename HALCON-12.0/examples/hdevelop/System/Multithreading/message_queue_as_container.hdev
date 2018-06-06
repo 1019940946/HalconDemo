@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* The primary purpose of HALCON message queues is to deliver data safely</c>
+<c>* among multiple threads without the need for explicit synchronization.</c>
+<c>* The message queue is designed as a first-in first-out container</c>
+<c>* for messages (a message is a collection of tuple and/or object data).</c>
+<c>* Both sides of the queue (input/output) can be safely serviced</c>
+<c>* by multiple concurrent threads.</c>
+<c>* This example demonstrates the basic message queue operations</c>
+<c>* simply using a single-threaded application - which is a valid</c>
+<c>* use case as well - to quickly acquire data and store them for</c>
+<c>* later processing. Message passing among multiple threads is shown</c>
+<c>* in other examples.</c>
+<c>* </c>
+<c>* Prepare the queue to store acquired images</c>
+<l>create_message_queue (Queue)</l>
+<c>* </c>
+<c>* Prepare output window</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Acquire images and push them to the message queue for later processing.</c>
+<c>* Note: such an approach might be memory-intensive, depending on the amount</c>
+<c>* of data stored in the queue.</c>
+<l>disp_message (WindowHandle, 'Acquire images and push them to the message queue\nfor later processing', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>create_message (MessageOut)</l>
+<l>open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'xing', 'default', -1, -1, AcqHandle)</l>
+<l>for Index := 0 to 100 by 1</l>
+<l>    grab_image (AcquiredImage, AcqHandle)</l>
+<c>    * Overwrite the old key content</c>
+<l>    set_message_obj (AcquiredImage, MessageOut, 'image')</l>
+<l>    set_message_tuple (MessageOut, 'id', Index)</l>
+<c>    * Note that other information about the image could be appended to the message as well.</c>
+<l>    enqueue_message (Queue, MessageOut, [], [])</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>clear_message (MessageOut)</l>
+<c>* </c>
+<c>* When finished with the acquisition, process all the data from the queue.</c>
+<c>* In this example processing means simply to display the images...</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Get and display all the data from the message queue', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>while (1)</l>
+<l>    get_message_queue_param (Queue, 'is_empty', QueueIsEmpty)</l>
+<l>    if (QueueIsEmpty)</l>
+<l>        break</l>
+<l>    endif</l>
+<l>    dequeue_message (Queue, 'timeout', 'infinite', MessageIn)</l>
+<l>    get_message_obj (ReceivedImage, MessageIn, 'image')</l>
+<l>    get_message_tuple (MessageIn, 'id', ImageId)</l>
+<l>    clear_message (MessageIn)</l>
+<l>    dev_display (ReceivedImage)</l>
+<l>    disp_message (WindowHandle, 'Image Id: ' + ImageId, 'window', 10, 10, 'black', 'true')</l>
+<l>    wait_seconds (0.05)</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Cleanup</c>
+<l>clear_message_queue (Queue)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* The following example shows a production line, which carries</c>
+<c>* packages of soft cheese. The cheese packages consist of three</c>
+<c>* types of flavor: cream, ham and paprika. During quality</c>
+<c>* inspection each package is checked for its right content.</c>
+<c>* Each has to contain 4 pieces of cream cheese ('Sahne'),</c>
+<c>* 2 pieces of ham ('Schinken') and 2 pieces of paprika ('Paprika')</c>
+<c>* - any deviation is reported otherwise. To obtain the number of</c>
+<c>* each flavor, we use the shape-based matching feature. After we</c>
+<c>* define the models, we count the occurrence of the models to</c>
+<c>* get the actual number of the cheese flavors. Finally we give out</c>
+<c>* the statistics for each inspection.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'food/soft_cheese_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* </c>
+<c>* As a first step, determine the shape models for the three flavors</c>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<l>gen_region_polygon_filled (Paprika, [77,84,203], [306,405,347])</l>
+<l>erosion_circle (Paprika, Paprika, 3.5)</l>
+<l>PaprikaCount := 2</l>
+<l>gen_region_polygon_filled (Cream, [94,171,210], [424,488,363])</l>
+<l>erosion_circle (Cream, Cream, 3.5)</l>
+<l>CreamCount := 4</l>
+<l>gen_region_polygon_filled (Ham, [185,285,225], [496,492,367])</l>
+<l>erosion_circle (Ham, Ham, 3.5)</l>
+<l>HamCount := 2</l>
+<c>* </c>
+<l>reduce_domain (GrayImage, Paprika, ImageReduced)</l>
+<l>create_shape_model (ImageReduced, 'auto', 0, rad(360), rad(1.5), ['point_reduction_high','no_pregeneration'], 'use_polarity', [25,30], 5, ModelID1)</l>
+<l>reduce_domain (GrayImage, Cream, ImageReduced)</l>
+<l>create_shape_model (ImageReduced, 'auto', 0, rad(360), rad(1.5), ['point_reduction_high','no_pregeneration'], 'use_polarity', [25,50], 'auto', ModelID2)</l>
+<l>reduce_domain (GrayImage, Ham, ImageReduced)</l>
+<l>create_shape_model (ImageReduced, 'auto', 0, rad(360), rad(1.5), ['point_reduction_high','no_pregeneration'], 'use_polarity', [25,50], 'auto', ModelID3)</l>
+<c>* </c>
+<c>* </c>
+<c>* Check for the occurrence of each cheese flavor by using the find model tool</c>
+<l>ModelIDs := [ModelID1,ModelID2,ModelID3]</l>
+<l>ColorIndex := ['red','magenta','yellow']</l>
+<l>TypesIndex := ['P','C','H']</l>
+<c>* </c>
+<l>NumImages := 18</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    AnglesTypes := []</l>
+<l>    Types := []</l>
+<l>    read_image (Image, 'food/soft_cheese_' + Index$'02')</l>
+<l>    rgb1_to_gray (Image, GrayImage)</l>
+<l>    threshold (GrayImage, Region, 70, 255)</l>
+<l>    fill_up (Region, RegionFillUp)</l>
+<l>    opening_circle (RegionFillUp, RegionOpening, 3.5)</l>
+<l>    reduce_domain (GrayImage, RegionOpening, ImageReduced)</l>
+<l>    shape_trans (RegionOpening, Circle, 'outer_circle')</l>
+<l>    find_shape_models (ImageReduced, ModelIDs, 0, rad(360), 0.5, 8, 0.5, 'least_squares', 0, 0.8, Row, Column, Angle, Score, ModelIndex)</l>
+<l>    area_center (Circle, Area, RowObj, ColumnObj)</l>
+<c>    * </c>
+<c>    * display found matches and all over statistics</c>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    if (|Score| == 0)</l>
+<l>        disp_message (WindowHandle, 'No Model found!', true, 25, 20, 'black', 'true')</l>
+<l>    else</l>
+<l>        CountModels := [0,0,0]</l>
+<l>        for I := 0 to |Score| - 1 by 1</l>
+<l>            Types := [Types,TypesIndex[ModelIndex[I]]]</l>
+<l>            dev_set_color (ColorIndex[ModelIndex[I]])</l>
+<l>            CountModels[ModelIndex[I]] := CountModels[ModelIndex[I]] + 1</l>
+<l>            get_shape_model_contours (Contour, ModelIDs[ModelIndex[I]], 1)</l>
+<l>            vector_angle_to_rigid (0, 0, 0, Row[I], Column[I], Angle[I], HomMat2D)</l>
+<l>            affine_trans_contour_xld (Contour, ContoursAffineTrans, HomMat2D)</l>
+<l>            dev_display (ContoursAffineTrans)</l>
+<c>            * </c>
+<c>            * remember order of flavors</c>
+<l>            affine_trans_point_2d (HomMat2D, 0, 0, RowPiece, ColumnPiece)</l>
+<l>            angle_lx (RowObj, ColumnObj, RowPiece, ColumnPiece, AngleTyp)</l>
+<l>            if (deg(AngleTyp) &gt; 0)</l>
+<l>                AnglesTypes := [AnglesTypes,deg(AngleTyp)]</l>
+<l>            else</l>
+<l>                AnglesTypes := [AnglesTypes,360 + deg(AngleTyp)]</l>
+<l>            endif</l>
+<l>        endfor</l>
+<c>        * </c>
+<l>        display_statistic (Circle, WindowHandle, CountModels, PaprikaCount, CreamCount, HamCount, AnglesTypes, Types)</l>
+<c>        * </c>
+<l>    endif</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_statistic">
+<interface>
+<io>
+<par name="Circle" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CountModels" base_type="ctrl" dimension="0"/>
+<par name="PaprikaCount" base_type="ctrl" dimension="0"/>
+<par name="CreamCount" base_type="ctrl" dimension="0"/>
+<par name="HamCount" base_type="ctrl" dimension="0"/>
+<par name="AnglesTypes" base_type="ctrl" dimension="0"/>
+<par name="Types" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>OrderA := ['C','H','C','P','C','H','C','P']</l>
+<l>OrderB := ['C','P','C','H','C','P','C','H']</l>
+<l>Status := true</l>
+<l>pos := 10</l>
+<l>disp_message (WindowHandle, 'Completeness check of cheese packages:', 'window', pos, 25, 'green', 'false')</l>
+<l>pos := pos + 25</l>
+<l>disp_message (WindowHandle, 'type (#spec)  #found  #wrong', 'window', pos, 25, 'green', 'false')</l>
+<l>pos := pos + 25</l>
+<l>disp_message (WindowHandle, 'paprika (2)     ' + CountModels[0], 'window', pos, 25, 'green', 'false')</l>
+<l>pos := pos + 15</l>
+<l>disp_message (WindowHandle, 'cream   (4)     ' + CountModels[1], 'window', pos, 25, 'green', 'false')</l>
+<l>pos := pos + 15</l>
+<l>disp_message (WindowHandle, 'ham     (2)     ' + CountModels[2], 'window', pos, 25, 'green', 'false')</l>
+<c>* </c>
+<c>* </c>
+<l>if (CountModels[0] != PaprikaCount)</l>
+<l>    Number := CountModels[0] - PaprikaCount</l>
+<l>    Status := false</l>
+<l>    if (Number &gt; 0)</l>
+<l>        disp_message (WindowHandle, '                       +' + Number, 'window', 60, 25, 'red', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, '                       ' + Number, 'window', 60, 25, 'red', 'false')</l>
+<l>    endif</l>
+<l>endif</l>
+<l>if (CountModels[1] != CreamCount)</l>
+<l>    Number := CountModels[1] - CreamCount</l>
+<l>    Status := false</l>
+<l>    if (Number &gt; 0)</l>
+<l>        disp_message (WindowHandle, '                       +' + Number, 'window', 75, 25, 'red', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, '                       ' + Number, 'window', 75, 25, 'red', 'false')</l>
+<l>    endif</l>
+<l>endif</l>
+<l>if (CountModels[2] != HamCount)</l>
+<l>    Number := CountModels[2] - HamCount</l>
+<l>    Status := false</l>
+<l>    if (Number &gt; 0)</l>
+<l>        disp_message (WindowHandle, '                       +' + Number, 'window', 90, 25, 'red', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, '                       ' + Number, 'window', 90, 25, 'red', 'false')</l>
+<l>    endif</l>
+<l>endif</l>
+<c>* </c>
+<l>OrderOfTypes := []</l>
+<l>if (Status)</l>
+<l>    tuple_sort_index (AnglesTypes, Indices)</l>
+<l>    for i := 0 to |Indices| - 1 by 1</l>
+<l>        OrderOfTypes := [OrderOfTypes,Types[Indices[i]]]</l>
+<l>    endfor</l>
+<c>    * </c>
+<l>    if (OrderOfTypes[0] != 'C')</l>
+<l>        OrderOfTypes := [OrderOfTypes,OrderOfTypes[0]]</l>
+<l>        tuple_remove (OrderOfTypes, 0, OrderOfTypes)</l>
+<l>    endif</l>
+<l>    if (OrderOfTypes[0] == 'C' and (OrderOfTypes[1] == 'H' or OrderOfTypes[1] == 'P'))</l>
+<l>        if (OrderOfTypes[1] == 'H')</l>
+<l>            OrderToHave := OrderA</l>
+<l>        else</l>
+<l>            OrderToHave := OrderB</l>
+<l>        endif</l>
+<l>        for i := 0 to |OrderOfTypes| - 1 by 1</l>
+<l>            if (OrderOfTypes[i] != OrderToHave[i])</l>
+<l>                Status := false</l>
+<l>                disp_message (WindowHandle, 'Not OK:', 'window', 40, 500, 'red', 'false')</l>
+<l>                disp_message (WindowHandle, 'Composition is wrong', 'window', 60, 500, 'red', 'false')</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    else</l>
+<l>        Status := false</l>
+<l>        disp_message (WindowHandle, 'Not OK:', 'window', 40, 500, 'red', 'false')</l>
+<l>        disp_message (WindowHandle, 'Composition is wrong', 'window', 60, 500, 'red', 'false')</l>
+<l>    endif</l>
+<l>    dev_set_draw ('margin')</l>
+<l>else</l>
+<l>    disp_message (WindowHandle, 'Not OK:', 'window', 40, 500, 'red', 'false')</l>
+<l>    disp_message (WindowHandle, 'Wrong number of flavors', 'window', 60, 500, 'red', 'false')</l>
+<l>endif</l>
+<c>* </c>
+<l>if (Status)</l>
+<l>    disp_message (WindowHandle, 'OK', 'window', 40, 530, 'green', 'false')</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Circle)</l>
+<l>else</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_statistic">
+<parameters>
+<parameter id="AnglesTypes"/>
+<parameter id="Circle"/>
+<parameter id="CountModels"/>
+<parameter id="CreamCount"/>
+<parameter id="HamCount"/>
+<parameter id="PaprikaCount"/>
+<parameter id="Types"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

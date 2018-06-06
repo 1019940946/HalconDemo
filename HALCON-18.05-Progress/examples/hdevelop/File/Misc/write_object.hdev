@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use write_object to</c>
+<c>* write mixed HALCON object tuples to disk.</c>
+<c>* </c>
+<c>* Create mixed object tuple</c>
+<l>read_image (MultiChannelImage, 'patras')</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>threshold (Image, Region, 160, 255)</l>
+<l>gen_contour_region_xld (Region, Contours, 'border')</l>
+<l>concat_obj (Region, Image, MixedObject)</l>
+<l>concat_obj (MixedObject, Contours, MixedObject)</l>
+<l>concat_obj (MixedObject, MultiChannelImage, MixedObject)</l>
+<c>* </c>
+<c>* Write object to disk in HOBJ format</c>
+<l>write_object (MixedObject, 'mixed_object')</l>
+<c>* Read object again and query object classes</c>
+<l>read_object (MixedObjectRead, 'mixed_object')</l>
+<l>count_obj (MixedObjectRead, NumberMixedObjectRead)</l>
+<l>get_obj_class (MixedObjectRead, ClassMixedObject)</l>
+<c>* </c>
+<c>* For pure image or region objects, the operators</c>
+<c>* write_image and write_region can also be used</c>
+<c>* to write HOBJ format.</c>
+<l>write_image (Image, 'hobj', 0, 'image')</l>
+<l>write_region (Region, 'region')</l>
+<c>* </c>
+<l>read_image (ImageRead, 'image')</l>
+<l>read_region (RegionRead, 'region')</l>
+<l>get_obj_class (ImageRead, ClassImage)</l>
+<l>get_obj_class (RegionRead, ClassRegion)</l>
+<l>stop ()</l>
+<l>delete_file ('mixed_object.hobj')</l>
+<l>delete_file ('image.hobj')</l>
+<l>delete_file ('region.hobj')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

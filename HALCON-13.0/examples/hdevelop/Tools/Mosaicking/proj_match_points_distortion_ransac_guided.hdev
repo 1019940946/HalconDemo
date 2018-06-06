@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use proj_match_points_distortion_ransac_guided</c>
+<c>* to match two images in a mosaicking application.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<c>* Read and display the images</c>
+<l>read_image (Image1, 'mosaic/building_01')</l>
+<l>read_image (Image2, 'mosaic/building_02')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image1)</l>
+<l>disp_message (WindowHandle, 'Image 1 to be matched', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image2)</l>
+<l>disp_message (WindowHandle, 'Image 2 to be matched', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set the zoom factor by which the images are zoomed down to obtain</c>
+<c>* initial estimates of the projective transformation and of the radial</c>
+<c>* distortion coefficient.</c>
+<l>Factor := 0.5</l>
+<c>* Zoom down the images.</c>
+<l>zoom_image_factor (Image1, Image1Zoomed, Factor, Factor, 'constant')</l>
+<l>zoom_image_factor (Image2, Image2Zoomed, Factor, Factor, 'constant')</l>
+<c>* Extract points to be matched from the low-resolution images.</c>
+<l>points_foerstner (Image1Zoomed, 1, 2, 3, 50, 0.1, 'gauss', 'true', Rows1, Cols1, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>points_foerstner (Image2Zoomed, 1, 2, 3, 50, 0.1, 'gauss', 'true', Rows2, Cols2, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* Read out the image size, which is only used here to make the search</c>
+<c>* range for point matches as large as possible.</c>
+<l>get_image_size (Image1Zoomed, Width, Height)</l>
+<c>* Perform the initial point matching on the low-resolution images.</c>
+<l>proj_match_points_distortion_ransac (Image1Zoomed, Image2Zoomed, Rows1, Cols1, Rows2, Cols2, 'ncc', 10, 0, 0, Height, Width, 0, 0.5, 'gold_standard', 1, 42, HomMat2D, Kappa, Error, Points1, Points2)</l>
+<c>* Adapt the projective transformation to the original image resolution.</c>
+<l>hom_mat2d_scale_local (HomMat2D, Factor, Factor, HomMat2DGuide)</l>
+<l>hom_mat2d_scale (HomMat2DGuide, 1.0 / Factor, 1.0 / Factor, 0, 0, HomMat2DGuide)</l>
+<c>* Adapt the radial distortion coefficient to the original image resolution.</c>
+<l>KappaGuide := Kappa * Factor * Factor</l>
+<c>* Extract points to be matched from the original images.</c>
+<l>points_foerstner (Image1, 1, 2, 3, 50, 0.1, 'gauss', 'true', Rows1, Cols1, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>points_foerstner (Image2, 1, 2, 3, 50, 0.1, 'gauss', 'true', Rows2, Cols2, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* Match the points in the original images using the estimates of the</c>
+<c>* projective transformation and of the radial distortion coefficient as</c>
+<c>* a guide.</c>
+<l>proj_match_points_distortion_ransac_guided (Image1, Image2, Rows1, Cols1, Rows2, Cols2, 'ncc', 10, HomMat2DGuide, KappaGuide, 5, 0.5, 'gold_standard', 1, 42, HomMat2D, Kappa, Error, Points1, Points2)</l>
+<c>* Construct camera parameters for the purpose of rectifying the images,</c>
+<c>* i.e., to remove the radial distortions.</c>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>gen_cam_par_area_scan_telecentric_division (1.0, Kappa, 1.0, 1.0, 0.5 * (Width - 1), 0.5 * (Height - 1), Width, Height, CamParDist)</l>
+<c>* Remove the radial distortions from the images.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParDist, 0, CamPar)</l>
+<l>change_radial_distortion_image (Image1, Image1, Image1Rect, CamParDist, CamPar)</l>
+<l>change_radial_distortion_image (Image2, Image2, Image2Rect, CamParDist, CamPar)</l>
+<c>* Construct a mosaic from the two rectified images.  Note that the images</c>
+<c>* fit together perfectly.</c>
+<l>concat_obj (Image1Rect, Image2Rect, ImagesRect)</l>
+<l>gen_projective_mosaic (ImagesRect, MosaicImage, 1, 1, 2, HomMat2D, 'default', 'false', MosaicMatrices2D)</l>
+<l>get_image_size (MosaicImage, Width, Height)</l>
+<l>dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (MosaicImage)</l>
+<l>disp_message (WindowHandle, 'Mosaic image', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

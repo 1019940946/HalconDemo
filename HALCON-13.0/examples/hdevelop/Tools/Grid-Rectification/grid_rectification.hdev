@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example illustrates how to use the operators for the grid-rectification.</c>
+<c>* </c>
+<c>* The following command creates a postscript file</c>
+<c>* that contains the rectification grid. This grid must be</c>
+<c>* printed. Then it must be mounted on the object surface.</c>
+<l>WidthOfGrid := 0.17</l>
+<l>NumSquares := 17</l>
+<l>create_rectification_grid (WidthOfGrid, NumSquares, 'rectification_grid.ps')</l>
+<c>* </c>
+<c>* Read the image of the object wrapped by the rectification grid</c>
+<c>* and reopen the window with an appropriate size.</c>
+<l>read_image (Image, 'can_with_grid')</l>
+<l>get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageWidth * 0.75, ImageHeight * 0.75, 'black', WindowID1)</l>
+<l>dev_display (Image)</l>
+<l>dev_update_off ()</l>
+<l>set_display_font (WindowID1, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* </c>
+<c>* Part 1: Determination of the image map</c>
+<c>* The surface to be rectified is wrapped by a checkered pattern, which</c>
+<c>* is used to determine the mapping between the distorted image and</c>
+<c>* the rectified image. Note the orientation of the two circular marks. When</c>
+<c>* in gen_grid_rectification_map() the parameter Rotation is 'auto', the rectified</c>
+<c>* image is rotated such that the black mark is left of the white mark.</c>
+<c>* </c>
+<c>* Determine region of interest</c>
+<l>MinContrast := 25</l>
+<l>Radius := 10</l>
+<l>find_rectification_grid (Image, GridRegion, MinContrast, Radius)</l>
+<c>* </c>
+<l>dev_display (GridRegion)</l>
+<l>disp_message (WindowID1, 'Grid region', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>reduce_domain (Image, GridRegion, ImageReduced)</l>
+<c>* </c>
+<c>* Determine grid points</c>
+<l>SigmaSaddlePoints := 1.5</l>
+<l>Threshold := 5</l>
+<l>saddle_points_sub_pix (ImageReduced, 'facet', SigmaSaddlePoints, Threshold, Row, Col)</l>
+<c>* </c>
+<l>dev_set_color ('blue')</l>
+<l>gen_cross_contour_xld (SaddlePoints, Row, Col, 6, 0.785398)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SaddlePoints)</l>
+<l>disp_message (WindowID1, 'Grid points', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Connect points to grid</c>
+<l>SigmaConnectGridPoints := 0.9</l>
+<l>MaxDist := 5.0</l>
+<l>GridSpacing := 20</l>
+<l>dev_set_color ('red')</l>
+<l>connect_grid_points (ImageReduced, ConnectingLines, Row, Col, SigmaConnectGridPoints, MaxDist)</l>
+<c>* </c>
+<l>dev_display (ConnectingLines)</l>
+<l>disp_message (WindowID1, 'Connected grid points', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine image map</c>
+<l>gen_grid_rectification_map (ImageReduced, ConnectingLines, Map, Meshes, GridSpacing, 0, Row, Col, 'bilinear')</l>
+<l>map_image (ImageReduced, Map, ImageMapped)</l>
+<c>* </c>
+<l>get_image_size (Map, MapWidth, MapHeight)</l>
+<l>dev_open_window (0, (ImageWidth * 0.75) + 12, MapWidth, MapHeight, 'black', WindowID2)</l>
+<l>set_display_font (WindowID2, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageMapped)</l>
+<l>disp_message (WindowID2, 'Rectified grid', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Part 2: Application of the image map</c>
+<c>* The original surface (without the checkered pattern) is rectified</c>
+<c>* using the previously calculated image map.</c>
+<c>* </c>
+<c>* Read in the image to be rectified</c>
+<l>read_image (Image, 'can')</l>
+<c>* </c>
+<c>* Rectify image using the previously calculated image map</c>
+<l>dev_set_window (WindowID2)</l>
+<l>map_image (Image, Map, ImageMapped)</l>
+<c>* </c>
+<l>dev_set_window (WindowID1)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowID1, 'Original image', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowID2)</l>
+<l>dev_display (ImageMapped)</l>
+<l>disp_message (WindowID2, 'Rectified image', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

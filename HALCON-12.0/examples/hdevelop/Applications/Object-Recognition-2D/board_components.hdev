@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Application program to illustrate the segmentation</c>
+<c>* of board components with stereo methods</c>
+<c>* </c>
+<c>* We have a stereo setup of two cameras.</c>
+<c>* Both cameras will be calibrated by a couple of images</c>
+<c>* of a 30mm calibration plate. The images of different</c>
+<c>* boards will be rectified and the components segmented.</c>
+<c>* </c>
+<c>* Note that this approach only works for sufficiently</c>
+<c>* textured objects.</c>
+<c>* If little or repetitive texture is present, the matching</c>
+<c>* of corresponding points in both images will fail and</c>
+<c>* therefore the measurement will be false.</c>
+<c>* In such cases, it is a good practice to use active</c>
+<c>* illumination, e.g., projecting a random light pattern</c>
+<c>* onto the scene, to add texture information.</c>
+<c>* </c>
+<c>* In some applications, a limited depth of field can be</c>
+<c>* a problem, especially when using a small field of view</c>
+<c>* or telecentric lenses.</c>
+<c>* In such cases, please consider using tilt lenses</c>
+<c>* to take advantage of the Scheimpflug principle.</c>
+<c>* </c>
+<c>* -------------------------------------------------------</c>
+<c>* (1)           STEREO CALIBRATION</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* Set the image path (make sure, that you have set HALCONIMAGES to the HALCON image directory)</c>
+<l>ImgPath := 'stereo/board/'</l>
+<l>CalDescrFile := 'caltab_30mm.descr'</l>
+<c>* Read the first images to get their size</c>
+<l>read_image (ImageL, ImgPath + 'calib_l_01')</l>
+<l>read_image (ImageR, ImgPath + 'calib_r_01')</l>
+<c>* Reopen the windows with an appropriate size</c>
+<l>dev_close_window ()</l>
+<l>get_image_size (ImageL, WidthL, HeightL)</l>
+<l>dev_open_window (0, 0, WidthL, HeightL, 'black', WindowHandle1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>get_image_size (ImageR, WidthR, HeightR)</l>
+<l>dev_open_window (0, WidthL + 12, WidthL, HeightL, 'black', WindowHandle2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<c>* Calibrate the stereo setup</c>
+<c>* (determine the internal and external camera parameters).</c>
+<c>* </c>
+<c>* Set the initial values for the internal camera parameters</c>
+<l>StartCamPar := [0.0125,0,1.48e-5,1.48e-5,WidthL / 2.0,HeightL / 2.0,WidthL,HeightL]</l>
+<l>create_calib_data ('calibration_object', 2, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 'all', 'area_scan_division', StartCamPar)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalDescrFile)</l>
+<c>* </c>
+<c>* Read all used calibration images</c>
+<l>read_image (ImagesL, ImgPath + 'calib_l_' + [1:15]$'02d')</l>
+<l>read_image (ImagesR, ImgPath + 'calib_r_' + [1:15]$'02d')</l>
+<c>* Calibrate the setup</c>
+<l>calibrate_stereo_setup (ImagesL, ImagesR, WindowHandle1, WindowHandle2, CalibDataID, StartCamPar, CalDescrFile, CamParamL, CamParamR, cLPcR, Errors)</l>
+<c>* Generate the rectification maps</c>
+<l>gen_binocular_rectification_map (MapL, MapR, CamParamL, CamParamR, cLPcR, 1, 'geometric', 'bilinear', RectCamParL, RectCamParR, CamPoseRectL, CamPoseRectR, RectLPosRectR)</l>
+<c>* </c>
+<c>* Check the calibration result</c>
+<c>* by checking the epipolar constraint on the rectified images:</c>
+<c>* The differences in row coordinates of all</c>
+<c>* calibration point correspondences should be minimal</c>
+<l>map_image (ImagesL, MapL, ImagesRectL)</l>
+<l>map_image (ImagesR, MapR, ImagesRectR)</l>
+<l>check_epipolar_constraint (ImagesRectL, ImagesRectR, RectCamParL, RectCamParR, WindowHandle1, WindowHandle2, CalDescrFile, EpipolarError)</l>
+<l>if (EpipolarError[1] &gt; 0.3)</l>
+<c>    * The calibration of the stereo rig was not performed thoroughly</c>
+<l>    disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<l>disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>stop ()</l>
+<l>clear_calib_data (CalibDataID)</l>
+<c>* --------------------------------------------------------</c>
+<c>* (2)   STEREO PROCESSING</c>
+<c>* </c>
+<c>* Parameters from above if calibration was not performed:</c>
+<l>* CamParamL := [0.0131205,-665.85466,1.4803422e-005,1.48e-005,155.90117,126.703971,320,240]</l>
+<l>* CamParamR := [0.0131712,-728.9579,1.4799849e-005,1.48e-005,163.265701,119.310684,320,240]</l>
+<l>* cLPcR := [0.15350044,-0.003732778,0.04481715,0.1736607,319.8612,359.8945,0]</l>
+<c>* Define parameter values for binocular_disparity and binocular_distance, respectively.</c>
+<l>MaskWidth := 17</l>
+<l>MaskHeight := 17</l>
+<l>TextureThresh := 5</l>
+<l>MinDisparity := 10</l>
+<l>MaxDisparity := 40</l>
+<l>NumLevels := 1</l>
+<l>ScoreThresh := 0.1</l>
+<c>* Get stereo image pair</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>read_image (ImageL, ImgPath + 'board_l_01')</l>
+<l>emphasize (ImageL, ImageL, 7, 7, 1)</l>
+<l>map_image (ImageL, MapL, ImageRectifiedL)</l>
+<l>dev_display (ImageRectifiedL)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>read_image (ImageR, ImgPath + 'board_r_01')</l>
+<l>emphasize (ImageR, ImageR, 7, 7, 1)</l>
+<l>map_image (ImageR, MapR, ImageRectifiedR)</l>
+<l>dev_display (ImageRectifiedR)</l>
+<l>disp_message (WindowHandle1, 'Rectified left image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle2, 'Rectified right image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Determine the distance image.</c>
+<l>binocular_distance (ImageRectifiedL, ImageRectifiedR, DistanceImage, ScoreImageDistance, RectCamParL, RectCamParR, RectLPosRectR, 'ncc', MaskWidth, MaskHeight, TextureThresh, MinDisparity, MaxDisparity, NumLevels, ScoreThresh, 'left_right_check', 'interpolation')</l>
+<c>* Display the distance image</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (DistanceImage)</l>
+<c>* Correct the distance image for the tilt of the stereo camera system.</c>
+<c>*   (Attention: the distance values are not measured</c>
+<c>*    in the rectified coordinate system anymore!)</c>
+<c>* Define a region, which indicates three areas on the reference plane</c>
+<l>gen_circle (Circle, [15,208,95], [58,32,211], [8,8,8])</l>
+<l>union1 (Circle, RegionDefiningReferencePlane)</l>
+<l>tilt_correction (DistanceImage, RegionDefiningReferencePlane, DistanceImageCorrected)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (DistanceImageCorrected)</l>
+<l>disp_message (WindowHandle1, 'Distance image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle2, 'After tilt correction', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>stop ()</l>
+<l>MinHeight := -0.0005</l>
+<l>MaxHeight := 0.05</l>
+<c>* Transform the distances into heights above the reference plane.</c>
+<l>height_range_above_reference_plane (DistanceImageCorrected, HeightAboveReferencePlaneReduced, MinHeight, MaxHeight)</l>
+<l>visualize_height_ranges (ImageRectifiedL, HeightAboveReferencePlaneReduced, WindowHandle2, 0.0004, 0.0015, 0.0015, 0.0025, 0.0025, 0.004)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (HeightAboveReferencePlaneReduced)</l>
+<l>disp_message (WindowHandle2, 'Segmented components', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle1, 'Height above reference plane', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="calibrate_stereo_setup">
+<interface>
+<io>
+<par name="ImagesL" base_type="iconic" dimension="0"/>
+<par name="ImagesR" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+<par name="CalibDataID" base_type="ctrl" dimension="0"/>
+<par name="StartCamPar" base_type="ctrl" dimension="0"/>
+<par name="CalDescrFile" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="CamParamL" base_type="ctrl" dimension="0"/>
+<par name="CamParamR" base_type="ctrl" dimension="0"/>
+<par name="cLPcR" base_type="ctrl" dimension="0"/>
+<par name="Errors" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Start the loop over the calibration images</c>
+<l>count_obj (ImagesL, Number)</l>
+<l>for I := 1 to Number by 1</l>
+<c>    * Get and display the calibration images</c>
+<l>    select_obj (ImagesL, ImageL, I)</l>
+<l>    select_obj (ImagesR, ImageR, I)</l>
+<c>    * Find the calibration plate</c>
+<l>    find_calib_object (ImageL, CalibDataID, 0, 0, I, [], [])</l>
+<l>    find_calib_object (ImageR, CalibDataID, 1, 0, I, [], [])</l>
+<c>    * Visualize the extracted calibration marks and the</c>
+<c>    * coordinate system defined by the estimated pose.</c>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, I, Row, Column, Index, StartPoseL)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 1, 0, I, Row, Column, Index, StartPoseR)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (ImageL)</l>
+<l>    disp_caltab (WindowHandle1, CalDescrFile, StartCamPar, StartPoseL, 1)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (ImageR)</l>
+<l>    disp_caltab (WindowHandle2, CalDescrFile, StartCamPar, StartPoseR, 1)</l>
+<l>endfor</l>
+<c>* Perform the actual calibration</c>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParamL)</l>
+<l>get_calib_data (CalibDataID, 'camera', 1, 'params', CamParamR)</l>
+<l>get_calib_data (CalibDataID, 'camera', 1, 'pose', cLPcR)</l>
+<l>return ()</l>
+</body>
+<docu id="calibrate_stereo_setup">
+<parameters>
+<parameter id="CalDescrFile"/>
+<parameter id="CalibDataID"/>
+<parameter id="CamParamL"/>
+<parameter id="CamParamR"/>
+<parameter id="Errors"/>
+<parameter id="ImagesL"/>
+<parameter id="ImagesR"/>
+<parameter id="StartCamPar"/>
+<parameter id="WindowHandle1"/>
+<parameter id="WindowHandle2"/>
+<parameter id="cLPcR"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="tilt_correction">
+<interface>
+<io>
+<par name="DistanceImage" base_type="iconic" dimension="0"/>
+<par name="RegionDefiningReferencePlane" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="DistanceImageCorrected" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Reduce the given region, which defines the reference plane to the domain of the distance image</c>
+<l>get_domain (DistanceImage, Domain)</l>
+<l>intersection (RegionDefiningReferencePlane, Domain, RegionDefiningReferencePlane)</l>
+<c>* Determine the parameters of the reference plane</c>
+<l>moments_gray_plane (RegionDefiningReferencePlane, DistanceImage, MRow, MCol, Alpha, Beta, Mean)</l>
+<c>* Generate a distance image of the reference plane</c>
+<l>get_image_pointer1 (DistanceImage, Pointer, Type, Width, Height)</l>
+<l>area_center (RegionDefiningReferencePlane, Area, Row, Column)</l>
+<l>gen_image_surface_first_order (ReferencePlaneDistance, Type, Alpha, Beta, Mean, Row, Column, Width, Height)</l>
+<c>* Subtract the distance image of the reference plane from the distance image of the object</c>
+<l>sub_image (DistanceImage, ReferencePlaneDistance, DistanceImageWithoutTilt, 1, 0)</l>
+<c>* Determine the scale factor for the reduction of the distance values</c>
+<l>CosGamma := 1.0 / sqrt(Alpha * Alpha + Beta * Beta + 1)</l>
+<c>* Reduce the distance values</c>
+<l>scale_image (DistanceImageWithoutTilt, DistanceImageCorrected, CosGamma, 0)</l>
+<l>return ()</l>
+</body>
+<docu id="tilt_correction">
+<short lang="en_US">Correction of a distance image according to a tilt of a reference object plane with respect to the rectified image plane.</short>
+<parameters>
+<parameter id="DistanceImage"/>
+<parameter id="DistanceImageCorrected"/>
+<parameter id="RegionDefiningReferencePlane"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="height_range_above_reference_plane">
+<interface>
+<io>
+<par name="DistanceImageCorrected" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="HeightAboveReferencePlaneReduced" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MinHeight" base_type="ctrl" dimension="0"/>
+<par name="MaxHeight" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure may be useful if the reference plane is the ground plane</c>
+<c>* of the object. Then, the inverted corrected distance values</c>
+<c>* correspond to heights above the ground plane.</c>
+<l>invert_image (DistanceImageCorrected, HeightAboveReferencePlane)</l>
+<c>* Reduce the domain of the height image to a given height range.</c>
+<l>threshold (HeightAboveReferencePlane, Region, MinHeight, MaxHeight)</l>
+<l>reduce_domain (HeightAboveReferencePlane, Region, HeightAboveReferencePlaneReduced)</l>
+<l>return ()</l>
+</body>
+<docu id="height_range_above_reference_plane">
+<short lang="en_US">Inverts the tilt-corrected distance image and reduces its domain to a given height range.</short>
+<parameters>
+<parameter id="DistanceImageCorrected"/>
+<parameter id="HeightAboveReferencePlaneReduced"/>
+<parameter id="MaxHeight"/>
+<parameter id="MinHeight"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="visualize_height_ranges">
+<interface>
+<io>
+<par name="ImageMapped1" base_type="iconic" dimension="0"/>
+<par name="HeightAboveReferencePlaneReduced" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+<par name="Height1_Min" base_type="ctrl" dimension="0"/>
+<par name="Height1_Max" base_type="ctrl" dimension="0"/>
+<par name="Height2_Min" base_type="ctrl" dimension="0"/>
+<par name="Height2_Max" base_type="ctrl" dimension="0"/>
+<par name="Height3_Min" base_type="ctrl" dimension="0"/>
+<par name="Height3_Max" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>get_image_size (HeightAboveReferencePlaneReduced, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (ImageMapped1)</l>
+<l>dev_set_color ('blue')</l>
+<l>threshold (HeightAboveReferencePlaneReduced, Range1, Height1_Min, Height1_Max)</l>
+<l>dev_display (Range1)</l>
+<l>dev_set_color ('green')</l>
+<l>threshold (HeightAboveReferencePlaneReduced, Range2, Height2_Min, Height2_Max)</l>
+<l>dev_display (Range2)</l>
+<l>dev_set_color ('red')</l>
+<l>threshold (HeightAboveReferencePlaneReduced, Range3, Height3_Min, Height3_Max)</l>
+<l>dev_display (Range3)</l>
+<l>return ()</l>
+</body>
+<docu id="visualize_height_ranges">
+<short lang="en_US">Visualizes three different height ranges, specified by the respectiv parameter values</short>
+<parameters>
+<parameter id="Height1_Max"/>
+<parameter id="Height1_Min"/>
+<parameter id="Height2_Max"/>
+<parameter id="Height2_Min"/>
+<parameter id="Height3_Max"/>
+<parameter id="Height3_Min"/>
+<parameter id="HeightAboveReferencePlaneReduced"/>
+<parameter id="ImageMapped1"/>
+<parameter id="WindowHandle1"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="check_epipolar_constraint">
+<interface>
+<io>
+<par name="ImagesRectL" base_type="iconic" dimension="0"/>
+<par name="ImagesRectR" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="RectCamParL" base_type="ctrl" dimension="0"/>
+<par name="RectCamParR" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+<par name="CaltabFile" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="EpipolarError" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Check the epipolar constraint on the rectified images:</c>
+<c>*    (the differences of the features' row coordinates should be small)</c>
+<c>* Parameter settings for find_caltab and find_marks_and_pose</c>
+<l>SizeGauss := 3</l>
+<l>MarkThresh := 120</l>
+<l>MinDiamMarks := 5</l>
+<l>StartThresh := 128</l>
+<l>DeltaThresh := 10</l>
+<l>MinThresh := 18</l>
+<l>Alpha := 0.9</l>
+<l>MinContLength := 15</l>
+<l>MaxDiamMarks := 100</l>
+<l>X := []</l>
+<l>Rows := []</l>
+<l>Cols := []</l>
+<c>* </c>
+<l>count_obj (ImagesRectL, NumImages)</l>
+<l>if (NumImages &gt; 0)</l>
+<l>    RowsL := []</l>
+<l>    ColsL := []</l>
+<l>    RowsR := []</l>
+<l>    ColsR := []</l>
+<l>    for I := 1 to NumImages by 1</l>
+<l>        select_obj (ImagesRectL, ImageRectifiedL, I)</l>
+<l>        select_obj (ImagesRectR, ImageRectifiedR, I)</l>
+<c>        * Find the calibration points and the correspondences of these points in both images:</c>
+<l>        find_caltab (ImageRectifiedL, CaltabL, CaltabFile, SizeGauss, MarkThresh, MinDiamMarks)</l>
+<l>        find_marks_and_pose (ImageRectifiedL, CaltabL, CaltabFile, RectCamParL, StartThresh, DeltaThresh, MinThresh, Alpha, MinContLength, MaxDiamMarks, RCoordL, CCoordL, StartPoseL)</l>
+<l>        find_caltab (ImageRectifiedR, CaltabR, CaltabFile, SizeGauss, MarkThresh, MinDiamMarks)</l>
+<l>        find_marks_and_pose (ImageRectifiedR, CaltabR, CaltabFile, RectCamParR, StartThresh, DeltaThresh, MinThresh, Alpha, MinContLength, MaxDiamMarks, RCoordR, CCoordR, StartPoseR)</l>
+<l>        RowsL := [RowsL,RCoordL]</l>
+<l>        ColsL := [ColsL,CCoordL]</l>
+<l>        RowsR := [RowsR,RCoordR]</l>
+<l>        ColsR := [ColsR,CCoordR]</l>
+<l>    endfor</l>
+<l>    X := RowsR - RowsL</l>
+<l>    EpipolarError := [mean(X),deviation(X)]</l>
+<c>    * Visualize the rectified images and the result of the epipolar test:</c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_part (0, 0, RectCamParL[7] - 1, RectCamParL[6] - 1)</l>
+<l>    select_obj (ImagesRectL, ImageRectifiedL, 1)</l>
+<l>    dev_display (ImageRectifiedL)</l>
+<l>    for I := 6 to 49 by 7</l>
+<c>        * Display the epipolar line of a certain point</c>
+<l>        gen_contour_polygon_xld (Line, [RowsL[I],RowsL[I]], [0,RectCamParL[6] - 1])</l>
+<l>        gen_cross_contour_xld (Cross, RowsL[I], ColsL[I], 6, 0)</l>
+<l>        dev_display (Line)</l>
+<l>        dev_display (Cross)</l>
+<l>    endfor</l>
+<l>    Message[0] := 'Epipolar constraint error:'</l>
+<l>    Message[1] := 'mean: ' + EpipolarError[0]$'.4f' + ' pixels'</l>
+<l>    Message[2] := 'deviation: ' + EpipolarError[1]$'.3f' + ' pixels'</l>
+<l>    disp_message (WindowHandle1, Message, 'window', 180, 12, 'white', 'false')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_part (0, 0, RectCamParR[7] - 1, RectCamParR[6] - 1)</l>
+<l>    select_obj (ImagesRectR, ImageRectifiedR, 1)</l>
+<l>    dev_display (ImagesRectR)</l>
+<l>    for I := 6 to 49 by 7</l>
+<c>        * Display the epipolar line of a certain point</c>
+<l>        gen_contour_polygon_xld (Line, [RowsR[I],RowsR[I]], [0,RectCamParR[6] - 1])</l>
+<l>        gen_cross_contour_xld (Cross, RowsR[I], ColsR[I], 6, 0)</l>
+<l>        dev_display (Line)</l>
+<l>        dev_display (Cross)</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="check_epipolar_constraint">
+<parameters>
+<parameter id="CaltabFile"/>
+<parameter id="EpipolarError"/>
+<parameter id="ImagesRectL"/>
+<parameter id="ImagesRectR"/>
+<parameter id="RectCamParL"/>
+<parameter id="RectCamParR"/>
+<parameter id="WindowHandle1"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

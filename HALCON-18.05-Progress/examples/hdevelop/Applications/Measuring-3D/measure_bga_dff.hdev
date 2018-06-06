@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program reconstructs the height of a single solder</c>
+<c>* ball on a BGA using depth from focus.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'dff/focus_bga_37')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_paint ('default')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Read the sequence of images</c>
+<l>disp_message (WindowHandle, 'Read a sequence of focus images ...', 'image', 20, 20, 'white', 'false')</l>
+<l>Sequence := [37:-1:1]</l>
+<l>Names := 'dff/focus_bga_' + Sequence$'02'</l>
+<l>read_image (ImageArray, Names)</l>
+<l>channels_to_image (ImageArray, Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>for Index := 1 to 37 by 1</l>
+<l>    access_channel (Image, ImageDisp, Index)</l>
+<l>    dev_display (ImageDisp)</l>
+<l>    disp_message (WindowHandle, 'DFF sequence of solder ball: image ' + Index$'02', 'image', 20, 20, 'white', 'false')</l>
+<l>    wait_seconds (0.05)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Compute the depth map and display results</c>
+<l>dev_display (ImageDisp)</l>
+<l>disp_message (WindowHandle, 'Compute the depth map', 'image', 20, 20, 'white', 'false')</l>
+<l>depth_from_focus (Image, Depth, Confidence, ['bandpass',3,3], 'next_maximum')</l>
+<l>scale_image_max (Depth, DepthScaleMax)</l>
+<l>select_grayvalues_from_channels (Image, Depth, Sharp)</l>
+<l>scale_image (Sharp, ImageScaled, 8, 0)</l>
+<l>compose2 (DepthScaleMax, ImageScaled, MultiChannelImage)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_paint (['3d_plot','texture'])</l>
+<l>dev_display (MultiChannelImage)</l>
+<l>disp_message (WindowHandle, '3D reconstruction of a solder ball on a bga', 'image', 20, 280, 'white', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

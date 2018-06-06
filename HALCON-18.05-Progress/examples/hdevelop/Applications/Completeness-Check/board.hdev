@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* board.hdev: Detection of missing solder</c>
+<c>* </c>
+<l>get_system ('clip_region', Information)</l>
+<l>set_system ('clip_region', 'true')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>read_image (Images, ['ic0','ic1','ic2','ic3'])</l>
+<l>channels_to_image (Images, Ic)</l>
+<l>select_obj (Images, Input1, 1)</l>
+<l>dev_display (Input1)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'false', 'false')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>select_obj (Images, Input2, 2)</l>
+<l>dev_display (Input2)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>select_obj (Images, Input3, 3)</l>
+<l>dev_display (Input3)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>select_obj (Images, Input4, 4)</l>
+<l>dev_display (Input4)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>mean_n (Ic, ImageMean)</l>
+<l>dev_display (ImageMean)</l>
+<l>threshold (Images, Darks, 0, 40)</l>
+<l>union1 (Darks, Dark)</l>
+<l>fill_up (Dark, DarkFilled)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (DarkFilled)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>threshold (Images, Lights, 100, 255)</l>
+<l>union1 (Lights, Light)</l>
+<l>intersection (DarkFilled, Light, Intersection)</l>
+<l>dev_display (ImageMean)</l>
+<l>dev_display (Intersection)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>complement (DarkFilled, Back)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Back)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>expand_region (Intersection, Back, RegionExpanded, 10, 'image')</l>
+<l>fill_up (RegionExpanded, Good)</l>
+<l>dev_display (ImageMean)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Good)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>difference (DarkFilled, Good, Rest)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Rest)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>expand_gray (Rest, Ic, Good, Bad, 6, 'image', 5)</l>
+<l>dev_display (Bad)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>connection (Bad, ConnectedBad)</l>
+<l>select_shape (ConnectedBad, BigBad, 'area', 'and', 150, 99999)</l>
+<l>area_center (BigBad, AreaBad, Row, Column)</l>
+<l>count_obj (BigBad, NumMissingSolder)</l>
+<l>AreaMissingSolder := sum(AreaBad)</l>
+<l>dev_display (Images)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Good)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (BigBad)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_update_window ('on')</l>
+<l>set_system ('clip_region', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

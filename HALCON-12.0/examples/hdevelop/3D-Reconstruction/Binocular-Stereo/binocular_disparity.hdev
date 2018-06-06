@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program to demonstrate the operator binocular_disparity</c>
+<c>* </c>
+<c>* A pair of epipolar images (which are already rectified and have parallel,</c>
+<c>* horizontal epipolar lines) will be processed.</c>
+<c>* --------------------------------------------------------</c>
+<l>Width := 512</l>
+<l>Height := 512</l>
+<l>dev_close_window ()</l>
+<l>dev_update_window ('off')</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, Width / 2 + 12, Width / 2, Height / 2, 'black', WindowHandle2)</l>
+<l>dev_open_window (Height / 2 + 62, 0, Width / 2, Height / 2, 'black', WindowHandle3)</l>
+<c>* The images to be read:</c>
+<l>Path := 'stereo/epipolar/'</l>
+<c>* </c>
+<l>read_image (LImage, Path + 'baseball_l')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_display (LImage)</l>
+<l>read_image (RImage, Path + 'baseball_r')</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_display (RImage)</l>
+<l>binocular_disparity (LImage, RImage, DisparityNCC, Score, 'ncc', 11, 11, 0, -45, 10, 3, 0.3, 'left_right_check', 'interpolation')</l>
+<l>dev_set_window (WindowHandle3)</l>
+<l>dev_display (DisparityNCC)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates an application from the pharmaceutical</c>
+<c>* industry. The task is to check the content of automatically filled</c>
+<c>* blisters. The first image (reference) is used to locate the chambers</c>
+<c>* within a blister shape as a reference model, which is then used to</c>
+<c>* realign the subsequent images along to this reference shape. Using</c>
+<c>* blob analysis the content of each chamber is segmented and finally</c>
+<c>* classified by a few shape features.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (ImageOrig, 'blister/blister_reference')</l>
+<l>dev_open_window_fit_image (ImageOrig, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* In the first step, we create a pattern to cut out the chambers in the</c>
+<c>* subsequent blister images easily.</c>
+<l>access_channel (ImageOrig, Image1, 1)</l>
+<l>threshold (Image1, Region, 90, 255)</l>
+<l>shape_trans (Region, Blister, 'convex')</l>
+<l>orientation_region (Blister, Phi)</l>
+<l>area_center (Blister, Area1, Row, Column)</l>
+<l>vector_angle_to_rigid (Row, Column, Phi, Row, Column, 0, HomMat2D)</l>
+<l>affine_trans_image (ImageOrig, Image2, HomMat2D, 'constant', 'false')</l>
+<l>gen_empty_obj (Chambers)</l>
+<l>for I := 0 to 4 by 1</l>
+<l>    Row := 88 + I * 70</l>
+<l>    for J := 0 to 2 by 1</l>
+<l>        Column := 163 + J * 150</l>
+<l>        gen_rectangle2 (Rectangle, Row, Column, 0, 64, 30)</l>
+<l>        concat_obj (Chambers, Rectangle, Chambers)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>affine_trans_region (Blister, Blister, HomMat2D, 'nearest_neighbor')</l>
+<l>difference (Blister, Chambers, Pattern)</l>
+<l>union1 (Chambers, ChambersUnion)</l>
+<l>orientation_region (Blister, PhiRef)</l>
+<l>PhiRef := rad(180) + PhiRef</l>
+<l>area_center (Blister, Area2, RowRef, ColumnRef)</l>
+<c>* </c>
+<c>* </c>
+<c>* Each image read will be aligned to this pattern and reduced to the area of interest,</c>
+<c>* which is the chambers of the blister</c>
+<l>Count := 6</l>
+<l>for Index := 1 to Count by 1</l>
+<l>    read_image (Image, 'blister/blister_' + Index$'02')</l>
+<l>    threshold (Image, Region, 90, 255)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 5000, 9999999)</l>
+<l>    shape_trans (SelectedRegions, RegionTrans, 'convex')</l>
+<c>    * </c>
+<c>    * Align pattern along blister of image</c>
+<l>    orientation_region (RegionTrans, Phi)</l>
+<l>    area_center (RegionTrans, Area3, Row, Column)</l>
+<l>    vector_angle_to_rigid (Row, Column, Phi, RowRef, ColumnRef, PhiRef, HomMat2D)</l>
+<l>    affine_trans_image (Image, ImageAffineTrans, HomMat2D, 'constant', 'false')</l>
+<c>    * </c>
+<c>    * Segment pills</c>
+<l>    reduce_domain (ImageAffineTrans, ChambersUnion, ImageReduced)</l>
+<l>    decompose3 (ImageReduced, ImageR, ImageG, ImageB)</l>
+<l>    var_threshold (ImageB, Region, 7, 7, 0.2, 2, 'dark')</l>
+<l>    connection (Region, ConnectedRegions0)</l>
+<l>    closing_rectangle1 (ConnectedRegions0, ConnectedRegions, 3, 3)</l>
+<l>    fill_up (ConnectedRegions, RegionFillUp)</l>
+<l>    select_shape (RegionFillUp, SelectedRegions, 'area', 'and', 1000, 99999)</l>
+<l>    opening_circle (SelectedRegions, RegionOpening, 4.5)</l>
+<l>    connection (RegionOpening, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 1000, 99999)</l>
+<l>    shape_trans (SelectedRegions, Pills, 'convex')</l>
+<c>    * </c>
+<c>    * Classify segmentation results and display statistics</c>
+<l>    count_obj (Chambers, Number)</l>
+<l>    gen_empty_obj (WrongPill)</l>
+<l>    gen_empty_obj (MissingPill)</l>
+<l>    for I := 1 to Number by 1</l>
+<l>        select_obj (Chambers, Chamber, I)</l>
+<l>        intersection (Chamber, Pills, Pill)</l>
+<l>        area_center (Pill, Area, Row1, Column1)</l>
+<l>        if (Area &gt; 0)</l>
+<l>            min_max_gray (Pill, ImageB, 0, Min, Max, Range)</l>
+<l>            if (Area &lt; 3800 or Min &lt; 60)</l>
+<l>                concat_obj (WrongPill, Pill, WrongPill)</l>
+<l>            endif</l>
+<l>        else</l>
+<l>            concat_obj (MissingPill, Chamber, MissingPill)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageAffineTrans)</l>
+<l>    dev_set_color ('forest green')</l>
+<l>    count_obj (Pills, NumberP)</l>
+<l>    count_obj (WrongPill, NumberWP)</l>
+<l>    count_obj (MissingPill, NumberMP)</l>
+<l>    dev_display (Pills)</l>
+<l>    if (NumberMP &gt; 0 or NumberWP &gt; 0)</l>
+<l>        disp_message (WindowHandle, 'Not OK', 'window', 12, 12 + 600, 'red', 'true')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'OK', 'window', 12, 12 + 600, 'forest green', 'true')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    Message := '# Correct pills: ' + (NumberP - NumberWP)</l>
+<l>    Message[1] := '# Wrong pills  :  ' + NumberWP</l>
+<l>    Message[2] := '# Missing pills:  ' + NumberMP</l>
+<c>    * </c>
+<l>    Colors := gen_tuple_const(3,'black')</l>
+<l>    if (NumberWP &gt; 0)</l>
+<l>        Colors[1] := 'red'</l>
+<l>    endif</l>
+<l>    if (NumberMP &gt; 0)</l>
+<l>        Colors[2] := 'red'</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, Colors, 'true')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (WrongPill)</l>
+<l>    dev_display (MissingPill)</l>
+<l>    if (Index &lt; Count)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of a LinX GingaDG frame grabber board</c>
+<c>* (sequence grabbing mode)</c>
+<c>* </c>
+<l>NumBuffers := 5</l>
+<c>* </c>
+<l>open_framegrabber ('GingaDG', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'teli/CSB4000_NORM', 'default', 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'num_buffers', NumBuffers)</l>
+<l>set_framegrabber_param (AcqHandle, 'sequence_grabbing', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'capture_frequency', 'Capture=2 Drop=1')</l>
+<l>set_framegrabber_param (AcqHandle, 'volatile', 'enable')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>stop ()</l>
+<c>* Sequential image, whose number is specified by NumBuffers, can be</c>
+<c>* grabbed into channel by the following operator:</c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>stop ()</l>
+<l>count_channels (Image, Channels)</l>
+<l>for i := 1 to Channels by 1</l>
+<l>    access_channel (Image, Image1, i)</l>
+<l>    dev_display (Image1)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to perform a calibrated</c>
+<c>* measurement by using the sheet-of-light technique</c>
+<c>* </c>
+<c>* First, a sheet-of light model is created and suitable</c>
+<c>* parameters are set. Then, a series of profile images is</c>
+<c>* processed successively. Finally, the disparity image,</c>
+<c>* the score images, the calibrated coordinates X, Y and</c>
+<c>* Z, and the 3D object model resulting from the measurement</c>
+<c>* are retrieved from the model and displayed.</c>
+<c>* </c>
+<c>* Perform some initializations</c>
+<l>dev_update_off ()</l>
+<l>read_image (ProfileImage, 'sheet_of_light/connection_rod_001')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ProfileImage, 0, 0, 1024, 768, WindowHandle1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_lut ('default')</l>
+<c>* </c>
+<c>* Set the poses and camera parameters required to compute</c>
+<c>* a calibrated measurement</c>
+<l>gen_cam_par_area_scan_polynomial (0.0126514, 640.275, -2.07143e+007, 3.18867e+011, -0.0895689, 0.0231197, 6.00051e-006, 6e-006, 387.036, 120.112, 752, 240, CamParam)</l>
+<l>create_pose (-0.00164029, 1.91372e-006, 0.300135, 0.575347, 0.587877, 180.026, 'Rp+T', 'gba', 'point', CamPose)</l>
+<l>create_pose (0.00270989, -0.00548841, 0.00843714, 66.9928, 359.72, 0.659384, 'Rp+T', 'gba', 'point', LightplanePose)</l>
+<l>create_pose (7.86235e-008, 0.000120112, 1.9745e-006, 0, 0, 0, 'Rp+T', 'gba', 'point', MovementPose)</l>
+<c>* </c>
+<c>* Create a model in order to process the profile images</c>
+<c>* and set the required parameters for the model.</c>
+<l>gen_rectangle1 (ProfileRegion, 120, 75, 195, 710)</l>
+<l>create_sheet_of_light_model (ProfileRegion, ['min_gray','num_profiles','ambiguity_solving'], [70,290,'first'], SheetOfLightModelID)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'calibration', 'xyz')</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale', 'mm')</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'camera_parameter', CamParam)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'camera_pose', CamPose)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'lightplane_pose', LightplanePose)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'movement_pose', MovementPose)</l>
+<c>* </c>
+<c>* Measure the profile from successive images</c>
+<l>for Index := 1 to 290 by 1</l>
+<l>    read_image (ProfileImage, 'sheet_of_light/connection_rod_' + Index$'.3')</l>
+<l>    dev_display (ProfileImage)</l>
+<l>    dev_display (ProfileRegion)</l>
+<l>    measure_profile_sheet_of_light (ProfileImage, SheetOfLightModelID, [])</l>
+<l>endfor</l>
+<c>* Get the resulting images and close the sheet-of-light handle</c>
+<l>get_sheet_of_light_result (Disparity, SheetOfLightModelID, 'disparity')</l>
+<l>get_sheet_of_light_result (X, SheetOfLightModelID, 'x')</l>
+<l>get_sheet_of_light_result (Y, SheetOfLightModelID, 'y')</l>
+<l>get_sheet_of_light_result (Z, SheetOfLightModelID, 'z')</l>
+<l>get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, ObjectModel3DID)</l>
+<c>* </c>
+<c>* Display the disparity image</c>
+<l>get_image_size (Disparity, Width, Height)</l>
+<l>dev_set_window_extents (0, 0, Width, Height)</l>
+<l>dev_set_lut ('temperature')</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Disparity)</l>
+<l>disp_message (WindowHandle1, 'Disparity', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display the Z-coordinates</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (Height + 10, 0, Width * .5, Height * .5, 'black', WindowHandle3)</l>
+<l>set_display_font (WindowHandle3, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Z)</l>
+<l>disp_message (WindowHandle3, 'Calibrated Z-coordinates', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Display the Y-coordinates</c>
+<l>dev_open_window ((Height + 10) * .5, 0, Width * .5, Height * .5, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Y)</l>
+<l>disp_message (WindowHandle2, 'Calibrated Y-coordinates', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Display the X-coordinates</c>
+<l>dev_open_window (0, 0, Width * .5, Height * .5, 'black', WindowHandle1)</l>
+<l>dev_display (X)</l>
+<l>dev_set_lut ('default')</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle1, 'Calibrated X-coordinates', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle3, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display the 3d object model</c>
+<l>gen_cam_par_area_scan_division (0.012, 0, 6e-006, 6e-006, 376, 240, 752, 480, CameraParam1)</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>create_pose (0, -10, 300, -30, 0, -30, 'Rp+T', 'gba', 'point', PoseIn)</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>get_cam_par_data (CameraParam1, 'image_width', Width)</l>
+<l>get_cam_par_data (CameraParam1, 'image_height', Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle, ObjectModel3DID, CameraParam1, PoseIn, 'color', 'blue', 'Reconstructed Connection Rod', '', Instructions, PoseOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the main workflow necessary when using the method</c>
+<c>* of deflectometry for defect detection on specular surfaces.</c>
+<c>* </c>
+<c>* It can be used as a template for your own application, in which case</c>
+<c>* certain parameters need to be adapted to the particular setup.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 450, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_displ_workflow_text ()</l>
+<l>stop ()</l>
+<c></c>
+<c>* First a structured light model of type 'deflectometry'</c>
+<c>* needs to be created and the parameters necessary for the</c>
+<c>* generation of the pattern images need to be set.</c>
+<l>create_structured_light_model ('deflectometry', StructuredLightModel)</l>
+<c>* </c>
+<c>* --- Adapt the following parameters to your application ---</c>
+<c>* Height and width of the pattern images that are to be</c>
+<c>* displayed on the monitor.</c>
+<l>PatternWidth := 1600</l>
+<l>PatternHeight := 1200</l>
+<c>* Pattern type that is to be used. In this case, phase shift</c>
+<c>* images in addition to gray code images are displayed.</c>
+<l>PatternType := 'gray_code_and_phase_shift'</l>
+<c>* Orientation of the pattern images. In this case,</c>
+<c>* we display patterns with stripes in both the vertical and</c>
+<c>* the horizontal direction.</c>
+<l>PatternOrientation := 'both'</l>
+<c>* Minimum width of the stripes appearing in the</c>
+<c>* gray code images. The parameter is chosen such that the</c>
+<c>* smallest stripes are still clearly visible in the camera</c>
+<c>* images.</c>
+<l>MinStripeWidth := 8</l>
+<c>* Type of normalization to be used in order to decode</c>
+<c>* the gray code images. In this case we use the type 'global'</c>
+<c>* in which a completely white image and a completely black</c>
+<c>* image are additionally displayed.</c>
+<l>Normalization := 'global'</l>
+<c>* Set the above parameters in the structured light model.</c>
+<l>set_structured_light_model_param (StructuredLightModel, ['pattern_width','pattern_height','pattern_type','pattern_orientation','min_stripe_width','normalization'], [PatternWidth,PatternHeight,PatternType,PatternOrientation,MinStripeWidth,Normalization])</l>
+<c>* </c>
+<l>dev_disp_parameters_text ()</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Generate the pattern images to be displayed on the monitor.</c>
+<l>gen_structured_light_pattern (PatternImages, StructuredLightModel)</l>
+<c>* </c>
+<l>dev_disp_acquisition_text ()</l>
+<l>stop ()</l>
+<c>* Display the images on the monitor and acquire the</c>
+<c>* the corresponding camera images.</c>
+<l>acquire_camera_images_deflectometry (PatternImages, CameraImages, PatternWidth, PatternHeight)</l>
+<c>* </c>
+<c>* The camera images can now be decoded.</c>
+<c>* Set the parameter 'min_gray_difference' to a suitable value.</c>
+<l>MinGrayDifference := 130</l>
+<l>set_structured_light_model_param (StructuredLightModel, 'min_gray_difference', MinGrayDifference)</l>
+<l>dev_disp_decoding_text ()</l>
+<l>stop ()</l>
+<l>decode_structured_light_pattern (CameraImages, StructuredLightModel)</l>
+<c>* Get the computed correspondences images.</c>
+<l>get_structured_light_object (CorrespondenceImages, StructuredLightModel, 'correspondence_image')</l>
+<l>dev_clear_window ()</l>
+<l>select_obj (CorrespondenceImages, CorrespondenceColumn, 1)</l>
+<l>dev_display (CorrespondenceColumn)</l>
+<l>dev_disp_text (['Correspondence image (1/2): Column values of the corresponding','                            monitor pixels'], 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>select_obj (CorrespondenceImages, CorrespondenceRow, 2)</l>
+<l>dev_display (CorrespondenceRow)</l>
+<l>dev_disp_text (['Correspondence image (2/2): Row values of the corresponding','                            monitor pixels'], 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Defect image</c>
+<l>dev_disp_defects_text ()</l>
+<l>stop ()</l>
+<c>* Get the defect image.</c>
+<l>Sigma := 1</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>set_structured_light_model_param (StructuredLightModel, 'derivative_sigma', Sigma)</l>
+<l>get_structured_light_object (DefectImage1, StructuredLightModel, 'defect_image')</l>
+<l>scale_image_range (DefectImage1, ScaledDefectImage1, 0, 4)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ScaledDefectImage1)</l>
+<l>dev_disp_text ('Defect image with \'derivative_sigma\' set to ' + Sigma + ':', 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<c>* Get a defect image with a different value of 'derivative_sigma'.</c>
+<l>Sigma := 5</l>
+<l>dev_open_window (0, 609, 600, 450, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>set_structured_light_model_param (StructuredLightModel, 'derivative_sigma', Sigma)</l>
+<l>get_structured_light_object (DefectImage5, StructuredLightModel, 'defect_image')</l>
+<l>scale_image_range (DefectImage5, ScaledDefectImage5, 0, 1)</l>
+<l>dev_display (ScaledDefectImage5)</l>
+<l>dev_disp_text ('Defect image with \'derivative_sigma\' set to ' + Sigma + ':', 'window', 'top', 'left', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="acquire_camera_images_deflectometry">
+<interface>
+<io>
+<par name="PatternImages" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="CameraImages" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="PatternWidth" base_type="ctrl" dimension="0"/>
+<par name="PatternHeight" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Open the window in which the pattern images are to be</c>
+<c>* displayed. In this example, we display the pattern images</c>
+<c>* in an HDevelop graphics window for visualization purposes.</c>
+<c>* In your application, the window needs to be positioned</c>
+<c>* on the screen of your deflectometry setup and have the</c>
+<c>* width PatternWidth and the height PatternHeight.</c>
+<l>dev_open_window (0, 0, 600, 450, 'black', WindowHandleScreen)</l>
+<l>dev_open_window (0, 609, 600, 450, 'black', WindowHandleCamera)</l>
+<c>* </c>
+<c>* Prepare the camera. The acquired camera images need to be</c>
+<c>* gray value images of byte or uint2 type.</c>
+<c>* Adapt the call of open_framegrabber to your camera</c>
+<c>* and set framegrabber parameters if necessary.</c>
+<c>* </c>
+<l>DirName := 'structured_light/tap_collar/'</l>
+<l>open_framegrabber ('File', -1, -1, -1, -1, -1, -1, 'default', -1, 'default', -1, 'default', DirName, 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Display each pattern image on the monitor</c>
+<c>* and acquire a camera image of the inspected specular</c>
+<c>* object that shows the reflection of the displayed pattern.</c>
+<l>count_obj (PatternImages, NumberOfPatternImages)</l>
+<l>gen_empty_obj (CameraImages)</l>
+<l>for Index := 1 to NumberOfPatternImages by 1</l>
+<l>    select_obj (PatternImages, DisplayImage, Index)</l>
+<l>    dev_set_window (WindowHandleScreen)</l>
+<l>    dev_display (DisplayImage)</l>
+<l>    dev_disp_text ('Pattern image ' + Index + ' of ' + NumberOfPatternImages, 'window', 'top', 'left', 'black', [], [])</l>
+<c>    * A short pause may be necessary at this point</c>
+<c>    * in order to ensure that the pattern image is</c>
+<c>    * fully displayed when the camera image is</c>
+<c>    * acquired.</c>
+<l>    grab_image (CameraImage, AcqHandle)</l>
+<l>    concat_obj (CameraImages, CameraImage, CameraImages)</l>
+<c>    * Visualization</c>
+<l>    dev_set_window (WindowHandleCamera)</l>
+<l>    dev_display (CameraImage)</l>
+<l>    dev_disp_text ('Camera image ' + Index + ' of ' + NumberOfPatternImages, 'window', 'top', 'left', 'black', [], [])</l>
+<l>    wait_seconds (1.0)</l>
+<l>endfor</l>
+<c></c>
+<c>* Close the framegrabber</c>
+<l>close_framegrabber (AcqHandle)</l>
+<c></c>
+<c>* Close the windows in which the pattern and camera</c>
+<c>* images were displayed.</c>
+<l>dev_set_window (WindowHandleCamera)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandleScreen)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="acquire_camera_images_deflectometry">
+<parameters>
+<parameter id="CameraImages"/>
+<parameter id="PatternHeight"/>
+<parameter id="PatternImages"/>
+<parameter id="PatternWidth"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_displ_workflow_text">
+<interface/>
+<body>
+<l>Text := 'This example shows how the Structured Light operators can be used to'</l>
+<l>Text[1] := 'detect defects on a specular surface, by applying the method of'</l>
+<l>Text[2] := 'deflectometry.'</l>
+<l>Text[3] := ' '</l>
+<l>Text[4] := 'The main steps are as follows:'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := '1. Create the structured light model and set the necessary parameters.'</l>
+<l>Text[7] := ' '</l>
+<l>Text[8] := '2. Generate the pattern images, display them on the monitor'</l>
+<l>Text[9] := '   and capture their reflections on the surface with a camera.'</l>
+<l>Text[10] := ' '</l>
+<l>Text[11] := '3. Decode the captured camera images.'</l>
+<l>Text[12] := ' '</l>
+<l>Text[13] := '4. Analyze the computed defect image.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_displ_workflow_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_parameters_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'Parameters that influence the pattern images:'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := '\'pattern_width\' and \'pattern_height\':'</l>
+<l>Text[3] := 'should be set to the width and height of the monitor used.'</l>
+<l>Text[4] := ' '</l>
+<l>Text[5] := '\'min_stripe_width\':'</l>
+<l>Text[6] := 'controls the smallest stripe width used in the Gray code'</l>
+<l>Text[7] := 'images. It should be chosen such that the stripes are still'</l>
+<l>Text[8] := 'clearly visible and have distinct edges in the camera images.'</l>
+<l>Text[9] := ' '</l>
+<l>Text[10] := '\'pattern_type\', \'pattern_orientation\' and \'normalization\':'</l>
+<l>Text[11] := 'should usually be left in their default values.'</l>
+<l>Text[12] := 'Please refer to the operator reference for more information.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_parameters_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_acquisition_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'Image Acquisition:'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'The camera and monitor should be positioned such that'</l>
+<l>Text[3] := 'the camera sees the reflection of the monitor display'</l>
+<l>Text[4] := 'on the surface that is to be inspected.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'Display each pattern image and capture its reflection on'</l>
+<l>Text[7] := 'the surface with the camera.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_acquisition_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_decoding_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'Decoding the acquired camera images:'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'For each camera pixel, the algorithm determines the corresponding'</l>
+<l>Text[3] := 'monitor pixel that the camera sees in the reflection on the'</l>
+<l>Text[4] := 'surface.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'During the decoding, pixels for which the gray value difference'</l>
+<l>Text[7] := 'between the camera images corresponding to a white and to a black'</l>
+<l>Text[8] := 'monitor display is not sufficiently large are discarded. This'</l>
+<l>Text[9] := 'is done in order to segment the region where the reflection of'</l>
+<l>Text[10] := 'the monitor is actually visible. The minimum gray value difference'</l>
+<l>Text[11] := 'for this process can be set in the structured light model using the'</l>
+<l>Text[12] := 'parameter \'min_gray_difference\'.'</l>
+<l>Text[13] := ' '</l>
+<l>Text[14] := 'The result of this computation can be queried using the operator'</l>
+<l>Text[15] := 'get_structured_light_object with the parameter \'correspondence_image\'.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_decoding_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_defects_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'Defect image:'</l>
+<l>Text[1] := ' '</l>
+<l>Text[2] := 'Defects on the surface lead to local anomalies in the'</l>
+<l>Text[3] := 'computed correspondence images. Using the operator'</l>
+<l>Text[4] := 'get_structured_light_object with the parameter \'defect_image\''</l>
+<l>Text[5] := 'one can query a defect image that is computed from the'</l>
+<l>Text[6] := 'camera-monitor correspondences. In this image, higher values'</l>
+<l>Text[7] := 'correspond to more pronounced anomalies.'</l>
+<l>Text[8] := ' '</l>
+<l>Text[9] := 'The parameter \'derivative_sigma\' can be set in the model'</l>
+<l>Text[10] := 'in order to control the smoothing applied during the computation'</l>
+<l>Text[11] := 'of the defect image. This allows one to distinguish between'</l>
+<l>Text[12] := 'fine and coarse defects.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_defects_text">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

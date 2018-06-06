@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>sobel_amp (Image, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>write_image (EdgeAmplitude, 'tiff', 0, 'sobel.tif')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

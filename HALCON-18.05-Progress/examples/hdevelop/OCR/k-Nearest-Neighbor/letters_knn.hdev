@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use a simple k-NN OCR classifier</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'letters')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>get_tmp_dir (TmpDir)</l>
+<l>TrainFile := TmpDir + '/letters.trf'</l>
+<l>dev_display (Image)</l>
+<l>gen_rectangle1 (Rectangle, 0, 0, Height - 1, 400)</l>
+<l>reduce_domain (Image, Rectangle, Image)</l>
+<c>* Segment the image</c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>* Connect the i's and j's with their dots</c>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<c>* Compute the correct connected components</c>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<c>* Reduce each connected component (character) to its original shape</c>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<c>* Sort the characters line-by-line</c>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<l>dev_display (Characters)</l>
+<l>disp_message (WindowHandle, 'Training characters', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Compute the true class of each character</c>
+<l>count_obj (Characters, Number)</l>
+<l>Length := Number / 27</l>
+<l>Classes := []</l>
+<l>for J := 0 to 25 by 1</l>
+<l>    Classes := [Classes,gen_tuple_const(Length,chr(ord('a') + J))]</l>
+<l>endfor</l>
+<l>Classes := [Classes,gen_tuple_const(Length,'.')]</l>
+<c>* Construct the necessary training file from the segmented characters</c>
+<l>write_ocr_trainf (Characters, Image, Classes, TrainFile)</l>
+<c>* Create the classifier.  We read out the classes from the train file.</c>
+<c>* Therefore, the training part of the program is generic and can be used</c>
+<c>* to train any OCR classifier</c>
+<l>read_ocr_trainf_names (TrainFile, CharacterNames, CharacterCount)</l>
+<l>create_ocr_class_knn (8, 10, 'constant', 'default', CharacterNames, [], [], OCRHandle)</l>
+<c>* Train the classifier</c>
+<l>trainf_ocr_class_knn (OCRHandle, TrainFile, [], [])</l>
+<c>* </c>
+<c>* Now test the classifier on the whole training image</c>
+<l>full_domain (Image, Image)</l>
+<c>* Segment characters the same way as before</c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold1)</l>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<c>* Classification</c>
+<l>do_ocr_multi_class_knn (Characters, Image, OCRHandle, Class, Confidence)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>area_center (Characters, Area, Row, Column)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 16, 'sans', 'true', 'false')</l>
+<l>disp_message (WindowHandle, Class, 'image', Row - 16, Column + 8, 'blue', 'false')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle, 'Classification result', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainFile)</l>
+<l>dev_set_check ('give_error')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_tmp_dir">
+<interface>
+<oc>
+<par name="LocalTemp" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_environment ('TEMP', LocalTemp)</l>
+<l>if (LocalTemp == '')</l>
+<l>    tuple_environment ('TMP', LocalTemp)</l>
+<l>    if (LocalTemp == '')</l>
+<l>        file_exists ('/tmp', FileExists)</l>
+<l>        if (FileExists)</l>
+<l>            LocalTemp := '/tmp'</l>
+<l>        else</l>
+<l>            LocalTemp := './'</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_tmp_dir">
+<parameters>
+<parameter id="LocalTemp"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

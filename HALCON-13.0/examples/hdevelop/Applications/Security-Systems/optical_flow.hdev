@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use optical_flow_mg to compute the</c>
+<c>* optical flow in an image sequence and how to segment the optical flow.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Initialize the image sequence.</c>
+<l>read_image (Image1, 'xing/xing000')</l>
+<l>dev_open_window_fit_image (Image1, 0, 0, -1, -1, WindowHandle)</l>
+<c>* Set the display parameters for the vector field.</c>
+<l>dev_set_paint (['vector_field',6,1,2])</l>
+<l>dev_set_draw ('margin')</l>
+<l>for I := 1 to 587 by 1</l>
+<c>    * Read the current image of the image sequence.</c>
+<l>    read_image (Image2, 'xing/xing' + I$'03')</l>
+<c>    * Compute the optical flow.</c>
+<l>    optical_flow_mg (Image1, Image2, VectorField, 'fdrig', 0.8, 1, 8, 5, 'default_parameters', 'accurate')</l>
+<c>    * Segment the optical flow vector field.</c>
+<l>    threshold (VectorField, Region, 1, 10000)</l>
+<c>    * Display the current image of the sequence.  Note that this means that</c>
+<c>    * the optical flow vectors will also be displayed at the "end" of the movement</c>
+<c>    * of the objects in the image.</c>
+<l>    dev_display (Image2)</l>
+<c>    * Display the optical flow.</c>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (VectorField)</l>
+<c>    * Display the segmented optical flow.</c>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (Region)</l>
+<c>    * Copy the current image to the previous image of the sequence.</c>
+<l>    copy_obj (Image2, Image1, 1, 1)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

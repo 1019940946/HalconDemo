@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program to demonstrate photometric stereo</c>
+<c>* Input are 6 images taken from braille with light coming</c>
+<c>* from different orientations and angles. After the height</c>
+<c>* extraction, the dots are extracted and grouped to characters</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'photometric_stereo/embossed_01')</l>
+<l>get_image_size (Image, WindowWidth, WindowHeight)</l>
+<l>dev_open_window_fit_size (0, 0, WindowWidth, WindowHeight, WindowWidth * 0.6, WindowHeight * 0.6, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Extract braille characters using\nphotometric stereo. For this approach\nsix different light setups were used.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Show input images (illuminated differently)</c>
+<l>FileNames := []</l>
+<l>for I := 1 to 6 by 1</l>
+<l>    FileNames := [FileNames,'photometric_stereo/embossed_' + I$'.2']</l>
+<l>endfor</l>
+<l>read_image (Images, FileNames)</l>
+<l>count_obj (Images, NumImages)</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    select_obj (Images, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Apply photometric stereo to determine the height field</c>
+<l>photometric_stereo (Images, Height, Gradient, Albedo, [70,50,70,50,70,50], [0,0,90,90,180,180], 'all', 'rft_cyclic', [], [])</l>
+<l>mean_image (Height, ImageMean, 61, 61)</l>
+<l>sub_image (Height, ImageMean, ImageSub, 1, 0)</l>
+<l>dev_display (ImageSub)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Reconstruct the height field\napplying photometric stereo', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Shade a height field</c>
+<l>disp_message (WindowHandle, 'Shade the height field\nof the braille dots', 'window', 10, 10, 'black', 'true')</l>
+<l>wait_seconds (2)</l>
+<l>for I := 0 to 360 by 10</l>
+<l>    shade_height_field (ImageSub, ShadedFace, 45, I, 1, 0, 'false')</l>
+<l>    dev_display (ShadedFace)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment brailles dots</c>
+<l>threshold (ImageSub, Region, 0.35, 1000)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Region)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Segment single dots', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Group brailles dots to characters</c>
+<l>closing_rectangle1 (Region, RegionClosing, 200, 60)</l>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<l>count_obj (ConnectedRegions, Number)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (ConnectedRegions, ObjectSelected, I)</l>
+<l>    intersection (ObjectSelected, Region, RegionIntersection)</l>
+<l>    partition_dynamic (RegionIntersection, Partitioned, 135, 20)</l>
+<l>    dev_display (Partitioned)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Finally, group the dots that describe\nindividual braille characters', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Another way is to use the mean curvature to extract the dots. Note that the Gradient must be calulated only.</c>
+<c>* This version is faster because no height field must be calculated.</c>
+<l>photometric_stereo (Images, Height1, Gradient1, Albedo1, [70,50,70,50,70,50], [0,0,90,90,180,180], 'gradient', 'rft_cyclic', [], [])</l>
+<l>derivate_vector_field (Gradient1, Result, 1, 'mean_curvature')</l>
+<l>dev_display (Result)</l>
+<l>disp_message (WindowHandle, 'Alternative Solution: Use gauss curvature of gradient image\nto segment the dots', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<l>threshold (Result, Region, -10, 0)</l>
+<l>connection (Region, ConnectedRegions1)</l>
+<l>fill_up (ConnectedRegions1, RegionFillUp)</l>
+<l>select_shape (RegionFillUp, SelectedRegions1, ['area','circularity'], 'and', [150,0.8], [99999,1])</l>
+<l>count_obj (SelectedRegions1, Number)</l>
+<l>union1 (SelectedRegions1, RegionUnion)</l>
+<l>closing_rectangle1 (RegionUnion, RegionClosing1, 200, 60)</l>
+<l>connection (RegionClosing1, ConnectedRegions)</l>
+<l>count_obj (ConnectedRegions, Number)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (ConnectedRegions, ObjectSelected, I)</l>
+<l>    intersection (ObjectSelected, RegionUnion, RegionIntersection)</l>
+<l>    partition_dynamic (RegionIntersection, Partitioned, 135, 20)</l>
+<l>    dev_display (Partitioned)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Finally, group the dots that describe\nindividual braille characters', 'window', 10, 10, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

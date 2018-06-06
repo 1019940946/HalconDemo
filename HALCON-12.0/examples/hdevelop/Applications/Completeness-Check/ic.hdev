@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'ic')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>decompose3 (Image, Red, Green, Blue)</l>
+<l>trans_from_rgb (Red, Green, Blue, Hue, Saturation, Intensity, 'hsv')</l>
+<l>threshold (Saturation, Colored, 100, 255)</l>
+<l>reduce_domain (Hue, Colored, HueColored)</l>
+<l>threshold (HueColored, Red, 10, 19)</l>
+<l>connection (Red, RedConnect)</l>
+<l>select_shape (RedConnect, RedLarge, 'area', 'and', 150.000000, 99999.000000)</l>
+<l>shape_trans (RedLarge, Resistors, 'rectangle2')</l>
+<l>threshold (HueColored, Blue, 114, 137)</l>
+<l>connection (Blue, BlueConnect)</l>
+<l>select_shape (BlueConnect, BlueLarge, 'area', 'and', 150.000000, 99999.000000)</l>
+<l>shape_trans (BlueLarge, Capacitors, 'rectangle2')</l>
+<l>threshold (Intensity, Dark, 0, 50)</l>
+<l>dilation_rectangle1 (Dark, DarkDilation, 14, 14)</l>
+<l>connection (DarkDilation, ICLarge)</l>
+<l>add_channels (ICLarge, Intensity, ICLargeGray)</l>
+<l>threshold (ICLargeGray, ICDark, 0, 50)</l>
+<l>shape_trans (ICDark, IC, 'rectangle2')</l>
+<l>dilation_rectangle1 (IC, ICDilation, 5, 1)</l>
+<l>difference (ICDilation, IC, SearchSpace)</l>
+<l>dilation_rectangle1 (SearchSpace, SearchSpaceDilation, 14, 1)</l>
+<l>union1 (SearchSpaceDilation, SearchSpaceUnion)</l>
+<l>reduce_domain (Intensity, SearchSpaceUnion, SearchGray)</l>
+<l>mean_image (SearchGray, SearchMean, 15, 15)</l>
+<l>dyn_threshold (SearchGray, SearchMean, PinsRaw, 5.000000, 'light')</l>
+<l>connection (PinsRaw, PinsConnect)</l>
+<l>fill_up (PinsConnect, PinsFilled)</l>
+<l>select_shape (PinsFilled, Pins, 'area', 'and', 10, 100)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (IC)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Resistors)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (Capacitors)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Pins)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the 1394IIDC interface</c>
+<c>* (query and use all supported camera types)</c>
+<c>* </c>
+<l>info_framegrabber ('1394IIDC', 'info_boards', Information, BoardInfo)</l>
+<l>get_system ('operating_system', OperatingSystem)</l>
+<c>* </c>
+<c>* Use default settings of first camera:</c>
+<l>MyCameraType := 'default'</l>
+<l>SubString := split(BoardInfo[0],',:')</l>
+<l>DeviceString := split(SubString[1],' ')</l>
+<l>MyDevice := DeviceString[0]</l>
+<c>* </c>
+<c>* Query all supported camera types:</c>
+<l>open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'camera_type_values', CameraTypeValues)</l>
+<l>info_framegrabber ('1394IIDC', 'defaults', Information1, ValueList)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<l>for i := 0 to |CameraTypeValues| - 1 by 1</l>
+<l>    MyCameraType := CameraTypeValues[i]</l>
+<c>    * </c>
+<l>    open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<l>    get_framegrabber_param (AcqHandle, 'image_width', MaxWidth)</l>
+<l>    get_framegrabber_param (AcqHandle, 'image_height', MaxHeight)</l>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, MaxWidth, MaxHeight, 'black', WindowHandle)</l>
+<c>    * </c>
+<l>    if (OperatingSystem == 'Linux')</l>
+<l>        tuple_strstr (MyCameraType, '7:', Position)</l>
+<l>        if (not Position)</l>
+<l>            set_framegrabber_param (AcqHandle, 'packet_size', -1)</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    get_framegrabber_param (AcqHandle, 'camera_type', CameraType)</l>
+<l>    get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>    get_framegrabber_param (AcqHandle, 'frame_rate', FrameRate)</l>
+<l>    get_framegrabber_param (AcqHandle, 'device', Device)</l>
+<l>    get_framegrabber_param (AcqHandle, 'bits_per_channel', BitsPerChannel)</l>
+<l>*     set_framegrabber_param (AcqHandle, 'swap_bytes', 'true')</l>
+<c>    * </c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    count_channels (Image, Channels)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    dev_set_draw ('fill')</l>
+<l>    dev_set_color ('white')</l>
+<l>    disp_rectangle1 (WindowHandle, 18, 8, 76, 144)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    set_tposition (WindowHandle, 24, 12)</l>
+<l>    write_string (WindowHandle, 'CameraType: \'' + CameraType + '\'')</l>
+<l>    set_tposition (WindowHandle, 40, 12)</l>
+<l>    write_string (WindowHandle, 'FrameRate: ' + FrameRate)</l>
+<l>    set_tposition (WindowHandle, 56, 12)</l>
+<l>    write_string (WindowHandle, 'BitsPerChannel: ' + BitsPerChannel)</l>
+<c>    * </c>
+<l>    close_framegrabber (AcqHandle)</l>
+<l>    wait_seconds (1)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

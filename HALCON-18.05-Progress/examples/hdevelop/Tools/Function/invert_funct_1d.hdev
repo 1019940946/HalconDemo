@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use invert_funct_1d.  It computes</c>
+<c>* a function, cos(x), and inverts it, which results in the function inv(cos(x)).</c>
+<c>* This function should, of course, be identical to acos(x), so this function is</c>
+<c>* also calculated.  The program displays all three functions.  By comparing</c>
+<c>* the last two plots, we can check whether invert_funct_1d works correctly.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('black')</l>
+<l>X := []</l>
+<l>for J := 0 to 360 by 1</l>
+<l>    X := [X,rad(J) / 2]</l>
+<l>endfor</l>
+<l>create_funct_1d_pairs (X, cos(X), Cos)</l>
+<l>X := []</l>
+<l>for J := -100 to 100 by 1</l>
+<l>    X := [X,J / 100.0]</l>
+<l>endfor</l>
+<l>create_funct_1d_pairs (X, acos(X), ACos)</l>
+<l>invert_funct_1d (Cos, InvCos)</l>
+<l>plot_funct_1d (WindowHandle, Cos, 'x', 'cos(x)', 'red', ['axes_color','origin_x','origin_y'], ['black',0,0])</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>plot_funct_1d (WindowHandle, InvCos, 'x', 'inv(cos(x))', 'red', ['axes_color','origin_x','origin_y'], ['black',0,0])</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>plot_funct_1d (WindowHandle, ACos, 'x', 'acos(x)', 'red', ['axes_color','origin_x','origin_y'], ['black',0,0])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

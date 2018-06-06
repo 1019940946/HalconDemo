@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Program to test changing of image size</c>
+<c>* </c>
+<c></c>
+<l>open_framegrabber ('BitFlow', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', -1, 1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', OrigHeight)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<c></c>
+<c>* Single frame mode</c>
+<c></c>
+<l>for i := 1 to 350 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    if (fmod(i,30) == 0)</l>
+<l>        if (Height == OrigHeight)</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_height', Height / 2)</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_width', Width / 2)</l>
+<l>        else</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_height', Height * 2)</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_width', Width * 2)</l>
+<l>        endif</l>
+<l>        get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>        get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<c>* Continuous grabbing mode</c>
+<c></c>
+<l>set_framegrabber_param (AcqHandle, 'volatile', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'num_buffers', 25)</l>
+<l>set_framegrabber_param (AcqHandle, 'overwrite_method', 'ignore')</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<c></c>
+<l>for i := 1 to 350 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    if (fmod(i,30) == 0)</l>
+<l>        if (Height == OrigHeight)</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_height', Height / 2)</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_width', Width / 2)</l>
+<l>        else</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_height', Height * 2)</l>
+<l>            set_framegrabber_param (AcqHandle, 'image_width', Width * 2)</l>
+<l>        endif</l>
+<l>        get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>        get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'disable')</l>
+<c></c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

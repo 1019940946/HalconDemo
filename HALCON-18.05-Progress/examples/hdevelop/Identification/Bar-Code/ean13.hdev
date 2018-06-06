@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Read bar codes of type EAN-13.</c>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>CodeType := 'EAN-13'</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 544, 496, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<l>for I := 1 to 15 by 1</l>
+<l>    read_image (Image, 'barcode/ean13/ean13' + (I$'.2'))</l>
+<l>    dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>    if (I == 14)</l>
+<c>        * This image contains a defect object which could result in</c>
+<c>        * a false decode. Hence, the 'mean_thresh' parameter is tweaked.</c>
+<l>        get_bar_code_param (BarCodeHandle, 'meas_thresh', MeasThreshold)</l>
+<l>        set_bar_code_param (BarCodeHandle, 'meas_thresh', 0.2)</l>
+<l>    endif</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<l>    if (I == 14)</l>
+<c>        * Reset the 'mean_thresh' parameter.</c>
+<l>        set_bar_code_param (BarCodeHandle, 'meas_thresh', MeasThreshold)</l>
+<l>    endif</l>
+<l>    area_center (SymbolRegions, Area, Row, Column)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    dev_disp_text (DecodedDataStrings, 'image', Row - 30, Column - 90, 'black', 'box_color', '#fce9d4cc')</l>
+<l>    if (I &lt; 15)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Segment an image using two-dimensional pixel classification.</c>
+<c>* </c>
+<c>* For interactive mode set this variable to 1</c>
+<l>Interactive := 0</l>
+<l>read_image (Image, 'ic')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowID)</l>
+<c>* Convert a three-channel image into three images</c>
+<l>decompose3 (Image, Red, Green, Blue)</l>
+<l>dev_display (Red)</l>
+<l>dev_set_color ('red')</l>
+<l>if (Interactive)</l>
+<l>    draw_region (Pattern, WindowID)</l>
+<l>else</l>
+<l>    gen_rectangle1 (Pattern, 362, 276, 371, 298)</l>
+<l>endif</l>
+<c>* Calculate the histogram of two-channel gray value images</c>
+<l>histo_2dim (Pattern, Red, Blue, Histo2Dim)</l>
+<l>threshold (Histo2Dim, Features, 1, 255)</l>
+<c>* Close a region with a circular structuring element</c>
+<l>closing_circle (Features, FeaturesClosed, 11.5)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_display (Red)</l>
+<l>class_2dim_sup (Red, Blue, FeaturesClosed, RegionClass2Dim)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

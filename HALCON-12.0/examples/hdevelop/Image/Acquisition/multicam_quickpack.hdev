@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a Euresys QUICKPACK board</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Note: You have to replace the value of the parameters MyConfigurationFile and MyDeviceId</c>
+<c>* with the name of your specific camera configuration file and your specific board type!</c>
+<c>* You can get the actual values with 'info_framegrabber(...,'info_boards',...)'.</c>
+<c>* </c>
+<l>MyConfigurationFile := 'ColorScan:L301kc_L2098SP_ColorScan'</l>
+<l>MyDeviceId := '0'</l>
+<c>* </c>
+<l>info_framegrabber ('MultiCam', 'info_boards', Information, ValueList)</l>
+<l>open_framegrabber ('MultiCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyConfigurationFile, MyDeviceId, -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<c>*      Shading Correction</c>
+<c>* </c>
+<c>*      grab a black image  (shutter of camera completely closed)</c>
+<l>grab_image (ImageDark, AcqHandle)</l>
+<l>get_image_pointer3 (ImageDark, PRedDark, PGreenDark, PBlueDark, Type, Width, Height)</l>
+<l>stop ()</l>
+<c>*      grab a light image  (optically uniform object with nominal illumination)</c>
+<l>grab_image (ImageLight, AcqHandle)</l>
+<l>get_image_pointer3 (ImageLight, PRedLight, PGreenLight, PBlueLight, Type, Width, Height)</l>
+<c>* </c>
+<c>* compile the black and white profiles</c>
+<l>set_framegrabber_param (AcqHandle, 'do_calibrate_shc', [1,PRedDark,PGreenDark,PBlueDark,PRedLight,PGreenLight,PBlueLight])</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'activate_shc', 1)</l>
+<l>get_framegrabber_param (AcqHandle, 'activate_shc', ShcIndex)</l>
+<c>* deactivate the shading correction</c>
+<l>* set_framegrabber_param (AcqHandle, 'activate_shc', 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>*      generate look-up tables  (Index, Contrast_r/_g/_b,Brightness_r/_g/_b,Visibility_r/_g/_b,Negative_r/_g/_b)</c>
+<c>* </c>
+<c>* inverse lut</c>
+<l>set_framegrabber_param (AcqHandle, 'do_generate_lut', [2,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1,1,1])</l>
+<c>* gamma handling</c>
+<l>set_framegrabber_param (AcqHandle, 'do_generate_lut', [3,0.87,0.87,0.87,0.35,0.35,0.35,0.73,0.73,0.73,0,0,0])</l>
+<c>* </c>
+<c>* set one lut active</c>
+<l>* set_framegrabber_param (AcqHandle, 'activate_lut', 2)</l>
+<l>set_framegrabber_param (AcqHandle, 'activate_lut', 3)</l>
+<l>get_framegrabber_param (AcqHandle, 'activate_lut', LutIndex)</l>
+<c>* deactivate the lut</c>
+<l>* set_framegrabber_param (AcqHandle, 'activate_lut', 0)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>*      generate your own look-up table (always index 1)</c>
+<c>* </c>
+<l>Lut1 := []</l>
+<l>for i := 0 to 255 by 1</l>
+<l>    Lut1[i] := 255 - i</l>
+<l>endfor</l>
+<l>set_framegrabber_lut (AcqHandle, Lut1, Lut1, Lut1)</l>
+<l>set_framegrabber_param (AcqHandle, 'activate_lut', 1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<l>for i := 1 to 20 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 20 by 1</l>
+<l>    grab_image_async (Image1, AcqHandle, -1)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

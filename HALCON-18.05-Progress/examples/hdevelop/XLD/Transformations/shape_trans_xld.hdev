@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example transforms contours into their convex hull, into an ellipse, into their smallest enclosing</c>
+<c>* circle, and into their smallest enclosing rectangles using the operator shape_trans_xld</c>
+<l>dev_close_window ()</l>
+<l>read_image (Letters, 'letters')</l>
+<l>crop_part (Letters, ImagePart, 631, 4, 200, 310)</l>
+<l>get_image_size (ImagePart, Width, Height)</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowHandle)</l>
+<l>dev_display (ImagePart)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>Color := ['yellow','forest green']</l>
+<l>for Column := 0 to 4 by 1</l>
+<l>    dev_set_color (Color[0])</l>
+<l>    gen_rectangle1 (Rectangle, 1, 2 + 40 * Column, 295, 32 + 40 * Column)</l>
+<l>    reduce_domain (ImagePart, Rectangle, ImageReduced)</l>
+<l>    threshold_sub_pix (ImageReduced, Border, 100)</l>
+<l>    dev_set_color (Color[1])</l>
+<l>    set_tposition (WindowHandle, 290, 5 + 40 * Column)</l>
+<l>    if (Column == 0)</l>
+<c>        * calculate the convex hull of the letters</c>
+<l>        shape_trans_xld (Border, XLDConvex, 'convex')</l>
+<l>        dev_display (XLDConvex)</l>
+<l>        Message := 'convex\nhull'</l>
+<l>    endif</l>
+<l>    if (Column == 1)</l>
+<c>        * ellipse with the same moments and area as the input contour</c>
+<l>        shape_trans_xld (Border, XLDEllipse, 'ellipse')</l>
+<l>        dev_display (XLDEllipse)</l>
+<l>        Message := 'ellipse'</l>
+<l>    endif</l>
+<l>    if (Column == 2)</l>
+<c>        * smallest enclosing circle</c>
+<l>        shape_trans_xld (Border, XLDOuterCircle, 'outer_circle')</l>
+<l>        dev_display (XLDOuterCircle)</l>
+<l>        Message := 'outer\ncircle'</l>
+<l>    endif</l>
+<l>    if (Column == 3)</l>
+<c>        * smallest enclosing rectangle parallel to the coordinate axes</c>
+<l>        shape_trans_xld (Border, XLDRectangle1, 'rectangle1')</l>
+<l>        dev_display (XLDRectangle1)</l>
+<l>        Message := 'rect1'</l>
+<l>    endif</l>
+<l>    if (Column == 4)</l>
+<c>        * smallest enclosing rectangle in arbitrary orientation</c>
+<l>        shape_trans_xld (Border, XLDRectangle2, 'rectangle2')</l>
+<l>        dev_display (XLDRectangle2)</l>
+<l>        Message := 'rect2'</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, Message, 'image', 290, 5 + 40 * Column, Color[1], 'false')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

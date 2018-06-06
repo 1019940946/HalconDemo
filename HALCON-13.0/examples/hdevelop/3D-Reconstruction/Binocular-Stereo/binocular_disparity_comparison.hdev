@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program compares the three stereo operators</c>
+<c>* binocular_disparity, binocular_disparity_ms, and</c>
+<c>* binocular_disparity_mg in terms of execution time and accuracy.</c>
+<c>* The accuracy is measured by the percentage of erroneous pixels after</c>
+<c>* </c>
+<c>* D. Scharstein and R. Szeliski.</c>
+<c>* A taxonomy and evaluation of dense two-frame stereo correspondence algorithms.</c>
+<c>* International Journal of Computer Vision, 47(1/2/3):7-42, April-June 2002.</c>
+<c>* </c>
+<c>* The used data set is provided by</c>
+<c>* </c>
+<c>* D. Scharstein and R. Szeliski.</c>
+<c>* High-accuracy stereo depth maps using structured light.</c>
+<c>* In IEEE Computer Society Conference on</c>
+<c>* Computer Vision and Pattern Recognition (CVPR 2003),</c>
+<c>* volume 1, pages 195-202, Madison, WI, June 2003.</c>
+<l>dev_update_off ()</l>
+<c>* Get stereo images.</c>
+<l>read_image (ImageRectifiedL, 'stereo/middlebury_cones/im2.png')</l>
+<l>read_image (ImageRectifiedR, 'stereo/middlebury_cones/im6.png')</l>
+<l>get_image_size (ImageRectifiedL, Width, Height)</l>
+<l>MaxTotalWidth := 1000</l>
+<l>Scale := MaxTotalWidth / (3. * Width)</l>
+<l>Width := Scale * Width</l>
+<l>Height := Scale * Height</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (ImageRectifiedL)</l>
+<l>disp_message (WindowHandle1, 'Left stereo image', 'window', 12, 12, 'black', 'true')</l>
+<c>* Get ground truth.</c>
+<l>read_image (GroundTruth, 'stereo/middlebury_cones/disp2.png')</l>
+<l>read_image (Occlusions, 'stereo/middlebury_cones/occl.png')</l>
+<l>gen_empty_region (RegionKnown)</l>
+<l>threshold (Occlusions, RegionKnown, 1, 256)</l>
+<l>change_domain (GroundTruth, RegionKnown, GroundTruth)</l>
+<l>convert_image_type (GroundTruth, GroundTruth, 'real')</l>
+<l>scale_image (GroundTruth, GroundTruth, -.25, 0)</l>
+<l>gen_empty_region (RegionGood)</l>
+<l>region_features (RegionKnown, 'area', Known)</l>
+<l>dev_open_window (0, Width + 8, Width, Height, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (GroundTruth)</l>
+<l>disp_message (WindowHandle2, 'Ground truth', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>stop ()</l>
+<l>gray_features (RegionKnown, GroundTruth, 'min', MinDisp)</l>
+<l>gray_features (RegionKnown, GroundTruth, 'max', MaxDisp)</l>
+<l>MinDisp := int(floor(MinDisp))</l>
+<l>MaxDisp := int(ceil(MaxDisp))</l>
+<c>* binocular_disparity.</c>
+<l>MaskWidth := 7</l>
+<l>MaskHeight := 7</l>
+<c>* Compute the disparities.</c>
+<l>count_seconds (S1)</l>
+<l>binocular_disparity (ImageRectifiedL, ImageRectifiedR, Disparity, Score, 'ncc', MaskWidth, MaskHeight, 0, MinDisp, MaxDisp, 1, -1, 'none', 'interpolation')</l>
+<l>count_seconds (S2)</l>
+<c>* Compare to ground truth.</c>
+<l>sub_image (Disparity, GroundTruth, ImageSub, 1, 0)</l>
+<l>threshold (ImageSub, RegionGood, -1, 1)</l>
+<l>region_features (RegionGood, 'area', Good)</l>
+<l>Error := 1 - Good / Known</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Disparity)</l>
+<l>disp_message (WindowHandle1, 'binocular_disparity\nerror: ' + (100 * Error)$'5.3f' + '%\ntime: ' + (S2 - S1)$'5.3f' + 's', 'window', 12, 12, 'black', 'true')</l>
+<c>* binocular_disparity_ms.</c>
+<l>SurfaceSmoothing := 39</l>
+<l>EdgeSmoothing := 49</l>
+<c>* Compute the disparities.</c>
+<l>count_seconds (S1)</l>
+<l>binocular_disparity_ms (ImageRectifiedL, ImageRectifiedR, Disparity, Score, MinDisp, MaxDisp, SurfaceSmoothing, EdgeSmoothing, 'consistency_check', 'false')</l>
+<l>count_seconds (S2)</l>
+<c>* Compare to ground truth.</c>
+<l>sub_image (Disparity, GroundTruth, ImageSub, 1, 0)</l>
+<l>threshold (ImageSub, RegionGood, -1, 1)</l>
+<l>region_features (RegionGood, 'area', Good)</l>
+<l>Error := 1 - Good / Known</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Disparity)</l>
+<l>disp_message (WindowHandle2, 'binocular_disparity_ms\nerror: ' + (100 * Error)$'5.3f' + '%\ntime: ' + (S2 - S1)$'5.3f' + 's', 'window', 12, 12, 'black', 'true')</l>
+<c>* binocular_disparity_mg.</c>
+<l>GrayConstancy := 6</l>
+<l>GradientConstancy := 12</l>
+<l>Smoothness := 15</l>
+<l>DefaultParameters := 'very_accurate'</l>
+<c>* Compute the disparities.</c>
+<l>count_seconds (S1)</l>
+<l>binocular_disparity_mg (ImageRectifiedL, ImageRectifiedR, Disparity, Score, GrayConstancy, GradientConstancy, Smoothness, 0, 'false', 'default_parameters', DefaultParameters)</l>
+<l>count_seconds (S2)</l>
+<c>* Compare to ground truth.</c>
+<l>sub_image (Disparity, GroundTruth, ImageSub, 1, 0)</l>
+<l>threshold (ImageSub, RegionGood, -1, 1)</l>
+<l>region_features (RegionGood, 'area', Good)</l>
+<l>Error := 1 - Good / Known</l>
+<l>dev_open_window (0, 2 * (Width + 8), Width, Height, 'black', WindowHandle3)</l>
+<l>get_window_extents (WindowHandle3, Row, Column, Width1, Height1)</l>
+<l>set_display_font (WindowHandle3, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Disparity)</l>
+<l>disp_message (WindowHandle3, 'binocular_disparity_mg\nerror: ' + (100 * Error)$'5.3f' + '%\ntime: ' + (S2 - S1)$'5.3f' + 's', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Searching the best matching of a template in an image (with rotation).</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (For6, 'for6')</l>
+<l>get_image_size (For6, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<c>* Interpolate 2 video half images</c>
+<l>fill_interlace (For6, ImageFilled, 'odd')</l>
+<l>* gen_rectangle1 (Rectangle, 266, 390, 348, 435)</l>
+<l>gen_rectangle1 (Rectangle, 78, 292, 129, 402)</l>
+<l>* gen_rectangle1 (Rectangle, 258, 214, 296, 258)</l>
+<l>area_center (Rectangle, Area, Row, Column)</l>
+<l>reduce_domain (ImageFilled, Rectangle, ImageReduced)</l>
+<l>pi := acos(0.0) * 2</l>
+<c>* Preparing a pattern for template matching with rotation</c>
+<l>create_template_rot (ImageReduced, 4, -pi, 2 * pi, pi / 45, 'sort', 'original', TemplateID)</l>
+<l>dev_set_color ('red')</l>
+<l>SumError := 0.0</l>
+<l>Count := 0</l>
+<l>for Phi := -180 to 180 by 5.0</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Phi), 256, 256, HomMat2DRotate)</l>
+<l>    affine_trans_image (ImageFilled, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>*     add_noise_white (ImageAffinTrans, ImageAffinTrans, 30)</l>
+<l>    best_match_rot_mg (ImageAffinTrans, TemplateID, -pi, 2 * pi, 40, 'true', 4, Row, Column, Angle, Error)</l>
+<l>    disp_arrow (WindowID, Row, Column, Row - cos(Angle) * 50, Column - sin(Angle) * 50, 1)</l>
+<l>    AngleDeg := deg(Angle)</l>
+<l>    DiffAngle := abs(AngleDeg - Phi)</l>
+<l>    if (DiffAngle &gt; 360)</l>
+<l>        DiffAngle := abs(360 - DiffAngle)</l>
+<l>    endif</l>
+<l>    SumError := SumError + DiffAngle</l>
+<l>    Count := Count + 1</l>
+<l>endfor</l>
+<l>TotalError := SumError / Count</l>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

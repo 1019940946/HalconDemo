@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Determine the orientation of the light sources (tilt</c>
+<c>* and slant values) of a photometric stereo setup by</c>
+<c>* using images of a sphere with lambertian reflection.</c>
+<c>* </c>
+<c>* Initializations</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 640, 494, 500, 500, WindowHandle1)</l>
+<l>Color := 'green'</l>
+<l>dev_set_color (Color)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>ApproxSphereRadius := 200</l>
+<c>* </c>
+<c>* Read the shaded images of the sphere</c>
+<l>ImageFiles := 'photometric_stereo/shaded_sphere_' + [1:6]$'02'</l>
+<l>read_image (Images, ImageFiles)</l>
+<l>channels_to_image (Images, MultichannelImage)</l>
+<l>count_channels (MultichannelImage, NumImages)</l>
+<l>dev_display (Images)</l>
+<c>* </c>
+<c>* Determine the position and the radius of the sphere</c>
+<c>* from the multichannel image</c>
+<l>disp_message (WindowHandle1, 'Detect the position of the sphere ...', 'window', 12, 12, 'black', 'true')</l>
+<l>gen_circle_contour_xld (ContourCircle, 200, 200, ApproxSphereRadius, 0, 6.28318, 'positive', 1)</l>
+<l>create_scaled_shape_model_xld (ContourCircle, 'auto', 0.0, 0.0, 'auto', 0.9, 1.5, 'auto', 'auto', 'ignore_color_polarity', 1, ModelID)</l>
+<l>find_scaled_shape_model (MultichannelImage, ModelID, 0.0, 0.0, .9, 1.1, .95, 1, .5, 'least_squares_high', 0, .9, RowCenter, ColumnCenter, Angle, Scale, MatchScore)</l>
+<l>SphereRadius := ApproxSphereRadius * Scale</l>
+<l>gen_cross_contour_xld (CenterCross, RowCenter, ColumnCenter, 15, 0.0)</l>
+<l>dev_display (CenterCross)</l>
+<l>dev_display_shape_matching_results (ModelID, Color, RowCenter, ColumnCenter, Angle, Scale, Scale, 0)</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>clear_shape_model (ModelID)</l>
+<l>stop ()</l>
+<l>Color := 'blue'</l>
+<l>dev_set_color (Color)</l>
+<c>* </c>
+<c>* Compute the tilt and slant angles of the light source:</c>
+<c>* The parameters MinGray and MaxGray are used to select</c>
+<c>* the gray values used for processing. Those values must</c>
+<c>* be selected in a way that:</c>
+<c>* 1. The background of the scene is excluded from processing</c>
+<c>* 2. Overexposed and underexposed parts of the sphere are</c>
+<c>*    excluded from processing</c>
+<c>* 3. The selected region is as large as possible in order</c>
+<c>*    to ensure a robust estimation of the orientation of</c>
+<c>*    the light source</c>
+<l>MinGray := 170</l>
+<l>MaxGray := 255</l>
+<l>measure_light_source_orientation_from_sphere (MultichannelImage, SphereRadius, RowCenter, ColumnCenter, MinGray, MaxGray, Tilt, Slant)</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>get_window_extents (WindowHandle1, Row, Column, Width, Height)</l>
+<l>dev_open_window (0, Width + 12, Width, Height, 'white', WindowHandle2)</l>
+<l>dev_set_part (0, 0, 493, 639)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>PointO := [RowCenter,ColumnCenter]</l>
+<l>PointE := PointO + [0,SphereRadius + 10]</l>
+<l>gen_contour_polygon_xld (LineContour, [PointO[0],PointE[0]], [PointO[1],PointE[1]])</l>
+<l>gen_arrow_contour_xld (ArrowContour, PointE[0], PointE[1], PointO[0], PointO[1] + 50, 20, 20)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>gen_circle_contour_xld (ContSphere, RowCenter, ColumnCenter, SphereRadius, 0, 6.28318, 'positive', 1)</l>
+<l>gen_contour_polygon_xld (LineContourBottom, [RowCenter + SphereRadius,RowCenter + SphereRadius], [0,639])</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    access_channel (MultichannelImage, Image, Index)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Tilt[Index - 1]), RowCenter, ColumnCenter, HomMat2DRotateTilt)</l>
+<l>    affine_trans_contour_xld (ArrowContour, ArrowTilt, HomMat2DRotateTilt)</l>
+<l>    affine_trans_point_2d (HomMat2DRotateTilt, PointE[0], PointE[1], QxTilt, QyTilt)</l>
+<l>    if (Tilt[Index - 1] &gt;= 0)</l>
+<l>        PointOrder := 'positive'</l>
+<l>    else</l>
+<l>        PointOrder := 'negative'</l>
+<l>    endif</l>
+<l>    gen_circle_contour_xld (ContCircleTilt, RowCenter, ColumnCenter, 100, 0, rad(Tilt[Index - 1]), PointOrder, 1)</l>
+<c>    * </c>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Slant[Index - 1]), RowCenter, ColumnCenter, HomMat2DRotateSlant)</l>
+<l>    affine_trans_contour_xld (ArrowContour, ArrowSlant, HomMat2DRotateSlant)</l>
+<l>    affine_trans_point_2d (HomMat2DRotateSlant, PointE[0], PointE[1], QxSlant, QySlant)</l>
+<l>    gen_circle_contour_xld (ContCircleSlant, RowCenter, ColumnCenter, 100, 0, rad(Slant[Index - 1]), 'positive', 1)</l>
+<c>    * </c>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (LineContour)</l>
+<l>    dev_display (ContCircleTilt)</l>
+<l>    dev_display (ArrowTilt)</l>
+<l>    disp_message (WindowHandle1, 'Top view (' + Index + '/' + NumImages + ')', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle1, '0°', 'image', PointE[0], PointE[1], 'black', 'true')</l>
+<l>    disp_message (WindowHandle1, 'Tilt = ' + Tilt[Index - 1]$'+4.1f' + '°', 'image', QxTilt, QyTilt - 80, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_color ('black')</l>
+<l>    dev_display (LineContourBottom)</l>
+<l>    dev_display (ContSphere)</l>
+<l>    dev_set_color (Color)</l>
+<l>    dev_display (LineContour)</l>
+<l>    dev_display (ArrowSlant)</l>
+<l>    dev_display (ContCircleSlant)</l>
+<l>    disp_message (WindowHandle2, 'Cross section (' + Index + '/' + NumImages + ')', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle2, '0°', 'image', PointE[0], PointE[1], 'black', 'true')</l>
+<l>    disp_message (WindowHandle2, 'Slant = ' + Slant[Index - 1]$'+4.1f' + '°', 'image', QxSlant, QySlant - 80, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle2, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="measure_light_source_orientation_from_sphere">
+<interface>
+<io>
+<par name="ShadeImages" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+<par name="RowCenter" base_type="ctrl" dimension="0"/>
+<par name="ColumnCenter" base_type="ctrl" dimension="0"/>
+<par name="MinGray" base_type="ctrl" dimension="0"/>
+<par name="MaxGray" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Tilts" base_type="ctrl" dimension="0"/>
+<par name="Slants" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure determines the orientation of the light</c>
+<c>* source (tilt and slants) by using the photometric</c>
+<c>* information provided in the shaded images (ShadeImages).</c>
+<c>* The surface of the sphere must be a lambertian diffuser.</c>
+<c>* The same coordinate systems are used as in the operator</c>
+<c>* photometric_stereo.</c>
+<c>* </c>
+<c>* Input parameters</c>
+<c>* ShadeImages:  Multichannel image of the illuminated sphere</c>
+<c>* Radius:       The radius of the sphere in pixel</c>
+<c>* RowCenter:    The row coordinate of the center of the sphere</c>
+<c>* ColumnCenter: The column coordinate of the center of the</c>
+<c>*               sphere</c>
+<c>* MinGray:      Lower threshold for the gray values used by</c>
+<c>*               the computations</c>
+<c>* MaxGray:      Upper threshold for the gray values used by</c>
+<c>*               the computations</c>
+<c>* </c>
+<c>* Output parameters</c>
+<c>* Tilts:        The computed tilt values</c>
+<c>* Slants:       The computed slant values</c>
+<c>* </c>
+<c>* Compute the expected normal vector at each point of</c>
+<c>* the surface of the sphere</c>
+<l>get_image_size (ShadeImages, Width, Height)</l>
+<l>compute_sphere_heights_and_normal_vectors (Heights, NormalVectors, Radius, RowCenter, ColumnCenter, Width, Height)</l>
+<c>* </c>
+<c>* Since the surface normal vectors of the sphere are known</c>
+<c>* and the light intensities have been measured while</c>
+<c>* the albedo is assumed constant, the only unknown</c>
+<c>* in the photometric stereo equation is the orientation</c>
+<c>* of the light source.</c>
+<c>* </c>
+<c>* Exclude background from the calculation.</c>
+<l>threshold (Heights, Region, 0.01, 1.2 * Radius)</l>
+<l>reduce_domain (Heights, Region, Heights)</l>
+<l>reduce_domain (NormalVectors, Region, NormalVectors)</l>
+<c>* </c>
+<c>* Calculate the orientation of all light sources</c>
+<l>count_channels (ShadeImages, NumChannels)</l>
+<l>Tilts := []</l>
+<l>Slants := []</l>
+<l>for Index := 1 to NumChannels by 1</l>
+<l>    access_channel (ShadeImages, ShadeImage, Index)</l>
+<l>    reduce_domain (ShadeImage, Region, ShadeImage)</l>
+<c>    * Get well illuminated parts</c>
+<l>    threshold (ShadeImage, RegionShade, MinGray, MaxGray)</l>
+<l>    get_region_points (RegionShade, Rows, Columns)</l>
+<c>    * Create intensity matrix I from the measured gray values</c>
+<l>    get_grayval (ShadeImage, Rows, Columns, GrayvalI)</l>
+<l>    if (|GrayvalI| &gt;= 3)</l>
+<l>        create_matrix (|GrayvalI|, 1, GrayvalI, MatrixIID)</l>
+<c>        * Create matrix N of the surface normal vectors</c>
+<l>        decompose3 (NormalVectors, Nx, Ny, Nz)</l>
+<l>        get_grayval (Nx, Rows, Columns, GvNx)</l>
+<l>        get_grayval (Ny, Rows, Columns, GvNy)</l>
+<l>        get_grayval (Nz, Rows, Columns, GvNz)</l>
+<l>        GvN := [GvNx,GvNy,GvNz]</l>
+<l>        create_matrix (3, |GvNx|, [GvNx,GvNy,GvNz], MatrixNtID)</l>
+<l>        transpose_matrix (MatrixNtID, MatrixNID)</l>
+<c>        * </c>
+<c>        * Solve linear equation to get the light source orientation</c>
+<l>        svd_matrix (MatrixNID, 'reduced', 'both', MatrixUID, MatrixSID, MatrixVID)</l>
+<l>        mult_matrix (MatrixUID, MatrixIID, 'ATB', MatrixMultID)</l>
+<l>        get_value_matrix (MatrixMultID, [0,1,2], [0,0,0], UI)</l>
+<l>        get_value_matrix (MatrixSID, [0,1,2], [0,1,2], S)</l>
+<l>        UI_S := []</l>
+<l>        for I := 0 to 2 by 1</l>
+<l>            UI_S := [UI_S,UI[I] / S[I]]</l>
+<l>        endfor</l>
+<l>        create_matrix (3, 1, UI_S, MatrixUI_SID)</l>
+<l>        mult_matrix (MatrixVID, MatrixUI_SID, 'AB', MatrixLID)</l>
+<l>        get_value_matrix (MatrixLID, [0,1,2], [0,0,0], L)</l>
+<c>        * Clean up memory</c>
+<l>        clear_matrix (MatrixNtID)</l>
+<l>        clear_matrix (MatrixNID)</l>
+<l>        clear_matrix (MatrixUID)</l>
+<l>        clear_matrix (MatrixSID)</l>
+<l>        clear_matrix (MatrixVID)</l>
+<l>        clear_matrix (MatrixIID)</l>
+<l>        clear_matrix (MatrixMultID)</l>
+<l>        clear_matrix (MatrixUI_SID)</l>
+<l>        clear_matrix (MatrixLID)</l>
+<c>        * </c>
+<c>        * Calculate tilt and slant from orientation vector</c>
+<l>        NormL := sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2])</l>
+<l>        L := L / NormL</l>
+<l>        tuple_atan2 (L[1], L[0], Tilt)</l>
+<l>        Slant := abs(asin(L[2]))</l>
+<l>        Tilts := [Tilts,deg(Tilt)]</l>
+<l>        Slants := [Slants,deg(Slant)]</l>
+<l>    else</l>
+<l>        Tilts := [Tilts,-1]</l>
+<l>        Slants := [Slants,-1]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="measure_light_source_orientation_from_sphere">
+<parameters>
+<parameter id="ColumnCenter"/>
+<parameter id="MaxGray"/>
+<parameter id="MinGray"/>
+<parameter id="Radius"/>
+<parameter id="RowCenter"/>
+<parameter id="ShadeImages"/>
+<parameter id="Slants"/>
+<parameter id="Tilts"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="compute_sphere_heights_and_normal_vectors">
+<interface>
+<oo>
+<par name="SphereHeight" base_type="iconic" dimension="0"/>
+<par name="SphereNormalVector" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+<par name="RowCenter" base_type="ctrl" dimension="0"/>
+<par name="ColumnCenter" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure generates a height map of a perfect sphere</c>
+<c>* and returns the coordinates of the normal vectors for</c>
+<c>* all pixels of the sphere in a 3-channel images.</c>
+<c>* </c>
+<c>* Input parameters</c>
+<c>* Radius:       The radius of the sphere in pixel</c>
+<c>* RowCenter:    The row coordinate of the center of the sphere</c>
+<c>* ColumnCenter: The column coordinate of the center of the</c>
+<c>*               sphere</c>
+<c>* ImageWidth:   The width of the image to be generated</c>
+<c>* ImageHeight:  The height of the image to be generated</c>
+<c>* </c>
+<c>* Output parameters</c>
+<c>* SphereHeight:        The height map of the sphere</c>
+<c>* SphereNormalvectors: The coordinates of the unit normal</c>
+<c>*                      vectors of the surface of the sphere,</c>
+<c>*                      coded in a three-channel image.</c>
+<c>*                      The three channels respectively contain</c>
+<c>*                      the components Nx, Ny and Nz of the</c>
+<c>*                      normal vectors.</c>
+<c>* </c>
+<c>* Compute the height map, given the radius and</c>
+<c>* the coordinates of the center</c>
+<l>gen_image_surface_second_order (Parabola, 'real', -1, -1, 0, 0, 0, Radius * Radius, RowCenter, ColumnCenter, ImageWidth, ImageHeight)</l>
+<l>sqrt_image (Parabola, SphereHeight)</l>
+<c>* Compute the normal vectors</c>
+<l>gen_image_surface_first_order (dX, 'real', 0, 1, 0, 0, ColumnCenter, ImageWidth, ImageHeight)</l>
+<l>gen_image_surface_first_order (dY, 'real', -1, 0, 0, RowCenter, 0, ImageWidth, ImageHeight)</l>
+<l>threshold (SphereHeight, Region, .01, 1.2 * Radius)</l>
+<l>reduce_domain (dX, Region, dXReduced)</l>
+<l>reduce_domain (dY, Region, dYReduced)</l>
+<l>gen_image_const (Const, 'real', ImageWidth, ImageHeight)</l>
+<l>copy_image (Const, dX)</l>
+<l>copy_image (Const, dY)</l>
+<l>overpaint_gray (dX, dXReduced)</l>
+<l>overpaint_gray (dY, dYReduced)</l>
+<l>add_image (Const, dX, dX, 1 / real(Radius), 0)</l>
+<l>add_image (Const, dY, dY, 1 / real(Radius), 0)</l>
+<l>add_image (Const, SphereHeight, dZ, 1 / real(Radius), 0)</l>
+<l>copy_image (dX, SphereNormalVector)</l>
+<l>append_channel (SphereNormalVector, dY, SphereNormalVector)</l>
+<l>append_channel (SphereNormalVector, dZ, SphereNormalVector)</l>
+<l>return ()</l>
+</body>
+<docu id="compute_sphere_heights_and_normal_vectors">
+<parameters>
+<parameter id="ColumnCenter"/>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="Radius"/>
+<parameter id="RowCenter"/>
+<parameter id="SphereHeight"/>
+<parameter id="SphereNormalVector"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

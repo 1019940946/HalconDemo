@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use anisotropic_diffusion to smooth an</c>
+<c>* image while preserving or enhancing the edge information to different degrees.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Original image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the anisotropic diffusion using the parabolic edge detection function.</c>
+<c>* Note that this function still allows a slight diffusion (smoothing) across edges.</c>
+<l>anisotropic_diffusion (Image, ImageParabolic, 'parabolic', 3, 1, 10)</l>
+<l>dev_display (ImageParabolic)</l>
+<l>Message := 'Parabolic anisotropic diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the anisotropic diffusion using the Perona-Malik edge detection</c>
+<c>* function.  Note that this function sharpens edges very slightly.</c>
+<l>anisotropic_diffusion (Image, ImagePeronaMalik, 'perona-malik', 5, 1, 10)</l>
+<l>dev_display (ImagePeronaMalik)</l>
+<l>Message := 'Perona-Malik anisotropic diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the anisotropic diffusion using the Weickert edge detection function.</c>
+<c>* Note that this function sharpens edges significantly.</c>
+<l>anisotropic_diffusion (Image, ImageWeickert, 'weickert', 6, 1, 10)</l>
+<l>dev_display (ImageWeickert)</l>
+<l>Message := 'Weickert anisotropic diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_part (111, 205, 181, 275)</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Original image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageParabolic)</l>
+<l>Message := 'Parabolic anisotropic diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImagePeronaMalik)</l>
+<l>Message := 'Perona-Malik anisotropic diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (ImageWeickert)</l>
+<l>Message := 'Weickert anisotropic diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for testing the parameters with the Video4Linux2 image acquisition interface.</c>
+<c>* </c>
+<c>* check interface revision:</c>
+<l>info_framegrabber ('Video4Linux2', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed cameras for device and port:</c>
+<l>info_framegrabber ('Video4Linux2', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* </c>
+<l>info_framegrabber ('Video4Linux2', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'camera_types', CamTypeInfo, CamTypeValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'ports', PortInfo, PortInfoValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'defaults', DefaultInfo, DefaultInfoValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'color_space', ColorspaceInfo, ColorspaceValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'bits_per_channel', BitsPerChannelInfo, BitsPerChannelValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'device', DeviceInfo, DeviceValues)</l>
+<l>info_framegrabber ('Video4Linux2', 'external_trigger', TriggerInfo, TriggerValues)</l>
+<c>* </c>
+<l>info_framegrabber ('Video4Linux2', 'field', FieldInfo, FieldValues)</l>
+<c>* </c>
+<c>* open first V4L2 camera</c>
+<l>open_framegrabber ('Video4Linux2', 1, 1, 0, 0, 0, 0, 'progressive', 8, 'gray', -1, 'default', 'auto', 'default', 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 600, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, 599)</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>    if (HalconError == H_MSG_TRUE or ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>            write_string (WindowHandle, '&lt;action parameter&gt;')</l>
+<l>        else</l>
+<l>            if (|ParameterValue| &gt; 1)</l>
+<l>                for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                    write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>                endfor</l>
+<l>                write_string (WindowHandle, ParameterValue[j])</l>
+<l>            else</l>
+<l>                if (|ParameterValue| == 1)</l>
+<l>                    write_string (WindowHandle, ParameterValue)</l>
+<l>                else</l>
+<l>                    write_string (WindowHandle, '-')</l>
+<l>                endif</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_set_check ('give_error')</l>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

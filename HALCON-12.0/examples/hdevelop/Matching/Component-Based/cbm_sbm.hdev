@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program illustrates the advantage of the component-based</c>
+<c>* matching in comparison to the shape-based matching when dealing with</c>
+<c>* compound objects.</c>
+<c>* In the first step, the compound object is searched using the shape-based</c>
+<c>* matching. In the second step, the compound object is searched using the</c>
+<c>* component-based matching. While in the shape-based matching the</c>
+<c>* components of the compound object are searched independently from</c>
+<c>* each other, the component-based matching exploits knowledge about</c>
+<c>* the relative movements of the components to reduces the search effort.</c>
+<c>* Therefore,  a significant speed-up can be observed.</c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>read_image (ModelImage, 'modules/modules_model')</l>
+<l>get_image_size (ModelImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, 70, 'black', WindowHandleText)</l>
+<l>dev_open_window (135, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandleText, 16, 'mono', 'true', 'false')</l>
+<l>query_all_colors (WindowHandle, Colors1)</l>
+<l>TextColor := 'yellow'</l>
+<c>* Define the regions for the components</c>
+<l>* draw_rectangle2 (WindowHandle, Row, Column, Phi, Length1, Length2)</l>
+<l>gen_rectangle2 (ComponentRegions, 318, 109, -1.62, 34, 19)</l>
+<l>gen_rectangle2 (Rectangle2, 342, 238, -1.63, 32, 17)</l>
+<l>gen_rectangle2 (Rectangle3, 355, 505, 1.41, 25, 17)</l>
+<l>gen_rectangle2 (Rectangle4, 247, 448, 0, 14, 8)</l>
+<l>gen_rectangle2 (Rectangle5, 237, 537, -1.57, 13, 10)</l>
+<l>concat_obj (ComponentRegions, Rectangle2, ComponentRegions)</l>
+<l>concat_obj (ComponentRegions, Rectangle3, ComponentRegions)</l>
+<l>concat_obj (ComponentRegions, Rectangle4, ComponentRegions)</l>
+<l>concat_obj (ComponentRegions, Rectangle5, ComponentRegions)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (ComponentRegions)</l>
+<l>print_mouse_message (WindowHandle, 'Press mouse button to continue.')</l>
+<l>dev_set_window (WindowHandleText)</l>
+<l>dev_set_part (0, 0, 69, Width - 1)</l>
+<l>dev_set_color (TextColor)</l>
+<l>set_tposition (WindowHandleText, 10, 10)</l>
+<l>write_string (WindowHandleText, 'Model image and')</l>
+<l>set_tposition (WindowHandleText, 30, 10)</l>
+<l>write_string (WindowHandleText, 'input regions describing the components')</l>
+<l>get_mbutton (WindowHandle, Row1, Column1, Button1)</l>
+<l>NumLevels := [4,3,3,3,3]</l>
+<c>* Use the shape-based matching to find the modules</c>
+<l>dev_clear_window ()</l>
+<l>set_tposition (WindowHandleText, 10, 10)</l>
+<l>write_string (WindowHandleText, 'Create shape models for the components...')</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (ModelImage)</l>
+<l>count_obj (ComponentRegions, NumComp)</l>
+<l>ModelIDs := []</l>
+<l>gen_empty_obj (ModelRegions)</l>
+<l>RowsRef := []</l>
+<l>ColumnsRef := []</l>
+<l>for i := 1 to NumComp by 1</l>
+<l>    select_obj (ComponentRegions, ComponentRegion, i)</l>
+<l>    reduce_domain (ModelImage, ComponentRegion, ImageReduced)</l>
+<l>    inspect_shape_model (ImageReduced, ModelImages, ModelRegion, 1, [15,35,15])</l>
+<l>    area_center (ComponentRegion, Area, RowRef, ColumnRef)</l>
+<l>    RowsRef := [RowsRef,RowRef]</l>
+<l>    ColumnsRef := [ColumnsRef,ColumnRef]</l>
+<l>    concat_obj (ModelRegions, ModelRegion, ModelRegions)</l>
+<l>    create_shape_model (ImageReduced, NumLevels[i - 1], 0, rad(360), 'auto', 'pregeneration', 'use_polarity', [15,35,15], 10, ModelID)</l>
+<l>    ModelIDs := [ModelIDs,ModelID]</l>
+<l>endfor</l>
+<l>Colors := ['red','green','blue','cyan','magenta','yellow']</l>
+<l>open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'modules/modules', 'default', -1, 1, FGHandle)</l>
+<l>Button := 0</l>
+<l>while (Button == 0)</l>
+<l>    grab_image (SearchImage, FGHandle)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_shape_models (SearchImage, ModelIDs, 0, rad(360), 0.8, 0, 0.5, 'least_squares', 0, 0.8, Row, Column, Angle, Score, Model)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := Seconds2 - Seconds1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (SearchImage)</l>
+<l>    for Match := 0 to |Model| - 1 by 1</l>
+<l>        vector_angle_to_rigid (RowsRef[Model[Match]], ColumnsRef[Model[Match]], 0, Row[Match], Column[Match], Angle[Match], HomMat2D)</l>
+<l>        select_obj (ModelRegions, ModelRegion, Model[Match] + 1)</l>
+<l>        affine_trans_region (ModelRegion, ModelRegionTrans, HomMat2D, 'nearest_neighbor')</l>
+<l>        dev_set_color (Colors[Model[Match]])</l>
+<l>        dev_display (ModelRegionTrans)</l>
+<l>    endfor</l>
+<l>    print_mouse_message (WindowHandle, 'Press left mouse button to continue.')</l>
+<l>    dev_set_window (WindowHandleText)</l>
+<l>    dev_set_part (0, 0, 69, Width - 1)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_color (TextColor)</l>
+<l>    set_tposition (WindowHandleText, 10, 10)</l>
+<l>    write_string (WindowHandleText, 'Find modules using the shape-based matching:')</l>
+<l>    set_tposition (WindowHandleText, 30, 10)</l>
+<l>    write_string (WindowHandleText, |Model| + ' modules found in ' + Time$'3.2f' + ' seconds')</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>close_framegrabber (FGHandle)</l>
+<l>for i := 0 to NumComp - 1 by 1</l>
+<l>    clear_shape_model (ModelIDs[i])</l>
+<l>endfor</l>
+<c>* Use the component-based matching to find the modules</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_set_window (WindowHandleText)</l>
+<l>dev_set_part (0, 0, 69, Width - 1)</l>
+<l>dev_clear_window ()</l>
+<l>set_tposition (WindowHandleText, 10, 10)</l>
+<l>write_string (WindowHandleText, 'Create the component model...')</l>
+<c>* Create the component model by explicitly specifying the relations</c>
+<l>create_component_model (ModelImage, ComponentRegions, 20, 20, rad(25), 0, rad(360), 15, 35, 15, 10, 0.8, NumLevels, 'auto', 'none', 'use_polarity', 'true', ComponentModelID, RootRanking)</l>
+<c>* Find the component model in a run-time image</c>
+<l>open_framegrabber ('File', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'modules/modules', 'default', -1, 1, FGHandle)</l>
+<l>Button := 0</l>
+<l>while (Button == 0)</l>
+<l>    grab_image (SearchImage, FGHandle)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_component_model (SearchImage, ComponentModelID, RootRanking, 0, rad(360), 0.5, 0, 0.5, 'stop_search', 'search_from_best', 'none', 0.8, 'least_squares', 0, 0.8, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    Time := Seconds2 - Seconds1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (SearchImage)</l>
+<l>    dev_set_colored (12)</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        dev_display (SearchImage)</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>    endfor</l>
+<l>    print_mouse_message (WindowHandle, 'Press left mouse button to stop the demo.')</l>
+<l>    dev_set_window (WindowHandleText)</l>
+<l>    dev_set_part (0, 0, 69, Width - 1)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_color (TextColor)</l>
+<l>    set_tposition (WindowHandleText, 10, 10)</l>
+<l>    write_string (WindowHandleText, 'Find modules using the component-based matching:')</l>
+<l>    set_tposition (WindowHandleText, 30, 10)</l>
+<l>    write_string (WindowHandleText, |Model| + ' modules found in ' + Time$'3.2f' + ' seconds')</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>close_framegrabber (FGHandle)</l>
+<l>clear_component_model (ComponentModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="print_mouse_message">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_color ('coral')</l>
+<l>set_tposition (WindowHandle, 450, 20)</l>
+<l>write_string (WindowHandle, Message)</l>
+<l>return ()</l>
+</body>
+<docu id="print_mouse_message">
+<short lang="en_US">Print a message while waiting for a mouse click.</short>
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

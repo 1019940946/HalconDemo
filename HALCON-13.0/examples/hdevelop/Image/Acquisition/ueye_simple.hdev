@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images from a IDS uEye camera</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('uEye', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('uEye', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open first uEye camera:</c>
+<l>open_framegrabber ('uEye', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'camera_info', CameraInfo)</l>
+<l>get_framegrabber_param (AcqHandle, 'sensor_type', SensorType)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

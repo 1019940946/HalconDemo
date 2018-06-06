@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************</c>
+<c>* Test speedups using the HDevelop integrated just-in-time</c>
+<c>* (JIT) compiler</c>
+<c>* </c>
+<c>* Run the program and follow the instructions in the sources.</c>
+<c>* First, you will be asked to uncheck, and later to check the</c>
+<c>* option that controls the use of the just-in-time compiler</c>
+<c>* </c>
+<c>* The just-in-time compiler is controlled by the preference:</c>
+<c>* 'General Options / Experienced Users / Execute procedures</c>
+<c>* JIT-compiled' - the dialog is opened automatically by the</c>
+<c>* program.</c>
+<c>* </c>
+<c>* At the end of the program the speedups for three different</c>
+<c>* test scenarios are displayed. The scenarios are:</c>
+<c>*  1) Recursive calls of some HDevelop procedures.</c>
+<c>*  2) Implementation of a filter that uses lots of loops.</c>
+<c>*  3) Sequential call of some HALCON operators.</c>
+<c>* ***********************************************************</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This program compares the JIT compiler speedup'</l>
+<l>Message[1] := 'for different procedures.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>Loops := 3</l>
+<c>* </c>
+<c>* </c>
+<l>for TestIdx := 1 to 2 by 1</l>
+<l>    dev_open_tool ('preferences', 10, 610, 400, 200, 'page', 'general_options/experienced_user', ToolId)</l>
+<c>    * ***********************************************************</c>
+<c>    * if TestIdx is 0 uncheck 'Execute procedures JIT-compiled'</c>
+<c>    *   in the preferences dialog</c>
+<c>    * else (TestIdx is 1) check it</c>
+<c>    * ***********************************************************</c>
+<l>    if (TestIdx == 1)</l>
+<l>        Title := 'First run: Not compiled'</l>
+<l>        disp_message (WindowHandle, Title, 'window', 75, 12, 'white', 'false')</l>
+<l>        Message := 'Please uncheck'</l>
+<l>        Message[1] := '[ ] \'Execute procedures JIT-compiled\''</l>
+<l>        Message[2] := 'in the preferences dialog on the right'</l>
+<l>        Message[3] := 'under the \'Experienced User\' tab.'</l>
+<l>        Message[4] := 'After that, press F5 to continue.'</l>
+<l>        Color := gen_tuple_const(|Message|,'black')</l>
+<l>        Color[1] := 'forest green'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 110, 12, Color, 'true')</l>
+<l>        stop ()</l>
+<l>        disp_message (WindowHandle, Message, 'window', 110, 12, 'light gray', 'gray')</l>
+<l>        disp_message (WindowHandle, 'Please wait while test is running...', 'window', 225, 12, 'orange', 'false')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Please wait while test is running...finished.', 'window', 225, 12, 'white', 'false')</l>
+<l>        Title := 'Second run: Compiled'</l>
+<l>        disp_message (WindowHandle, Title, 'window', 265, 12, 'white', 'false')</l>
+<l>        Message := 'Please check'</l>
+<l>        Message[1] := '[x] \'Execute procedures JIT-compiled\''</l>
+<l>        Message[2] := 'in the preferences dialog on the right.'</l>
+<l>        Message[3] := 'After that, press F5 to continue.'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 305, 12, Color, 'true')</l>
+<l>        stop ()</l>
+<l>        disp_message (WindowHandle, Message, 'window', 305, 12, 'light gray', 'gray')</l>
+<l>        disp_message (WindowHandle, 'Please wait while test is running...', 'window', 405, 12, 'orange', 'false')</l>
+<l>    endif</l>
+<c>    * ***********************************************************</c>
+<c>    * 1st test:</c>
+<c>    *   FIB: Many recursive calls</c>
+<c>    *      -&gt; Measure speedup of HDevelop procedure calls</c>
+<c>    * ***********************************************************</c>
+<c>    * </c>
+<c>    * Test runtime (first call in compiled mode calls the compiler)</c>
+<l>    Time := []</l>
+<l>    for Index := 1 to Loops by 1</l>
+<l>        count_seconds (T1)</l>
+<l>        fibonacci (20, F20)</l>
+<l>        count_seconds (T2)</l>
+<l>        Time[Index - 1] := 1000.0 * (T2 - T1)</l>
+<c>        * Select best measuring</c>
+<l>        TimeFib[TestIdx - 1] := min(Time)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * ***********************************************************</c>
+<c>    * 2nd test:</c>
+<c>    *   LOOP: Many loops with computations</c>
+<c>    *       -&gt; Measure speedup of loops</c>
+<c>    * ***********************************************************</c>
+<l>    read_image (Image, 'fabrik')</l>
+<l>    convert_image_type (Image, Image, 'uint2')</l>
+<c>    * </c>
+<c>    * Test runtime (first call in compiled mode calls the compiler)</c>
+<l>    Time := []</l>
+<l>    for Index := 1 to Loops by 1</l>
+<l>        count_seconds (T1)</l>
+<l>        mean_sp_real (Image, ImageSPMean, 3, 3, 10, 250)</l>
+<l>        count_seconds (T2)</l>
+<l>        Time[Index - 1] := 1000.0 * (T2 - T1)</l>
+<c>        * Select best measuring</c>
+<l>        TimeLoop[TestIdx - 1] := min(Time)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * ***********************************************************</c>
+<c>    * 3rd test:</c>
+<c>    *   OPS: Many HLib operator calls</c>
+<c>    *      -&gt; There is little or no speedup, because most of the</c>
+<c>    *         time is spent in the operators</c>
+<c>    * ***********************************************************</c>
+<c>    * </c>
+<c>    * Test runtime (first call in compiled mode calls the compiler)</c>
+<l>    Time := []</l>
+<l>    for Index := 1 to Loops by 1</l>
+<l>        count_seconds (T1)</l>
+<l>        process (Image, ImageOut)</l>
+<l>        count_seconds (T2)</l>
+<l>        Time[Index - 1] := 1000.0 * (T2 - T1)</l>
+<c>        * Select best measuring</c>
+<l>        TimeOperators[TestIdx - 1] := min(Time)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Calculate the speedup for the 3 test cases</c>
+<l>disp_message (WindowHandle, 'Please wait while test is running...finished.', 'window', 405, 12, 'white', 'false')</l>
+<l>SpeedUpFib := TimeFib[0] / TimeFib[1]</l>
+<l>SpeedUpLoop := TimeLoop[0] / TimeLoop[1]</l>
+<l>SpeedUpOperators := TimeOperators[0] / TimeOperators[1]</l>
+<c>* </c>
+<l>Result := 'Speedup factors'</l>
+<l>Result[1] := 'Recursive calculation of Fibonacci numbers: ' + SpeedUpFib$'.2f'</l>
+<l>Result[2] := 'Manual filter implementation (with loops):  ' + SpeedUpLoop$'.2f'</l>
+<l>Result[3] := 'HALCON operator calls:                      ' + SpeedUpOperators$'.2f'</l>
+<l>disp_message (WindowHandle, Result, 'window', 450, 12, 'black', 'true')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="fibonacci">
+<interface>
+<ic>
+<par name="N" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Fib" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (N &lt;= 0)</l>
+<l>    Fib := 0</l>
+<l>elseif (N == 1 or N == 2)</l>
+<l>    Fib := 1</l>
+<l>else</l>
+<l>    fibonacci (N - 1, A)</l>
+<l>    fibonacci (N - 2, B)</l>
+<l>    Fib := A + B</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="fibonacci">
+<parameters>
+<parameter id="Fib"/>
+<parameter id="N"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="mean_sp_real">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageSPMean" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MaskWidth" base_type="ctrl" dimension="0"/>
+<par name="MaskHeight" base_type="ctrl" dimension="0"/>
+<par name="MinThresh" base_type="ctrl" dimension="0"/>
+<par name="MaxThresh" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Manual implementation of mean_sp for real images</c>
+<c>* </c>
+<l>MW := (MaskWidth - 1) / 2</l>
+<l>MH := (MaskHeight - 1) / 2</l>
+<c>* </c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>get_image_type (Image, Type)</l>
+<c>* </c>
+<c>* </c>
+<c>* Decompose region into border and inner region</c>
+<l>gen_rectangle1 (RectangleInner, MH, MW, Height - 1 - MH, Width - 1 - MW)</l>
+<l>difference (Image, RectangleInner, RegionBorder)</l>
+<l>intersection (Image, RectangleInner, RegionInner)</l>
+<l>get_region_points (RegionBorder, RowsBorder, ColumnsBorder)</l>
+<l>get_region_points (RegionInner, RowsInner, ColumnsInner)</l>
+<c>* </c>
+<c>* </c>
+<l>gen_rectangle1 (Rectangle, 0, 0, Height - 1, Width - 1)</l>
+<l>get_region_points (Rectangle, RowsRect, ColumnsRect)</l>
+<l>get_grayval (Image, RowsRect, ColumnsRect, C)</l>
+<c>* </c>
+<c>* Generate a new tuple of same type as Image</c>
+<l>COut := C</l>
+<c>* </c>
+<c>* Border processing</c>
+<l>for I := 0 to |RowsBorder| - 1 by 1</l>
+<c>    * Get all neighboring pixels</c>
+<l>    X0 := max2(0,ColumnsBorder[I] - MW)</l>
+<l>    Y0 := max2(0,RowsBorder[I] - MH)</l>
+<l>    X1 := min2(Width - 1,ColumnsBorder[I] + MW)</l>
+<l>    Y1 := min2(Height - 1,RowsBorder[I] + MH)</l>
+<c>    * Threshold values</c>
+<l>    NN := (X1 - X0 + 1) * (Y1 - Y0 + 1)</l>
+<l>    if (NN &gt; 0)</l>
+<l>        NeighX := [X0:X1][[0:NN - 1] % (X1 - X0 + 1)]</l>
+<l>        NeighY := [Y0:Y1][[0:NN - 1] / (X1 - X0 + 1)]</l>
+<l>        NeighOffs := NeighY * Width + NeighX</l>
+<l>        NeighVal := C[NeighOffs]</l>
+<l>        NeighGoodMask := (NeighVal [&gt;=] MinThresh) and (NeighVal [&lt;=] MaxThresh)</l>
+<l>        NeighGoodNum := sum(NeighGoodMask)</l>
+<l>        if (NeighGoodNum &gt; 0)</l>
+<l>            SumGood := sum(NeighVal * NeighGoodMask)</l>
+<l>            COut[RowsBorder[I] * Width + ColumnsBorder[I]] := SumGood / NeighGoodNum</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Inner image region</c>
+<l>NN := (2 * MW + 1) * (2 * MH + 1)</l>
+<l>NeighXBase := [-MW:MW][[0:NN - 1] % (2 * MW + 1)]</l>
+<l>NeighYBase := [-MH:MH][[0:NN - 1] / (2 * MW + 1)]</l>
+<l>NeighOffsBase := NeighYBase * Width + NeighXBase</l>
+<c>* </c>
+<l>for I := 0 to |RowsInner| - 1 by 1</l>
+<l>    X := ColumnsInner[I]</l>
+<l>    Y := RowsInner[I]</l>
+<l>    NeighVal := C[NeighOffsBase + Y * Width + X]</l>
+<l>    NeighGoodMask := (NeighVal [&gt;=] MinThresh) and (NeighVal [&lt;=] MaxThresh)</l>
+<l>    NeighGoodNum := sum(NeighGoodMask)</l>
+<l>    if (NeighGoodNum &gt; 0)</l>
+<l>        SumGood := sum(NeighVal * NeighGoodMask)</l>
+<l>        COut[Y * Width + X] := SumGood / NeighGoodNum</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>gen_image_const (ImageSPMean, Type, Width, Height)</l>
+<l>change_domain (ImageSPMean, Image, ImageSPMean)</l>
+<l>set_grayval (ImageSPMean, RowsRect, ColumnsRect, COut)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="mean_sp_real">
+<abstract lang="en_US">The operator mean_sp carries out a smoothing by averaging the values. Only the gray values within the interval from MinThresh to MaxThresh are averaged. Gray values which are too light or too dark are ignored during summation. If no gray value lies within the default interval during summation the original gray value is adopted. If the thresholds are set at 0or 255, respectively, the operator mean_sp behaves like mean_image except for the running time.
+The operator mean_sp is used to suppress extreme gray values (salt and pepper noise = white and black dots).
+
+</abstract>
+<chapters lang="en_US">
+<item>Filters</item>
+<item>Smoothing</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Suppress salt and pepper noise.</short>
+<parameters>
+<parameter id="Image">
+<description lang="en_US">Input image.</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="ImageSPMean">
+<description lang="en_US">Smothed image.</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="MaskHeight">
+<default_type>integer</default_type>
+<default_value>3</default_value>
+<description lang="en_US">Height of the filter mask.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>extent.y</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+<value_min>1</value_min>
+<values>
+<item>3</item>
+<item>5</item>
+<item>7</item>
+<item>9</item>
+<item>11</item>
+</values>
+</parameter>
+<parameter id="MaskWidth">
+<default_type>integer</default_type>
+<default_value>3</default_value>
+<description lang="en_US">Width of filter mask.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>extent.x</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+<value_min>1</value_min>
+<values>
+<item>3</item>
+<item>5</item>
+<item>7</item>
+<item>9</item>
+<item>11</item>
+</values>
+</parameter>
+<parameter id="MaxThresh">
+<default_type>real</default_type>
+<default_value>254</default_value>
+<description lang="en_US">Maximum gray value.</description>
+<mixed_type>false</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+<values>
+<item>5</item>
+<item>7</item>
+<item>9</item>
+<item>11</item>
+<item>15</item>
+<item>23</item>
+<item>31</item>
+<item>43</item>
+<item>61</item>
+<item>101</item>
+<item>200</item>
+<item>230</item>
+<item>250</item>
+<item>254</item>
+</values>
+</parameter>
+<parameter id="MinThresh">
+<default_type>real</default_type>
+<default_value>1</default_value>
+<description lang="en_US">Minimum gray value.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+<values>
+<item>1</item>
+<item>5</item>
+<item>7</item>
+<item>9</item>
+<item>11</item>
+<item>15</item>
+<item>23</item>
+<item>31</item>
+<item>43</item>
+<item>61</item>
+<item>101</item>
+</values>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="process">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageOut" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Call some HALCON operators</c>
+<l>mean_image (Image, ImageOut, 13, 13)</l>
+<l>threshold (ImageOut, Region, 128, 255)</l>
+<l>overpaint_region (ImageOut, Region, 128, 'fill')</l>
+<l>median_image (ImageOut, ImageOut, 'circle', 30, 'mirrored')</l>
+<l>return ()</l>
+</body>
+<docu id="process">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageOut"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

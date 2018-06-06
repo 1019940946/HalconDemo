@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from Lumenera USB 2.0 cameras</c>
+<c>* (concurrent grabbing from two connected cameras)</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>info_framegrabber ('LuCam', 'revision', Information, ValueList)</l>
+<l>info_framegrabber ('LuCam', 'info_boards', Information, ValueList)</l>
+<l>info_framegrabber ('LuCam', 'parameters', Information, ParameterNames)</l>
+<l>open_framegrabber ('LuCam', 1, 1, 0, 0, 0, 0, 'default', 8, 'default', -1, 'false', 'default', '1', -1, -1, AcqHandle1)</l>
+<l>open_framegrabber ('LuCam', 1, 1, 0, 0, 0, 0, 'default', 8, 'default', -1, 'false', 'default', '2', -1, -1, AcqHandle2)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, 650, 640, 480, 'black', WindowHandle2)</l>
+<l>set_system ('clock_mode', 'performance_counter')</l>
+<l>set_framegrabber_param (AcqHandle1, 'demosaicing_method', 'simple')</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    count_seconds (Start)</l>
+<l>    grab_image (Image1, AcqHandle1)</l>
+<l>    grab_image (Image2, AcqHandle2)</l>
+<l>    count_seconds (Finish)</l>
+<l>    CycleTime := Finish - Start</l>
+<l>    FrameRate := 1 / CycleTime</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image1)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    set_tposition (WindowHandle1, 24, 12)</l>
+<l>    write_string (WindowHandle1, 'cycle time (s)  :' + CycleTime$'.3f')</l>
+<l>    set_tposition (WindowHandle1, 70, 12)</l>
+<l>    write_string (WindowHandle1, 'frame rate (1/s):' + FrameRate$'.3f')</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Image2)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>close_framegrabber (AcqHandle1)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

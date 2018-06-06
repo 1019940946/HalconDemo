@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'ic')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowID)</l>
+<l>decompose3 (Image, Red, Green, Blue)</l>
+<l>dev_display (Red)</l>
+<l>dev_set_colored (6)</l>
+<l>histo_2dim (Red, Red, Blue, Histo2Dim)</l>
+<l>scale_image_max (Histo2Dim, Histo2DimByte)</l>
+<l>smooth_image (Histo2DimByte, Histo2DimGauss, 'deriche2', 0.25)</l>
+<l>pouring (Histo2DimGauss, Cluster, 'all', 1, 255)</l>
+<l>dev_set_part (0, 0, 511, 511)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Red)</l>
+<l>class_2dim_sup (Red, Blue, Cluster, RegionClass2Dim)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

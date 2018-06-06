@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example how to use the USB3Vision interface</c>
+<c>* </c>
+<c>* </c>
+<l>InterfaceName := 'USB3Vision'</l>
+<c>* </c>
+<c>* Check if a device is available and if a special action</c>
+<c>* is needed to get it working with this interface.</c>
+<l>check_device (InterfaceName, Device, GenericParam)</l>
+<l>if (0 == |Device|)</l>
+<c>    * No device found, please connect one and/or check the</c>
+<c>    * documentation of the interface for system</c>
+<c>    * requirements and known problems.</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Open device with defaults and suggested Generic parameter.</c>
+<l>open_framegrabber (InterfaceName, 0, 0, 0, 0, 0, 0, 'default', -1, 'default', GenericParam, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* Now you can use the device</c>
+<l>get_framegrabber_param (AcqHandle, 'Width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'Height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<c>* </c>
+<l>for Index := 1 to 10 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="check_device">
+<interface>
+<ic>
+<par name="InterfaceName" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Device" base_type="ctrl" dimension="0"/>
+<par name="GenericParam" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* List all devices for specific image acquisition interface</c>
+<l>info_framegrabber (InterfaceName, 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* Now check the first device which is found, assuming this is the</c>
+<c>* one which you want to use.</c>
+<l>if (|BoardInfoValues|)</l>
+<l>    Device := BoardInfoValues[0]</l>
+<l>else</l>
+<l>    Device := []</l>
+<l>    GenericParam := -1</l>
+<l>    return ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Check if the device is not correctly configured for use</c>
+<c>* with this interface and extract the necessary action from</c>
+<c>* the 'suggestion' tag.</c>
+<l>ParamTag := 'suggestion:'</l>
+<l>SubStrings := split(Device,' | ')</l>
+<l>Pos := strrstr(SubStrings,ParamTag)</l>
+<l>Index := find(Pos,0)</l>
+<l>if (Index != -1)</l>
+<c>    * Need to do something special while opening the device</c>
+<l>    TagsSplitted := split(SubStrings[Index],':')</l>
+<l>    GenericParam := TagsSplitted[1]</l>
+<l>else</l>
+<c>    * Nothing special to do</c>
+<l>    GenericParam := -1</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="check_device">
+<parameters>
+<parameter id="Device"/>
+<parameter id="GenericParam"/>
+<parameter id="InterfaceName"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

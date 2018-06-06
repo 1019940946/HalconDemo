@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of the HALCON operator test_closed_xld.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>read_image (Image, 'tooth_rim')</l>
+<c>* </c>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>edges_sub_pix (Image, Edges, 'canny', 1, 20, 40)</l>
+<c>* </c>
+<c>* Test all contours for closedness, i.e., the start point equals the end point.</c>
+<l>test_closed_xld (Edges, IsClosed)</l>
+<c>* </c>
+<c>* Display open contours.</c>
+<c>* Use select_mask to get the indices of all open contours.</c>
+<c>* a) 1:|IsClosed| generates a tuple of all possible indices</c>
+<c>* b) select_mask selects all Indices, that are not closed, thus open.</c>
+<l>IndicesOpen := select_mask([1:|IsClosed|],not IsClosed)</l>
+<l>select_obj (Edges, OpenContours, IndicesOpen)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (OpenContours)</l>
+<l>disp_message (WindowHandle, 'Open contours', 'window', 12, 475, 'blue', 'true')</l>
+<c>* </c>
+<c>* Display closed contours.</c>
+<c>* Use select_mask to get the indices of all closed contours.</c>
+<l>IndicesClosed := select_mask([1:|IsClosed|],IsClosed)</l>
+<l>select_obj (Edges, ClosedContours, IndicesClosed)</l>
+<l>dev_set_color ('orange')</l>
+<l>dev_display (ClosedContours)</l>
+<l>disp_message (WindowHandle, 'Closed contours', 'window', 42, 475, 'orange', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

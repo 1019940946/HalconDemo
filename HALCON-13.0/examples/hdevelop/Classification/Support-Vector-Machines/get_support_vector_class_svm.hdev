@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use get_support_vector_class_svm</c>
+<c>* to visualize the support vectors of an SVM.  In this example, two-dimensional</c>
+<c>* data is used for the features because they can easily be visualized as regions.</c>
+<c>* The example uses two classes that are close to each other with a curved</c>
+<c>* boundary between the classes.  It generates samples from each class and</c>
+<c>* trains the SVM with the samples.  Then, the SVM is used to classify the</c>
+<c>* complete 2D feature space.  Furthermore, the support vectors are visualized.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 199)</l>
+<l>dev_update_off ()</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>gen_region_points (Region1, rand(1000) * 200, rand(1000) * 200)</l>
+<l>gen_region_points (Region2, rand(1000) * 200, rand(1000) * 200)</l>
+<l>set_system ('clip_region', 'true')</l>
+<l>gen_ellipse (Ellipse1, 60, 45, rad(-80), 60, 25)</l>
+<l>gen_ellipse (Ellipse2, 150, 120, rad(-30), 60, 35)</l>
+<l>union2 (Ellipse1, Ellipse2, Ellipse1)</l>
+<l>gen_ellipse (Ellipse2, 60, 130, rad(-45), 70, 40)</l>
+<l>intersection (Ellipse1, Region1, Region1)</l>
+<l>intersection (Ellipse2, Region2, Region2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region2)</l>
+<l>dev_set_color ('white')</l>
+<l>set_tposition (WindowHandle, 5, 5)</l>
+<l>write_string (WindowHandle, 'Training samples of the two classes')</l>
+<l>stop ()</l>
+<l>get_region_points (Region1, Rows1, Cols1)</l>
+<l>get_region_points (Region2, Rows2, Cols2)</l>
+<c>* It is instructive to vary the parameter Nu here.  Since Nu is an upper bound</c>
+<c>* for the number of support vectors, increasing Nu will lead to a larger number</c>
+<c>* of support vectors and vice versa.  Furthermore, it is also instructive to</c>
+<c>* modify the ellipses above so that the classes overlap.  Note that in this case</c>
+<c>* it is necessary to set Nu to a value that corresponds to the overlap of the</c>
+<c>* classes in order to obtain smooth class boundaries (i.e., to avoid overfitting).</c>
+<l>create_class_svm (2, 'rbf', 0.02, 0.01, 2, 'one-versus-one', 'normalization', 0, SVMHandle)</l>
+<c>* Add the samples to the SVM.</c>
+<l>for J := 0 to |Rows1| - 1 by 1</l>
+<l>    add_sample_class_svm (SVMHandle, [real(Rows1[J]),real(Cols1[J])], 0)</l>
+<l>endfor</l>
+<l>for J := 0 to |Rows2| - 1 by 1</l>
+<l>    add_sample_class_svm (SVMHandle, [real(Rows2[J]),real(Cols2[J])], 1)</l>
+<l>endfor</l>
+<c>* Train the SVM.</c>
+<l>train_class_svm (SVMHandle, 0.001, 'default')</l>
+<c>* Create two regions that visualize the support vectors of the two classes.</c>
+<l>get_support_vector_num_class_svm (SVMHandle, NumSupportVectors, NumSVPerSVM)</l>
+<l>Rows1 := []</l>
+<l>Cols1 := []</l>
+<l>Rows2 := []</l>
+<l>Cols2 := []</l>
+<l>for J := 0 to NumSupportVectors - 1 by 1</l>
+<l>    get_support_vector_class_svm (SVMHandle, J, Index)</l>
+<l>    get_sample_class_svm (SVMHandle, Index, Features, Target)</l>
+<l>    if (Target == 0)</l>
+<l>        Rows1 := [Rows1,Features[0]]</l>
+<l>        Cols1 := [Cols1,Features[1]]</l>
+<l>    else</l>
+<l>        Rows2 := [Rows2,Features[0]]</l>
+<l>        Cols2 := [Cols2,Features[1]]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>gen_cross_contour_xld (RegionSV1, Rows1, Cols1, 3, rad(45))</l>
+<l>gen_cross_contour_xld (RegionSV2, Rows2, Cols2, 3, rad(45))</l>
+<c>* Classify each point of the 2D feature space and accumulate the classification</c>
+<c>* result in a class label image.</c>
+<l>gen_image_const (Image, 'byte', 200, 200)</l>
+<l>for R := 0 to 199 by 1</l>
+<l>    for C := 0 to 199 by 1</l>
+<l>        classify_class_svm (SVMHandle, [real(R),real(C)], 1, Class)</l>
+<l>        set_grayval (Image, R, C, Class)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>label_to_region (Image, Classes)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_colored (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Classes)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region1)</l>
+<l>set_tposition (WindowHandle, 182, 2)</l>
+<l>write_string (WindowHandle, 'Samples class 1 and class region')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Region2)</l>
+<l>set_tposition (WindowHandle, 2, 2)</l>
+<l>write_string (WindowHandle, 'Samples class 2 and class region')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('cyan')</l>
+<l>dev_display (RegionSV1)</l>
+<l>set_tposition (WindowHandle, 190, 2)</l>
+<l>write_string (WindowHandle, 'Support vectors class 1')</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (RegionSV2)</l>
+<l>set_tposition (WindowHandle, 10, 2)</l>
+<l>write_string (WindowHandle, 'Support vectors class 2')</l>
+<l>dev_set_line_width (1)</l>
+<l>clear_class_svm (SVMHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

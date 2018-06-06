@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This basic example shows how to use the procedure</c>
+<c>* </c>
+<c>*    debug_find_surface_model</c>
+<c>* </c>
+<c>* to inspect and debug the parameters of find_surface_model.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Create a 3D object model of a box</c>
+<l>gen_box_object_model_3d ([0,0,0,0,0,0,0], 0.103, 0.082, 0.05, OM3DBox)</l>
+<l>triangulate_object_model_3d (OM3DBox, 'greedy', [], [], OM3DModel, Information)</l>
+<c>* </c>
+<c>* Prepare a model for edge-supported surface-based matching.</c>
+<l>FileName := 'box_edge_supported.sfm'</l>
+<l>file_exists (FileName, FileExists)</l>
+<l>if (not FileExists)</l>
+<l>    dev_disp_text ('Creating new surface model. This might take some minutes...', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    create_surface_model (OM3DModel, 0.05, 'train_3d_edges', 'true', SurfaceModel)</l>
+<l>    write_surface_model (SurfaceModel, FileName)</l>
+<l>else</l>
+<l>    dev_disp_text ('Reading pre-created surface model...', 'window', 'top', 'left', 'black', [], [])</l>
+<l>    read_surface_model (FileName, SurfaceModel)</l>
+<l>endif</l>
+<c>* </c>
+<l>read_image (ImageXYZ, 'boxes/cardboard_boxes_xyz_01')</l>
+<l>decompose3 (ImageXYZ, XScene, YScene, ZScene)</l>
+<l>xyz_to_object_model_3d (XScene, YScene, ZScene, OM3DScene)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ZScene)</l>
+<c>* </c>
+<l>dev_disp_text ('Searching for model in the scene...', 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<c>* Call find_surface_model once, set ReturnResultHandle to 'true'.</c>
+<l>find_surface_model (SurfaceModel, OM3DScene, 0.05, 0.2, 0, 'true', [], [], Poses, Scores, ResultHandle)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_display (ZScene)</l>
+<l>dev_disp_text ('find_surface_model has completed. Next, the debug procedure will be started,\nwhich allows inspection and debugging of the parameters.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Finally, call the debug procedure to inspect model and scene.</c>
+<l>debug_find_surface_model (SurfaceModel, OM3DModel, OM3DScene, ResultHandle, CreateNames, CreateValues, FindNames, FindValues)</l>
+<c>* </c>
+<c>* The output parameters of the procedure</c>
+<c>* now contain the parameters that were set within the procedure.</c>
+<c>* Pass those to create_surface_model and find_surface_model</c>
+<c>* to adapt the matching accordingly.</c>
+<l>dev_clear_window ()</l>
+<l>convert_tuple_to_string (CreateNames, CreateNamesStr)</l>
+<l>convert_tuple_to_string (CreateValues, CreateValuesStr)</l>
+<l>convert_tuple_to_string (FindNames, FindNamesStr)</l>
+<l>convert_tuple_to_string (FindValues, FindValuesStr)</l>
+<c></c>
+<l>FindMsg := ['create_surface_model:','  GenParamName: ' + CreateNamesStr,'  GenParamValue: ' + CreateValuesStr]</l>
+<l>CreateMsg := ['find_surface_model:','  GenParamName: ' + FindNamesStr,'  GenParamValue: ' + FindValuesStr]</l>
+<l>dev_disp_text (['The debug procedure has finished. The output parameters are:','',FindMsg,'',CreateMsg], 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="convert_tuple_to_string">
+<interface>
+<ic>
+<par name="Tuple" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TupleAsString" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>if (Tuple == [])</l>
+<l>    TupleAsString := '[]'</l>
+<l>else</l>
+<l>    Strings := '' + Tuple</l>
+<c>    * Escape strings with '</c>
+<l>    IsString := is_string_elem(Tuple)</l>
+<l>    if (sum(IsString) &gt; 0)</l>
+<l>        Idx := find(IsString,1)</l>
+<l>        Strings[Idx] := '\'' + Strings[Idx] + '\''</l>
+<l>    endif</l>
+<c>    * Concat to a long tuple</c>
+<l>    TupleAsString := '[' + sum('' + Strings[0:|Strings| - 2] + ', ') + Strings[|Strings| - 1] + ']'</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="convert_tuple_to_string">
+<abstract lang="en_US">Convert a tuple to a string, similar to how it is displayed in HDevelop.</abstract>
+<short lang="en_US">Convert a tuple to a readable string.</short>
+<parameters>
+<parameter id="Tuple"/>
+<parameter id="TupleAsString">
+<default_type>string</default_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

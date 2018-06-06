@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'mreut')</l>
+<l>sobel_amp (Image, EdgeAmplitude, 'sum_abs', 7)</l>
+<l>threshold (EdgeAmplitude, Edges, 40, 255)</l>
+<l>skeleton (Edges, Skeleton)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Skeleton)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

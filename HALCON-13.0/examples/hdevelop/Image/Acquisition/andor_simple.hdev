@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for grabbing images via the Andor interface</c>
+<c>* </c>
+<c>* Query actually installed cameras</c>
+<l>info_framegrabber ('Andor', 'info_boards', Information, BoardInfo)</l>
+<c>* </c>
+<l as_id="image_aquisition" as_name="Image Acquisition 01" as_grp="[1,2]" as_ord="1">open_framegrabber ('Andor', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', 1, 1, AcqHandle)</l>
+<c>* </c>
+<c>* Open window with half the size</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>get_framegrabber_param (AcqHandle, 'camera_type', CameraType)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Grab some images</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>*     grab_image_start (AcqHandle, -1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

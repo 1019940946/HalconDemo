@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program checks if SMDs are nearly horizontal or if they</c>
+<c>* are tilted with respect to the camera.</c>
+<c>* The images were taken with a small depth of field, therefore</c>
+<c>* tilted SMDs are partly blurred.</c>
+<c>* First, the SMDs are segmented from the image. Then, the</c>
+<c>* amplitudes of the edges (first derivatives of the gray values)</c>
+<c>* are computed. The edge amplitude is weak in blurred regions.</c>
+<c>* Therefore, tilted SMDs can be detected by comparing the edge</c>
+<c>* amplitudes in the left and right parts of the SMDs.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640 * .7, 512 * .7, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_open_window (0, 640 * .7 + 12, 640 * .7, 512 * .7, 'black', GrayProfileWindow)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (GrayProfileWindow, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>NumImages := 10</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'smd/smd_tilted_' + Index$'02')</l>
+<c>    * </c>
+<c>    * Segment the SMD</c>
+<l>    var_threshold (Image, Region, 20, 20, 0.1, 2, 'dark')</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 15000, 99999999)</l>
+<l>    shape_trans (SelectedRegions, RegionTrans, 'convex')</l>
+<l>    reduce_domain (Image, RegionTrans, ImageReduced)</l>
+<c>    * </c>
+<c>    * Check if the SMD is tilted</c>
+<l>    sobel_amp (ImageReduced, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>    smallest_rectangle2 (RegionTrans, Row, Column, Phi, Length1, Length2)</l>
+<l>    gen_rectangle2 (Rectangle, Row, Column, Phi, Length1 - 3, 20)</l>
+<l>    gen_measure_rectangle2 (Row, Column, Phi, Length1 - 3, 20, 640, 512, 'nearest_neighbor', MeasureHandle)</l>
+<l>    measure_projection (EdgeAmplitude, MeasureHandle, GrayValues)</l>
+<l>    close_measure (MeasureHandle)</l>
+<l>    Sequence := [1:|GrayValues|]</l>
+<l>    create_funct_1d_pairs (Sequence, GrayValues, Function)</l>
+<l>    gen_arrow_contour_xld (Arrow, [Row,Row], [Column,Column], [Row - Length1 * sin(Phi),Row + Length1 * sin(Phi)], [Column + Length1 * cos(Phi),Column - Length1 * cos(Phi)], 25, 25)</l>
+<c>    * </c>
+<c>    * Evaluate the edge amplitude of the SMD profile</c>
+<l>    Length := |GrayValues|</l>
+<l>    PartLeft := GrayValues[0:Length / 2]</l>
+<l>    PartRight := GrayValues[Length / 2:Length - 1]</l>
+<l>    RangeLeft := max(PartLeft) - min(PartLeft)</l>
+<l>    RangeRight := max(PartRight) - min(PartRight)</l>
+<l>    TiltRatio := RangeLeft / RangeRight</l>
+<l>    if (TiltRatio &gt; 3 or TiltRatio &lt; 1.0 / 3)</l>
+<l>        Color := 'red'</l>
+<l>        String := 'Not OK:\nSMD is tilted'</l>
+<l>    else</l>
+<l>        Color := 'green'</l>
+<l>        String := 'OK:\nSMD is aligned'</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color (Color)</l>
+<l>    dev_display (Arrow)</l>
+<l>    dev_display (RegionTrans)</l>
+<l>    disp_message (WindowHandle, String, 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_window (GrayProfileWindow)</l>
+<l>    dev_clear_window ()</l>
+<l>    plot_funct_1d (GrayProfileWindow, Function, [], [], Color, 'axes_color', 'none')</l>
+<l>    disp_message (GrayProfileWindow, ['Edge amplitude','Tilt ratio = ' + TiltRatio$'3.2f'], 'window', 12, 12, 'white', 'false')</l>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

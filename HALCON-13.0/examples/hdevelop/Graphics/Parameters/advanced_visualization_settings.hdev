@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows three advanced topics how you can improve</c>
+<c>* the visualization of your HDevelop programs:</c>
+<c>*   1. Transparent regions and text boxes</c>
+<c>*   2. Flicker-free visualization</c>
+<c>*   3. High-quality images and anti-aliased regions</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Display introduction.</c>
+<l>read_image (ImageWafer, 'food/hazelnut_wafer_07')</l>
+<l>get_image_size (ImageWafer, Width1, Height1)</l>
+<l>dev_open_window_fit_size (0, 0, Width1, Height1, 1024, 768, WindowHandleLeft)</l>
+<l>set_display_font (WindowHandleLeft, 14, 'mono', 'true', 'false')</l>
+<l>Text := 'This example program shows three advanced topics how'</l>
+<l>Text[1] := 'you can improve the visualization of your HDevelop programs:'</l>
+<l>Text[2] := ''</l>
+<l>Text[3] := '1. Transparent regions and text boxes'</l>
+<l>Text[4] := '2. Flicker-free visualization'</l>
+<l>Text[5] := '3. High-quality images and anti-aliased regions'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 1. Transparent regions and text boxes</c>
+<c>* </c>
+<c>* Threshold the wafer.</c>
+<l>threshold (ImageWafer, Regions1, 58, 255)</l>
+<l>closing_circle (Regions1, RegionClosing, 9.5)</l>
+<l>dev_display (ImageWafer)</l>
+<l>Text := '1. Using transparent regions and text boxes prevents'</l>
+<l>Text[1] := '   that relevant parts of an image are hidden.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>Text := 'dev_set_color (\'#rrggbbaa\')'</l>
+<l>dev_disp_text (Text, 'window', 60, 40, 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* Set a transparent yellow as color.</c>
+<l>dev_set_color ('#ffff0055')</l>
+<l>dev_display (RegionClosing)</l>
+<c>* Display a text next to the wafer.</c>
+<l>area_center (RegionClosing, Area, Row, Column)</l>
+<l>Message := 'Area:   ' + Area</l>
+<l>Message[1] := 'Row:    ' + Row</l>
+<l>Message[2] := 'Column: ' + Column</l>
+<c>* Use a transparent blue for the text box.</c>
+<l>BoxColor := '#0000ff77'</l>
+<l>dev_disp_text (Message, 'image', Row, Column + 60, 'white', 'box_color', BoxColor)</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 2. Flicker-free visualization</c>
+<c>* </c>
+<l>read_image (ImagesBoard, 'board/board-' + [1:20]$'02')</l>
+<l>select_obj (ImagesBoard, ObjectSelected, 1)</l>
+<l>dev_display (ObjectSelected)</l>
+<l>Text := '2. By default, the graphics window is updated every time'</l>
+<l>Text[1] := '   an operator visualizes something in it. This can lead to flickering.'</l>
+<l>Text[2] := '   The default is set_window_param (WindowHandleLeft, \'flush\', \'true\')'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create shape model for matching.</c>
+<l>gen_rectangle1 (ROI_0, 200, 170, 290, 410)</l>
+<l>area_center (ROI_0, Area, RowROI, ColumnROI)</l>
+<l>get_image_size (ObjectSelected, Width, Height)</l>
+<l>reduce_domain (ObjectSelected, ROI_0, ImageReduced)</l>
+<l>create_shape_model (ImageReduced, 'auto', 0, rad(360), 'auto', 'auto', 'use_polarity', 'auto', 'auto', ModelID)</l>
+<c>* </c>
+<c>* Visualize matches with default visualization, which flickers.</c>
+<l>get_window_param (WindowHandleLeft, 'flush', Flush)</l>
+<l>count_obj (ImagesBoard, Number)</l>
+<c>* Get the time to avoid that the visualization takes too long.</c>
+<l>count_seconds (TimeBegin)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    select_obj (ImagesBoard, ObjectSelected, Index)</l>
+<l>    find_shape_model (ObjectSelected, ModelID, 0, rad(360), 0.6, 1, 0.5, 'least_squares', 2, 0.9, Row, Column, Angle, Score)</l>
+<l>    vector_angle_to_rigid (Row, Column, Angle, RowROI, ColumnROI, 0, HomMat2D)</l>
+<l>    affine_trans_image (ObjectSelected, ImageAffineTrans, HomMat2D, 'constant', 'false')</l>
+<l>    dev_display (ImageAffineTrans)</l>
+<l>    dev_disp_text ('set_window_param (WindowHandle, \'flush\', \'true\')', 'window', 12, 12, 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>    wait_seconds (0.15)</l>
+<c>    * End the loop if more than 5 seconds have elapsed.</c>
+<l>    count_seconds (TimeEnd)</l>
+<l>    if (TimeEnd - TimeBegin &gt; 5)</l>
+<l>        break</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Using flush_buffer, you can control when the graphics window is updated.</c>
+<l>Text := 'Using the window parameter \'flush\''</l>
+<l>Text[1] := 'and the operator flush_buffer, you can'</l>
+<l>Text[2] := 'define exactly when the graphics window is updated.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandleLeft, 'flush', 'false')</l>
+<c>* Get the time to avoid that the visualization takes too long.</c>
+<l>count_seconds (TimeBegin)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    select_obj (ImagesBoard, ObjectSelected, Index)</l>
+<l>    find_shape_model (ObjectSelected, ModelID, 0, rad(360), 0.6, 1, 0.5, 'least_squares', 2, 0.9, Row, Column, Angle, Score)</l>
+<l>    vector_angle_to_rigid (Row, Column, Angle, RowROI, ColumnROI, 0, HomMat2D)</l>
+<l>    affine_trans_image (ObjectSelected, ImageAffineTrans, HomMat2D, 'constant', 'false')</l>
+<l>    dev_display (ImageAffineTrans)</l>
+<l>    dev_disp_text (['set_window_param (WindowHandle, \'flush\', \'false\')','[...visualization...]','flush_buffer (WindowHandle)'], 'window', 12, 12, 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>    flush_buffer (WindowHandleLeft)</l>
+<l>    wait_seconds (0.15)</l>
+<c>    * End the loop if more than 5 seconds have elapsed.</c>
+<l>    count_seconds (TimeEnd)</l>
+<l>    if (TimeEnd - TimeBegin &gt; 5)</l>
+<l>        break</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Restore default for 'flush' parameter.</c>
+<l>set_window_param (WindowHandleLeft, 'flush', Flush)</l>
+<l>clear_shape_model (ModelID)</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 3. High-quality images and anti-aliased regions</c>
+<c>* </c>
+<c>* Read an image with clear edges.</c>
+<l>read_image (Image, 'circle_plate')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>threshold (Image, Regions, 90, 255)</l>
+<c>* </c>
+<c>* Visualize low quality visualization.</c>
+<c>* </c>
+<c>* The following parameters are set by default.</c>
+<l>set_window_param (WindowHandleLeft, 'region_quality', 'low')</l>
+<l>set_part_style (WindowHandleLeft, 0)</l>
+<l>dev_clear_window ()</l>
+<c>* Set the displayed image part (simulate having zoomed out).</c>
+<l>dev_set_window (WindowHandleLeft)</l>
+<l>dev_set_part (-Height - 400, -Width + 600, Height * 2 - 400, Width * 2 + 600)</l>
+<c>* Visualize the result (loop for more precise time measurement).</c>
+<l>dev_set_color ('red')</l>
+<l>count_seconds (Seconds)</l>
+<l>for Index := 1 to 50 by 1</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Regions)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds1)</l>
+<l>Time := (Seconds1 - Seconds) / 50</l>
+<c>* Dump the window content for zooming later.</c>
+<l>dump_window_image (ImageLeft, WindowHandleLeft)</l>
+<c>* </c>
+<l>Text := '3. When zooming images with overlapping regions, you may see'</l>
+<l>Text[1] := '   artifacts at the borders where the image and region do'</l>
+<l>Text[2] := '   not overlap perfectly visually.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<l>Text := 'Default values:'</l>
+<l>Text[1] := 'set_window_param (WindowHandle, \'region_quality\', \'low\')'</l>
+<l>Text[2] := 'set_part_style (WindowHandle, 0)'</l>
+<l>Text[3] := 'Time: ' + (Time * 1000)$'.2f' + ' ms'</l>
+<l>dev_disp_text (Text, 'window', 80, 40, 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Visualize high quality visualization.</c>
+<l>dev_open_window (0, Width / 2 + 8, Width / 2, Height / 2, 'black', WindowHandleRight)</l>
+<l>set_display_font (WindowHandleRight, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('red')</l>
+<l>set_window_param (WindowHandleRight, 'region_quality', 'good')</l>
+<l>set_part_style (WindowHandleRight, 2)</l>
+<l>dev_set_window (WindowHandleRight)</l>
+<l>dev_set_part (-Height - 400, -Width + 600, Height * 2 - 400, Width * 2 + 600)</l>
+<l>count_seconds (Seconds)</l>
+<l>for Index := 1 to 50 by 1</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Regions)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds1)</l>
+<l>Time := (Seconds1 - Seconds) / 50</l>
+<c>* Dump the window content for zooming later.</c>
+<l>dump_window_image (ImageRight, WindowHandleRight)</l>
+<c>* </c>
+<l>Text := 'With the operators shown below,'</l>
+<l>Text[1] := 'you can improve the visualization.'</l>
+<l>Text[2] := 'However, this approach is more time-consuming.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', [], [])</l>
+<l>Text := ''</l>
+<l>Text[1] := 'set_window_param (WindowHandle, \'region_quality\', \'good\')'</l>
+<l>Text[2] := 'set_part_style (WindowHandle, 2)'</l>
+<l>Text[3] := 'Time: ' + (Time * 1000)$'.2f' + ' ms'</l>
+<l>dev_disp_text (Text, 'window', 80, 40, 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display zoomed parts of the dumped images.</c>
+<l>dev_open_window (Row - 50, Column + 30, 250, 200, 'black', WindowHandleLeftZoom)</l>
+<l>set_display_font (WindowHandleLeftZoom, 10, 'mono', 'true', 'false')</l>
+<l>dev_set_part (334, 218, 374, 268)</l>
+<l>dev_display (ImageLeft)</l>
+<l>dev_disp_text ('Zoomed view of the visualization', 'window', 8, 8, 'black', [], [])</l>
+<c>* </c>
+<l>dev_open_window (Row - 50, (Width / 2 + 8) + Column + 30, 250, 200, 'black', WindowHandleRightZoom)</l>
+<l>dev_set_part (334, 218, 374, 268)</l>
+<l>dev_display (ImageRight)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Visualize anti-aliasing for XLD contours.</c>
+<c>* </c>
+<c>* Close all windows and open them again later to assure default parameters.</c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Default contour visualization.</c>
+<l>dev_open_window (0, 0, Width * 0.4, Height * 0.4, 'black', WindowHandleLeft)</l>
+<l>set_display_font (WindowHandleLeft, 14, 'mono', 'true', 'false')</l>
+<l>set_window_param (WindowHandleLeft, 'anti_aliasing', 'false')</l>
+<l>dev_set_part (250, 85, 520, 450)</l>
+<l>dev_set_line_width (2)</l>
+<l>edges_sub_pix (Image, Edges, 'canny', 1, 20, 40)</l>
+<l>dev_display (Edges)</l>
+<c>* Dump the window content for zooming later.</c>
+<l>dump_window_image (ImageLeft1, WindowHandleLeft)</l>
+<c>* </c>
+<l>Text := 'With the window parameter \'anti_aliasing\','</l>
+<l>Text[1] := 'you can smooth the visual representation '</l>
+<l>Text[2] := 'of regions and XLDs.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('set_window_param (WindowHandle, \'anti_aliasing\', \'false\')', 'window', 80, 'left', 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<c>* </c>
+<c>* Visualize anti-aliased contours.</c>
+<l>dev_open_window (0, Width * 0.4 + 8, Width * 0.4, Height * 0.4, 'black', WindowHandleRight)</l>
+<l>set_display_font (WindowHandleRight, 14, 'mono', 'true', 'false')</l>
+<l>set_window_param (WindowHandleRight, 'anti_aliasing', 'true')</l>
+<l>dev_set_window (WindowHandleRight)</l>
+<l>dev_set_part (250, 85, 520, 450)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Edges)</l>
+<c>* Dump the window content for zooming later.</c>
+<l>dump_window_image (ImageRight1, WindowHandleRight)</l>
+<c>* </c>
+<l>dev_disp_text ('set_window_param (WindowHandle, \'anti_aliasing\', \'true\')', 'window', 80, 'left', 'black', ['box_color','shadow_color'], ['#d4e7fc','#a9b8c9'])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display zoomed parts of the dumped images.</c>
+<l>dev_open_window (Row - 130, Column, 250, 200, 'black', WindowHandleLeftZoom)</l>
+<l>set_display_font (WindowHandleLeftZoom, 10, 'mono', 'true', 'false')</l>
+<l>dev_set_part (340, 133, 410, 213.75)</l>
+<l>dev_display (ImageLeft1)</l>
+<l>dev_disp_text ('Zoomed view of the visualization', 'window', 8, 8, 'black', [], [])</l>
+<c>* </c>
+<l>dev_open_window (Row - 130, (Width * 0.4 + 8) + Column, 250, 200, 'black', WindowHandleRightZoom)</l>
+<l>dev_set_part (340, 133, 410, 213.75)</l>
+<l>dev_display (ImageRight1)</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

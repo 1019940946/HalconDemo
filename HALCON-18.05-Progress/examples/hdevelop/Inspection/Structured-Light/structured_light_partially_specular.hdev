@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to improve defect detection on partially</c>
+<c>* specular surfaces using deflectometry.</c>
+<c>* </c>
+<c>* For partially specular surfaces it is often the case that multiple</c>
+<c>* artifacts are detected and defects are hence not clearly found. In</c>
+<c>* these scenarios, it is recommended to use the</c>
+<c>* pattern_type='single_stripe' with a suitable single_stripe_width.</c>
+<c>* </c>
+<c>* The following example shows the improved defect detection that can</c>
+<c>* be achieved with this pattern type in comparison to the default type.</c>
+<c>* For a detailed example of the workflow of detection with deflectometry,</c>
+<c>* please refer to the example 'structured_light_tap_collar.hdev'.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 450, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_disp_intro_text ()</l>
+<l>stop ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* 1. Create the structured light model with the default pattern_type</c>
+<c>*    gray_code_and_phase_shift and set its necessary parameters.</c>
+<l>create_structured_light_model ('deflectometry', StructuredLightModel)</l>
+<c>* </c>
+<l>PatternWidth := 1600</l>
+<l>PatternHeight := 1200</l>
+<l>MinStripeWidth := 32</l>
+<l>MinGrayDifference := 0</l>
+<l>Persistence := 'true'</l>
+<l>Normalization := 'inverted_pattern'</l>
+<l>set_structured_light_model_param (StructuredLightModel, ['pattern_width','pattern_height','min_stripe_width','min_gray_difference','normalization','persistence'], [PatternWidth,PatternHeight,MinStripeWidth,MinGrayDifference,Normalization,Persistence])</l>
+<c>* 2. Acquire and decode images with this model and visualize the</c>
+<c>*    resulting defect image.</c>
+<c>* </c>
+<c>* Generate the pattern images.</c>
+<l>gen_structured_light_pattern (PatternImages, StructuredLightModel)</l>
+<c>* Read in the camera images and decode them.</c>
+<l>count_obj (PatternImages, Number)</l>
+<l>gen_empty_obj (CameraImages)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    read_image (Image, 'structured_light/varnished_metal_sheet/varnished_metal_sheet_' + Index$'02' + '.png')</l>
+<l>    concat_obj (CameraImages, Image, CameraImages)</l>
+<l>endfor</l>
+<c>* Decode the structured light pattern.</c>
+<l>decode_structured_light_pattern (CameraImages, StructuredLightModel)</l>
+<c>* Get the binarized images.</c>
+<l>get_structured_light_object (BinarizedImages, StructuredLightModel, 'binarized_image')</l>
+<l>stop ()</l>
+<l>InspectSegmentation := 'false'</l>
+<c>* </c>
+<l>dev_open_window (0, 609, 600, 450, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* 3. Check whether the bright/dark decoding is correct.</c>
+<c>* The idea here is to call the procedure and check</c>
+<c>* whether the decoded bright regions match the bright</c>
+<c>* regions on the camera images. If they don't match,</c>
+<c>* as in this example, it is an indication that the</c>
+<c>* decoding was wrong. This is usually because the surface</c>
+<c>* is partially specular and indicates that 'single_stripe'</c>
+<c>* pattern should be used.</c>
+<c>* Please uncomment the following lines to run the check.</c>
+<l>if (InspectSegmentation == 'true')</l>
+<l>    select_obj (CameraImages, CameraImagesGC, [1:2:28])</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_clear_window ()</l>
+<l>    Text := 'The decoded bright regions for min_gray_difference = 0.'</l>
+<l>    Text[1] := ' '</l>
+<l>    Text[2] := 'If the visualized region does not match the bright region on the'</l>
+<l>    Text[3] := 'camera image, then the decoding was incorrect.'</l>
+<l>    dev_disp_text (Text, 'window', 'top', 'left', 'white', 'box', 'false')</l>
+<l>    gen_structured_light_pattern (PatternImages, StructuredLightModel)</l>
+<l>    decode_structured_light_pattern (CameraImages, StructuredLightModel)</l>
+<l>    get_structured_light_object (BinarizedImages, StructuredLightModel, 'binarized_image')</l>
+<l>    structured_light_inspect_segmentation (CameraImagesGC, BinarizedImages, WindowHandle1)</l>
+<l>endif</l>
+<c>* Visualize the first 2 camera images to show the effect of the used</c>
+<c>* inverted_pattern normalization.</c>
+<l>select_obj (CameraImages, CameraImage1, 1)</l>
+<l>select_obj (CameraImages, CameraImage2, 2)</l>
+<l>dev_set_window(WindowHandle1)</l>
+<l>dev_display (CameraImage1)</l>
+<l>dev_disp_text ('First camera image.', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_set_window(WindowHandle2)</l>
+<l>dev_display (CameraImage2)</l>
+<l>dev_disp_text ('Second camera image that corresponds to the inverted pattern\nof the first pattern image.', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_open_window (510, 0, 900, 220, 'black', WindowHandle3)</l>
+<l>set_display_font (WindowHandle3, 14, 'mono', 'true', 'false')</l>
+<l>dev_disp_inverted_pattern_text ()</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (3)</l>
+<l>convert_image_type (CameraImage1, CamImage1, 'real')</l>
+<l>convert_image_type (CameraImage2, CamImage2, 'real')</l>
+<l>sub_image (CamImage1, CamImage2, DiffImage, 1, 0)</l>
+<l>dev_display (DiffImage)</l>
+<l>dev_disp_text ('Difference image of the first two camera images\nwith region where the first image is brighter\nthan the second.', 'window', 12, 12, 'black', [], [])</l>
+<l>threshold (DiffImage, BrighterInFirstImage, 0, 255)</l>
+<l>dev_display (BrighterInFirstImage)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (BinarizedImages)</l>
+<l>dev_disp_text ('The corresponding binarized image with partially wrong\nidentified white and black pixels.', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_set_window (WindowHandle3)</l>
+<l>dev_disp_problem_text ()</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<c>* Get the computed correspondence images.</c>
+<l>get_structured_light_object (CorrespondenceImages, StructuredLightModel, 'correspondence_image')</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (CorrespondenceImages)</l>
+<l>dev_disp_text ('A wrongly decoded correspondence image.', 'window', 12, 12, 'black', [], [])</l>
+<l>gen_rectangle1 (ProblematicRegion, 130, 1050, 900, 1270)</l>
+<l>dev_display (ProblematicRegion)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_disp_wrong_correspondence ()</l>
+<l>stop ()</l>
+<c>* Get the defect image and scale it.</c>
+<l>get_structured_light_object (DefectImage, StructuredLightModel, 'defect_image')</l>
+<l>scale_image_range (DefectImage, ScaledDefectImage, 0, 4)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ScaledDefectImage)</l>
+<l>dev_display (ProblematicRegion)</l>
+<l>dev_disp_text ('Scaled defect image with default pattern_type.', 'window', 12, 12, 'black', [], [])</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_disp_wrong_defect ()</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* 4. Create another structured light model with the pattern_type</c>
+<c>*    single_stripe and set the necessary parameters.</c>
+<l>create_structured_light_model ('deflectometry', StructuredLightModelSS)</l>
+<l>PatternType := 'single_stripe'</l>
+<l>SingleStripeWidth := 64</l>
+<l>set_structured_light_model_param (StructuredLightModelSS, ['pattern_width','pattern_height','min_stripe_width','min_gray_difference','pattern_type','single_stripe_width','persistence'], [PatternWidth,PatternHeight,MinStripeWidth,MinGrayDifference,PatternType,SingleStripeWidth,Persistence])</l>
+<c>* 5. Acquire and decode images with this improved model and visualize</c>
+<c>*    the improved defect image.</c>
+<c>* </c>
+<c>* Generate the pattern images.</c>
+<l>gen_structured_light_pattern (PatternImagesSS, StructuredLightModelSS)</l>
+<l>dev_open_window (510, 0, 900, 220, 'black', WindowHandle3)</l>
+<l>set_display_font (WindowHandle3, 14, 'mono', 'true', 'false')</l>
+<l>dev_disp_single_stripe_text ()</l>
+<c>* Read in the camera images and decode them.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>SingleStripesNum := round((PatternWidth + PatternHeight)/real(SingleStripeWidth))</l>
+<l>count_obj (PatternImagesSS, NumberSS)</l>
+<l>gen_empty_obj (CameraImagesSS)</l>
+<l>for Index := 1 to NumberSS by 1</l>
+<l>    select_obj (PatternImagesSS, Image, Index)</l>
+<l>    read_image (CameraImage, 'structured_light/varnished_metal_sheet/varnished_metal_sheet_single_stripe_' + Index$'02' + '.png')</l>
+<l>    if (Index &lt;= SingleStripesNum)</l>
+<c>        * Display the single stripe image.</c>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_disp_text ('Single stripe image.', 'window', 'top', 'left', 'black', [], [])</l>
+<c>        * Display the corresponding camera image.</c>
+<l>        dev_set_window (WindowHandle2)</l>
+<l>        dev_display (CameraImage)</l>
+<l>        dev_disp_text ('Corresponding camera image.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>        wait_seconds (0.1)</l>
+<l>    endif</l>
+<l>    concat_obj (CameraImagesSS, CameraImage, CameraImagesSS)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle3)</l>
+<l>dev_close_window ()</l>
+<l>decode_structured_light_pattern (CameraImagesSS, StructuredLightModelSS)</l>
+<c>* Get the computed correspondence images.</c>
+<l>get_structured_light_object (CorrespondenceImagesSS, StructuredLightModelSS, 'correspondence_image')</l>
+<l>dev_disp_comparison (CorrespondenceImagesSS, CorrespondenceImages, WindowHandle1, WindowHandle2, 'Correspondence image with single_stripe shows\n   - expected gradual change in gray values,\n   - no abrupt changes.', 'Correspondence image with default pattern_type')</l>
+<l>stop ()</l>
+<c>* Get the defect image and scale it.</c>
+<l>get_structured_light_object (DefectImageSS, StructuredLightModelSS, 'defect_image')</l>
+<l>scale_image_range (DefectImageSS, ScaledDefectImageSS, 0, 4)</l>
+<l>dev_disp_comparison (ScaledDefectImageSS, ScaledDefectImage, WindowHandle1, WindowHandle2, 'Scaled defect image with single_stripe shows\n   - more pronounced defects in comparison to the background,\n   - no problematic regions where defects are not detected.', 'Scaled defect image with default pattern_type')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_intro_text">
+<interface/>
+<body>
+<l>Text := 'This example shows how the structured light model can be optimized'</l>
+<l>Text[1] := 'to detect defects on a partially specular surface, by using'</l>
+<l>Text[2] := 'the pattern_type \'single_stripe\'.'</l>
+<l>Text[3] := ' '</l>
+<l>Text[4] := 'The steps in the example are as follows:'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := '1. Create a structured light model with the default pattern_type'</l>
+<l>Text[7] := '   and set its necessary parameters.'</l>
+<l>Text[8] := ' '</l>
+<l>Text[9] := '2. Acquire and decode images with this model and visualize the'</l>
+<l>Text[10] := '   resulting defect image.'</l>
+<l>Text[11] := ' '</l>
+<l>Text[12] := '3. Optionally, an inspection procedure can be called to check'</l>
+<l>Text[13] := '   whether the bright/dark regions were correctly decoded. This'</l>
+<l>Text[14] := '   step is skipped by default. Please set InspectSegmentation'</l>
+<l>Text[15] := '   to \'true\' to execute this step.'</l>
+<l>Text[16] := ' '</l>
+<l>Text[17] := '4. Create another structured light model with the pattern_type'</l>
+<l>Text[18] := '   \'single_stripe\' and set the necessary parameters.'</l>
+<l>Text[19] := ' '</l>
+<l>Text[20] := '5. Acquire and decode images with this improved model and visualize'</l>
+<l>Text[21] := '   the improved defect image.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_intro_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_problem_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'When enough light from a bright stripe is shed on an adjacent dark stripe, the dark stripe'</l>
+<l>Text[1] := 'may even show higher gray values than its inverted version, leading to a false'</l>
+<l>Text[2] := 'classification. This effect can be seen above in the difference image in the area where'</l>
+<l>Text[3] := 'the stripes meet.'</l>
+<l>Text[4] := ' '</l>
+<l>Text[5] := 'In the binarized image, a pixel is classified as \'bright\' when its gray value in the'</l>
+<l>Text[6] := 'first camera image is larger than its gray value in the second one. The highlighted'</l>
+<l>Text[7] := 'region of the difference image will be partially incorrectly classified as \'bright\'.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_problem_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_wrong_correspondence">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'The correspondence image shows clearly the wrong decoding. As an'</l>
+<l>Text[1] := 'initial check, the correspondence image usually shows a gradual'</l>
+<l>Text[2] := 'movement from bright to dark gray values on the inspected surface.'</l>
+<l>Text[3] := 'The absence of this continuity in the current case indicates'</l>
+<l>Text[4] := 'that the surface is partially specular.'</l>
+<l>Text[5] := ' '</l>
+<l>Text[6] := 'Additionally, in the highlighted region, a complete area of wrong'</l>
+<l>Text[7] := 'decoding is observed. This will result in either artifacts on the'</l>
+<l>Text[8] := 'defect image or undetected defects.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_wrong_correspondence">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_wrong_defect">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'The computed defect image has many artifacts that are often as'</l>
+<l>Text[1] := 'strong as actual defects on the partially specular surface.'</l>
+<l>Text[2] := ' '</l>
+<l>Text[3] := 'In the highlighted region, where problems have been already'</l>
+<l>Text[4] := 'anticipated due to the correspondence image, no defects can'</l>
+<l>Text[5] := 'be identified anymore.'</l>
+<l>Text[6] := ' '</l>
+<l>Text[7] := 'As a solution to improve defect detection on partially specular'</l>
+<l>Text[8] := 'surfaces, HALCON offers the \'single_stripe\' pattern_type.'</l>
+<l>Text[9] := 'The following part of the example shows how this pattern type'</l>
+<l>Text[10] := 'can be used in a structured light model.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_wrong_defect">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_single_stripe_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'The structured light model with pattern_type \'single_stripe\' is now created and its pattern images are'</l>
+<l>Text[1] := 'generated.'</l>
+<l>Text[2] := ' '</l>
+<l>Text[3] := 'In addition to Gray code and phase shift images, this model generates single stripe images. Those are'</l>
+<l>Text[4] := 'dark images with one bright stripe which is shifted over the images such that each monitor pixel is'</l>
+<l>Text[5] := 'contained in exactly one bright stripe. This allows more robust decoding on partially specular'</l>
+<l>Text[6] := 'surfaces.'</l>
+<l>Text[7] := ' '</l>
+<l>Text[8] := 'For this pattern_type, the number of Gray code images typically decreases. Please refer to the'</l>
+<l>Text[9] := 'operator\'s documentation for more information.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_single_stripe_text">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_disp_comparison">
+<interface>
+<io>
+<par name="Image1" base_type="iconic" dimension="0"/>
+<par name="Image2" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+<par name="Text1" base_type="ctrl" dimension="0"/>
+<par name="Text2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_rectangle1 (ProblematicRegion, 130, 1050, 900, 1270)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image1)</l>
+<l>dev_disp_text (Text1, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (ProblematicRegion)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image2)</l>
+<l>dev_disp_text (Text2, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_display (ProblematicRegion)</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_comparison">
+<parameters>
+<parameter id="Image1"/>
+<parameter id="Image2"/>
+<parameter id="Text1"/>
+<parameter id="Text2"/>
+<parameter id="WindowHandle1"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_disp_inverted_pattern_text">
+<interface/>
+<body>
+<l>dev_clear_window ()</l>
+<l>Text := 'When the inspected surface is only partially specular, light from a bright stripe can be shed on an'</l>
+<l>Text[1] := 'adjacent dark stripe, resulting in rather large (i.e. bright) gray values in the dark stripe.'</l>
+<l>Text[2] := ' '</l>
+<l>Text[3] := '\'global\' normalization (i.e. using black and white normalization images) is even less likely'</l>
+<l>Text[4] := 'to cope with this effect. Accordingly, this structured light model directly uses the normalization'</l>
+<l>Text[5] := '\'inverted_pattern\', which additionally inverts each Gray code image.'</l>
+<l>Text[6] := ' '</l>
+<l>Text[7] := 'Here, the first camera image corresponding to the first Gray code image is shown, along with the'</l>
+<l>Text[8] := 'second camera image that corresponds to the inverted version of the first Gray code image.'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_disp_inverted_pattern_text">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

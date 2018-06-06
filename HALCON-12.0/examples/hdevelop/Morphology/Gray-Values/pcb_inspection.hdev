@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'pcb')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c>* detect defects ...</c>
+<l>gray_opening_shape (Image, ImageOpening, 7, 7, 'octagon')</l>
+<l>gray_closing_shape (Image, ImageClosing, 7, 7, 'octagon')</l>
+<l>dyn_threshold (ImageOpening, ImageClosing, RegionDynThresh, 75, 'not_equal')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionDynThresh)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

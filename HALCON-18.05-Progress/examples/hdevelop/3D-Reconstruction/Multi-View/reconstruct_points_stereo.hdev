@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to use the operator</c>
+<c>* reconstruct_points_stereo.</c>
+<c>* First, we extract the marks on a calibration plate as</c>
+<c>* seen by a multi-view stereo setup consisting of four</c>
+<c>* cameras. Then, we compute the 3D coordinates of these</c>
+<c>* points by using the operator reconstruct_points_stereo.</c>
+<c>* </c>
+<c>* Set some parameters</c>
+<l>dev_update_off ()</l>
+<l>ImgPath := '3d_machine_vision/multi_view/'</l>
+<l>ImgPrefix := 'multi_view_calib_'</l>
+<l>read_image (Image, ImgPath + ImgPrefix + 'cam_0_00')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>Scale := .5</l>
+<l>CaltabDescr := 'caltab_100mm.descr'</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>open_windows_multi_view_setup (Height, Width, Scale, WindowHandles)</l>
+<l>query_color (WindowHandles[0], AllColors)</l>
+<c>* </c>
+<c>* Create the camera setup model or read it from file</c>
+<l>try</l>
+<l>    read_camera_setup_model ('../../Calibration/Multi-View/four_camera_setup_model.csm', CameraSetupModelID)</l>
+<l>catch (Exception)</l>
+<l>    if (Exception[0] == 5200)</l>
+<l>        init_camera_setup (CameraSetupModelID)</l>
+<l>    else</l>
+<l>        throw (Exception)</l>
+<l>    endif</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Create the multi-view stereo model</c>
+<l>create_stereo_model (CameraSetupModelID, 'points_3d', [], [], StereoModelID)</l>
+<c>* </c>
+<c>* Prepare auxiliary images required for visualization</c>
+<l>caltab_points (CaltabDescr, X, Y, Z)</l>
+<l>tuple_gen_sequence (0, |X| - 1, 1, Indices)</l>
+<l>Ones := gen_tuple_const(|X|,1)</l>
+<l>gen_image_const (ImageX, 'real', 1, |X|)</l>
+<l>gen_image_const (ImageY, 'real', 1, |X|)</l>
+<l>gen_image_const (ImageZ, 'real', 1, |X|)</l>
+<c>* </c>
+<l>Objects3D := []</l>
+<l>Colors := ['yellow','cyan','magenta']</l>
+<c>* To extract the marks of the calibration plate create and</c>
+<c>* initialize a calibration data model</c>
+<l>create_calib_data ('calibration_object', 4, 1, CalibDataID)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CaltabDescr)</l>
+<l>for PoseIndex := 0 to 2 by 1</l>
+<l>    AllRow := []</l>
+<l>    AllColumn := []</l>
+<l>    AllIndices := []</l>
+<l>    AllCams := []</l>
+<l>    for CameraIndex := 0 to 3 by 1</l>
+<l>        get_camera_setup_param (CameraSetupModelID, CameraIndex, 'params', CameraParam)</l>
+<l>        ImageFile := ImgPath + 'multi_view_calib_cam_' + CameraIndex + '_' + (13 + PoseIndex)$'02'</l>
+<l>        read_image (Image, ImageFile)</l>
+<c>        * extract the marks of the calibration plate</c>
+<l>        set_calib_data_cam_param (CalibDataID, CameraIndex, [], CameraParam)</l>
+<l>        find_calib_object (Image, CalibDataID, CameraIndex, 0, 0, [], [])</l>
+<l>        get_calib_data_observ_points (CalibDataID, CameraIndex, 0, 0, Row, Column, Index, Pose)</l>
+<c>        * </c>
+<l>        gen_cross_contour_xld (Crosses, Row, Column, 12, rad(45))</l>
+<l>        dev_set_window (WindowHandles[CameraIndex])</l>
+<l>        dev_set_color (Colors[PoseIndex])</l>
+<l>        dev_display (Image)</l>
+<l>        dev_display (Crosses)</l>
+<l>        disp_message (WindowHandles[CameraIndex], 'Camera ' + CameraIndex + '\nPose # ' + PoseIndex, 'window', 12, 12, 'black', 'true')</l>
+<c>        * </c>
+<l>        AllRow := [AllRow,Row]</l>
+<l>        AllColumn := [AllColumn,Column]</l>
+<l>        AllIndices := [AllIndices,Indices]</l>
+<l>        AllCams := [AllCams,CameraIndex * Ones]</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Reconstruct the 3D points and store them</c>
+<c>    * in a 3d object model</c>
+<l>    reconstruct_points_stereo (StereoModelID, AllRow, AllColumn, [], AllCams, AllIndices, X, Y, Z, CovWP, PointIndexOut)</l>
+<c>    * </c>
+<l>    set_grayval (ImageX, Indices, 0 * Indices, X)</l>
+<l>    set_grayval (ImageY, Indices, 0 * Indices, Y)</l>
+<l>    set_grayval (ImageZ, Indices, 0 * Indices, Z)</l>
+<l>    xyz_to_object_model_3d (ImageX, ImageY, ImageZ, ObjectModel3DID)</l>
+<l>    Objects3D := [Objects3D,ObjectModel3DID]</l>
+<l>    disp_continue_message (WindowHandles[3], 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Visualize results</c>
+<l>for I := 1 to 4 by 1</l>
+<l>    dev_close_window ()</l>
+<l>endfor</l>
+<l>gen_empty_obj (BackgroundImage)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 0, 'pose', CameraPose)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 0, 'params', CameraParam)</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle, Objects3D, CameraParam, [], 'color_attrib', 'coord_z', [], [], Instructions, PoseOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="init_camera_setup">
+<interface>
+<oc>
+<par name="CameraSetupModelID" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Define the internal and external camera parameters</c>
+<l>gen_cam_par_area_scan_polynomial (0.00850373, 4008.61, -2.95892e+008, 2.37315e+013, 0.139749, -0.00367983, 5.99965e-006, 6e-006, 362.715, 236.769, 752, 480, CamParam0)</l>
+<l>gen_cam_par_area_scan_polynomial (0.00854019, 3445.26, -1.18075e+008, 6.40715e+012, -0.0527818, -0.192439, 5.99894e-006, 6e-006, 406.13, 254.15, 752, 480, CamParam1)</l>
+<l>gen_cam_par_area_scan_polynomial (0.00852569, 3938.44, -2.75967e+008, 2.27295e+013, 0.231091, 0.193667, 6.00001e-006, 6e-006, 367.159, 242.477, 752, 480, CamParam2)</l>
+<l>gen_cam_par_area_scan_polynomial (0.00853794, 3793.19, -3.49193e+008, 3.9611e+013, 0.0264028, 0.147156, 6.00169e-006, 6e-006, 397.066, 224.671, 752, 480, CamParam3)</l>
+<c>* </c>
+<l>create_pose (0.0496073, 0.0280127, -0.431281, 3.5466, 354.117, 179.758, 'Rp+T', 'gba', 'point', Pose0)</l>
+<l>create_pose (0.0495484, -0.0297644, -0.429654, 355.333, 354.014, 359.147, 'Rp+T', 'gba', 'point', Pose1)</l>
+<l>create_pose (-0.0411315, -0.0294687, -0.427325, 355.519, 4.45356, 359.876, 'Rp+T', 'gba', 'point', Pose2)</l>
+<l>create_pose (-0.0414501, 0.0288074, -0.429167, 2.94179, 4.59538, 179.173, 'Rp+T', 'gba', 'point', Pose3)</l>
+<c>* </c>
+<c>* Create a camera setup model and set its parameters</c>
+<l>create_camera_setup_model (4, CameraSetupModelID)</l>
+<c>* </c>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 0, [], CamParam0, Pose0)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 1, [], CamParam1, Pose1)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 2, [], CamParam2, Pose2)</l>
+<l>set_camera_setup_cam_param (CameraSetupModelID, 3, [], CamParam3, Pose3)</l>
+<l>return ()</l>
+</body>
+<docu id="init_camera_setup">
+<parameters>
+<parameter id="CameraSetupModelID"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="open_windows_multi_view_setup">
+<interface>
+<ic>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandles" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure opens four windows in order to display</c>
+<c>* the images of a multi-view stereo setup consisting</c>
+<c>* of four cameras</c>
+<l>dev_open_window ((Height * Scale) + 10, (Width * Scale) + 10, Width * Scale, Height * Scale, 'black', WindowHandle3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle3, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_open_window ((Height * Scale) + 10, 0, Width * Scale, Height * Scale, 'black', WindowHandle2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_open_window (0, (Width * Scale) + 10, Width * Scale, Height * Scale, 'black', WindowHandle1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_open_window (0, 0, Width * Scale, Height * Scale, 'black', WindowHandle0)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle0, 14, 'mono', 'true', 'false')</l>
+<l>WindowHandles := [WindowHandle0,WindowHandle1,WindowHandle2,WindowHandle3]</l>
+<l>return ()</l>
+</body>
+<docu id="open_windows_multi_view_setup">
+<parameters>
+<parameter id="Height"/>
+<parameter id="Scale"/>
+<parameter id="Width"/>
+<parameter id="WindowHandles"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

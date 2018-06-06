@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the use of the component-based matching</c>
+<c>* to locate a compound object. In this case, a pipe wrench, of which the</c>
+<c>* components are approximately known by the user, should be found in an</c>
+<c>* image. However, the relations, i.e., the relative movements of the</c>
+<c>* components are unknown, and hence should be automatically trained.</c>
+<c>* Therefore, two operators are necessary in order to create the component</c>
+<c>* model:</c>
+<c>*     1.)  train_model_components</c>
+<c>*     2.)  create_trained_component_model</c>
+<c>* Finally, the component model is searched using</c>
+<c>*     3.)  find_component_model</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Get all search images</c>
+<l>list_image_files ('pipe_wrench', 'default', [], SearchImageFiles)</l>
+<l>SearchImageFiles := regexp_select(SearchImageFiles,'(pipe_wrench_[0-9]+)|(pipe_wrench_training_)')</l>
+<c>* </c>
+<c>* Read and display the model image</c>
+<l>read_image (ModelImage, 'pipe_wrench/pipe_wrench_model')</l>
+<l>get_image_size (ModelImage, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (ModelImage)</l>
+<c>* </c>
+<c>* Set display settings</c>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<c>* </c>
+<c>* Define the regions for the initial components</c>
+<l>gen_rectangle2 (InitialComponentRegions, 298, 363, 1.17, 162, 34)</l>
+<l>gen_rectangle2 (Rectangle2, 212, 233, 0.62, 167, 29)</l>
+<l>gen_rectangle2 (Rectangle3, 63, 444, -0.26, 50, 27)</l>
+<l>gen_rectangle2 (Rectangle4, 120, 473, 0, 33, 20)</l>
+<l>concat_obj (InitialComponentRegions, Rectangle2, InitialComponentRegions)</l>
+<l>concat_obj (InitialComponentRegions, Rectangle3, InitialComponentRegions)</l>
+<l>concat_obj (InitialComponentRegions, Rectangle4, InitialComponentRegions)</l>
+<l>dev_display (InitialComponentRegions)</l>
+<l>disp_message (WindowHandle, 'Model image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Regions of initial components', 'window', 40, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get the training images</c>
+<l>gen_empty_obj (TrainingImages)</l>
+<l>for Index := 1 to 4 by 1</l>
+<l>    read_image (TrainingImage, 'pipe_wrench/pipe_wrench_training_' + Index)</l>
+<l>    concat_obj (TrainingImages, TrainingImage, TrainingImages)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Extract the model components and train the relations</c>
+<c>* ----------------------------------------------------</c>
+<l>train_model_components (ModelImage, InitialComponentRegions, TrainingImages, ModelComponents, 22, 60, 30, 0.65, -1, -1, rad(60), 'speed', 'rigidity', 0.2, 0.3, ComponentTrainingID)</l>
+<l>get_training_components (TrainingComponents, ComponentTrainingID, 'initial_components', 2, 'false', Row, Column, Angle, Score1)</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (ModelComponents)</l>
+<l>disp_message (WindowHandle, 'Extracted model components', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the component model based on the training result</c>
+<c>* -------------------------------------------------------</c>
+<l>create_trained_component_model (ComponentTrainingID, -rad(30), rad(60), 10, 0.55, 4, 'auto', 'none', 'use_polarity', 'false', ComponentModelID, RootRanking)</l>
+<c>* </c>
+<c>* Find the component model in a run-time image</c>
+<c>* --------------------------------------------</c>
+<l>for Index := 0 to |SearchImageFiles| - 1 by 1</l>
+<l>    read_image (SearchImage, SearchImageFiles[Index])</l>
+<l>    find_component_model (SearchImage, ComponentModelID, 1, -rad(30), rad(60), 0.5, 0, 0.5, 'stop_search', 'prune_branch', 'none', 0.55, 'least_squares', 0, 0.9, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    dev_display (SearchImage)</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        dev_display (SearchImage)</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, 'Found components in image ' + (Index + 1) + ' of ' + |SearchImageFiles|, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * To run the program without stops deactivate the following lines</c>
+<l>    if (Index &lt; |SearchImageFiles| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

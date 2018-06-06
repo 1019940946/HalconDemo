@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates the benefit of a tilt lens</c>
+<c>* and calibrates a camera with a telecentric tilt lens.</c>
+<c>* Some peculiarities for telecentric tilt lenses are</c>
+<c>* pointed out.</c>
+<c>* </c>
+<c>* Prepare windows</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>WindowWidth := 500</l>
+<l>WindowHeight := 400</l>
+<l>open_two_windows_setup (WindowWidth, WindowHeight, 1, WindowHandles)</l>
+<c>* </c>
+<c>* This section shows the benefit to be gained from using</c>
+<c>* a tiltable lens. First explain the application.</c>
+<l>Message := 'This example demonstrates the benefit of a'</l>
+<l>Message[1] := 'tilt lens and calibrates a camera with a'</l>
+<l>Message[2] := 'telecentric tilt lens.'</l>
+<l>disp_message (WindowHandles[1], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>Message := 'With a standard camera and lens, best results'</l>
+<l>Message[1] := 'are achieved if the optical axis of the camera'</l>
+<l>Message[2] := 'is perpendicular to the measurement plane'</l>
+<l>Message[3] := 'that contains the object. However, an obstacle'</l>
+<l>Message[4] := 'above the measurement plane may prevent this'</l>
+<l>Message[5] := 'camera setup and the camera must look at the'</l>
+<l>Message[6] := 'object from the side.'</l>
+<l>disp_message (WindowHandles[1], Message, 'window', 102, 22, 'black', 'false')</l>
+<c>* </c>
+<c>* When the optical axis is not perpendicular to the</c>
+<c>* measurement plane, the volume of the depth of focus</c>
+<c>* is not parallel to the measurement plane.</c>
+<c>* As a consequence of this camera setup, a part of an object</c>
+<c>* lying in the measurement plane appears blurred in the image.</c>
+<l>dev_set_window (WindowHandles[0])</l>
+<l>read_image (ImageBlurred, 'caliper/caliper_no_tilt')</l>
+<l>get_image_size (ImageBlurred, Width, Height)</l>
+<l>crop_rectangle1 (ImageBlurred, ImagePart, 134, 134, 1000, 1000)</l>
+<c>* Generate image of the scene</c>
+<l>show_setup (ImagePart, WindowHandles[0], 0)</l>
+<l>disp_continue_message (WindowHandles[1], 'black', 'true')</l>
+<l>stop ()</l>
+<l>Message := 'If the optical axis is not perpendicular'</l>
+<l>Message[1] := 'to the measurement plane...'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandles[1])</l>
+<l>gen_rectangle1 (ROIBlurredL, 231, 844, 897, 1276)</l>
+<l>gen_rectangle1 (ROIBlurredR, 231, 7, 897, 170)</l>
+<l>dev_display (ImageBlurred)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (ROIBlurredR)</l>
+<l>dev_display (ROIBlurredL)</l>
+<l>Message := '... parts of the object in the measurement'</l>
+<l>Message[1] := 'plane are blurred in the image.'</l>
+<l>disp_message (WindowHandles[1], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandles[1], 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* If the camera is equipped with a tilt lens,</c>
+<c>* the lens can be tilted so that the whole measurement</c>
+<c>* plane is in focus.</c>
+<l>show_setup (ImagePart, WindowHandles[0], 1)</l>
+<l>Message := 'If the camera is equipped with a tilt lens ...'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* Second window</c>
+<l>read_image (ImageSharp, 'caliper/caliper_with_tilt')</l>
+<l>dev_set_window (WindowHandles[1])</l>
+<l>dev_display (ImageSharp)</l>
+<l>Message := '... the lens can be tilted so that the entire'</l>
+<l>Message[1] := 'measurement plane is in focus.'</l>
+<l>disp_message (WindowHandles[1], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandles[1], 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Calibration of a camera with telecentric tilt lens</c>
+<l>dev_set_window (WindowHandles[0])</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Calibrate camera with a telecentric tilt lens'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandles[1])</l>
+<l>dev_set_color ('green')</l>
+<c>* Specify initial camera parameter.</c>
+<c>* The tilt angle defines the angle by which the</c>
+<c>* lens is tilted.</c>
+<l>Tilt := 8.5</l>
+<c>* The rotation angle defines the orientation of</c>
+<c>* the axis around which the tilt is performed.</c>
+<c>* It is the angle between the x-axis of</c>
+<c>* the sensor and the tilt axis of the lens.</c>
+<l>Rot := 270</l>
+<c>* Define the magnification of the lens</c>
+<l>Magnification := 0.35</l>
+<c>* Define size of a pixel</c>
+<l>Sx := 5.4e-6</l>
+<l>Sy := Sx</l>
+<l>gen_cam_par_area_scan_tilt_bilateral_telecentric_division (Magnification, 0.0, Tilt, Rot, Sx, Sy, Width / 2, Height / 2, Width, Height, StartCamParam)</l>
+<l>DescrFile := 'calplate_40mm.cpd'</l>
+<c>* While tilt lenses provide a region for in which the depth of field</c>
+<c>* overlaps in a large area for both cameras, the depth of field is</c>
+<c>* wedge-shaped, where the wedge of one camera has a small depth at</c>
+<c>* the left or right borders of the images.  This means that some marks</c>
+<c>* in the calibration sequence at the left or right borders may still</c>
+<c>* be slightly out of focus in this setup.  Therefore, we use a higher</c>
+<c>* Sigma to make sure that all marks are extracted.</c>
+<l>Sigma := 2.5</l>
+<c>* </c>
+<c>* Create the calibration data model</c>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], StartCamParam)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, DescrFile)</l>
+<c>* </c>
+<c>* Input calibration data into the calibration model</c>
+<l>for Index := 1 to 8 by 1</l>
+<l>    read_image (Image, 'stereo/telecentric_tilt/cam_0_calib_plate_' + Index$'02')</l>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, Index, 'sigma', Sigma)</l>
+<l>    get_calib_data_observ_contours (Caltab, CalibDataID, 'caltab', 0, 0, Index)</l>
+<l>    get_calib_data_observ_contours (Circles, CalibDataID, 'marks', 0, 0, Index)</l>
+<c>    * Visualize calibration object found in the current image</c>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Caltab)</l>
+<l>    dev_display (Circles)</l>
+<l>    wait_seconds (0.1)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Calibrate the cameras</c>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>dev_set_window (WindowHandles[1])</l>
+<l>dev_clear_window ()</l>
+<c>* Inspect the calibration results</c>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParam)</l>
+<c>* Get the names of the camera parameters for this model</c>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params_labels', ParLabels)</l>
+<c>* </c>
+<c>* Display the initial and the optimized camera parameters</c>
+<l>display_camera_parameters (StartCamParam, CamParam, Error, ParLabels$'-5', WindowHandles[1])</l>
+<l>dev_set_window (WindowHandles[0])</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Discussion of the calibration results:'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>Message[0] := 'The calibration error indicates that the'</l>
+<l>Message[1] := 'calibrated camera parameters correctly describe'</l>
+<l>Message[2] := 'the imaging geometry.'</l>
+<l>Message[3] := 'Nevertheless, the error is slighlty higher than'</l>
+<l>Message[4] := 'it would be in a setup with a larger'</l>
+<l>Message[5] := 'depth of field.'</l>
+<l>Message[6] := 'This tilt lens has nearly no distortion.'</l>
+<l>Message[7] := 'In such a case, a robust calibration of the'</l>
+<l>Message[8] := 'tilt parameters and the optical center (cx, cy)'</l>
+<l>Message[9] := 'is difficult, e.g., the parameters'</l>
+<l>Message[10] := 'may differ from the nominal parameters.'</l>
+<l>Message[11] := ' '</l>
+<l>Message[12] := 'However, as we will see in the next step, the'</l>
+<l>Message[13] := 'determined camera parameters are consistent'</l>
+<l>Message[14] := 'and can be used for accurate measurements.'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 42, 22, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandles[1], 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine mean distance of pitch lines</c>
+<l>dev_set_window (WindowHandles[0])</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Use the calibration results:'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 12, 12, 'black', 'true')</l>
+<l>Message := 'Measure the mean distance of the pitch lines'</l>
+<l>Message[1] := 'of a caliper with high accuracy.'</l>
+<l>disp_message (WindowHandles[0], Message, 'window', 42, 22, 'black', 'false')</l>
+<l>dev_set_window (WindowHandles[1])</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (ImageSharp)</l>
+<c>* </c>
+<c>* Extract measurement plane using the optimized</c>
+<c>* camera parameters</c>
+<l>read_image (ImageMeasurementPlane, 'caliper/caliper_measurement_plane')</l>
+<l>find_calib_object (ImageMeasurementPlane, CalibDataID, 0, 0, 0, 'sigma', 0.5)</l>
+<l>get_calib_data_observ_points (CalibDataID, 0, 0, 0, RowCoor, ColumnCoord, Indices, Poses)</l>
+<c>* </c>
+<c>* Note that for telecentric cameras the distance z</c>
+<c>* to the camera does not have an effect on the appearance of</c>
+<c>* the calibration plate in the image. Therefore cannot be</c>
+<c>* determined. Another consequence is that the pose of the</c>
+<c>* measurement plane does not need to be compensated</c>
+<c>* for the plate thickness.</c>
+<c>* </c>
+<c>* Measure the mean distance between the pitch lines</c>
+<l>gen_measure_rectangle2 (670, 640, rad(0), 635, 31, Width, Height, 'bilinear', MeasureHandle)</l>
+<l>gen_rectangle2 (Rectangle, 670, 640, rad(0), 635, 31)</l>
+<c>* </c>
+<c>* Determine the image positions of the pitch lines</c>
+<l>measure_pairs (ImageSharp, MeasureHandle, 2, 50, 'all', 'all', RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<l>Row := (RowEdgeFirst + RowEdgeSecond) / 2.0</l>
+<l>Col := (ColumnEdgeFirst + ColumnEdgeSecond) / 2.0</l>
+<l>gen_cross_contour_xld (Cross, Row, Col, 20, 0.785398)</l>
+<l>dev_display (ImageSharp)</l>
+<l>dev_display (Cross)</l>
+<c>* </c>
+<c>* Determine the positions of the pitch lines in camera coordinates</c>
+<l>image_points_to_world_plane (CamParam, Poses, Row, Col, 'mm', X1, Y1)</l>
+<l>distance_pp (X1[0:2], Y1[0:2], X1[1:3], Y1[1:3], Distance)</l>
+<c>* </c>
+<c>* Compute the mean and the deviation of the distances.</c>
+<l>MeanDistance := mean(Distance)</l>
+<l>DeviationDistance := deviation(Distance)</l>
+<l>disp_message (WindowHandles[1], ['Mean distance: ' + MeanDistance$'.3f' + ' mm','Deviation:'$'-15' + DeviationDistance$'.3f' + ' mm'], 'window', 12, 12, 'black', 'true')</l>
+<l>close_measure (MeasureHandle)</l>
+<c>* </c>
+<c>* Delete calibration data model</c>
+<l>clear_calib_data (CalibDataID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="open_two_windows_setup">
+<interface>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="Scale" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandles" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure opens two windows in order to display</c>
+<c>* the images and results for this example</c>
+<c>* </c>
+<l>dev_open_window (0, 0, Width * Scale, Height * Scale, 'white', WindowHandle1)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_open_window (0, (Width * Scale) + 8, Width * Scale, Height * Scale, 'white', WindowHandle2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('green')</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>WindowHandles := [WindowHandle1,WindowHandle2]</l>
+</body>
+<docu id="open_two_windows_setup">
+<parameters>
+<parameter id="Height"/>
+<parameter id="Scale"/>
+<parameter id="Width"/>
+<parameter id="WindowHandles"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_camera_parameters">
+<interface>
+<ic>
+<par name="StartCamParam" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Error" base_type="ctrl" dimension="0"/>
+<par name="ParLabels" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* 'area_scan_division' camera model</c>
+<l>dev_get_window (WindowHandleTmp)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Compare initial and calibrated camera'</l>
+<l>Message[1] := 'parameters'</l>
+<c>* </c>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>disp_message (WindowHandle, 'Residual calibration error = ' + Error$'.3f', 'window', 72, 22, 'black', 'false')</l>
+<c>* Shorten the pose labels to at most five characters</c>
+<l>for Index := 1 to |ParLabels| - 1 by 1</l>
+<l>    if (strlen(ParLabels[Index]) &gt; 5)</l>
+<l>        ParLabels[Index] := ParLabels[Index]{0:3} + '.'</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Start camera paramters</c>
+<l>Message := ['Initial parameters:',' ']</l>
+<l>Style := ['.4f','.2f','.2f','.2f','.2e','.2e','.2f','.2f']</l>
+<l>Unit := [' ','',' deg',' deg',' m',' m',' px',' px']</l>
+<l>for Index := 1 to |StartCamParam| - 3 by 1</l>
+<l>    Message := [Message,ParLabels[Index] + ' = ' + StartCamParam[Index]$Style[Index - 1] + Unit[Index - 1]]</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle, Message, 'window', 102, 22, 'black', 'false')</l>
+<c>* Optimized camera parameters</c>
+<l>Message := ['Calibrated parameters:',' ']</l>
+<l>Style := ['.4f','.2f','.2f','.2f','.2e','.2e','.2f','.2f']</l>
+<l>Unit := [' ','',' deg',' deg',' m',' m',' px',' px']</l>
+<l>for Index := 1 to |CamParam| - 3 by 1</l>
+<l>    Message := [Message,ParLabels[Index] + ' = ' + CamParam[Index]$Style[Index - 1] + Unit[Index - 1]]</l>
+<l>endfor</l>
+<l>disp_message (WindowHandle, Message, 'window', 102, Width / 2, 'black', 'false')</l>
+<l>dev_set_window (WindowHandleTmp)</l>
+<l>return ()</l>
+</body>
+<docu id="display_camera_parameters">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Error"/>
+<parameter id="ParLabels"/>
+<parameter id="StartCamParam"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_setup">
+<interface>
+<io>
+<par name="ImagePart" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Tilt" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Generate image of the scene</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>get_window_extents (WindowHandle, WRow, WColumn, WindowWidth, WindowHeight)</l>
+<l>S := [340,10]</l>
+<l>LP := [170,210]</l>
+<l>OP := [S[0],410]</l>
+<l>L := 240</l>
+<l>Phi1 := rad(135)</l>
+<l>Phi2 := rad(155)</l>
+<l>CP := [S[0] + L * cos(Phi2),S[1] + L * sin(Phi2)]</l>
+<l>gen_rectangle1 (Obstacle, 0, 258, 173, WindowWidth - 1)</l>
+<l>gen_contour_polygon_xld (LensPlane, [S[0],LP[0]], [S[1],LP[1]])</l>
+<l>gen_contour_polygon_xld (ImagePlane, [S[0],CP[0]], [S[1],CP[1]])</l>
+<l>gen_contour_polygon_xld (ObjectPlane, [S[0],S[0]], [0,WindowWidth - 1])</l>
+<l>gen_circle (ScheimpflugAxis, S[0], S[1], 4.5)</l>
+<l>LL := 30</l>
+<l>gen_region_polygon_filled (Lens, [LP[0],LP[0] + LL,LP[0],LP[0]] - 7, [LP[1],LP[1],LP[1] + LL,LP[1]] - 7)</l>
+<l>gen_contour_polygon_xld (Lens1, [LP[0],LP[0] + LL,LP[0],LP[0]] - 7, [LP[1],LP[1],LP[1] + LL,LP[1]] - 7)</l>
+<l>gen_rectangle2 (CameraTilt, CP[0] + 15, CP[1] + 45, Phi2, 50, 30)</l>
+<l>gen_rectangle2 (Camera, LP[0] - 40, LP[1] - 40, Phi1, 45, 30)</l>
+<l>gen_contour_polygon_xld (OpticalAxis, [LP[0],LP[0] + L * cos(Phi1 - rad(90))], [LP[1],LP[1] + L * sin(Phi1 - rad(90))])</l>
+<c>* </c>
+<l>Row := [134,134,1000,1000] - 134</l>
+<l>Column := [6,1280,6,1280] - 6</l>
+<l>RowNew := [OP[0] - 20,OP[0] - 20,OP[0] + 20,OP[0] + 20]</l>
+<l>ColumnNew := [OP[1] - 45,OP[1] + 55,OP[1] - 90,OP[1] + 35]</l>
+<l>vector_to_proj_hom_mat2d (Row, Column, RowNew, ColumnNew, 'normalized_dlt', [], [], [], [], [], [], HomMat2D, Covariance)</l>
+<l>projective_trans_image_size (ImagePart, TransImage, HomMat2D, 'bilinear', 500, 400, 'false')</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_set_draw ('fill')</l>
+<c>* </c>
+<l>if (Tilt)</l>
+<l>    dev_display (CameraTilt)</l>
+<l>    dev_set_color ('forest green')</l>
+<l>    dev_display (LensPlane)</l>
+<l>    dev_display (ImagePlane)</l>
+<l>    dev_display (ScheimpflugAxis)</l>
+<l>    dev_display (ObjectPlane)</l>
+<l>    disp_message (WindowHandle[0], 'object plane', 'image', S[0], S[1] + 100, 'forest green', 'false')</l>
+<l>    disp_message (WindowHandle[0], 'S', 'image', S[0], S[1], 'forest green', 'false')</l>
+<l>    disp_message (WindowHandle[0], 'image plane', 'image', (S[0] + CP[0]) / 2 - 40, (S[1] + CP[1]) / 2 - 40, 'forest green', 'false')</l>
+<l>    disp_message (WindowHandle[0], 'lens plane', 'image', (S[0] + LP[0]) / 2, (S[1] + LP[1]) / 2, 'forest green', 'false')</l>
+<l>else</l>
+<l>    dev_display (Camera)</l>
+<l>    dev_set_color ('black')</l>
+<l>    dev_display (ObjectPlane)</l>
+<c>    * </c>
+<l>endif</l>
+<l>dev_display (TransImage)</l>
+<l>dev_display (OpticalAxis)</l>
+<l>dev_set_color ('gray')</l>
+<l>dev_display (Obstacle)</l>
+<l>dev_display (Lens)</l>
+<l>disp_message (WindowHandle[0], 'optical axis', 'image', (LP[0] + OP[0]) / 2, (LP[1] + OP[1]) / 2, 'black', 'false')</l>
+<l>disp_message (WindowHandle[0], 'lens', 'image', LP[0] + 25, LP[1] - 20, 'black', 'false')</l>
+<l>disp_message (WindowHandle[0], 'obstacle', 'image', 75, 340, 'black', 'false')</l>
+<l>disp_message (WindowHandle[0], 'camera', 'image', CP[0], CP[1] + 30, 'black', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="show_setup">
+<parameters>
+<parameter id="ImagePart"/>
+<parameter id="Tilt"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

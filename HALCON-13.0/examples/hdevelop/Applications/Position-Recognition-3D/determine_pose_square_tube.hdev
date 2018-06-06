@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to determine the pose of an</c>
+<c>* object having a rectangular shaped surface.</c>
+<c>* First, the contour of the rectangular shaped surface is</c>
+<c>* extracted from the image. Then, this contour is processed</c>
+<c>* together with the camera parameters by the operator</c>
+<c>* get_rectangle_pose, which delivers the pose of the object.</c>
+<c>* As an alternative, the operator vector_to_pose can also be</c>
+<c>* used. Here, the correspondences between the corner points</c>
+<c>* of the rectangle in the image and in the real world must be</c>
+<c>* provided instead of the contours.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'square_tube/square_tube_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_lut ('cubic_root')</l>
+<c>* </c>
+<c>* Set the camera parameter and the dimensions of the object</c>
+<l>gen_cam_par_area_scan_division (0.0168781, -758.977, 5.20077e-006, 5.2e-006, 645.492, 545.222, 1280, 1024, CamParam)</l>
+<l>RectWidth := 0.024</l>
+<l>RectHeight := RectWidth</l>
+<c>* </c>
+<c>* Determine the pose of the rectangular object by using the</c>
+<c>* operator get_rectangle_pose</c>
+<l>NumImages := 5</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    PoseOut := []</l>
+<l>    read_image (Image, 'square_tube/square_tube_' + Index$'02')</l>
+<c>    * </c>
+<c>    * Detect the contours of the rectangular surface</c>
+<l>    extract_rectangle_contour (Image, ClosedContours)</l>
+<c>    * </c>
+<c>    * Call get_rectangle_pose</c>
+<l>    get_rectangle_pose (ClosedContours, CamParam, 0.024, 0.024, 'tukey', 2, Pose, CovPose, Error)</l>
+<c>    * </c>
+<c>    * Display the result</c>
+<l>    pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>    affine_trans_point_3d (HomMat3D, [0,0], [0,0], [0,1], Qx, Qy, Qz)</l>
+<l>    if (Qz[1] - Qz[0] &gt; 0)</l>
+<l>        Pose[4] := Pose[4] + 180</l>
+<l>        Pose[5] := -Pose[5]</l>
+<l>    endif</l>
+<l>    PoseOut := [PoseOut,Pose]</l>
+<l>    dev_display (Image)</l>
+<l>    draw_3D_detail (PoseOut, RectWidth, RectHeight, CamParam, WindowHandle)</l>
+<l>    dev_set_colored (3)</l>
+<l>    dev_set_line_width (4)</l>
+<l>    disp_3d_coord_system (WindowHandle, CamParam, Pose, .015)</l>
+<l>    disp_message (WindowHandle, 'Determine pose with get_rectangle_pose', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<l>Message := 'Because get_rectangle_pose is not always robust,'</l>
+<l>Message[1] := 'if the contours are noisy, this example shows'</l>
+<l>Message[2] := 'an alternative solution:'</l>
+<l>Message[3] := 'Therefore, the corner points of an ideal'</l>
+<l>Message[4] := 'rectangle are calculated from the extracted'</l>
+<l>Message[5] := 'contours and used with vector_to_pose.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the pose of the rectangular object by using the</c>
+<c>* operator vector_to_pose</c>
+<l>hW := RectWidth * 0.5</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    PoseOut := []</l>
+<l>    read_image (Image, 'square_tube/square_tube_' + Index$'02')</l>
+<c>    * </c>
+<c>    * Detect the contours of the rectangular surface</c>
+<l>    extract_rectangle_contour (Image, ClosedContours)</l>
+<c>    * </c>
+<c>    * Form a perfect rectangle from the given contours</c>
+<l>    segment_contours_xld (ClosedContours, ContoursSplit, 'lines', 10, 10, 2)</l>
+<l>    union_collinear_contours_xld (ContoursSplit, UnionContours, 30, 2, 9, 0.7, 'attr_keep')</l>
+<l>    sort_center_contour_xld (UnionContours, OrderedXLDs)</l>
+<l>    fit_line_contour_xld (OrderedXLDs, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>    Rows := []</l>
+<l>    Columns := []</l>
+<l>    for J := 0 to 3 by 1</l>
+<l>        intersection_lines (RowBegin[J], ColBegin[J], RowEnd[J], ColEnd[J], RowBegin[(J + 1) % 4], ColBegin[(J + 1) % 4], RowEnd[(J + 1) % 4], ColEnd[(J + 1) % 4], Row, Column, IsOverlapping)</l>
+<l>        Rows := [Rows,Row]</l>
+<l>        Columns := [Columns,Column]</l>
+<l>    endfor</l>
+<l>    gen_cross_contour_xld (Cross, Rows, Columns, 30, 0.785398)</l>
+<l>    Rows := [Rows,Rows[0]]</l>
+<l>    Columns := [Columns,Columns[0]]</l>
+<l>    gen_region_polygon (Region, Rows, Columns)</l>
+<l>    gen_contour_region_xld (Region, Contours, 'border')</l>
+<c>    * </c>
+<c>    * Call vector_to_pose</c>
+<l>    vector_to_pose ([hW,hW,-hW,-hW,hW], [-hW,hW,hW,-hW,-hW], [0.0,0.0,0.0,0.0,0.0], Rows, Columns, CamParam, 'iterative', 'error', Pose, Quality)</l>
+<c>    * </c>
+<c>    * Display the result</c>
+<l>    pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>    affine_trans_point_3d (HomMat3D, [0,0], [0,0], [0,1], Qx, Qy, Qz)</l>
+<l>    if (Qz[1] - Qz[0] &gt; 0)</l>
+<l>        Pose[4] := Pose[4] + 180</l>
+<l>        Pose[5] := -Pose[5]</l>
+<l>    endif</l>
+<l>    PoseOut := [PoseOut,Pose]</l>
+<l>    dev_display (Image)</l>
+<l>    draw_3D_detail (PoseOut, RectWidth, RectHeight, CamParam, WindowHandle)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_set_colored (3)</l>
+<l>    dev_set_line_width (4)</l>
+<l>    disp_3d_coord_system (WindowHandle, CamParam, Pose, .015)</l>
+<l>    disp_message (WindowHandle, 'Determine pose with vector_to_pose', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="sort_center_contour_xld">
+<interface>
+<io>
+<par name="SelectedContours" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="OrderedXLDs" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>area_center_points_xld (SelectedContours, Area, XLDRow, XLDColumn)</l>
+<l>RowCenter := (max(XLDRow) + min(XLDRow)) / 2</l>
+<l>ColumnCenter := (max(XLDColumn) + min(XLDColumn)) / 2</l>
+<l>gen_cross_contour_xld (Cross, RowCenter, ColumnCenter, 6, 0.785398)</l>
+<l>tuple_atan2 (XLDRow - RowCenter, XLDColumn - ColumnCenter, Angle)</l>
+<l>tuple_sort_index (Angle, Indices)</l>
+<l>gen_empty_obj (OrderedXLDs)</l>
+<l>for c := 0 to |XLDRow| - 1 by 1</l>
+<l>    select_obj (SelectedContours, Contour, Indices[c] + 1)</l>
+<l>    concat_obj (OrderedXLDs, Contour, OrderedXLDs)</l>
+<l>    dev_display (Contour)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="sort_center_contour_xld">
+<short lang="en_US">sorts xld contours clockwise regarding their orientation with respect to a given center point</short>
+<parameters>
+<parameter id="OrderedXLDs"/>
+<parameter id="SelectedContours"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="draw_3D_detail">
+<interface>
+<ic>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="RectWidth" base_type="ctrl" dimension="0"/>
+<par name="RectHeight" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays the contour of the rectangular tube</c>
+<c>* by using the provided pose</c>
+<c>* </c>
+<c>* Compute projection of 3D box</c>
+<l>pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>hW := RectWidth / 2</l>
+<l>hH := RectHeight / 2</l>
+<l>XCoord := [hW,hW,-hW,-hW,hW]</l>
+<l>XCoord := [XCoord,XCoord]</l>
+<l>YCoord := [hH,-hH,-hH,hH,hH]</l>
+<l>YCoord := [YCoord,YCoord]</l>
+<l>tuple_gen_const (5, -0.06, ZCoord)</l>
+<l>ZCoord := [ZCoord,0,0,0,0,0]</l>
+<l>affine_trans_point_3d (HomMat3D, XCoord, YCoord, ZCoord, Qx, Qy, Qz)</l>
+<l>project_3d_point (Qx, Qy, Qz, CamParam, Row, Column)</l>
+<l>gen_contour_polygon_xld (Cover, Row[5:9], Column[5:9])</l>
+<l>gen_contour_polygon_xld (Bottom, Row[0:4], Column[0:4])</l>
+<c>* </c>
+<c>* Display shapes</c>
+<l>dev_set_line_width (2)</l>
+<l>set_line_style (WindowHandle, [2,2])</l>
+<l>dev_set_color ('red')</l>
+<l>for J := 0 to 4 by 1</l>
+<l>    gen_contour_polygon_xld (Edge, [Row[J],Row[J + 5]], [Column[J],Column[J + 5]])</l>
+<l>    dev_display (Edge)</l>
+<l>endfor</l>
+<l>set_line_style (WindowHandle, [5,5])</l>
+<l>dev_set_color ('dark green')</l>
+<l>dev_display (Bottom)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cover)</l>
+<l>return ()</l>
+</body>
+<docu id="draw_3D_detail">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Pose"/>
+<parameter id="RectHeight"/>
+<parameter id="RectWidth"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="extract_rectangle_contour">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ClosedContours" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Extract the contours of the square tube by reducing</c>
+<c>* the domain with some morphology, and afterwards</c>
+<c>* extracting and unifying the edges.</c>
+<c>* </c>
+<l>median_image (Image, ImageMedian, 'circle', 2, 'mirrored')</l>
+<l>hysteresis_threshold (ImageMedian, RegionHysteresis, 25, 25, 60)</l>
+<l>closing_circle (RegionHysteresis, RegionClosing, 8)</l>
+<l>shape_trans (RegionClosing, RegionTrans, 'convex')</l>
+<l>dilation_circle (RegionTrans, RegionDilation, 10)</l>
+<l>erosion_circle (RegionTrans, RegionErosion, 10)</l>
+<l>difference (RegionDilation, RegionErosion, RegionOfInterest)</l>
+<l>reduce_domain (ImageMedian, RegionOfInterest, ImageReduced)</l>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 1.5, 10, 35)</l>
+<l>select_shape_xld (Edges, SelectedXLD, 'contlength', 'and', 50, 999999)</l>
+<l>union_adjacent_contours_xld (SelectedXLD, UnionContours, 10, 1, 'attr_keep')</l>
+<l>close_contours_xld (UnionContours, ClosedContours)</l>
+<l>return ()</l>
+</body>
+<docu id="extract_rectangle_contour">
+<parameters>
+<parameter id="ClosedContours"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

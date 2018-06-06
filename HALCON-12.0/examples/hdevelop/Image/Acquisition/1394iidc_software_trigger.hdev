@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from IEEE 1394 cameras via 1394IIDC interface</c>
+<c>* (software trigger)</c>
+<c>* </c>
+<c>* Query actually installed cameras</c>
+<l>info_framegrabber ('1394IIDC', 'info_boards', Information, BoardInfo)</l>
+<c>* </c>
+<c>* Use default settings of first camera:</c>
+<l>MyCameraType := 'default'</l>
+<l>MyDevice := 'default'</l>
+<l>open_framegrabber ('1394IIDC', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Open window with half the size</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* Software trigger not supported under Linux</c>
+<l>get_system ('operating_system', OperatingSystem)</l>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Query parameters</c>
+<l>get_framegrabber_param (AcqHandle, 'camera_type', CameraType)</l>
+<l>get_framegrabber_param (AcqHandle, 'grab_timeout', GrabTimeout)</l>
+<c>* </c>
+<c>* Enable single shot mode</c>
+<l>set_framegrabber_param (AcqHandle, 'burst_count', 1)</l>
+<c>* Disable automatic start of next asynchronous grab</c>
+<l>set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', 'disable')</l>
+<c>* </c>
+<l>while (1)</l>
+<c>    * Initiate next grab (note that this is not the trigger!)</c>
+<l>    grab_image_start (AcqHandle, -1)</l>
+<c>    * Trigger now</c>
+<l>    set_framegrabber_param (AcqHandle, 'do_bustrigger', 1)</l>
+<l>*     set_framegrabber_param (AcqHandle, 'do_trigger', 1)</l>
+<l>*     set_framegrabber_param (AcqHandle, 'do_fasttrigger', 1)</l>
+<c>    * Fetch triggered image</c>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

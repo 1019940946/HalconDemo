@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'claudia')</l>
+<l>crop_rectangle1 (Image, ImageParts, [10,230], [60,120], [219,339], [299,219])</l>
+<l>concat_obj (Image, ImageParts, Images)</l>
+<l>tile_images_offset (Images, TiledImage, [0,290,390], [0,340,210], [-1,-1,-1], [-1,-1,-1], [-1,-1,-1], [-1,-1,-1], 500, 500)</l>
+<l>concat_obj (Image, Image, Image2)</l>
+<l>concat_obj (Image2, Image, Image3)</l>
+<l>tile_images_offset (Image3, TiledImage2, [0,290,390], [0,340,210], [-1,10,230], [-1,60,120], [-1,219,339], [-1,299,219], 500, 500)</l>
+<l>sub_image (TiledImage, TiledImage2, ImageSub, 10, 128)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

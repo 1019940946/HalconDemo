@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use different methods to separate</c>
+<c>* touching characters with the Automatic Text Reader.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'white', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, 648, 640, 480, 'white', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>Message := 'This example shows how to use different methods to separate'</l>
+<l>Message[1] := 'touching characters with the Automatic Text Reader.'</l>
+<l>Message[3] := 'The separation of touching characters is controlled'</l>
+<l>Message[4] := 'by the text model parameter \'separate_touching_chars\''</l>
+<l>Message[5] := 'which can be set via set_text_model_param.'</l>
+<l>Message[7] := 'Possible values are:'</l>
+<l>Message[9] := '\'false\''</l>
+<l>Message[10] := '\'standard\' (default value)'</l>
+<l>Message[11] := '\'enhanced\''</l>
+<l>disp_description (WindowHandle1, WindowHandle2, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create text model with pretrained OCR CNN classifier.</c>
+<l>create_text_model_reader ('auto', 'Universal_Rej.occ', TextModel)</l>
+<c>* Increase min_contrast to avoid the segmentation of background regions.</c>
+<l>set_text_model_param (TextModel, 'min_contrast', 20)</l>
+<l>TextModelParamName := 'separate_touching_chars'</l>
+<c>* </c>
+<c>* Image 'article_label_01.png'</c>
+<l>read_image (Image, 'ocr/article_label_01.png')</l>
+<l>Index := 1</l>
+<l>Message := 'If \'separate_touching_chars\' is set to \'false\','</l>
+<l>Message[1] := 'no separation of touching characters is performed.'</l>
+<l>disp_description (WindowHandle1, WindowHandle2, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'false'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'false')</l>
+<l>find_text_and_get_results (Image, Characters, TextModel, Class)</l>
+<c>* </c>
+<c>* Display results and mark touching characters.</c>
+<l>MessageParam := 'separate_touching_chars = false'</l>
+<l>ResultCorrect := [false,false]</l>
+<l>disp_touching_character_results (Image, Characters, Class, Index, ResultCorrect, MessageParam, WindowHandle2, false)</l>
+<l>stop ()</l>
+<c>* </c>
+<l>Message := 'If \'separate_touching_chars\' is set to \'standard\''</l>
+<l>Message[1] := 'a direct method for detecting and separating touching'</l>
+<l>Message[2] := 'characters is applied.'</l>
+<l>disp_description (WindowHandle1, WindowHandle2, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'standard'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'standard')</l>
+<l>find_text_and_get_results (Image, CharactersStandard, TextModel, ClassStandard)</l>
+<c>* </c>
+<c>* Display results and mark touching characters.</c>
+<l>MessageParam := 'separate_touching_chars = false'</l>
+<l>disp_touching_character_results (Image, Characters, Class, Index, ResultCorrect, MessageParam, WindowHandle1, true)</l>
+<l>MessageParam := 'separate_touching_chars = standard'</l>
+<l>ResultCorrectStandard := [true,true]</l>
+<l>disp_touching_character_results (Image, CharactersStandard, ClassStandard, Index, ResultCorrectStandard, MessageParam, WindowHandle2, false)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Image 'article_label_02.png'</c>
+<l>read_image (Image, 'ocr/article_label_02.png')</l>
+<l>Index := 2</l>
+<l>Message := 'In cases where the \'standard\' method fails a more complex'</l>
+<l>Message[1] := 'method can be selected by setting \'separate_touching_chars\''</l>
+<l>Message[2] := 'to \'enhanced\'.'</l>
+<l>disp_description (WindowHandle1, WindowHandle2, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'standard'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'standard')</l>
+<l>find_text_and_get_results (Image, CharactersStandard, TextModel, ClassStandard)</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'enhanced'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'enhanced')</l>
+<l>find_text_and_get_results (Image, CharactersEnhanced, TextModel, ClassEnhanced)</l>
+<c>* </c>
+<c>* Display results and mark touching characters.</c>
+<l>MessageParam := 'separate_touching_chars = standard'</l>
+<l>ResultCorrectStandard := [false,true,true,false]</l>
+<l>disp_touching_character_results (Image, CharactersStandard, ClassStandard, Index, ResultCorrectStandard, MessageParam, WindowHandle1, true)</l>
+<l>MessageParam := 'separate_touching_chars = enhanced'</l>
+<l>ResultCorrectEnhanced := [true,true,true,true]</l>
+<l>disp_touching_character_results (Image, CharactersEnhanced, ClassEnhanced, Index, ResultCorrectEnhanced, MessageParam, WindowHandle2, false)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Image 'article_label_03.png'</c>
+<l>read_image (Image, 'ocr/article_label_03.png')</l>
+<l>Index := 3</l>
+<l>Message := 'For images without touching regions, the separation of'</l>
+<l>Message[1] := 'touching characters can be switched off by setting  '</l>
+<l>Message[2] := '\'separate_touching_chars\' to \'false\'.'</l>
+<l>Message[4] := 'This may avoid segmentation failures and reduces the'</l>
+<l>Message[5] := 'runtime compared to the \'enhanced\' method in complex'</l>
+<l>Message[6] := 'scenes.'</l>
+<l>disp_description (WindowHandle1, WindowHandle2, Message)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'false'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'false')</l>
+<l>find_text_and_get_results (Image, Characters, TextModel, Class)</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'standard'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'standard')</l>
+<l>find_text_and_get_results (Image, CharactersStandard, TextModel, ClassStandard)</l>
+<c>* </c>
+<c>* Display results and mark touching characters.</c>
+<l>MessageParam := 'separate_touching_chars = false'</l>
+<l>ResultCorrect := true</l>
+<l>disp_touching_character_results (Image, Characters, Class, Index, ResultCorrect, MessageParam, WindowHandle1, true)</l>
+<l>MessageParam := 'separate_touching_chars = standard'</l>
+<l>ResultCorrectStandard := false</l>
+<l>disp_touching_character_results (Image, CharactersStandard, ClassStandard, Index, ResultCorrectStandard, MessageParam, WindowHandle2, false)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set parameter 'separate_touching_chars' to 'enhanced'.</c>
+<l>set_text_model_param (TextModel, 'separate_touching_chars', 'enhanced')</l>
+<l>find_text_and_get_results (Image, CharactersEnhanced, TextModel, ClassEnhanced)</l>
+<c>* </c>
+<c>* Display results and mark touching characters.</c>
+<l>MessageParam := 'separate_touching_chars = false'</l>
+<l>ResultCorrect := true</l>
+<l>disp_touching_character_results (Image, Characters, Class, Index, ResultCorrect, MessageParam, WindowHandle1, false)</l>
+<l>MessageParam := 'separate_touching_chars = enhanced'</l>
+<l>ResultCorrectEnhanced := true</l>
+<l>disp_touching_character_results (Image, CharactersEnhanced, ClassEnhanced, Index, ResultCorrectEnhanced, MessageParam, WindowHandle2, false)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="find_text_and_get_results">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Characters" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="TextModel" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Class" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Find text and return character regions and</c>
+<c>* corresponding character classes.</c>
+<l>find_text (Image, TextModel, TextResultID)</l>
+<l>get_text_object (Characters, TextResultID, 'all_lines')</l>
+<l>get_text_result (TextResultID, ['class',0], Class)</l>
+<l>return ()</l>
+</body>
+<docu id="find_text_and_get_results">
+<parameters>
+<parameter id="Characters"/>
+<parameter id="Class"/>
+<parameter id="Image"/>
+<parameter id="TextModel"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_description">
+<interface>
+<ic>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Clear windows and display description and continue message.</c>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_disp_text (Message, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="disp_description">
+<parameters>
+<parameter id="Message"/>
+<parameter id="WindowHandle1"/>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_marker_boxes">
+<interface>
+<oo>
+<par name="SelectedBoxes" base_type="iconic" dimension="0"/>
+<par name="MarkerBoxes" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Index" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="MarkerRow" base_type="ctrl" dimension="0"/>
+<par name="MarkerColumn" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Mark touching characters by bounding boxes in</c>
+<c>* images article_label_ [01-03].png.</c>
+<l>MaskSize := 15</l>
+<l>if (Index == 1)</l>
+<l>    Row1 := [155,205]</l>
+<l>    Column1 := [446,553]</l>
+<l>    Row2 := [177,228]</l>
+<l>    Column2 := [483,583]</l>
+<l>elseif (Index == 2)</l>
+<l>    Row1 := [204,204,204,256]</l>
+<l>    Column1 := [121,291,358,106]</l>
+<l>    Row2 := [227,227,226,280]</l>
+<l>    Column2 := [151,322,389,144]</l>
+<l>else</l>
+<l>    Row1 := 132</l>
+<l>    Column1 := 502</l>
+<l>    Row2 := 158</l>
+<l>    Column2 := 522</l>
+<l>endif</l>
+<c>* </c>
+<l>gen_rectangle1 (SelectedBoxes, Row1, Column1, Row2, Column2)</l>
+<l>dilation_rectangle1 (SelectedBoxes, MarkerBoxes, MaskSize, MaskSize)</l>
+<l>smallest_rectangle1 (MarkerBoxes, Row1, Column1, Row2, Column2)</l>
+<l>MarkerRow := Row2</l>
+<l>MarkerColumn := (Column1 + Column2) / 2</l>
+<c>* </c>
+<l>return ()</l>
+<c></c>
+</body>
+<docu id="gen_marker_boxes">
+<parameters>
+<parameter id="Index"/>
+<parameter id="MarkerBoxes"/>
+<parameter id="MarkerColumn"/>
+<parameter id="MarkerRow"/>
+<parameter id="SelectedBoxes"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_touching_character_results">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Characters" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Class" base_type="ctrl" dimension="0"/>
+<par name="Index" base_type="ctrl" dimension="0"/>
+<par name="ResultCorrect" base_type="ctrl" dimension="0"/>
+<par name="Message" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="DispContinue" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display character regions return by find_text and</c>
+<c>* mark touching character results.</c>
+<c>* </c>
+<c>* Display options.</c>
+<l>ColorCorrect := 'forest green'</l>
+<l>ColorWrong := 'red'</l>
+<l>BoxColor := 'white'</l>
+<l>NumColored := 3</l>
+<l>LineWidth := 4</l>
+<c>* </c>
+<c>* Generate bounding boxes for touching characters.</c>
+<l>gen_marker_boxes (SelectedBoxes, MarkerBoxes, Index, MarkerRow, MarkerColumn)</l>
+<c>* </c>
+<c>* Get touching characters results.</c>
+<l>count_obj (SelectedBoxes, Number)</l>
+<l>tuple_gen_const (Number, ColorCorrect, TextColor)</l>
+<l>ClassDisp := []</l>
+<l>for IdxBox := 1 to Number by 1</l>
+<l>    select_obj (SelectedBoxes, Box, IdxBox)</l>
+<l>    intersection (Characters, Box, RegionIntersection)</l>
+<l>    area_center (RegionIntersection, Area, Row, Column)</l>
+<l>    tuple_greater_elem (Area, 0, Greater)</l>
+<l>    tuple_find (Greater, 1, Indices)</l>
+<l>    if (Indices != -1)</l>
+<l>        ClassDisp := [ClassDisp,sum(Class[Indices])]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Mark wrong results.</c>
+<l>tuple_find (ResultCorrect, false, IndicesWrong)</l>
+<l>if (IndicesWrong != -1)</l>
+<l>    TextColor[IndicesWrong] := ColorWrong</l>
+<l>endif</l>
+<c>* </c>
+<c>* Display regions, marker boxes, and classes.</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (NumColored)</l>
+<l>dev_display (Characters)</l>
+<l>dev_set_line_width (LineWidth)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (MarkerBoxes)</l>
+<l>dev_disp_text (ClassDisp, 'window', MarkerRow, MarkerColumn, TextColor, 'box_color', BoxColor)</l>
+<l>dev_disp_text (Message, 'window', 'top', 'left', 'black', [], [])</l>
+<l>if (DispContinue)</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="disp_touching_character_results">
+<parameters>
+<parameter id="Characters"/>
+<parameter id="Class"/>
+<parameter id="DispContinue"/>
+<parameter id="Image"/>
+<parameter id="Index"/>
+<parameter id="Message"/>
+<parameter id="ResultCorrect"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

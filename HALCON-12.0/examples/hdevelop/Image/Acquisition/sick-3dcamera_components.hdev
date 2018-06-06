@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-3DCamera interface</c>
+<c>* (parameter setting and channel access)</c>
+<c>* </c>
+<l>info_framegrabber ('SICK-3DCamera', 'device', Information, ValueList)</l>
+<c>* </c>
+<c>* Adapt the following settings according to your configuration</c>
+<l>MyDevice := ValueList[0]</l>
+<l>MyConfiguration := 'image'</l>
+<l>FileName := 'Test.prm'</l>
+<c>* </c>
+<c>* If a prm file with color channels is used, the next values have to be adapted:</c>
+<l>ColorChannelsUsed := 0</l>
+<l>ShiftRed := 0.0</l>
+<l>ShiftBlue := 0.0</l>
+<l>ShiftGreen := 0.0</l>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'default', -1, MyConfiguration, -1, 'false', 'default', MyDevice, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Setting of exposure time and grabbing of images in configuration 'image'</c>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, '&lt;Image&gt;&lt;Image 1&gt;exposure time', 1000)</l>
+<c>* </c>
+<l>if (ColorChannelsUsed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_red', ShiftRed)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_blue', ShiftBlue)</l>
+<l>    set_framegrabber_param (AcqHandle, 'shift_green', ShiftGreen)</l>
+<l>endif</l>
+<c>* </c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Save current parameters configuration</c>
+<c>* Activate low level error to see destination path</c>
+<c>* </c>
+<l>set_system ('do_low_error', 'true')</l>
+<l>set_framegrabber_param (AcqHandle, 'do_save_parameters', FileName)</l>
+<l>set_system ('do_low_error', 'false')</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, '&lt;Image&gt;&lt;Image 1&gt;exposure time', 10000)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Grabbing images in configuration 'measurement' and accessing single channels</c>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'configuration', 'measurement')</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>count_channels (Image, Channels)</l>
+<l>stop ()</l>
+<l>for i := 1 to Channels by 1</l>
+<l>    access_channel (Image, Image1, i)</l>
+<l>    scale_image_max (Image1, Image1)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>set_framegrabber_param (AcqHandle, 'active_channel', Channels - 1)</l>
+<l>grab_image (Image2, AcqHandle)</l>
+<l>scale_image_max (Image2, Image2)</l>
+<c>* </c>
+<c>* Grabbing images in configuration 'measurement' and accessing also mark data</c>
+<c>* </c>
+<l>grab_data (Image3, Region, Contours, AcqHandle, Data)</l>
+<l>* grab_data_async (Image, Region, Contours, -1, AcqHandle, Data)</l>
+<c>* </c>
+<c>* Loading new configuration file</c>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'parameters_file', FileName)</l>
+<l>set_framegrabber_param (AcqHandle, 'do_load_parameters', -1)</l>
+<c>* </c>
+<l>stop ()</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

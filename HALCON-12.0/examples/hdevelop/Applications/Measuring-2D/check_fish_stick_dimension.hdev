@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* In this program the size of raw fish sticks is measured</c>
+<c>* before they are coated with bread crumbs.</c>
+<c>* First, the fish sticks are segmented from the background.</c>
+<c>* Then, their dimensions are measured, compared to the</c>
+<c>* required minimum size, and the result is displayed.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'food/fish_sticks_raw_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>get_system ('store_empty_region', StoreEmptyRegion)</l>
+<l>set_system ('store_empty_region', 'true')</l>
+<c>* </c>
+<l>cm_per_pix := 0.0373</l>
+<l>TargetLength := 9.0</l>
+<l>ToleranceHigh := 0.8</l>
+<l>ToleranceLow := 0.2</l>
+<c>* </c>
+<l>NumImages := 10</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'food/fish_sticks_raw_' + I$'.2')</l>
+<c>    * </c>
+<c>    * Segment the raw fish sticks</c>
+<l>    threshold (Image, Region, 50, 255)</l>
+<l>    connection (Region, ConnectedRegions)</l>
+<l>    fill_up (ConnectedRegions, RegionFillUp)</l>
+<l>    select_shape (RegionFillUp, SelectedRegions, 'area', 'and', 1000, 99999)</l>
+<c>    * </c>
+<c>    * Select the regions that do not intersect the image border</c>
+<l>    boundary (Image, RegionBorder, 'inner')</l>
+<l>    intersection (SelectedRegions, RegionBorder, RegionIntersection)</l>
+<l>    area_center (RegionIntersection, Area, Row1, Column1)</l>
+<l>    ValidRegionIndices := find(Area,0) + 1</l>
+<l>    if (ValidRegionIndices[0] == 0)</l>
+<l>        ValidRegionIndices := []</l>
+<l>    endif</l>
+<l>    select_tuple_larger (Area, 0.0, RegionAtBorderIndices)</l>
+<l>    RegionAtBorderIndices := RegionAtBorderIndices + 1</l>
+<l>    select_obj (SelectedRegions, ValidSticks, ValidRegionIndices)</l>
+<l>    select_obj (SelectedRegions, StickAtBorder, RegionAtBorderIndices)</l>
+<c>    * </c>
+<c>    * Check the size of the fish sticks</c>
+<l>    smallest_rectangle2 (ValidSticks, Row, Column, Phi, Length1, Length2)</l>
+<l>    FishLength1 := Length1 * 2 * cm_per_pix</l>
+<l>    select_tuple_larger (FishLength1, TargetLength - ToleranceLow, IndicesGood)</l>
+<l>    select_tuple_larger (FishLength1, TargetLength + ToleranceHigh, IndicesBad1)</l>
+<l>    tuple_remove (IndicesGood, IndicesBad1, IndicesGood)</l>
+<l>    select_tuple_larger (-FishLength1, -(TargetLength - ToleranceLow), IndicesBad2)</l>
+<l>    IndicesBad := [IndicesBad1,IndicesBad2]</l>
+<l>    RowGood := subset(Row,IndicesGood)</l>
+<l>    ColumnGood := subset(Column,IndicesGood)</l>
+<l>    RowBad := subset(Row,IndicesBad)</l>
+<l>    ColumnBad := subset(Column,IndicesBad)</l>
+<l>    FishLength1Good := subset(FishLength1,IndicesGood)</l>
+<l>    FishLength1Bad := subset(FishLength1,IndicesBad)</l>
+<l>    if (|IndicesGood| &gt; 0)</l>
+<l>        gen_rectangle2 (GoodSticks, RowGood, ColumnGood, subset(Phi,IndicesGood), subset(Length1,IndicesGood), subset(Length2,IndicesGood))</l>
+<l>    else</l>
+<l>        gen_empty_obj (GoodSticks)</l>
+<l>    endif</l>
+<l>    if (|IndicesBad| &gt; 0)</l>
+<l>        gen_rectangle2 (BadSticks, RowBad, ColumnBad, subset(Phi,IndicesBad), subset(Length1,IndicesBad), subset(Length2,IndicesBad))</l>
+<l>    else</l>
+<l>        gen_empty_obj (BadSticks)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (ValidSticks)</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (StickAtBorder)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (GoodSticks)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (BadSticks)</l>
+<l>    String := 'Target length: ' + TargetLength$'.1f' + ' cm'</l>
+<l>    String[1] := 'Tolerance:  -' + ToleranceLow$'.1f' + '/+' + ToleranceHigh$'.1f'</l>
+<l>    disp_message (WindowHandle, String, 'window', 12, 12, 'black', 'true')</l>
+<l>    for J := 0 to |IndicesGood| - 1 by 1</l>
+<l>        disp_message (WindowHandle, 'OK', 'image', 80, ColumnGood[J] - 10, 'green', 'false')</l>
+<l>        disp_message (WindowHandle, FishLength1Good[J]$'.1f' + 'cm', 'image', RowGood[J], ColumnGood[J] - 28, 'white', 'false')</l>
+<l>    endfor</l>
+<l>    for J := 0 to |IndicesBad| - 1 by 1</l>
+<l>        disp_message (WindowHandle, 'Not OK', 'image', 80, ColumnBad[J] - 30, 'red', 'false')</l>
+<l>        disp_message (WindowHandle, FishLength1Bad[J]$'.1f' + 'cm', 'image', RowBad[J], ColumnBad[J] - 28, 'white', 'false')</l>
+<l>    endfor</l>
+<l>    if (I != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>set_system ('store_empty_region', StoreEmptyRegion)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="select_tuple_larger">
+<interface>
+<ic>
+<par name="Tuple" base_type="ctrl" dimension="0"/>
+<par name="Value" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Indices" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Select Values that are larger than "Value"</c>
+<c>* and return the indices of the elements that are larger</c>
+<c>* </c>
+<c>* </c>
+<l>tuple_find (sgn(Tuple - Value), 1, Indices)</l>
+<l>if (Indices[0] == -1)</l>
+<l>    Indices := []</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="select_tuple_larger">
+<parameters>
+<parameter id="Indices"/>
+<parameter id="Tuple"/>
+<parameter id="Value"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

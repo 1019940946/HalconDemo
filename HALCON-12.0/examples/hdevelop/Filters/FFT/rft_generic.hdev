@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to filter images with the real-valued</c>
+<c>* FFT using rft_generic.  It also shows how to create Gaussian smoothing</c>
+<c>* filters and derivative filters in the frequency domain.  Finally, it shows</c>
+<c>* how filters can be combined in the frequency domain.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'mreut')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Input image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<c>* Optimize the run time of the real-valued FFT.</c>
+<l>optimize_rft_speed (Width, Height, 'standard')</l>
+<l>stop ()</l>
+<c>* Perform Gaussian smoothing in the frequency domain by generating a</c>
+<c>* Gaussian filter with Sigma=3 and convolving the image in the frequency</c>
+<c>* domain.</c>
+<l>gen_gauss_filter (GaussFilter, 3, 3, 0, 'n', 'rft', Width, Height)</l>
+<c>* Calculate the real-valued FFT of the input image.</c>
+<l>rft_generic (Image, ImageFFT, 'to_freq', 'none', 'complex', Width)</l>
+<c>* Perform the convolution.</c>
+<l>convol_fft (ImageFFT, GaussFilter, ImageConvol)</l>
+<c>* Calculate the result of the filter with the inverse real-valued FFT.</c>
+<l>rft_generic (ImageConvol, ImageFiltered, 'from_freq', 'none', 'real', Width)</l>
+<l>dev_display (ImageFiltered)</l>
+<l>Message := 'Result of Gaussian filtering'</l>
+<l>Message[1] := 'in the frequency domain'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Note that (almost) the same result can be achieved with derivate_gauss.</c>
+<c>* The major difference is the border treatment: the FFT by definition</c>
+<c>* assumes that the signal is periodic and consequently the border</c>
+<c>* treatment is a cyclic continuation.  In contrast, derivate_gauss uses</c>
+<c>* mirroring of the gray values at the image borders.</c>
+<c>* Note also that the filtering via the FFT is already faster than using</c>
+<c>* derivate_gauss for Sigma=3 (when you exclude the time to create</c>
+<c>* the filter).  This advantage becomes more pronounced the larger</c>
+<c>* Simag becomes.</c>
+<l>derivate_gauss (Image, ImageGauss, 3, 'none')</l>
+<l>dev_display (ImageGauss)</l>
+<l>Message := 'Result of Gaussian filtering'</l>
+<l>Message[1] := 'in the spatial domain'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* We can also check the differences in a region away from the image borders.</c>
+<l>gen_rectangle1 (Rectangle, 20, 20, Height - 21, Width - 21)</l>
+<l>sub_image (ImageFiltered, ImageGauss, ImageSub, 1, 0)</l>
+<l>min_max_gray (Rectangle, ImageSub, 0, Min, Max, Range)</l>
+<l>intensity (Rectangle, ImageSub, Mean, Deviation)</l>
+<l>dev_display (ImageSub)</l>
+<l>Message := 'Gray value differences:'</l>
+<l>Message[1] := 'Min: ' + Min$'4.2f' + ', Max: ' + Max$'4.2f'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now create a derivative filter and use it on the image.  Note that the</c>
+<c>* derivative filter does not use any smoothing.  The filter is based on</c>
+<c>* the fact that the FFT can be interpreted as an interpolation with</c>
+<c>* trigonometric basis functions.  Note that this behavior cannot be</c>
+<c>* achieved with standard filters easily.  Note also that calculating a</c>
+<c>* derivative without smoothing typically does not return useful results</c>
+<c>* because the noise is amplified significantly.</c>
+<l>gen_derivative_filter (DerivativeFilter, 'x', 1, 'n', 'rft', Width, Height)</l>
+<l>convol_fft (ImageFFT, DerivativeFilter, ImageConvol)</l>
+<l>rft_generic (ImageConvol, ImageFiltered, 'from_freq', 'none', 'real', Width)</l>
+<l>dev_display (ImageFiltered)</l>
+<l>Message := 'Result of pure derivative'</l>
+<l>Message[1] := 'in the frequency domain'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Now combine the derivative filter with the smoothing filter to get a</c>
+<c>* smoothed derivative filter.  This can simply be done by multiplying</c>
+<c>* the two filters.  Since the smoothing filter is created as a real image</c>
+<c>* for efficiency reasons, but the derivative filter as a complex image</c>
+<c>* we need to convert the smoothing filter to a complex image first.</c>
+<c>* Also, since we created both filters with a normalization of 'n', we</c>
+<c>* need to scale the filter by Width*Height in mult_image.</c>
+<l>convert_image_type (GaussFilter, GaussFilterComplex, 'complex')</l>
+<l>mult_image (GaussFilterComplex, DerivativeFilter, GaussDerivativeFilter, Width * Height, 0)</l>
+<l>convol_fft (ImageFFT, GaussDerivativeFilter, ImageConvol)</l>
+<l>rft_generic (ImageConvol, ImageFiltered, 'from_freq', 'none', 'real', Width)</l>
+<l>dev_display (ImageFiltered)</l>
+<l>Message := 'Result of smoothed derivative'</l>
+<l>Message[1] := 'in the frequency domain'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Again, we can check whether the result agrees with the result</c>
+<c>* returned by derivate_gauss.</c>
+<l>derivate_gauss (Image, ImageGauss, 3, 'x')</l>
+<l>dev_display (ImageGauss)</l>
+<l>Message := 'Result of smoothed derivative'</l>
+<l>Message[1] := 'in the spatial domain'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<l>sub_image (ImageFiltered, ImageGauss, ImageSub, 1, 0)</l>
+<l>min_max_gray (Rectangle, ImageSub, 0, Min, Max, Range)</l>
+<l>intensity (Rectangle, ImageSub, Mean, Deviation)</l>
+<l>dev_display (ImageSub)</l>
+<l>Message := 'Gray value differences:'</l>
+<l>Message[1] := 'Min: ' + Min$'4.2f' + ', Max: ' + Max$'4.2f'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Finally, create an anisotropic oriented Gaussian filter and use it on</c>
+<c>* the image.  Note that this is something that can currently only be done</c>
+<c>* by using the FFT.</c>
+<l>gen_gauss_filter (GaussFilter, 2, 10, rad(10), 'n', 'rft', Width, Height)</l>
+<l>convol_fft (ImageFFT, GaussFilter, ImageConvol)</l>
+<l>rft_generic (ImageConvol, ImageFiltered, 'from_freq', 'none', 'real', Width)</l>
+<l>dev_display (ImageFiltered)</l>
+<l>Message := 'Anisotropic oriented smoothing'</l>
+<l>Message[1] := 'in the frequency domain'</l>
+<l>disp_message (WindowHandle, Message, 'window', 450, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Query the mouse position</c>
+<c>* </c>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>Button := 1</l>
+<l>dev_update_pc ('off')</l>
+<l>set_tposition (WindowID, 31, 12)</l>
+<l>write_string (WindowID, 'Move mouse inside the window; click right button to quit')</l>
+<l>while (Button != 4)</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<c>    * Return the coordinates of the mouse pointer in the output window</c>
+<l>    get_mposition (WindowID, Row, Column, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error == H_MSG_TRUE)</l>
+<l>        get_grayval (Image, Row, Column, Grayval)</l>
+<l>        dev_set_color ('black')</l>
+<l>        disp_rectangle1 (WindowID, 0, 0, 25, 110)</l>
+<l>        dev_set_color ('white')</l>
+<l>        set_tposition (WindowID, 3, 2)</l>
+<l>        write_string (WindowID, '(' + Row + ',' + Column + ')=' + Grayval)</l>
+<l>    endif</l>
+<l>endwhile</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

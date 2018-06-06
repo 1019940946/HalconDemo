@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a Crevis USB camera</c>
+<c>* (query current parameter settings)</c>
+<c>* </c>
+<l>AcqName := 'Crevis'</l>
+<l>info_framegrabber (AcqName, 'general', GeneralInfo, GeneralValues)</l>
+<l>info_framegrabber (AcqName, 'info_boards', InfoBoardsInfo, InfoBoardsValues)</l>
+<l>info_framegrabber (AcqName, 'defaults', DefaultsInfo, DefaultsValues)</l>
+<l>info_framegrabber (AcqName, 'parameters', ParametersInfo, ParametersValues)</l>
+<l>info_framegrabber (AcqName, 'ports', PortsInfo, PortsValues)</l>
+<l>info_framegrabber (AcqName, 'revision', RevisionInfo, RevisionValues)</l>
+<l>info_framegrabber (AcqName, 'bits_per_channel', BitsPerChannelInfo, BitsPerChannelValues)</l>
+<l>info_framegrabber (AcqName, 'color_space', ColorSpaceInfo, ColorSpaceValues)</l>
+<l>info_framegrabber (AcqName, 'device', DeviceInfo, DeviceValues)</l>
+<l>info_framegrabber (AcqName, 'external_trigger', TriggerInfo, TriggerValues)</l>
+<l>info_framegrabber (AcqName, 'horizontal_resolution', HorizontalResolutionInfo, HorizontalResolutionValues)</l>
+<l>info_framegrabber (AcqName, 'vertical_resolution', VerticalResolutionInfo, VerticalResolutionValues)</l>
+<c>* </c>
+<c>* Query all available parameter names and sort them:</c>
+<l>info_framegrabber (AcqName, 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>info_framegrabber (AcqName, 'parameters_readonly', ParameterInfoReadOnly, ParameterInfoReadOnlyValues)</l>
+<l>info_framegrabber (AcqName, 'parameters_writeonly', ParameterInfoWriteOnly, ParameterInfoWriteOnlyValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* Open first Crevis camera with Mono8 PixelFormat:</c>
+<l>open_framegrabber (AcqName, 1, 1, 0, 0, 0, 0, 'default', 8, 'default', -1, 'default', 'default', '-1', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Open graphics window for parameter output:</c>
+<l>dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 600, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, 399)</l>
+<c>* </c>
+<c>* Query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>get_system ('do_low_error', DoLowError)</l>
+<l>set_system ('do_low_error', 'false')</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>    if (HalconError == H_MSG_TRUE)</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (|ParameterValue| &gt; 1)</l>
+<l>            for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (WindowHandle, ParameterValue[j])</l>
+<l>        else</l>
+<l>            if (|ParameterValue| == 1)</l>
+<l>                write_string (WindowHandle, ParameterValue)</l>
+<l>            else</l>
+<l>                write_string (WindowHandle, '-')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_set_check ('give_error')</l>
+<l>set_system ('do_low_error', DoLowError)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Grab some images:</c>
+<l>dev_close_window ()</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>dev_open_window (0, 0, ImageWidth / 2, ImageHeight / 2, 'black', WindowHandle)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Grab some images in async mode:</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

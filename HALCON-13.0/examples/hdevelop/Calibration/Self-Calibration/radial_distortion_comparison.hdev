@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program compares the accuracies of the camera parameters</c>
+<c>* that are computed with the regular camera calibration and the radial</c>
+<c>* distortion self-calibration.  In the first part of the program, the</c>
+<c>* camera is calibrated with the camera calibration.  In the second part</c>
+<c>* of the program, the camera is calibrated with the radial distortion</c>
+<c>* self-calibration.  The third part of the program compares the accuracies</c>
+<c>* of the camera parameters numerically, by subtracting two images that</c>
+<c>* were rectified with both sets of calibrated camera parameters, and</c>
+<c>* by comparing the location of subpixel-precise edges that are extracted</c>
+<c>* from both rectified images.  In particular, it can be seen that the</c>
+<c>* radial distortion coefficient differs by less than 0.4% and that the</c>
+<c>* calibrated principal point lies quite close to the center of radial</c>
+<c>* distortions determined by the self-calibration.  Furthermore, it can be</c>
+<c>* seen that the rectified images are very similar.  The position of the</c>
+<c>* extracted subpixel-precise edges differs by less than 0.5 pixels</c>
+<c>* throughout the entire field of view.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 646, 482, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Part 1: Camera calibration</c>
+<c>* Perform the camera calibration.</c>
+<l>CaltabName := 'caltab_30mm.descr'</l>
+<l>gen_cam_par_area_scan_division (0.008, 0, 0.0000073, 0.0000073, 323, 241, 646, 482, StartCamPar)</l>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], StartCamPar)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CaltabName)</l>
+<l>NumImages := 15</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'radius-gauges/calib-' + I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Calibration marks in image ' + I$'d', 'window', 12, 12, 'black', 'true')</l>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, I, [], [])</l>
+<l>    get_calib_data_observ_contours (Caltab, CalibDataID, 'caltab', 0, 0, I)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, I, Row, Column, Index, Pose)</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 3.5, 0.785398)</l>
+<l>    dev_set_color ('cyan')</l>
+<l>    dev_display (Caltab)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    dev_display (Cross)</l>
+<l>    wait_seconds (0.1)</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Performing camera calibration...', 'window', 12, 12, 'black', 'true')</l>
+<c>* Since the radial distortion self-calibration assumes square pixels, we</c>
+<c>* force the camera calibration to use square pixels as well to enable a</c>
+<c>* meaningful comparison of the results.</c>
+<l>set_calib_data (CalibDataID, 'camera', 'general', 'excluded_settings', ['sx','sy'])</l>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParCalib)</l>
+<c>* Convert the camera parameters into pixel units so that they can be</c>
+<c>* compared to the results of the radial distortion self-calibration.</c>
+<l>get_cam_par_data (CamParCalib, 'kappa', Kappa)</l>
+<l>get_cam_par_data (CamParCalib, 'sx', Sx)</l>
+<c>* </c>
+<l>set_cam_par_data (CamParCalib, 'kappa', Kappa * Sx * Sx, CamParCalib)</l>
+<l>set_cam_par_data (CamParCalib, ['sx','sy'], [1.0,1.0], CamParCalib)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>get_cam_par_data (CamParCalib, ['kappa','cx','cy'], CamParCalibValue)</l>
+<l>disp_message (WindowHandle, 'Camera parameters (pixel-based units):', 'window', 12, 12, 'black', 'true')</l>
+<l>CalibrationResultMsg := ' Kappa: ' + CamParCalibValue[0]$'11.5g'</l>
+<l>CalibrationResultMsg[1] := ' Cx:    ' + CamParCalibValue[1]$'5.2f'</l>
+<l>CalibrationResultMsg[2] := ' Cy:    ' + CamParCalibValue[2]$'5.2f'</l>
+<l>disp_message (WindowHandle, CalibrationResultMsg, 'window', 50, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 2: self-calibration</c>
+<l>read_image (Image, 'radius-gauges/radius-gauges-06')</l>
+<c>* Extract subpixel-precise edges using the Canny filter.</c>
+<l>edges_sub_pix (Image, Edges, 'canny', 1, 10, 40)</l>
+<c>* Segment the edges into lines and circular arcs to break up edges that</c>
+<c>* run around the squares in the image.</c>
+<l>segment_contours_xld (Edges, EdgesSplit, 'lines_circles', 5, 4, 2)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (EdgesSplit)</l>
+<l>disp_message (WindowHandle, 'Extracted and segmented edges', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Merge collinear contours to obtain long contours in the image.</c>
+<l>union_collinear_contours_ext_xld (EdgesSplit, EdgesUnion, 30, 2, 3, rad(10), 2, -1, 1, 1, 1, 1, 1, 0, 'attr_keep')</l>
+<c>* Segment the merged edges into lines and circular arcs.</c>
+<l>segment_contours_xld (EdgesUnion, EdgesUnionSplit, 'lines_circles', 5, 4, 2)</l>
+<c>* Select edges that are long enough to be useful for the calibration.</c>
+<l>select_shape_xld (EdgesUnionSplit, EdgesSelected, 'contlength', 'and', 30, 100000)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (EdgesSelected)</l>
+<l>disp_message (WindowHandle, 'Merged and selected edges', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Performing self-calibration...', 'window', 12, 12, 'black', 'true')</l>
+<c>* Perform the self-calibration of the radial distortions.</c>
+<l>radial_distortion_self_calibration (EdgesSelected, EdgesCalibration, 646, 482, 0.1, 42, 'division', 'variable', 0, CamPar)</l>
+<l>get_cam_par_data (CamPar, ['kappa','cx','cy'], CamParSelfCalibValue)</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Compare camera parameters:', 'window', 12, 12, 'black', 'true')</l>
+<l>SelfCalibrationResultMsg := ' Kappa: ' + CamParSelfCalibValue[0]$'11.5g'</l>
+<l>SelfCalibrationResultMsg[1] := ' Cx:    ' + CamParSelfCalibValue[1]$'5.2f'</l>
+<l>SelfCalibrationResultMsg[2] := ' Cy:    ' + CamParSelfCalibValue[2]$'5.2f'</l>
+<l>disp_message (WindowHandle, ['Camera calibration:',CalibrationResultMsg], 'window', 50, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ['Self-calibration:',SelfCalibrationResultMsg], 'window', 50, 280, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 3: Compare results</c>
+<l>get_domain (Image, Domain)</l>
+<c>* Compute the camera parameters of the rectified cameras for both</c>
+<c>* calibration results.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParCalib, 0, CamParCalibRect)</l>
+<l>change_radial_distortion_cam_par ('fixed', CamPar, 0, CamParRect)</l>
+<c>* Rectify the image using both calibration results.</c>
+<l>change_radial_distortion_image (Image, Domain, ImageCalibRectified, CamParCalib, CamParCalibRect)</l>
+<l>change_radial_distortion_image (Image, Domain, ImageRectified, CamPar, CamParRect)</l>
+<c>* Display the both rectified images five times to visualize the</c>
+<c>* differences between the images.  The differences are most notable in</c>
+<c>* the upper left and lower right corners of the image.</c>
+<l>for J := 1 to 5 by 1</l>
+<l>    dev_display (ImageCalibRectified)</l>
+<l>    disp_message (WindowHandle, 'Rectified image (camera calibration)', 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>    dev_display (ImageRectified)</l>
+<l>    disp_message (WindowHandle, 'Rectified image (self-calibration)', 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Subtract the rectified images to visualize the differences of both</c>
+<c>* calibration results.</c>
+<l>sub_image (ImageRectified, ImageCalibRectified, ImageSub, 1, 128)</l>
+<l>dev_display (ImageSub)</l>
+<l>disp_message (WindowHandle, 'Difference between the rectified images', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Extract edges in both rectified images to provide a different method</c>
+<c>* for visualizing the differences of the calibration results.</c>
+<l>edges_sub_pix (ImageRectified, EdgesRectified, 'canny', 1, 20, 40)</l>
+<l>edges_sub_pix (ImageCalibRectified, EdgesCalibRectified, 'canny', 1, 20, 40)</l>
+<l>select_shape_xld (EdgesRectified, EdgesRectified, 'contlength', 'and', 2, 10000)</l>
+<l>select_shape_xld (EdgesCalibRectified, EdgesCalibRectified, 'contlength', 'and', 2, 10000)</l>
+<c>* Display five different parts of the rectified image along with the</c>
+<c>* subpixel-precise edges extracted from both rectified images in a zoom</c>
+<c>* window to show the positional differences of the subpixel-precise edges.</c>
+<c>* In particular, this display shows that the difference of the positions</c>
+<c>* of the subpixel-precise edges is never more than about half a pixel.</c>
+<l>get_window_extents (WindowHandle, Row1, Column1, Width, Height)</l>
+<l>dev_open_window (0, Width + 8, 256, 256, 'black', WindowHandleZoom)</l>
+<l>Rows := [16,45,465,408,233]</l>
+<l>Cols := [45,620,37,610,307]</l>
+<l>for J := 0 to |Rows| - 1 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (ImageRectified)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    gen_rectangle1 (Rectangle, Rows[J] - 16, Cols[J] - 16, Rows[J] + 15, Cols[J] + 15)</l>
+<l>    dev_display (Rectangle)</l>
+<l>    disp_message (WindowHandle, 'Compare subpixel edges', 'window', 52, 12, 'black', 'true')</l>
+<l>    dev_set_window (WindowHandleZoom)</l>
+<l>    dev_set_part (Rows[J] - 16, Cols[J] - 16, Rows[J] + 15, Cols[J] + 15)</l>
+<l>    dev_display (ImageRectified)</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    dev_display (EdgesCalibRectified)</l>
+<l>    dev_set_color ('cyan')</l>
+<l>    dev_display (EdgesRectified)</l>
+<l>    if (J &lt; |Rows| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_calib_data (CalibDataID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

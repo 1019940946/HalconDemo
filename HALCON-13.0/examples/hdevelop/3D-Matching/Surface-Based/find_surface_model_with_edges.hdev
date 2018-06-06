@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example for edge-supported surface-based matching</c>
+<c>* </c>
+<c>* This example demonstrates how to use edge-supported surface-based</c>
+<c>* matching. I shows, how to cope with edges stemming from the boundary</c>
+<c>* of the scene, how to speed up the matching, and how to use</c>
+<c>* images as an additional source of information.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Parameters of the 2D camera.</c>
+<l>gen_cam_par_area_scan_division (0.003, -22215.7, 1e-6, 1e-6, 629.3, 486.95, 1280, 960, CameraParam)</l>
+<l>get_cam_par_data (CameraParam, 'image_width', Width)</l>
+<l>get_cam_par_data (CameraParam, 'image_height', Height)</l>
+<c>* The camera is located in the origin of the 3D sensor.</c>
+<l>CameraPose := [0,0,0,0,0,0,0]</l>
+<c>* Matching parameters.</c>
+<l>MinScore := 0.2</l>
+<c>* Visualization parameters.</c>
+<l>VisPose := [-0.075,-0.56,4.4,308,6,335,0]</l>
+<l>VisParamNames := ['color','color_0','alpha','alpha_0']</l>
+<l>VisParamValues := ['red','white',0.5,1]</l>
+<l>WidthW1 := 400</l>
+<l>LineLength := 32</l>
+<l>VisRowNextStep := 300</l>
+<l>VisInstructions[0] := 'Rotate: Left button'</l>
+<l>VisInstructions[1] := 'Zoom:   Shift + left button'</l>
+<l>VisInstructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* Prepare windows.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, WidthW1 + 10, Width, Height, 640, 480, WindowHandle2)</l>
+<l>get_window_extents (WindowHandle2, Row, Column, WidthW2, HeightW2)</l>
+<l>dev_open_window (0, 0, WidthW1, HeightW2, 'white', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Read image of the scene.</c>
+<l>SceneIdx := 4</l>
+<l>read_image (Image, 'boxes/cardboard_boxes_02')</l>
+<c>* </c>
+<c>* Display first message and the image of the scene.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'This example demonstrates edge-supported surface-based matching. The goal is to find cardboard boxes in 3D scans of the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Create a 3D model of a box.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>gen_box_object_model_3d ([0,0,0,0,0,0,0], 0.103, 0.082, 0.05, ObjectModel3DBox)</l>
+<l>triangulate_object_model_3d (ObjectModel3DBox, 'greedy', [], [], ObjectModel3DModel, Information)</l>
+<l>clear_object_model_3d (ObjectModel3DBox)</l>
+<c>* Prepare a model for edge-supported surface-based matching.</c>
+<l>FileName := 'box_edge_supported.sfm'</l>
+<l>file_exists (FileName, FileExists)</l>
+<l>if (not FileExists)</l>
+<l>    dev_disp_text ('Creating new surface model.\nThis might take some minutes...', 'window', 150, 'left', 'black', 'box', 'false')</l>
+<l>    create_surface_model (ObjectModel3DModel, 0.03, 'train_3d_edges', 'true', SurfaceModel)</l>
+<l>    write_surface_model (SurfaceModel, FileName)</l>
+<l>else</l>
+<l>    dev_disp_text ('Reading pre-created surface model...', 'window', 150, 'left', 'black', 'box', 'false')</l>
+<l>    read_surface_model (FileName, SurfaceModel)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Create a 3D model of a box for surface-based matching without edge support.</c>
+<l>create_surface_model (ObjectModel3DModel, 0.03, [], [], SurfaceModelWithoutEdgeSupport)</l>
+<c>* </c>
+<c>* Read the 3D object model of the search scene and prepare it for display.</c>
+<l>read_image (ImageXYZ, 'boxes/cardboard_boxes_xyz_02')</l>
+<l>decompose3 (ImageXYZ, XScene, YScene, ZScene)</l>
+<l>xyz_to_object_model_3d (XScene, YScene, ZScene, ObjectModel3DScene)</l>
+<l>prepare_object_model_3d (ObjectModel3DScene, 'segmentation', 'true', [], [])</l>
+<l>get_object_model_3d_params (ObjectModel3DScene, 'center', VisRotationCenter)</l>
+<c>* </c>
+<c>* Display search scene.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>Text := 'First, let\'s have a look at the 3D data of the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', VisRowNextStep, 'left', 'black', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'In the 3D data, the two boxes appear as planar parts that lie clearly above the ground plane.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle2, ObjectModel3DScene, [], VisPose, [], [], '3D scene', [], VisInstructions, VisPose)</l>
+<c>* </c>
+<c>* Show results of surface-based matching without edge support.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'Objects with a planar surface are sometimes found incorrectly if no edge information is used. Especially, if the surface of the object in the search scene is fragmented, e.g., because of reflections on the surface.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<c>* Perform surface-based matching without edge support.</c>
+<l>find_surface_model (SurfaceModelWithoutEdgeSupport, ObjectModel3DScene, 0.05, 0.1, MinScore, 'false', 'num_matches', 1, Pose, Score, SurfaceMatchingResult)</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>visualize_object_model_3d (WindowHandle2, [ObjectModel3DScene,ObjectModel3DRigidTrans], [], VisPose, VisParamNames, VisParamValues, 'Without edge support, a wrong match is found.', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* </c>
+<c>* Show results of edge-supported surface-based matching.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'In those cases, the use of 3D edges (displayed in green) helps to find the correct match. Note that \'num_matches\' has been set to 1, therefore only one box is found.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>Text := 'To use edge-supported surface-based matching, create the surface model with the generic parameter \'train_3d_edges\' set to \'true\'.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 150, 'left', 'black', 'box', 'false')</l>
+<c>* Perform edge-supported surface-based matching.</c>
+<l>find_surface_model (SurfaceModel, ObjectModel3DScene, 0.05, 0.1, MinScore, 'false', 'num_matches', 1, Pose, Score, SurfaceMatchingResult)</l>
+<c>* Extract edges for visualization.</c>
+<l>get_object_model_3d_params (ObjectModel3DScene, 'diameter_axis_aligned_bounding_box', Diameter)</l>
+<l>edges_object_model_3d (ObjectModel3DScene, 0.01 * Diameter, [], [], ObjectModel3DEdges)</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>VisParamValues[0] := 'forest green'</l>
+<l>visualize_object_model_3d (WindowHandle2, [ObjectModel3DScene,ObjectModel3DEdges,ObjectModel3DRigidTrans], [], VisPose, [VisParamNames,'color_1'], [VisParamValues,'green'], 'With edge support, the match is found correctly.', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* </c>
+<c>* Show results of edge-supported surface-based matching when searching for multiple matches.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'If we search for more than one match, the second box is found as well.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>Text := 'Note that additional matches may also be found in the corners of the 3D scene. The top plane of the box fits perfectly to the background plane of the scene and two of the top plane\'s edges match the 3D edges of the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 150, 'left', 'black', 'box', 'false')</l>
+<c>* Perform edge-supported surface-based matching.</c>
+<l>find_surface_model (SurfaceModel, ObjectModel3DScene, 0.05, 0.1, MinScore, 'false', 'num_matches', 5, Pose, Score, SurfaceMatchingResult)</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>visualize_object_model_3d (WindowHandle2, [ObjectModel3DScene,ObjectModel3DEdges,ObjectModel3DRigidTrans], [], VisPose, [VisParamNames,'color_1','color_4'], [VisParamValues,'green','red'], 'The boundaries of the scene lead to additional matches.', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* </c>
+<c>* Show how to remove edges at the boundary of the scene if the 3D object model has mapping information.dev_set_window (WindowHandle1)</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'We can eliminate the 3D edges stemming from the boundary of the scene (displayed in red) to avoid the additional matches in the corners of the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<c>* Eliminate 3D edges at the boundary of the scene.</c>
+<l>Border := 50</l>
+<l>object_model_3d_to_xyz (XEdges, YEdges, ZEdges, ObjectModel3DEdges, 'from_xyz_map', [], [])</l>
+<l>get_image_size (XEdges, WidthMapping, HeightMapping)</l>
+<l>select_points_object_model_3d (ObjectModel3DEdges, ['mapping_row','mapping_col'], [Border,Border], [HeightMapping - Border,WidthMapping - Border], ObjectModel3DEdgesWithoutBorder)</l>
+<c>* Display results.</c>
+<l>visualize_object_model_3d (WindowHandle2, [ObjectModel3DEdgesWithoutBorder,ObjectModel3DEdges], [], VisPose, ['color_0','color_1'], ['green','red'], 'Scene edges with removed edges at the boundary', [], VisInstructions, VisPose)</l>
+<c>* </c>
+<c>* Show results of edge-supported surface-based matching when using manipulated 3D edges.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'Without the edges at the boundary of the scene, no additional matches are found in the corners of the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>Text := 'You can modify the 3D edges in any way. To use modified edges, they must be given as value of the generic parameter \'3d_edges\' of the operator find_surface_model.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 150, 'left', 'black', 'box', 'false')</l>
+<c>* Perform edge-supported surface-based matching.</c>
+<l>find_surface_model (SurfaceModel, ObjectModel3DScene, 0.05, 0.1, MinScore, 'false', ['num_matches','3d_edges'], [5,ObjectModel3DEdgesWithoutBorder], Pose, Score, SurfaceMatchingResult)</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>visualize_object_model_3d (WindowHandle2, [ObjectModel3DScene,ObjectModel3DEdgesWithoutBorder,ObjectModel3DRigidTrans], [], VisPose, [VisParamNames,'color_1'], [VisParamValues,'green'], 'Matching result with cropped edges', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* </c>
+<c>* Show how to remove the background plane from the scene.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'An even better way to avoid matches in the background plane is to completely remove the background plane from the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>Text := 'This is sometimes not possible, but if it is, you should do it!'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 150, 'left', 'black', 'box', 'false')</l>
+<c>* Remove the background plane from the scene.</c>
+<l>select_points_object_model_3d (ObjectModel3DScene, 'point_coord_z', 0.1, 0.73, SceneWithoutBackground)</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>visualize_object_model_3d (WindowHandle2, [SceneWithoutBackground,ObjectModel3DScene], [], VisPose, ['color_0','color_1','alpha_1'], ['white','red',0.5], 'Scene and removed background', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Show results of edge-supported surface-based matching when using a scene without the background plane.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'Without the background plane of the scene, no additional matches are found in the corners of the scene. Furthermore, the matching is significantly faster if the background has been removed from the scene.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>dev_disp_text ('Determining speedup...', 'window', 200, 'left', 'black', 'box', 'false')</l>
+<c>* Determine speedup.</c>
+<l>Num := 5</l>
+<l>count_seconds (S1)</l>
+<l>for I := 1 to Num by 1</l>
+<l>    find_surface_model (SurfaceModel, ObjectModel3DScene, 0.05, 0.1, MinScore, 'false', 'num_matches', 3, Pose, Score, SurfaceMatchingResult)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimeWithBackground := (S2 - S1) / real(Num) * 1000.0</l>
+<l>count_seconds (S1)</l>
+<l>for I := 1 to Num by 1</l>
+<l>    find_surface_model (SurfaceModel, SceneWithoutBackground, 0.05, 0.1, MinScore, 'false', 'num_matches', 3, Pose, Score, SurfaceMatchingResult)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimeNoBackground := (S2 - S1) / real(Num) * 1000.0</l>
+<c>* </c>
+<l>Text[0] := 'Runtime:'</l>
+<l>Text[1] := '  With background:    ' + TimeWithBackground$'4.0f' + ' ms'</l>
+<l>Text[2] := '  Without background: ' + TimeNoBackground$'4.0f' + ' ms'</l>
+<l>dev_disp_text (Text, 'window', 250, 'left', 'black', 'box', 'false')</l>
+<c>* Display results.</c>
+<l>edges_object_model_3d (SceneWithoutBackground, 0.01 * Diameter, [], [], ObjectModel3DEdgesWithoutBackground)</l>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>visualize_object_model_3d (WindowHandle2, [SceneWithoutBackground,ObjectModel3DEdgesWithoutBackground,ObjectModel3DRigidTrans], [], VisPose, [VisParamNames,'color_1'], [VisParamValues,'green'], 'Matching result in scene with removed background', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* </c>
+<c>* Speedup edge-supported surface-based matching by reducing the number of points used for pose refinement.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'Further speedup is possible, if the points in the search scene are dense compared to the size of the object, i.e., if the pose refinement has to use a large number of points.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>Text := 'The number of points used for the pose refinement can be reduced by increasing the generic parameter \'pose_ref_sub_sampling\'. '</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 150, 'left', 'black', 'box', 'false')</l>
+<l>dev_disp_text ('Determining speedup...', 'window', 270, 'left', 'black', 'box', 'false')</l>
+<c>* Determine speedup.</c>
+<l>Num := 5</l>
+<l>count_seconds (S1)</l>
+<l>for I := 1 to Num by 1</l>
+<l>    find_surface_model (SurfaceModel, ObjectModel3DScene, 0.05, 0.1, MinScore, 'false', ['num_matches','pose_ref_sub_sampling'], [3,20], Pose, Score, SurfaceMatchingResult)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimeWithBackgroundPoseRefSubSampling := (S2 - S1) / real(Num) * 1000.0</l>
+<l>count_seconds (S1)</l>
+<l>for I := 1 to Num by 1</l>
+<l>    find_surface_model (SurfaceModel, SceneWithoutBackground, 0.05, 0.1, MinScore, 'false', ['num_matches','pose_ref_sub_sampling'], [3,20], Pose, Score, SurfaceMatchingResult)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>TimeNoBackgroundPoseRefSubSampling := (S2 - S1) / real(Num) * 1000.0</l>
+<c>* </c>
+<l>Text[0] := 'Runtime:'</l>
+<l>Text[1] := '  pose_ref_sub_sampling = 2 (default):'</l>
+<l>Text[2] := '    With background:    ' + TimeWithBackground$'4.0f' + ' ms'</l>
+<l>Text[3] := '    Without background: ' + TimeNoBackground$'4.0f' + ' ms'</l>
+<l>Text[4] := '  pose_ref_sub_sampling = 20:'</l>
+<l>Text[5] := '    With background:    ' + TimeWithBackgroundPoseRefSubSampling$'4.0f' + ' ms'</l>
+<l>Text[6] := '    Without background: ' + TimeNoBackgroundPoseRefSubSampling$'4.0f' + ' ms'</l>
+<l>dev_disp_text (Text, 'window', 300, 'left', 'black', 'box', 'false')</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>visualize_object_model_3d (WindowHandle2, [SceneWithoutBackground,ObjectModel3DEdgesWithoutBackground,ObjectModel3DRigidTrans], [], VisPose, [VisParamNames,'color_1'], [VisParamValues,'green'], 'Matching result in scene with pose_ref_sub_sampling = 20', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* </c>
+<c>* Show results of edge-supported surface-based matching with use of image edges.</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Text := 'You can even use image data to improve the matching results. This is especially helpful if the 3D edges from the scene are blurry or distorted. The typically better defined image edges improve the matching accuracy.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>Text := 'To use image edges, use the operator find_surface_model_image.'</l>
+<l>wrap_text (Text, LineLength, TextWrapped)</l>
+<l>dev_disp_text (TextWrapped, 'window', 200, 'left', 'black', 'box', 'false')</l>
+<c>* Perform edge-supported surface-based matching.</c>
+<l>set_surface_model_param (SurfaceModel, 'camera_parameter', CameraParam)</l>
+<l>set_surface_model_param (SurfaceModel, 'camera_pose', CameraPose)</l>
+<l>find_surface_model_image (Image, SurfaceModel, SceneWithoutBackground, 0.05, 0.1, MinScore, 'false', ['num_matches','pose_ref_sub_sampling'], [5,20], Pose, Score, SurfaceMatchingResult)</l>
+<c>* Display results.</c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<c>* Get gray values from image.</c>
+<l>object_model_3d_to_xyz (X, Y, Z, SceneWithoutBackground, 'from_xyz_map', [], [])</l>
+<l>get_domain (Z, Domain)</l>
+<l>get_region_points (Domain, Rows, Columns)</l>
+<l>get_grayval (Image, Rows, Columns, AttribValues)</l>
+<c>* Set the gray values as attributes of the 3D object model.</c>
+<l>set_object_model_3d_attrib_mod (SceneWithoutBackground, '&amp;gray', 'points', AttribValues)</l>
+<l>visualize_object_model_3d (WindowHandle2, [SceneWithoutBackground,ObjectModel3DEdgesWithoutBackground,ObjectModel3DRigidTrans], [], VisPose, [VisParamNames,'color_1','color_attrib_0'], [VisParamValues,'green','&amp;gray'], 'Matching result with 2D and 3D edge support', [], VisInstructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DRigidTrans)</l>
+<c>* Display results on image.</c>
+<l>set_window_param (WindowHandle2, 'flush', 'false')</l>
+<l>dev_set_lut ('cubic_root')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>dev_disp_text ('Matching results projected into the image', 'window', 'top', 'left', 'black', [], [])</l>
+<l>gen_empty_obj (AllContours)</l>
+<l>for Index := 0 to |Score| - 1 by 1</l>
+<l>    CurrPose := Pose[7 * Index:7 * Index + 6]</l>
+<l>    project_object_model_3d (Contours, ObjectModel3DModel, CameraParam, CurrPose, [], [])</l>
+<l>    concat_obj (AllContours, Contours, AllContours)</l>
+<l>endfor</l>
+<l>dev_display (AllContours)</l>
+<l>dev_set_line_width (1)</l>
+<l>flush_buffer (WindowHandle2)</l>
+<l>set_window_param (WindowHandle2, 'flush', 'true')</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>clear_object_model_3d ([ObjectModel3DModel,ObjectModel3DScene,ObjectModel3DEdges,ObjectModel3DEdgesWithoutBorder,SceneWithoutBackground,ObjectModel3DEdgesWithoutBackground])</l>
+<l>clear_surface_model ([SurfaceModel,SurfaceModelWithoutEdgeSupport])</l>
+<l>stop ()</l>
+<c>* </c>
+<l>dev_set_lut ('default')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="wrap_text">
+<interface>
+<ic>
+<par name="Text" base_type="ctrl" dimension="0"/>
+<par name="MaxLineLength" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="TextWrapped" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>TextWrapped := regexp_replace(Text + ' ',['(.{0,' + MaxLineLength + '})\\s','replace_all'],'$1\n')</l>
+<l>return ()</l>
+</body>
+<docu id="wrap_text">
+<parameters>
+<parameter id="MaxLineLength"/>
+<parameter id="Text"/>
+<parameter id="TextWrapped"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

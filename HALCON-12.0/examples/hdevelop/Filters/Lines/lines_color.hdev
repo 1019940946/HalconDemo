@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use lines_color and the differences</c>
+<c>* between the output of lines_color and lines_gauss using an image in which</c>
+<c>* some lines can only be extracted from a color image.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 479, 639)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>NumImages := 2</l>
+<l>for J := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'cable' + J)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Color image', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Extract color lines from the image.  Note that since the color line extractor</c>
+<c>    * cannot discern between bright or dark lines (in fact, this criterion does not</c>
+<c>    * even make sense for color lines), the lines corresponding to the colored</c>
+<c>    * cables are simply selected based on their length.</c>
+<l>    lines_color (Image, Lines, 3.5, 0, 12, 'true', 'false')</l>
+<l>    select_contours_xld (Lines, LongLines, 'contour_length', 450, 100000, 0, 0)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (LongLines)</l>
+<l>    disp_message (WindowHandle, 'Color lines', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Now construct XLD contours that are used to visualize the line width.  One</c>
+<c>    * contour for the left and right edge of the line is constructed based on the</c>
+<c>    * line position, angle, and width_* attributes.</c>
+<c>    * Note that when the width is visualized you will see several abruptly changing</c>
+<c>    * line widths.  This happens because the edges of the line merge with the</c>
+<c>    * edges of adjacent lines because of the scale-space effects induced by the</c>
+<c>    * smoothing that is used in lines_color to extract the lines.</c>
+<l>    count_obj (LongLines, Number)</l>
+<l>    gen_empty_obj (EdgesL)</l>
+<l>    gen_empty_obj (EdgesR)</l>
+<l>    for K := 1 to Number by 1</l>
+<l>        select_obj (LongLines, Line, K)</l>
+<l>        get_contour_xld (Line, Row, Col)</l>
+<l>        get_contour_attrib_xld (Line, 'angle', Angle)</l>
+<l>        get_contour_attrib_xld (Line, 'width_right', WidthR)</l>
+<l>        get_contour_attrib_xld (Line, 'width_left', WidthL)</l>
+<l>        EdgeRR := Row + cos(Angle) * WidthR</l>
+<l>        EdgeRC := Col + sin(Angle) * WidthR</l>
+<l>        EdgeLR := Row - cos(Angle) * WidthL</l>
+<l>        EdgeLC := Col - sin(Angle) * WidthL</l>
+<l>        gen_contour_polygon_xld (EdgeR, EdgeRR, EdgeRC)</l>
+<l>        gen_contour_polygon_xld (EdgeL, EdgeLR, EdgeLC)</l>
+<l>        concat_obj (EdgesL, EdgeL, EdgesL)</l>
+<l>        concat_obj (EdgesR, EdgeR, EdgesR)</l>
+<l>    endfor</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (LongLines)</l>
+<l>    dev_set_color ('slate blue')</l>
+<l>    dev_display (EdgesR)</l>
+<l>    dev_display (EdgesL)</l>
+<l>    disp_message (WindowHandle, 'Color lines and their width', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Now convert the image into a gray value image.</c>
+<l>    rgb1_to_gray (Image, GrayImage)</l>
+<l>    dev_display (GrayImage)</l>
+<l>    disp_message (WindowHandle, 'Gray value image', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Extract dark lines corresponding to the cables from the gray value image.</c>
+<c>    * Note that the conversion to a gray value image causes several adjacent</c>
+<c>    * lines to have almost identical contrasts.  Therefore, it is impossible to</c>
+<c>    * extract the lines corresponding to the cables completely.</c>
+<l>    lines_gauss (GrayImage, LinesGray, 3.5, 0.0, 0.7, 'dark', 'true', 'bar-shaped', 'false')</l>
+<l>    select_contours_xld (LinesGray, LongGrayLines, 'contour_length', 50, 100000, 0, 0)</l>
+<l>    dev_display (GrayImage)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (LongGrayLines)</l>
+<l>    disp_message (WindowHandle, 'Gray value lines', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Now construct XLD contours that are used to visualize the line width.  One</c>
+<c>    * contour for the left and right edge of the line is constructed based on the</c>
+<c>    * line position, angle, and width_* attributes.</c>
+<c>    * Note that because of the very low contrast in the gray value image many of</c>
+<c>    * the line edges are very poorly defined, leading to wrongly extracted widths</c>
+<c>    * in several places.</c>
+<l>    count_obj (LongGrayLines, Number)</l>
+<l>    gen_empty_obj (EdgesGrayL)</l>
+<l>    gen_empty_obj (EdgesGrayR)</l>
+<l>    for K := 1 to Number by 1</l>
+<l>        select_obj (LongGrayLines, Line, K)</l>
+<l>        get_contour_xld (Line, Row, Col)</l>
+<l>        get_contour_attrib_xld (Line, 'angle', Angle)</l>
+<l>        get_contour_attrib_xld (Line, 'width_right', WidthR)</l>
+<l>        get_contour_attrib_xld (Line, 'width_left', WidthL)</l>
+<l>        EdgeRR := Row + cos(Angle) * WidthR</l>
+<l>        EdgeRC := Col + sin(Angle) * WidthR</l>
+<l>        EdgeLR := Row - cos(Angle) * WidthL</l>
+<l>        EdgeLC := Col - sin(Angle) * WidthL</l>
+<l>        gen_contour_polygon_xld (EdgeR, EdgeRR, EdgeRC)</l>
+<l>        gen_contour_polygon_xld (EdgeL, EdgeLR, EdgeLC)</l>
+<l>        concat_obj (EdgesGrayL, EdgeL, EdgesGrayL)</l>
+<l>        concat_obj (EdgesGrayR, EdgeR, EdgesGrayR)</l>
+<l>    endfor</l>
+<l>    dev_display (GrayImage)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (LongGrayLines)</l>
+<l>    dev_set_color ('slate blue')</l>
+<l>    dev_display (EdgesGrayL)</l>
+<l>    dev_display (EdgesGrayR)</l>
+<l>    disp_message (WindowHandle, 'Gray value lines and their width', 'window', 12, 12, 'black', 'true')</l>
+<l>    if (J &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

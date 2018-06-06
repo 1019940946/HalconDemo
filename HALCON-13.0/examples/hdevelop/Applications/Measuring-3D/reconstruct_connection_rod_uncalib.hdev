@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to perform a non calibrated</c>
+<c>* measurement by using the sheet-of-light technique</c>
+<c>* </c>
+<c>* At first, a sheet-of light model is created and suitable</c>
+<c>* parameters are set. Then, a series of profile images is</c>
+<c>* processed successively. Lastly, the resulting disparity</c>
+<c>* and score images are retrieved from the model and displayed.</c>
+<c>* </c>
+<c>* Perform some initializations</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (ProfileImage, 'sheet_of_light/connection_rod_001')</l>
+<l>dev_open_window_fit_image (ProfileImage, 0, 0, 1024, 768, WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_set_lut ('default')</l>
+<c>* </c>
+<c>* Create the rectangular region in which the profiles are measured.</c>
+<l>gen_rectangle1 (ProfileRegion, 120, 75, 195, 710)</l>
+<c>* </c>
+<c>* Create a model in order to measure profiles according to</c>
+<c>* the sheet-of-light technique. Simultaneously set some</c>
+<c>* parameters for the model.</c>
+<l>create_sheet_of_light_model (ProfileRegion, ['min_gray','num_profiles','ambiguity_solving','score_type'], [70,290,'first','width'], SheetOfLightModelID)</l>
+<c>* </c>
+<l>for Idx := 1 to 3 by 1</l>
+<c>    * </c>
+<c>    * Measure the profile from successive images</c>
+<l>    for Index := 1 to 290 by 1</l>
+<l>        read_image (ProfileImage, 'sheet_of_light/connection_rod_' + Index$'.3')</l>
+<l>        dev_display (ProfileImage)</l>
+<l>        dev_display (ProfileRegion)</l>
+<l>        measure_profile_sheet_of_light (ProfileImage, SheetOfLightModelID, [])</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Get the resulting disparity and score images</c>
+<l>    get_sheet_of_light_result (Disparity, SheetOfLightModelID, 'disparity')</l>
+<l>    get_sheet_of_light_result (Score, SheetOfLightModelID, 'score')</l>
+<c>    * </c>
+<c>    * Further process the disparity and score images to remove</c>
+<c>    * unreliable values and improve the representation</c>
+<l>    if (Idx == 1)</l>
+<l>        threshold (Score, ScoreRegion, 1.5, 7.5)</l>
+<l>        reduce_domain (Disparity, ScoreRegion, DisparityReduced)</l>
+<c>        * </c>
+<c>        * Display the resulting disparity</c>
+<l>        get_image_size (DisparityReduced, Width, Height)</l>
+<l>        dev_set_window_extents (0, 0, Width, Height)</l>
+<l>        dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>        dev_clear_window ()</l>
+<l>    endif</l>
+<l>    dev_set_lut ('temperature')</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (DisparityReduced)</l>
+<l>    dev_set_lut ('default')</l>
+<c>    * </c>
+<c>    * reset the model for the next measurement</c>
+<l>    reset_sheet_of_light_model (SheetOfLightModelID)</l>
+<l>    wait_seconds (3)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Close the sheet-of-light handle once the measurement</c>
+<c>* has been performed</c>
+<l>clear_sheet_of_light_model (SheetOfLightModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

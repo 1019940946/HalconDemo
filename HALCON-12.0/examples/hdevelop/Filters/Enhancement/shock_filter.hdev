@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how a defocused image can be sharpened</c>
+<c>* with shock_filter.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 479, 639)</l>
+<l>read_image (Image, 'datacode/ecc200/ecc200_cpu_015')</l>
+<c>* Since the image contains interlace effects, remove them first.</c>
+<l>fill_interlace (Image, ImageFilled, 'odd')</l>
+<l>dev_display (ImageFilled)</l>
+<l>stop ()</l>
+<c>* Apply the shock filter.  In most cases, Mode = 'canny' is preferable since it</c>
+<c>* tends to straighten edges.  However, in this case we want to preserve the</c>
+<c>* corners of the data code modules as much as possible.  This is achieved</c>
+<c>* by using Mode = 'laplace'.</c>
+<l>shock_filter (ImageFilled, SharpenedImage, 0.5, 10, 'laplace', 1.5)</l>
+<l>dev_display (SharpenedImage)</l>
+<l>stop ()</l>
+<l>dev_set_part (160, 330, 369, 609)</l>
+<l>dev_display (ImageFilled)</l>
+<l>stop ()</l>
+<l>dev_display (SharpenedImage)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

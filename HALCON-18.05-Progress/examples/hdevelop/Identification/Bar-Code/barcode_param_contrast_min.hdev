@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program for the usage of the bar code parameter</c>
+<c>* 'contrast_min'.</c>
+<c>* </c>
+<c>* This parameter can be used to reduce the runtime of find_bar_code</c>
+<c>* in the presence of a low contrast bar-like structures in an image.</c>
+<c>* Moreover 'contrast_min' can also be used to reduce the number of</c>
+<c>* false positives if the expected barcodes have high contrast.</c>
+<c>* </c>
+<c>* Create bar code reader model</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Read and display example images without any visible bar codes</c>
+<l>read_image (Image, 'barcode/25interleaved/25interleaved_zeiss1')</l>
+<c>* </c>
+<c>* Set display defaults</c>
+<l>dev_open_window_fit_image (Image, 0, 0, 600, 500, WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>dev_open_window (0, Width + 5, 400, 300, 'white', WindowHandleText)</l>
+<l>set_display_font (WindowHandleText, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Display information about the example</c>
+<l>Message[0] := 'This example demonstrates the use of the bar code parameter \'contrast_min\'.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The parameter \'contrast_min\' can be used to reduce the runtime of find_bar_code in the presence of low contrast bar-like structures in an image. Moreover \'contrast_min\' can also be used to reduce the number of false positives in applications where the expected barcodes have a high contrast.'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,35})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandleText, MessageWrapped, 'window', 12, 12, 'black', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Number of repetitions for runtime measurements</c>
+<l>NumRepeat := 100</l>
+<c>* </c>
+<c>* First, set the minimum contrast of the bar code candidate regions</c>
+<c>* to 0 (default)</c>
+<l>ContrastMinValue := 0</l>
+<l>set_bar_code_param (BarCodeHandle, 'contrast_min', ContrastMinValue)</l>
+<c>* </c>
+<c>* The bar code reader finds many bar code candidate regions that have</c>
+<c>* a low absolute contrast</c>
+<l>Times := []</l>
+<l>for I := 0 to NumRepeat by 1</l>
+<l>    count_seconds (Start)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, '2/5 Interleaved', DecodedDataStrings)</l>
+<l>    count_seconds (End)</l>
+<l>    Time := End - Start</l>
+<l>    Times := [Times,Time]</l>
+<l>endfor</l>
+<l>RunTimeContrastMinLow := 1000 * median(Times)</l>
+<c>* Get candidate regions and display results</c>
+<l>get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>count_obj (BarCodeObjects, Number)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (5)</l>
+<l>dev_display (BarCodeObjects)</l>
+<l>dev_set_window (WindowHandleText)</l>
+<l>dev_clear_window ()</l>
+<l>Message := ['\'contrast_min\' = ' + ContrastMinValue + ':','   Found ' + Number + ' candidate(s) in ' + (RunTimeContrastMinLow$'.4') + ' ms']</l>
+<l>disp_message (WindowHandleText, Message, 'window', 12, 12, '', 'false')</l>
+<c>* </c>
+<c>* Now, set the bar code reader parameter 'contrast_min' to a value</c>
+<c>* greater than 0.0 to consider only candidates having an absolute</c>
+<c>* contrast of at least that value.</c>
+<l>ContrastMinValue := 120</l>
+<l>set_bar_code_param (BarCodeHandle, 'contrast_min', ContrastMinValue)</l>
+<c>* </c>
+<c>* Search again for bar codes. Now, a significantly smaller number of</c>
+<c>* candidates should be found, and the overall runtime should be reduced.</c>
+<l>Times := []</l>
+<l>for I := 0 to NumRepeat by 1</l>
+<l>    count_seconds (Start)</l>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, '2/5 Interleaved', DecodedDataStrings)</l>
+<l>    count_seconds (End)</l>
+<l>    Time := End - Start</l>
+<l>    Times := [Times,Time]</l>
+<l>endfor</l>
+<l>RunTimeContrastMinHigh := 1000 * median(Times)</l>
+<c>* Get candidate regions and display results</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>count_obj (BarCodeObjects, Number)</l>
+<l>dev_set_color ('forest green')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (BarCodeObjects)</l>
+<l>smallest_rectangle1 (SymbolRegions, Row1, Column1, Row2, Column2)</l>
+<l>get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedTypes)</l>
+<l>disp_message (WindowHandle, DecodedTypes + '\n' + DecodedDataStrings, 'image', Row1, Column2 + 20, 'black', 'true')</l>
+<l>dev_set_window (WindowHandleText)</l>
+<l>Message := ['\'contrast_min\' = ' + ContrastMinValue + ':','   Found ' + Number + ' candidate(s) in ' + (RunTimeContrastMinHigh$'.4') + ' ms']</l>
+<l>disp_message (WindowHandleText, Message, 'window', 62, 12, 'forest green', 'false')</l>
+<l>Message := 'Setting \'contrast_min\' to a higher value typically results in a faster execution and in fewer false positives.'</l>
+<l>MessageWrapped := regexp_replace(Message + ' ',['(.{0,35})\\s','replace_all'],'$1\n')</l>
+<l>disp_message (WindowHandleText, MessageWrapped, 'window', 122, 12, 'black', 'false')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

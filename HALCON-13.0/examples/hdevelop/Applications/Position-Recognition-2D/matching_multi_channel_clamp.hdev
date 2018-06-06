@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates shape based matching with multi channel images.</c>
+<c>* A robot is supposed to grab only pieces that are not occluded by others.</c>
+<c>* This task is solved by grabbing the clamp with the highest score.</c>
+<c>* It is assumed that a piece on top of another always gets a higher score.</c>
+<c>* Because of inferior local contrast of overlapping pieces in gray value images,</c>
+<c>* multi channel matching turns out to be the more robust approach.</c>
+<c>* If you change Mode to 'gray', the matching will fail in the first picture.</c>
+<c>* </c>
+<c>* Select mode</c>
+<l>Mode := 'multi channel'</l>
+<l>* Mode := 'gray'</l>
+<c>* Remove comment from upper line to see performance of single-channel matching.</c>
+<c>* </c>
+<c>* Init visualization</c>
+<l>dev_update_off ()</l>
+<l>set_system ('border_shape_models', 'false')</l>
+<l>read_image (Image, 'color/clamp_front_model')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Part 1: Create shape models</c>
+<c>* Because the pieces may be flipped, two models are created.</c>
+<l>if (Mode == 'gray')</l>
+<l>    rgb1_to_gray (Image, Image)</l>
+<l>endif</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Create Shape Model 1', 'window', 12, 12, 'black', 'true')</l>
+<l>create_aniso_shape_model (Image, 5, rad(0), rad(360), 'auto', 0.7, 1.3, 'auto', 1, 1, 'auto', 'auto', 'ignore_color_polarity', 'auto', 'auto', ModelID1)</l>
+<l>get_shape_model_contours (Model1Contours, ModelID1, 1)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display_shape_matching_results (ModelID1, 'white', 511.5, 639.5, 0.0, 1, 1, ModelID1)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>read_image (Image, 'color/clamp_back_model')</l>
+<l>if (Mode == 'gray')</l>
+<l>    rgb1_to_gray (Image, Image)</l>
+<l>endif</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Create Shape Model 2', 'window', 12, 12, 'black', 'true')</l>
+<l>create_aniso_shape_model (Image, 'auto', rad(0), rad(360), 'auto', 0.7, 1.3, 'auto', 1, 1, 'auto', 'auto', 'ignore_color_polarity', 'auto', 'auto', ModelID2)</l>
+<l>get_shape_model_contours (Model2Contours, ModelID2, 1)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display_shape_matching_results ([ModelID1,ModelID2], 'white', 511.5, 639.5, 0.0, 1, 1, ModelID2)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Main loop: read images and detect topmost piece.</c>
+<l>for Index := 1 to 8 by 1</l>
+<l>    read_image (Image, 'color/clamp_pile_' + Index$'02')</l>
+<l>    if (Mode == 'gray')</l>
+<l>        rgb1_to_gray (Image, Image)</l>
+<l>    endif</l>
+<l>    find_aniso_shape_models (Image, [ModelID1,ModelID2], rad(0), rad(360), 0.7, 1.3, 1, 1, 0.80, 1, 0.5, 'least_squares', 0, 0.80, Row, Column, Angle, ScaleR, ScaleC, Score, Model)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    if (Model == ModelID1)</l>
+<l>        copy_obj (Model1Contours, ModelContours, 1, -1)</l>
+<l>    else</l>
+<l>        copy_obj (Model2Contours, ModelContours, 1, -1)</l>
+<l>    endif</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display_shape_matching_results ([ModelID1,ModelID2], 'white', Row, Column, Angle, ScaleR, ScaleC, Model)</l>
+<l>    if (Index &lt; 8)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Cleanup memory</c>
+<l>clear_shape_model (ModelID1)</l>
+<l>clear_shape_model (ModelID2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

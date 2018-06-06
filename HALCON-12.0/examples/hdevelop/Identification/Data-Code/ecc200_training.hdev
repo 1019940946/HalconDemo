@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***************************************************************</c>
+<c>* This example program demonstrates how to train a 2d data model</c>
+<c>* for a class of ECC 200 data matrix symbols and how to obtain</c>
+<c>* the values of the model parameters before and after the training.</c>
+<c>* Furthermore it is shown how to write the trained data code model</c>
+<c>* into a file and how to read the saved data code model which</c>
+<c>* is then used to find all ECC200 symbols in a sequenz of images.</c>
+<c>* </c>
+<c>* Initialize image path and visual settings</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>ImageFiles := 'datacode/ecc200/ecc200_cpu_0'</l>
+<l>ImageNum := 16</l>
+<l>read_image (Image, ImageFiles + '07')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<c>* Display short description</c>
+<c>* This program demonstrates the training of a 2d data code model</c>
+<c>* and how to write the trained model into a file and also how to</c>
+<c>* read the saved model from the file. The model is then used</c>
+<c>* to find data codes in a sequence of images.</c>
+<l>Message := 'This program demonstrates the training of a 2d data code'</l>
+<l>Message[1] := 'model, how to write the trained model into a file, and'</l>
+<l>Message[2] := 'also how to read the saved model from the file. The'</l>
+<l>Message[3] := 'model is then used to find data codes in a sequence of'</l>
+<l>Message[4] := 'images.'</l>
+<l>Message[5] := 'Furthermore it is shown how to obtain the values of the'</l>
+<l>Message[6] := 'model parameters before and after the training.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 1: Create a 2d data code model</c>
+<c>* -------------------------------------------------------</c>
+<c>* Create a 2d data code model of the 2d data code class</c>
+<c>* 'Data Matrix ECC 200'. The operator returns a handle to</c>
+<c>* the 2d data code model which can be used for all further</c>
+<c>* operations on the data code.</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Get model parameters before the training</c>
+<c>* -------------------------------------------------------</c>
+<l>query_data_code_2d_params (DataCodeHandle, 'get_model_params', GenParamNames)</l>
+<l>get_data_code_2d_param (DataCodeHandle, GenParamNames, ModelBeforeTraining)</l>
+<c>* </c>
+<c>* Step 2: Train the model</c>
+<c>* -------------------------------------------------------</c>
+<c>* Train the model on a dark and a bright image</c>
+<c>* </c>
+<c>* Dark image</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_cpu_007')</l>
+<l>find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, 'train', 'all', ResultHandles, DecodedDataStrings)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SymbolXLDs)</l>
+<l>TitleMessage := 'Train on a dark image'</l>
+<l>display_found_data_codes (SymbolXLDs, WindowHandle, DecodedDataStrings, TitleMessage, [], 'forest green', 'black')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Bright image</c>
+<l>read_image (Image, 'datacode/ecc200/ecc200_cpu_008')</l>
+<l>find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, 'train', 'all', ResultHandles, DecodedDataStrings)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SymbolXLDs)</l>
+<l>TitleMessage := 'Train on a bright image'</l>
+<l>display_found_data_codes (SymbolXLDs, WindowHandle, DecodedDataStrings, TitleMessage, [], 'forest green', 'black')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get model parameters after the training</c>
+<c>* -------------------------------------------------------</c>
+<l>get_data_code_2d_param (DataCodeHandle, GenParamNames, ModelAfterTraining)</l>
+<c>* </c>
+<c>* Display the model parameters</c>
+<l>dev_clear_window ()</l>
+<l>ModelAdaption := (GenParamNames + ':')$'-25' + ModelBeforeTraining$'15' + ' -&gt; ' + ModelAfterTraining</l>
+<l>disp_message (WindowHandle, 'Model parameters before and after the training:', 'window', 12, 12, 'white', 'false')</l>
+<l>disp_message (WindowHandle, ModelAdaption, 'window', 60, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 3: Write the model into a file</c>
+<c>* --------------------------------------------------------</c>
+<c>* Save the model in a file so that it can be used later</c>
+<l>write_data_code_2d_model (DataCodeHandle, '2d_data_code_model.dcm')</l>
+<c>* </c>
+<c>* Clear the 2d data code model</c>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+<c>* </c>
+<c>* Display message about saved file and next step</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'The data code model is saved in \'2d_data_code_model.dcm\'.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'In the next step the saved model is read and used to'</l>
+<l>Message[3] := 'find data codes in a sequenz of images.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step 4: Read an existing 2d data code model</c>
+<c>* ----------------------------------------------------------</c>
+<c>* Read the previously saved data code model</c>
+<l>read_data_code_2d_model ('2d_data_code_model.dcm', DataCodeHandle)</l>
+<c>* </c>
+<c>* Step 5: Read the data codes</c>
+<c>* -------------------------------------------------------</c>
+<c>* Search and read the data codes in each image and</c>
+<c>* display the decoded string for each found data code</c>
+<l>for Index := 7 to 16 by 1</l>
+<l>    read_image (Image, ImageFiles + Index$'.2d')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Find and decode the data codes and measure the runtime</c>
+<l>    count_seconds (T1)</l>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    count_seconds (T2)</l>
+<l>    Time := 1000 * (T2 - T1)</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    TitleMessage := 'Image ' + (Index - 6) + ' of ' + (ImageNum - 6)</l>
+<l>    ResultMessage := 'Data code found in ' + Time$'.1f' + ' ms'</l>
+<l>    display_found_data_codes (SymbolXLDs, WindowHandle, DecodedDataStrings, TitleMessage, ResultMessage, 'forest green', 'black')</l>
+<c>    * </c>
+<c>    * Deactivate the following lines to run the program without breaks</c>
+<l>    if (Index &lt; ImageNum)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clear the 2d data code model</c>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_found_data_codes">
+<interface>
+<io>
+<par name="SymbolXLDs" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="DecodedDataStrings" base_type="ctrl" dimension="0"/>
+<par name="TitleMessage" base_type="ctrl" dimension="0"/>
+<par name="ResultMessage" base_type="ctrl" dimension="0"/>
+<par name="ColorDecodedStrings" base_type="ctrl" dimension="0"/>
+<par name="ColorResult" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays the results of the search for</c>
+<c>* 2d data codes. The data strings are displayed accordingly</c>
+<c>* to their length so that the whole string is visible.</c>
+<c>* If the data strings are too long only the first 50 chars</c>
+<c>* are displayed.</c>
+<c>* </c>
+<c>* Input parameters are the XLD contours of the decoded</c>
+<c>* data symbols, the decoded data strings, the windowhandle,</c>
+<c>* a title message, a result message, the color of the decoded</c>
+<c>* strings and the color of the result message.</c>
+<c>* </c>
+<c>* Display the result of the search for each found data code</c>
+<l>for J := 0 to |DecodedDataStrings| - 1 by 1</l>
+<c>    * </c>
+<c>    * Display the XLD contour</c>
+<l>    select_obj (SymbolXLDs, SymbolXLD, J + 1)</l>
+<l>    get_contour_xld (SymbolXLD, Row, Column)</l>
+<l>    dev_display (SymbolXLD)</l>
+<c>    * </c>
+<c>    * Display messages</c>
+<c>    * ------------------</c>
+<c>    * Determine the length of the dislayed decoded data string</c>
+<l>    get_window_extents (WindowHandle, Row1, Column1, Width, Height)</l>
+<l>    get_string_extents (WindowHandle, DecodedDataStrings[J], Ascent, Descent, TWidth, THeight)</l>
+<l>    if (TWidth &gt; Width)</l>
+<l>        DecodedDataStrings[J] := DecodedDataStrings[J]{0:50} + '...'</l>
+<l>        get_string_extents (WindowHandle, DecodedDataStrings[J], Ascent, Descent, TWidth, THeight)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Split the decoded string in new lines for better readability</c>
+<l>    tuple_regexp_replace (DecodedDataStrings[J], ['[\\r\\f,^#;]','replace_all'], '\n', DecodedData)</l>
+<l>    tuple_split (DecodedData, '\n', DecodedDataSubstrings)</l>
+<c>    * </c>
+<c>    * Determine the position of the displayed decoded data string</c>
+<l>    if (max(Row) &gt; 420 and min(Row) &lt; 40)</l>
+<l>        TPosRow := max(Row) - 30</l>
+<l>    elseif (max(Row) &gt; 420)</l>
+<l>        TPosRow := min(Row) - 20</l>
+<l>    elseif (min(Row) &lt; 100)</l>
+<l>        TPosRow := max(Row) - 20</l>
+<l>    else</l>
+<l>        TPosRow := max(Row) - 30</l>
+<l>    endif</l>
+<l>    TPosColumn := max([min([mean(Column) - TWidth / 2,Width - 32 - TWidth]),12])</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings[J], 'image', TPosRow, TPosColumn, ColorDecodedStrings, 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Display the title message and result message</c>
+<l>disp_message (WindowHandle, TitleMessage, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, ResultMessage, 'window', 40, 12, ColorResult, 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_found_data_codes">
+<parameters>
+<parameter id="ColorDecodedStrings"/>
+<parameter id="ColorResult"/>
+<parameter id="DecodedDataStrings"/>
+<parameter id="ResultMessage"/>
+<parameter id="SymbolXLDs"/>
+<parameter id="TitleMessage"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

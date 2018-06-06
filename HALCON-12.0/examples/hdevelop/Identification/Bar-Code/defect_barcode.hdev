@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the bar code reader's ability to read defect bar</c>
+<c>* codes. This is done by artificially removing a space in the bar code to different</c>
+<c>* extents. The space is simply overpainted with a gray value that corresponds</c>
+<c>* to the surrounding bars.</c>
+<c>* </c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'barcode/code39/code3904')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'false', 'false')</l>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>for O := 5 to 24 by 5</l>
+<l>    for R := 79 to 141 by 5</l>
+<l>        gen_rectangle1 (Rectangle, max([R - O,79]), 170, min([R + O,141]), 173)</l>
+<l>        paint_region (Rectangle, Image, ImageError, 6, 'fill')</l>
+<l>        set_bar_code_param (BarCodeHandle, 'element_size_max', 32)</l>
+<l>        find_bar_code (ImageError, SymbolRegions, BarCodeHandle, 'Code 39', DecodedDataStrings)</l>
+<l>        get_bar_code_object (BarCodeObjects, BarCodeHandle, 'all', 'candidate_regions')</l>
+<l>        dev_display (ImageError)</l>
+<l>        dev_display (SymbolRegions)</l>
+<l>        if (|DecodedDataStrings| &gt; 0)</l>
+<l>            disp_message (WindowHandle, DecodedDataStrings, 'image', 20, 10, 'black', 'true')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle, 'Undecodable', 'image', 20, 10, 'black', 'true')</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>        wait_seconds (0.2)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

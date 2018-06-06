@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Measure the dimensions of pads on a die with subpixel precision</c>
+<c>* to make sure that the chip production is accurate and is applied</c>
+<c>* according to the CAD data.</c>
+<c>* To check and count the pads, the camera moves clockwise along</c>
+<c>* the die border and grabs images at the different positions.</c>
+<c>* For each image the number of visible pads is extracted and</c>
+<c>* examined regarding to its dimension and location within the die.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>read_image (Image, 'die/die_pads_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, Width + 12, 350, 350, 'black', WindowZoomed)</l>
+<l>set_display_font (WindowZoomed, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Calibration data</c>
+<l>ScaleFactor := 2.75</l>
+<c>* </c>
+<c>* The dimensions of the pads are measured as follows: we extract</c>
+<c>* the contours corresponding to the pad and fit a rectangle.</c>
+<l>NumImages := 8</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'die/die_pads_' + Index$'.02')</l>
+<c>    * </c>
+<c>    * Segment pads</c>
+<l>    count_seconds (T1)</l>
+<l>    segment_pads_boundary_region (Image, RegionUnion)</l>
+<c>    * </c>
+<c>    * Find subpixel precise border of single pads</c>
+<l>    reduce_domain (Image, RegionUnion, ImageReduced)</l>
+<l>    fit_rectangle_to_pads_subpix (ImageReduced, Rectangles, RowPads, ColumnPads, PhiPads, HeightP, WidthP)</l>
+<l>    count_seconds (T2)</l>
+<c>    * </c>
+<c>    * Display statistics and results</c>
+<l>    HeightPad := (HeightP * 2) * ScaleFactor</l>
+<l>    WidthPad := (WidthP * 2) * ScaleFactor</l>
+<c>    * </c>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_display (Image)</l>
+<l>    Message := |RowPads| + ' pads detected in ' + ((T2 - T1) * 1000)$'.2f' + ' ms\n '</l>
+<l>    Message[1] := 'Average pad dimensions:'</l>
+<l>    Message[2] := 'Mean width : ' + mean(WidthPad)$'5.2f' + ' µm   Deviation: ' + deviation(WidthPad)$'5.2f' + ' µm'</l>
+<l>    Message[3] := 'Mean height: ' + mean(HeightPad)$'5.2f' + ' µm   Deviation: ' + deviation(HeightPad)$'5.2f' + ' µm'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 150, 100, 'black', 'true')</l>
+<c>    * </c>
+<l>    for IndexDispP := 0 to |RowPads| - 1 by 1</l>
+<c>        * </c>
+<c>        * Display in main window</c>
+<l>        dev_set_window (WindowHandle)</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (Rectangles)</l>
+<l>        select_obj (Rectangles, ObjectSelected, IndexDispP + 1)</l>
+<l>        dev_set_color ('blue')</l>
+<l>        dev_display (ObjectSelected)</l>
+<c>        * </c>
+<c>        * Display current pad in zoom window</c>
+<l>        Column := ColumnPads[IndexDispP]</l>
+<l>        Row := RowPads[IndexDispP]</l>
+<l>        Length1 := HeightP[IndexDispP]</l>
+<l>        Length2 := WidthP[IndexDispP]</l>
+<l>        Phi := PhiPads[IndexDispP]</l>
+<l>        if (Phi &lt; -0.1)</l>
+<l>            Phi := Phi + rad(180)</l>
+<l>        endif</l>
+<l>        gen_ext_pad_contour_xld (Lines, Row, Column, Length1, Length2, Phi, LabelX, LabelY)</l>
+<l>        dev_set_window (WindowZoomed)</l>
+<l>        dev_set_part (RowPads[IndexDispP] - 32, ColumnPads[IndexDispP] - 32, RowPads[IndexDispP] + 32, ColumnPads[IndexDispP] + 32)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_display (Lines)</l>
+<l>        disp_message (WindowZoomed, WidthPad[IndexDispP]$'.2f' + ' µm', 'image', LabelY[0], LabelX[0] - 7, 'green', 'false')</l>
+<l>        disp_message (WindowZoomed, HeightPad[IndexDispP]$'.2f' + ' µm', 'image', LabelY[1], LabelX[1] - 17, 'green', 'false')</l>
+<l>        if (Index &lt; 2)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>        wait_seconds (0.1)</l>
+<l>    endfor</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="fit_rectangle_to_pads_subpix">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Rectangles" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Phi" base_type="ctrl" dimension="0"/>
+<par name="Length1" base_type="ctrl" dimension="0"/>
+<par name="Length2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Extract the subpixel edges of the pads and determine the</c>
+<c>* dimensions by fitting a rectangle.</c>
+<l>edges_sub_pix (Image, Edges, 'canny', 0.8, 15, 80)</l>
+<l>select_shape_xld (Edges, SelectedXLD, 'contlength', 'and', 15, 99999)</l>
+<l>union_adjacent_contours_xld (SelectedXLD, UnionContours, 3, 1, 'attr_keep')</l>
+<l>select_shape_xld (UnionContours, Pads, 'contlength', 'and', 100, 99999)</l>
+<l>sort_contours_xld (Pads, SortedContours, 'character', 'true', 'row')</l>
+<l>fit_rectangle2_contour_xld (SortedContours, 'tukey', -1, 0, 0, 3, 2, Row, Column, Phi, Length1, Length2, PointOrder)</l>
+<l>gen_rectangle2_contour_xld (Rectangles, Row, Column, Phi, Length1, Length2)</l>
+<l>return ()</l>
+</body>
+<docu id="fit_rectangle_to_pads_subpix">
+<parameters>
+<parameter id="Column"/>
+<parameter id="Image"/>
+<parameter id="Length1"/>
+<parameter id="Length2"/>
+<parameter id="Phi"/>
+<parameter id="Rectangles"/>
+<parameter id="Row"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="segment_pads_boundary_region">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="RegionUnion" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* Segment the boundary region of the pads,</c>
+<c>* which is later used for detailed edge extraction</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>threshold (Image, Region, 200, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<c>* Select candidates depending on the size ('width', 'area'),</c>
+<c>* excluding regions touching the border ('row1','row2','column1'.'column2')</c>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['width','area','row1','row2','column1','column2'], 'and', [24,650,1,0,1,0], [40,950,Height - 1,Height - 2,Width - 1,Width - 2])</l>
+<l>fill_up (SelectedRegions, RegionFillUp)</l>
+<l>boundary (RegionFillUp, RegionBorder, 'outer')</l>
+<l>dilation_rectangle1 (RegionBorder, RegionDilation, 3, 3)</l>
+<l>union1 (RegionDilation, RegionUnion)</l>
+<l>return ()</l>
+</body>
+<docu id="segment_pads_boundary_region">
+<parameters>
+<parameter id="Image"/>
+<parameter id="RegionUnion"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_ext_pad_contour_xld">
+<interface>
+<oo>
+<par name="Lines" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Length1" base_type="ctrl" dimension="0"/>
+<par name="Length2" base_type="ctrl" dimension="0"/>
+<par name="Phi" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="LabelX" base_type="ctrl" dimension="0"/>
+<par name="LabelY" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* To make the visualization more appealing, we display a rectangle,</c>
+<c>* extend its sides a bit further so that the corners, i.e., the</c>
+<c>* intersection points, become more apparent. We do this by mapping the unit</c>
+<c>* square to the size and position of the pad, and then extending its sides</c>
+<c>* by 1.25</c>
+<l>X := [1,1,-1,-1]</l>
+<l>Y := [1,-1,-1,1]</l>
+<l>XExt := X * 1.25</l>
+<l>YExt := Y * 1.25</l>
+<c>* Adapt label position depending on pad orientation</c>
+<l>if (abs(Phi) &lt; 0.1)</l>
+<l>    XLabel := [0,1]</l>
+<l>    YLabel := [1,0]</l>
+<l>else</l>
+<l>    XLabel := [1,0]</l>
+<l>    YLabel := [0,1]</l>
+<l>endif</l>
+<c>* </c>
+<c>* Calculate the affine transformation which maps the unit square</c>
+<c>* to the size and position of a given pad</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, Length1, Length2, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_rotate (HomMat2DScale, Phi, 0, 0, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, Column, Row, HomMat2DTranslate)</l>
+<l>affine_trans_point_2d (HomMat2DTranslate, X, YExt, Qx1, Qy1)</l>
+<l>affine_trans_point_2d (HomMat2DTranslate, XExt, Y, Qx2, Qy2)</l>
+<l>affine_trans_point_2d (HomMat2DTranslate, XLabel, YLabel, LabelX, LabelY)</l>
+<c>* Generate contour</c>
+<l>gen_empty_obj (Lines)</l>
+<l>for IndexLines := 0 to |Qx1| - 1 by 1</l>
+<l>    if (IndexLines % 2)</l>
+<l>        gen_contour_polygon_xld (ContourLine, [Qy2[IndexLines],Qy2[(IndexLines + 1) % 4]], [Qx2[IndexLines],Qx2[(IndexLines + 1) % 4]])</l>
+<l>    else</l>
+<l>        gen_contour_polygon_xld (ContourLine, [Qy1[IndexLines],Qy1[(IndexLines + 1) % 4]], [Qx1[IndexLines],Qx1[(IndexLines + 1) % 4]])</l>
+<l>    endif</l>
+<l>    concat_obj (Lines, ContourLine, Lines)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="gen_ext_pad_contour_xld">
+<parameters>
+<parameter id="Column"/>
+<parameter id="LabelX"/>
+<parameter id="LabelY"/>
+<parameter id="Length1"/>
+<parameter id="Length2"/>
+<parameter id="Lines"/>
+<parameter id="Phi"/>
+<parameter id="Row"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

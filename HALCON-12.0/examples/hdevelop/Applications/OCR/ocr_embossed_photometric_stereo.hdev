@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the photometric stereo technique</c>
+<c>* to read embossed numbers on a tube of toothpaste .</c>
+<c>* Input are 4 images of the tube with light coming from different orientations.</c>
+<c>* </c>
+<c>* Initialization</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 533, 223, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>Message := 'Read the lot number of a tube of toothpaste'</l>
+<l>Message[1] := 'using photometric stereo. In this case four'</l>
+<l>Message[2] := 'different light orientations were used.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Show input images with different illumination</c>
+<l>read_image (Images, 'photometric_stereo/toothpaste_embossed_0' + [1:4])</l>
+<l>for I := 1 to 4 by 1</l>
+<l>    Message := 'Acquire image ' + I + ' of 4'</l>
+<l>    select_obj (Images, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<l>Tilts := [6.1,95.0,-176.1,-86.8]</l>
+<l>Slants := [41.4,42.6,41.7,40.9]</l>
+<l>ResultType := ['gradient','albedo']</l>
+<l>photometric_stereo (Images, HeightField, Gradient, Albedo, Slants, Tilts, ResultType, 'poisson', [], [])</l>
+<c>* </c>
+<c>* Display the albedo image</c>
+<l>dev_display (Albedo)</l>
+<l>disp_message (WindowHandle, 'In the albedo image the number is nearly invisible', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Calculate the mean curvature of the surface</c>
+<c>* using the gradient field as input for the operator</c>
+<c>* derivate_vector_field.</c>
+<c>* Segmentation and reading of characters is much easier in curvature image</c>
+<c>* </c>
+<l>derivate_vector_field (Gradient, MeanCurvature, 0.1, 'mean_curvature')</l>
+<l>scale_image_max (MeanCurvature, ImageScaleMax)</l>
+<l>dev_display (ImageScaleMax)</l>
+<l>disp_message (WindowHandle, 'But the curvature image makes segmentation easy', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>threshold (ImageScaleMax, Region, 0, 127)</l>
+<l>opening_rectangle1 (Region, Region, 1, 3)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['area','height','width'], 'and', [300,40,10], [1000,60,40])</l>
+<l>sort_region (SelectedRegions, SortedRegions, 'character', 'true', 'row')</l>
+<l>read_ocr_class_mlp ('Industrial_0-9_NoRej.omc', OCRHandle)</l>
+<l>do_ocr_multi_class_mlp (SortedRegions, ImageScaleMax, OCRHandle, Class, Confidence)</l>
+<l>dev_display (Images)</l>
+<l>dev_display (SortedRegions)</l>
+<l>disp_message (WindowHandle, 'The lot number is: ' + sum(Class), 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

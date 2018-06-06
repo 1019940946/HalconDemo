@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2]" as_ord="2">* Example to demonstrate the usage of the Visual Applets ROI functionality.</c>
+<c>* </c>
+<c>* The HALCON Silicon Software Image Acquisition Interface in combination with the</c>
+<c>* ROI functionality can only be used together with a ROI Module created by Visual Applets</c>
+<c>* To get further information about building an ROI module with Visual Applets please</c>
+<c>* contact Silicon Software</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Get all available generic parameters provided by the Applet</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', Value)</l>
+<c>* </c>
+<c>* You have to set the name of the ROI module</c>
+<c>* Please choose the correct module from the available ones</c>
+<l>stop ()</l>
+<l>RoiModuleName := 'Device1_Process0_module6'</l>
+<c>* </c>
+<l>set_framegrabber_param (AcqHandle, 'multi_roi_module_name', RoiModuleName)</l>
+<l>get_framegrabber_param (AcqHandle, 'multi_roi_module_name', RoiModuleNameRet)</l>
+<c>* </c>
+<c>* Please define the number of ROIs you like to use</c>
+<l>numRoi := 3</l>
+<c>* Specify the field parameter with the ROI dimensions</c>
+<c>* All values must be dividable by four for this applet</c>
+<l>RoiWidth := [256,512,512]</l>
+<l>RoiHeight := [712,512,256]</l>
+<l>RoiXOffset := [0,256,256]</l>
+<l>RoiYOffset := [0,0,512]</l>
+<c>* </c>
+<l>if (|RoiYOffset| != numRoi or |RoiHeight| != numRoi or |RoiXOffset| != numRoi or |RoiWidth| != numRoi)</l>
+<c>    * Please check if all field parameters have the same size and the number is correctly specified in numRoi</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Check if the specified number of ROIs is supported by the created visual applet</c>
+<l>get_framegrabber_param (AcqHandle, RoiModuleName + '_MaxNumRoI', MaxNumRoiValue)</l>
+<l>if (MaxNumRoiValue &lt; numRoi)</l>
+<c>    * The numRoi number is not supported by this applet. Please reduce the amount of numRoi, or adapt</c>
+<c>    * the MaxNumRoI value inside the Visual Applet module and build it with the new configuration</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Set and check the number of requested ROIs</c>
+<l>set_framegrabber_param (AcqHandle, 'multi_roi_num', numRoi)</l>
+<l>get_framegrabber_param (AcqHandle, RoiModuleName + '_NumRoI', NumRoiValue)</l>
+<c>* </c>
+<c>* Set the ROI values</c>
+<l>set_framegrabber_param (AcqHandle, 'multi_roi_xlength', RoiWidth)</l>
+<l>set_framegrabber_param (AcqHandle, 'multi_roi_ylength', RoiHeight)</l>
+<l>set_framegrabber_param (AcqHandle, 'multi_roi_xoffset', RoiXOffset)</l>
+<l>set_framegrabber_param (AcqHandle, 'multi_roi_yoffset', RoiYOffset)</l>
+<c>* </c>
+<c>* Before we are able to query the field parameters, we have to set</c>
+<c>* the number of field parameters we want to query</c>
+<l>set_framegrabber_param (AcqHandle, 'num_field_parameter', numRoi)</l>
+<c>* Get the ROI values</c>
+<l>get_framegrabber_param (AcqHandle, 'multi_roi_xlength', RoiWidthValue)</l>
+<l>get_framegrabber_param (AcqHandle, 'multi_roi_ylength', RoiHeightValue)</l>
+<l>get_framegrabber_param (AcqHandle, 'multi_roi_xoffset', RoiXOffsetValue)</l>
+<l>get_framegrabber_param (AcqHandle, 'multi_roi_yoffset', RoiYOffsetValue)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>Index := 0</l>
+<l>dev_open_window (0, 0, RoiWidth[0], RoiHeight[0], 'black', WindowHandle0)</l>
+<l>dev_open_window (0, RoiWidth[0] + 10, RoiWidth[1], RoiHeight[1], 'black', WindowHandle1)</l>
+<l>dev_open_window (RoiWidth[1] + 62, RoiWidth[0] + 10, RoiWidth[2], RoiHeight[2], 'black', WindowHandle2)</l>
+<c>* </c>
+<l>WHandle := [WindowHandle0,WindowHandle1,WindowHandle2]</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>    for IndexWindows := 0 to numRoi - 1 by 1</l>
+<l>        select_obj (Image, ObjectSelected, IndexWindows + 1)</l>
+<l>        dev_set_window (WHandle[IndexWindows])</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of an</c>
+<c>* uncalibrated sheet of light setup for surface comparison.</c>
+<c>* </c>
+<c>* The inspected metal parts were scanned with an uncalibrated setup</c>
+<c>* that returns disparities for each scan line.</c>
+<c>* </c>
+<c>* The disparity profiles are added to a sheet_of_light_model</c>
+<c>* with the operator set_profile_sheet_of_light.</c>
+<c>* Using simple scalings (defined at the start of the program)</c>
+<c>* the measurements are transformed into a 3D object model.</c>
+<c>* </c>
+<c>* </c>
+<c>* Part 1</c>
+<c>* </c>
+<c>* Create a sheet-of-light model to collect the profiles</c>
+<c>* and set the scaling factors for the reconstruction.</c>
+<c>* Note, that through the scalings, only approximate</c>
+<c>* 3d coordinates are obtained (scaling does not</c>
+<c>* replace calibration).</c>
+<c>* Fortunately, in this case, this is completely sufficient</c>
+<c>* for the task, as we only want to compare the parts</c>
+<c>* qualitatively.</c>
+<c>* </c>
+<c>* Create sheet-of-light model with following parameters</c>
+<l>NumProfiles := 441</l>
+<l>DisparityRange := 512</l>
+<l>ProfileWidth := 626</l>
+<c>* In this example, the profiles are not measured by HALCON.</c>
+<c>* Instead, they are obtained directly from the sheet-of-light</c>
+<c>* sensor. Nevertheless the profile width is defined</c>
+<c>* within create_sheet_of_light_model by the width of a rectangle.</c>
+<l>get_system ('clip_region', ClipRegion)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>gen_rectangle1 (Rectangle, 0, 0, DisparityRange - 1, ProfileWidth - 1)</l>
+<l>set_system ('clip_region', ClipRegion)</l>
+<l>create_sheet_of_light_model (Rectangle, 'calibration', 'offset_scale', SheetOfLightModelID)</l>
+<c>* Set the scaling factors such that the distance</c>
+<c>* of neighboring 3D points is approximately the same</c>
+<c>* as in the real object.</c>
+<l>ScaleX := 2</l>
+<l>ScaleY := 8</l>
+<l>ScaleZ := 1</l>
+<l>Clip := 435</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale_x', ScaleX)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale_y', ScaleY)</l>
+<l>set_sheet_of_light_param (SheetOfLightModelID, 'scale_z', ScaleZ)</l>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, ProfileWidth, NumProfiles, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create an image to display the disparities</c>
+<l>gen_image_const (Image, 'uint2', ProfileWidth, NumProfiles)</l>
+<c>* </c>
+<c>* Create the reference object by collecting</c>
+<c>* the measured profiles in a sheet-of-light model</c>
+<c>* </c>
+<l>for Index := 0 to NumProfiles - 1 by 1</l>
+<c>    * Add the next profile to the sheet of light model</c>
+<l>    read_image (ImageModel, 'sheet_of_light/metal_part_1_disparity_line_' + Index$'03d')</l>
+<l>    set_profile_sheet_of_light (ImageModel, SheetOfLightModelID, [])</l>
+<c>    * Visualize accumulated profiles</c>
+<l>    get_grayval (ImageModel, gen_tuple_const(ProfileWidth,0), [0:ProfileWidth - 1], Grayval)</l>
+<l>    set_grayval (Image, gen_tuple_const(ProfileWidth,Index), [0:ProfileWidth - 1], Grayval)</l>
+<l>    if (Index % 5 == 0)</l>
+<l>        dev_display (Image)</l>
+<l>    endif</l>
+<l>    Message := 'Measure reference object'</l>
+<l>    Message[1] := 'Add profile ' + (Index + 1) + '/' + NumProfiles</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<l>Message := 'Prepare the model for distance measurement ...'</l>
+<l>disp_message (WindowHandle, Message, 'window', 60, 12, 'black', 'true')</l>
+<l>Status := ' ... triangulate object ...'</l>
+<l>Status[1] := ' ... subsample object ...'</l>
+<l>Status[2] := ' ... create surface model for alignment ...'</l>
+<c>* Select the relevant part from the scene</c>
+<l>get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, Model3DAll)</l>
+<l>select_points_object_model_3d (Model3DAll, 'point_coord_z', Clip, 800, Model3D)</l>
+<c>* </c>
+<c>* Prepare reference object for a more robust</c>
+<c>* surface comparison.</c>
+<c>* </c>
+<c>* To get a more robust result, the reference object is</c>
+<c>* subsampled to achieve a better resolution for the</c>
+<c>* measurement. The subsampling needs a triangulation</c>
+<c>* as a preprocessing step.</c>
+<c>* </c>
+<c>* Triangulate the model in a simple way</c>
+<l>disp_message (WindowHandle, Status[0], 'window', 100, 12, 'white', 'false')</l>
+<l>surface_normals_object_model_3d (Model3D, 'mls', 'mls_force_inwards', 'true', ObjectModel3DNormals)</l>
+<l>triangulate_object_model_3d (ObjectModel3DNormals, 'greedy', 'greedy_remove_small_surfaces', 200, TriangulatedObjectModel3D, Information)</l>
+<c>* Sample the object for distance measurements</c>
+<l>disp_message (WindowHandle, [Status[0] + ' ready.',Status[1]], 'window', 100, 12, 'white', 'false')</l>
+<l>max_diameter_object_model_3d (TriangulatedObjectModel3D, Diameter)</l>
+<l>sample_object_model_3d (TriangulatedObjectModel3D, 'fast', Diameter * 0.002, [], [], Model3DSampled)</l>
+<l>disp_message (WindowHandle, [Status[0:1] + ' ready.',Status[2]], 'window', 100, 12, 'white', 'false')</l>
+<c>* </c>
+<c>* Create a surface model for alignment</c>
+<l>create_surface_model (TriangulatedObjectModel3D, 0.03, 'model_invert_normals', 'true', SurfaceModelID)</l>
+<c>* Display status</c>
+<l>Message := Message + ' ready.'</l>
+<l>disp_message (WindowHandle, Status + ' ready.', 'window', 100, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display reference model</c>
+<l>dev_clear_window ()</l>
+<l>create_pose (1100, 1300, 35000, 140, 350, 55, 'Rp+T', 'gba', 'point', PoseDisplay)</l>
+<l>Title := 'Reference object (uncalibrated measurement)'</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>visualize_object_model_3d (WindowHandle, TriangulatedObjectModel3D, [], PoseDisplay, [], [], Title, [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* Main loop</c>
+<c>* </c>
+<c>* Perform a surface comparison on a number of objects</c>
+<c>* </c>
+<l>NumScenes := 4</l>
+<l>for SceneIndex := 1 to NumScenes by 1</l>
+<c>    * Reset the dispartities in the sheet of light model. All other settings can be reused</c>
+<l>    reset_sheet_of_light_model (SheetOfLightModelID)</l>
+<c>    * Collect and display the disparities from the sensor</c>
+<l>    gen_image_const (Image, 'uint2', ProfileWidth, NumProfiles)</l>
+<l>    for Index := 0 to NumProfiles - 1 by 1</l>
+<l>        read_image (ImageSearch, 'sheet_of_light/metal_part_' + (SceneIndex + 1) + '_disparity_line_' + Index$'03d')</l>
+<l>        get_grayval (ImageSearch, gen_tuple_const(ProfileWidth,0), [0:ProfileWidth - 1], Grayval)</l>
+<l>        set_grayval (Image, gen_tuple_const(ProfileWidth,Index), [0:ProfileWidth - 1], Grayval)</l>
+<l>        if (Index % 5 == 0)</l>
+<l>            dev_display (Image)</l>
+<l>        endif</l>
+<l>        Message := 'Measure scene ' + SceneIndex + '/' + NumScenes</l>
+<l>        Message[1] := 'Add profile ' + (Index + 1) + '/' + NumProfiles</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>        * Add the next profile to the sheet-of-light model</c>
+<c>        * The offset is considered constant (= ScaleY)</c>
+<l>        set_profile_sheet_of_light (ImageSearch, SheetOfLightModelID, [])</l>
+<l>    endfor</l>
+<c>    * Select the relevant part from the scene</c>
+<l>    get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, Scene3DAll)</l>
+<l>    select_points_object_model_3d (Scene3DAll, 'point_coord_z', Clip, 800, Scene3D)</l>
+<c>    * Match the two objects</c>
+<c>    * Note that the RelSamplingDistance has been set fairly small.</c>
+<c>    * This is necessary because the object has only little 3D variations</c>
+<c>    * that can be used by the matching process.</c>
+<l>    disp_message (WindowHandle, 'Match model and scene ...', 'window', 60, 12, 'black', 'true')</l>
+<l>    find_surface_model (SurfaceModelID, Scene3D, 0.02, 0.2, 0, 'false', [], [], Pose, Score, NotUsed)</l>
+<l>    refine_surface_model_pose (SurfaceModelID, Scene3D, Pose, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>    pose_invert (Pose, PosesInvert)</l>
+<c>    * Transform the scene to match the reference object</c>
+<l>    rigid_trans_object_model_3d (Scene3D, PosesInvert, ObjectModel3DRigidTrans)</l>
+<c>    * Measure the distances between the scene and the model</c>
+<l>    distance_object_model_3d (ObjectModel3DRigidTrans, Model3DSampled, [], 0.0, 'signed_distances', 'true')</l>
+<c>    * Select points with a high distance below the model (negative distance)</c>
+<c>    * and the points above the model (positive distance)</c>
+<l>    select_points_object_model_3d (ObjectModel3DRigidTrans, '&amp;distance', -1000, -ScaleY * 1.5, ObjectModel3DThresholdedUp)</l>
+<l>    select_points_object_model_3d (ObjectModel3DRigidTrans, '&amp;distance', ScaleY * 1.5, 1000, ObjectModel3DThresholdedDown)</l>
+<c>    * Calculate connected components of the points below (negative distance) and</c>
+<c>    * the connected components of the points above (positive distance) the model.</c>
+<c>    * The distance threshold should be greater than the distance between</c>
+<c>    * two scan lines (&gt; ScaleY)</c>
+<l>    connection_object_model_3d (ObjectModel3DThresholdedUp, 'distance_3d', ScaleY + 5, ObjectModel3DConnectedUp)</l>
+<l>    connection_object_model_3d (ObjectModel3DThresholdedDown, 'distance_3d', ScaleY + 5, ObjectModel3DConnectedDown)</l>
+<c>    * Keep the large components, discard small ones as noise</c>
+<l>    select_object_model_3d (ObjectModel3DConnectedUp, 'num_points', 'and', 200, 1000000, ObjectModel3DSelectedUp)</l>
+<l>    select_object_model_3d (ObjectModel3DConnectedDown, 'num_points', 'and', 200, 1000000, ObjectModel3DSelectedDown)</l>
+<c>    * Set the visualization parameters and values depending on the</c>
+<c>    * position of the error points.</c>
+<l>    NumErrors := |ObjectModel3DSelectedDown| + |ObjectModel3DSelectedUp|</l>
+<l>    Title := 'Found ' + NumErrors + ' error(s)'</l>
+<l>    ErrorColorUp := 'magenta'</l>
+<l>    ErrorColorDown := 'red'</l>
+<l>    ErrorColorNames := 'color_' + [2:NumErrors + 1]</l>
+<l>    VisParamNames := ['point_size','point_size_1','color_0','color_1',ErrorColorNames,'alpha_' + NumErrors,'disp_background']</l>
+<l>    VisParamValues := [5.0,2.0,'white','green',gen_tuple_const(|ObjectModel3DSelectedUp|,ErrorColorUp),gen_tuple_const(|ObjectModel3DSelectedDown|,ErrorColorDown),0.8,'true']</l>
+<c>    * Display the errorneous regions</c>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, ['Bent up','Bent down'], 'window', 12, 500, [ErrorColorUp,ErrorColorDown], 'false')</l>
+<l>    visualize_object_model_3d (WindowHandle, [TriangulatedObjectModel3D,ObjectModel3DRigidTrans,ObjectModel3DSelectedUp,ObjectModel3DSelectedDown], [], PoseDisplay, VisParamNames, VisParamValues, Title, ['','','#' + [1:NumErrors]], Instructions, PoseOut1)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

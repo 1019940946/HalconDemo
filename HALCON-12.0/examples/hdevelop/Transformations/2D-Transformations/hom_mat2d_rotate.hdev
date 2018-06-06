@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Add a rotation to a homogeneous 2D transformation matrix</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>gen_image_gray_ramp (Gray, 0, 0, 128, 8, 8, 16, 16)</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>Row := 8</l>
+<l>Col := 8</l>
+<l>set_grayval (Gray, Row, Col, 255)</l>
+<l>dev_display (Gray)</l>
+<l>for phi := 0 to 360 by 6</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(phi), Row + 0.5, Col + 0.5, HomMat2DRotate)</l>
+<c>    * Apply an arbitrary affine transformation to an image</c>
+<l>    affine_trans_image (Gray, ImageRotate, HomMat2DRotate, 'constant', 'false')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

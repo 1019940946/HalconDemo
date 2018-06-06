@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the component-based matching in order</c>
+<c>* to locate all instances of a caliper that consists of two components  in</c>
+<c>* a perspectively distorted image. The relative movements (relations)</c>
+<c>* are automatically trained by using only one training image. After</c>
+<c>* creating the component model the caliper is found in a run-time image</c>
+<c>* Finally, the measure of the caliper is calculated.</c>
+<l>dev_update_off ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>read_image (ModelImage, 'caliper/caliper_model')</l>
+<l>get_image_size (ModelImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Perform the camera calibration</c>
+<l>CalTabDescrFile := 'caltab_30mm.descr'</l>
+<l>StartCamPar := [0.0085,0,0.0000073,0.0000073,Width / 2,Height / 2,Width,Height]</l>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, 'area_scan_division', StartCamPar)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalTabDescrFile)</l>
+<l>NumImages := 13</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'caliper/caliper_calib_' + I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    Message := 'Find calibration plate in\nall calibration images (' + I + '/' + NumImages + ')'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * Find the calibration plate</c>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, I - 1, [], [])</l>
+<l>    get_calib_data (CalibDataID, 'camera', 0, 'init_params', StartCamPar)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, I - 1, Row, Column, Index, Pose)</l>
+<l>    get_calib_data_observ_contours (Contours, CalibDataID, 'caltab', 0, 0, I - 1)</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 6, 0.785398)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Contours)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Cross)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>calibrate_cameras (CalibDataID, Error)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParam)</l>
+<c>* The pose of the calibration target in the first image defines a plane that is</c>
+<c>* parallel to the plane in which the objects lie.  This pose can be used to see how</c>
+<c>* much the camera is rotated with respect to this plane.</c>
+<l>get_calib_data (CalibDataID, 'calib_obj_pose', [0,0], 'pose', PoseCalib)</l>
+<c>* Since the orientation of the calibration target in the first image is wrong by</c>
+<c>* -90 degrees we apply a rotation of 90 degrees around the z axis.</c>
+<l>PoseCalibRot := replace(PoseCalib,5,PoseCalib[5] + 90)</l>
+<c>* The pose of the calibration target in the first image defines a plane that is offset</c>
+<c>* from the plane in which the objects lie by the thickness of the calibration target.</c>
+<c>* Therefore, we need to shift the origin of the pose in the z direction by the</c>
+<c>* thickness. Note that the thickness of the calibration target used for this</c>
+<c>* example is 0.63 mm. If you adapt this example program to your application, it</c>
+<c>* is necessary to determine the thickness of your specific calibration target and to</c>
+<c>* use this value instead. Furthermore, we need to shift the origin so that the top left corner</c>
+<c>* of the image lies approximately in the top left corner of the rectified image.</c>
+<l>set_origin_pose (PoseCalibRot, -0.082, -0.04, 0.00063, Pose)</l>
+<c>* We also need to define the pixel spacing in the rectified image.  In this case,</c>
+<c>* we set it to 0.2mm (i.e., 0.0002m).</c>
+<l>PixelDist := 0.0002</l>
+<c>* We also compute the transformation from the world coordinate system, i.e., the</c>
+<c>* coordinate system of the plane, to the camera coordinate system.  This</c>
+<c>* transformation is later used to visualize the recognized objects in the distorted</c>
+<c>* (i.e., original, unrectified) images.</c>
+<l>pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<c>* We now can compute the mapping function to rectify the image because it does</c>
+<c>* not change (the camera does not move with respect to the world plane).</c>
+<l>WidthMapped := 785</l>
+<l>HeightMapped := 575</l>
+<l>gen_image_to_world_plane_map (Map, CamParam, Pose, Width, Height, WidthMapped, HeightMapped, PixelDist, 'bilinear')</l>
+<l>dev_set_window_extents (-1, -1, WidthMapped, HeightMapped)</l>
+<c>* Train the model components</c>
+<l>map_image (ModelImage, Map, ModelImageMapped)</l>
+<c>* Define the initial components</c>
+<l>gen_rectangle2 (InitialComponents, 164, 283, 1.23, 75, 36)</l>
+<l>gen_rectangle2 (InitialComponent, 233, 432, 1.21, 87, 45)</l>
+<l>concat_obj (InitialComponents, InitialComponent, InitialComponents)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ModelImageMapped)</l>
+<l>dev_display (InitialComponents)</l>
+<l>Message := 'Rectified model image and'</l>
+<l>Message[1] := 'input regions describing the initial components'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>clear_calib_data (CalibDataID)</l>
+<c>* Get the trainings image</c>
+<l>read_image (TrainingImage, 'caliper/caliper_training_1')</l>
+<l>map_image (TrainingImage, Map, TrainingImageMapped)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TrainingImageMapped)</l>
+<l>disp_message (WindowHandle, 'Mapped training image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* The component-based matching uses the contours of the components</c>
+<c>* as features for the matching. In order to make sure that only significant</c>
+<c>* features are involved in the matching the parameters ContrastLow,</c>
+<c>* ContrastHigh, and MinSize can be passed to the training. To inspect the</c>
+<c>* effect of different values for these three parameters, and hence to find</c>
+<c>* the optimum values for a certain application, the following two lines of</c>
+<c>* code can be used:</c>
+<l>* add_channels (InitialComponents, ModelImageMapped, ModelImageInitComp)</l>
+<l>* gen_initial_components (ModelImageInitComp, InitialComponentsEdges, 30, 30, 20, 'connection', [], [])</l>
+<c>* Extract the model components and train the relations</c>
+<l>dev_clear_window ()</l>
+<l>dev_display (ModelImageMapped)</l>
+<l>Message := 'Train the model components ...'</l>
+<l>disp_message (WindowHandle, 'Train the model components...', 'window', 12, 12, 'black', 'true')</l>
+<l>train_model_components (ModelImageMapped, InitialComponents, TrainingImageMapped, ModelComponents, 30, 30, 20, 0.8, -1, -1, rad(40), 'speed', 'rigidity', 0.2, 0.5, ComponentTrainingID)</l>
+<l>Message := 'Train the model components ... ready'</l>
+<l>Message[1] := 'Results:'</l>
+<l>Message[2] := '  1) Final model components'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_colored (12)</l>
+<l>get_training_components (ModelComponents, ComponentTrainingID, 'model_components', 'model_image', 'false', RowRef, ColumnRef, AngleRef, ScoreRef)</l>
+<l>DeltaRow := RowRef[1] - RowRef[1]</l>
+<l>DeltaCol := ColumnRef[1] - ColumnRef[0]</l>
+<l>DistanceRef := sqrt(DeltaRow * DeltaRow + DeltaCol * DeltaCol)</l>
+<l>dev_display (ModelComponents)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>count_obj (ModelComponents, NumComp)</l>
+<l>dev_set_line_width (1)</l>
+<l>for I := 0 to NumComp - 1 by 1</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ModelImageMapped)</l>
+<l>    Message := [Message,'  ' + (2 + I) + ') Relations with respect to component ' + I]</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    dev_set_colored (12)</l>
+<l>    get_component_relations (Relations, ComponentTrainingID, I, 'model_image', Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>    dev_display (Relations)</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* Add small tolerances to the automatically derived relations in order</c>
+<c>* to receive a higher robustness.</c>
+<l>modify_component_relations (ComponentTrainingID, 'all', 'all', 3, rad(2))</l>
+<c>* Create the component model based on the training result.</c>
+<l>create_trained_component_model (ComponentTrainingID, rad(-45), rad(90), 10, 0.5, 'auto', 'auto', 'none', 'use_polarity', 'false', ComponentModelID, RootRanking)</l>
+<l>get_component_model_tree (Tree, Relations, ComponentModelID, 1, 'model_image', StartNode, EndNode, Row, Column, Phi, Length1, Length2, AngleStart, AngleExtent)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ModelImageMapped)</l>
+<l>disp_message (WindowHandle, 'Component model', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Tree)</l>
+<l>dev_display (Relations)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* For visualization purposes, we also create a contour that corresponds to the</c>
+<c>* boundary of the object. This allows us to visualize the recognized models in</c>
+<c>* the original images.</c>
+<l>get_component_model_params (ComponentModelID, MinScoreComp, RootRanking, ShapeModelIDs)</l>
+<l>get_shape_model_contours (Component0, ShapeModelIDs[0], 1)</l>
+<l>get_shape_model_contours (Component1, ShapeModelIDs[1], 1)</l>
+<l>clear_training_components (ComponentTrainingID)</l>
+<c>* Find the component model in a run-time image</c>
+<l>dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>dev_set_line_width (2)</l>
+<l>Measure := [55.6,30.5,35.3,51.7,55.6]</l>
+<l>ImgNo := 1</l>
+<l>Button := 0</l>
+<l>while (Button == 0)</l>
+<l>    read_image (SearchImage, 'caliper/caliper_' + ImgNo)</l>
+<l>    count_seconds (Seconds1)</l>
+<l>    map_image (SearchImage, Map, SearchImageMapped)</l>
+<l>    find_component_model (SearchImageMapped, ComponentModelID, RootRanking, -rad(20), rad(40), 0.7, 0, 1, 'stop_search', 'prune_branch', 'none', 0.5, 'least_squares_very_high', 0, 0.9, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    NumFound := |ModelStart|</l>
+<l>    Time := (Seconds2 - Seconds1) * 1000</l>
+<l>    dev_display (SearchImage)</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        DeltaRow := RowCompInst[1] - RowCompInst[0]</l>
+<l>        DeltaCol := ColumnCompInst[1] - ColumnCompInst[0]</l>
+<l>        Distance := sqrt(DeltaRow * DeltaRow + DeltaCol * DeltaCol)</l>
+<l>        ActualMeasure := Measure[ImgNo]</l>
+<l>        MeasureFromPoses := ((Distance - DistanceRef) * PixelDist + 0.01661) * 1000</l>
+<c>        * Project the first component from the world plane back into the original image.</c>
+<l>        contour_world_to_image (Component0, ContourImage0, RowCompInst[0], ColumnCompInst[0], AngleCompInst[0], PixelDist, HomMat3D, CamParam)</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (ContourImage0)</l>
+<c>        * Project the second component from the world plane back into the original image.</c>
+<l>        contour_world_to_image (Component1, ContourImage1, RowCompInst[1], ColumnCompInst[1], AngleCompInst[1], PixelDist, HomMat3D, CamParam)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (ContourImage1)</l>
+<l>    endfor</l>
+<l>    Message := 'Object found in ' + Time$'4.2f' + ' ms'</l>
+<l>    Result := 'Actual Measure:     ' + Measure[ImgNo - 1]$'3.1f' + ' mm'</l>
+<l>    Result[1] := 'Measure from Poses: ' + MeasureFromPoses$'3.1f' + ' mm'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, Result, 'window', 400, 300, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Press mouse button to stop the demo', 'window', 450, 20, 'black', 'true')</l>
+<l>    ImgNo := ImgNo + 1</l>
+<l>    if (ImgNo &gt; 4)</l>
+<l>        ImgNo := 1</l>
+<l>    endif</l>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, R, C, Button)</l>
+<l>    dev_error_var (Error, 0)</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Error != H_MSG_TRUE)</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>clear_component_model (ComponentModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="contour_world_to_image">
+<interface>
+<io>
+<par name="Component" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ContourImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="RowCompInst" base_type="ctrl" dimension="0"/>
+<par name="ColumnCompInst" base_type="ctrl" dimension="0"/>
+<par name="AngleCompInst" base_type="ctrl" dimension="0"/>
+<par name="PixelDist" base_type="ctrl" dimension="0"/>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>vector_angle_to_rigid (0, 0, 0, RowCompInst, ColumnCompInst, AngleCompInst, HomMat2D)</l>
+<l>affine_trans_contour_xld (Component, ComponentTrans, HomMat2D)</l>
+<l>count_obj (ComponentTrans, NumberCont)</l>
+<l>gen_empty_obj (ContourImage)</l>
+<l>for I := 1 to NumberCont by 1</l>
+<l>    select_obj (ComponentTrans, ComponentTransSelected, I)</l>
+<l>    get_contour_xld (ComponentTransSelected, Ys, Xs)</l>
+<l>    X := Xs * PixelDist</l>
+<l>    Y := Ys * PixelDist</l>
+<l>    Z := gen_tuple_const(|X|,0.0)</l>
+<l>    affine_trans_point_3d (HomMat3D, X, Y, Z, Xc, Yc, Zc)</l>
+<l>    project_3d_point (Xc, Yc, Zc, CamParam, R, C)</l>
+<l>    gen_contour_polygon_xld (Contour, R, C)</l>
+<l>    concat_obj (ContourImage, Contour, ContourImage)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="contour_world_to_image">
+<short lang="en_US">Transform the input contours from world coordinates to pixel coordinates.</short>
+<parameters>
+<parameter id="AngleCompInst"/>
+<parameter id="CamParam"/>
+<parameter id="ColumnCompInst"/>
+<parameter id="Component"/>
+<parameter id="ContourImage"/>
+<parameter id="HomMat3D"/>
+<parameter id="PixelDist"/>
+<parameter id="RowCompInst"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

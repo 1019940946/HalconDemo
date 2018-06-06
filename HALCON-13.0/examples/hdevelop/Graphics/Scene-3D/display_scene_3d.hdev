@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use 3d scenes to display 3d object models</c>
+<c>* </c>
+<c>* This example creates a simple scene with</c>
+<c>*    - one camera</c>
+<c>*    - one point light source</c>
+<c>*    - three object instances with different parameters</c>
+<c>* </c>
+<c>* This example requires OpenGL!</c>
+<l>read_object_model_3d ('pipe_joint', 'm', [], [], ObjectModel3D, Status)</l>
+<l>Pose1 := [-0.037,0.026,0.02,137,52,326,0]</l>
+<l>Pose2 := [0.009,-0.011,0.0,354,317,252,0]</l>
+<l>Pose3 := [0.042,0.01,0.0,253,313,325,0]</l>
+<l>gen_cam_par_area_scan_division (0.025, 0, 1.1e-05, 1.1e-05, 384.0, 288.0, 768, 576, CameraParam)</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>get_cam_par_data (CameraParam, 'image_width', ImageWidth)</l>
+<l>get_cam_par_data (CameraParam, 'image_height', ImageHeight)</l>
+<l>dev_open_window (0, 0, ImageWidth, ImageHeight, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Create a new 3D scene.</c>
+<l>create_scene_3d (Scene3D)</l>
+<c>* </c>
+<c>* A scene needs at least one camera. The default pose</c>
+<c>* of a camera is located at the origin. The pose can be</c>
+<c>* changed with set_scene_3d_camera_pose.</c>
+<l>add_scene_3d_camera (Scene3D, CameraParam, CameraIndex)</l>
+<l>set_scene_3d_camera_pose (Scene3D, CameraIndex, [0,0,-0.4,0,0,0,0])</l>
+<c>* </c>
+<c>* Further a scene needs at least one light source.</c>
+<l>add_scene_3d_light (Scene3D, [1.0,1.0,1.0], 'point_light', LightIndex)</l>
+<c>* </c>
+<c>* The light source can be parametrized with set_scene_3d_light_param</c>
+<l>set_scene_3d_light_param (Scene3D, LightIndex, 'diffuse', [0.8,0.8,0.8])</l>
+<l>set_scene_3d_light_param (Scene3D, LightIndex, 'ambient', [0.2,0.2,0.2])</l>
+<c>* </c>
+<c>* To add an object, add_scene_3d_instance is called with a</c>
+<c>* 3D object model and a pose. add_scene_3d_instance returns an</c>
+<c>* InstanceIndex, which must be used to reference this instance</c>
+<c>* in subsequent calls.</c>
+<l>add_scene_3d_instance (Scene3D, ObjectModel3D, Pose1, Instance1Index)</l>
+<c>* </c>
+<c>* Set the color of this instance to 'blue'.</c>
+<l>set_scene_3d_instance_param (Scene3D, Instance1Index, 'color', '#062d64')</l>
+<c>* </c>
+<c>* Make this instance translucent.</c>
+<l>set_scene_3d_instance_param (Scene3D, Instance1Index, 'alpha', 0.7)</l>
+<c>* </c>
+<c>* Add two more instances and set their colors to 'orange' and 'yellow'.</c>
+<l>add_scene_3d_instance (Scene3D, ObjectModel3D, Pose2, Instance2Index)</l>
+<l>set_scene_3d_instance_param (Scene3D, Instance2Index, 'color', '#f28f26')</l>
+<l>add_scene_3d_instance (Scene3D, ObjectModel3D, Pose3, Instance3Index)</l>
+<l>set_scene_3d_instance_param (Scene3D, Instance3Index, 'color', '#fbba00')</l>
+<c>* </c>
+<c>* Add a label for information on the current step</c>
+<l>add_scene_3d_label (Scene3D, 'Display a scene with three instances of an object model', [], 'top_left', 'window', InfoLabel)</l>
+<c>* Add a label for the continue message</c>
+<l>add_scene_3d_label (Scene3D, 'Press Run (F5) to continue', [], 'bottom_right', 'window', ContinueLabel)</l>
+<c>* </c>
+<c>* Set the color of these labels and disable their connector</c>
+<l>set_scene_3d_label_param (Scene3D, [InfoLabel,ContinueLabel], 'color', '#fce9d4')</l>
+<l>set_scene_3d_label_param (Scene3D, [InfoLabel,ContinueLabel], 'text_color', 'black')</l>
+<l>set_scene_3d_label_param (Scene3D, [InfoLabel,ContinueLabel], 'disp_connecting_line', 'false')</l>
+<c>* Display the scene in a window.</c>
+<l>display_scene_3d (WindowHandle, Scene3D, CameraIndex)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Or render an image of the scene.</c>
+<l>set_scene_3d_label_param (Scene3D, InfoLabel, 'text', 'Render an image of the scene')</l>
+<l>render_scene_3d (Image, Scene3D, CameraIndex)</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Add labels to points of the scene</c>
+<l>set_scene_3d_label_param (Scene3D, InfoLabel, 'text', 'Add labels to points in the scene')</l>
+<l>add_scene_3d_label (Scene3D, 'Instance 1', Pose1[0:2], 'bottom_left', 'point', Instance1LabelID)</l>
+<l>add_scene_3d_label (Scene3D, 'Instance 2', Pose2[0:2], 'top', 'point', Instance2LabelID)</l>
+<l>add_scene_3d_label (Scene3D, 'Instance 3', Pose3[0:2], 'top_right', 'point', Instance3LabelID)</l>
+<l>display_scene_3d (WindowHandle, Scene3D, CameraIndex)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Rotate one instance in the scene.</c>
+<l>set_scene_3d_label_param (Scene3D, ContinueLabel, 'visible', 'false')</l>
+<l>set_scene_3d_label_param (Scene3D, InfoLabel, 'text', 'Change the pose of one instance')</l>
+<l>AngleZ := 0</l>
+<l>DeltaZPerSecond := 360 / 3.0</l>
+<l>count_seconds (StartTime)</l>
+<l>count_seconds (LastFrame)</l>
+<l>while (LastFrame - StartTime &lt; 3.0)</l>
+<l>    count_seconds (Time)</l>
+<l>    DeltaT := LastFrame - Time</l>
+<l>    AngleZ := AngleZ + DeltaZPerSecond * DeltaT</l>
+<l>    pose_compose (Pose2, [0,0,0,0,0,AngleZ,0], PoseCompose)</l>
+<l>    set_scene_3d_instance_pose (Scene3D, Instance2Index, PoseCompose)</l>
+<l>    display_scene_3d (WindowHandle, Scene3D, CameraIndex)</l>
+<l>    LastFrame := Time</l>
+<l>endwhile</l>
+<l>set_scene_3d_label_param (Scene3D, ContinueLabel, 'visible', 'true')</l>
+<l>display_scene_3d (WindowHandle, Scene3D, CameraIndex)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Rotate all objects in the scene.</c>
+<l>set_scene_3d_label_param (Scene3D, ContinueLabel, 'visible', 'false')</l>
+<l>set_scene_3d_label_param (Scene3D, InfoLabel, 'text', 'Change the pose of the scene')</l>
+<l>AngleX := 0</l>
+<l>DeltaXPerSecond := 360 / 3.0</l>
+<l>count_seconds (StartTime)</l>
+<l>count_seconds (LastFrame)</l>
+<l>while (LastFrame - StartTime &lt; 3.0)</l>
+<l>    count_seconds (Time)</l>
+<l>    DeltaT := LastFrame - Time</l>
+<l>    AngleX := AngleX + DeltaXPerSecond * DeltaT</l>
+<l>    set_scene_3d_to_world_pose (Scene3D, [0,0,0,AngleX,0,0,0])</l>
+<l>    display_scene_3d (WindowHandle, Scene3D, CameraIndex)</l>
+<l>    LastFrame := Time</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Cleanup.</c>
+<l>clear_scene_3d (Scene3D)</l>
+<l>clear_object_model_3d (ObjectModel3D)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

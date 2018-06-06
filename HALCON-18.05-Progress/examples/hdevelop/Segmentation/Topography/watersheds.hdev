@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Br2, 'particle')</l>
+<l>gauss_filter (Br2, ImageGauss, 9)</l>
+<l>invert_image (ImageGauss, ImageInvert)</l>
+<l>watersheds (ImageInvert, Basins, Watersheds)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Br2)</l>
+<l>dev_display (Basins)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

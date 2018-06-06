@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* The pose of an object always depends on the chosen reference</c>
+<c>* coordinate system. This example visualizes the pose of the</c>
+<c>* object with respect to different coordinate systems.</c>
+<c>* The user chooses the reference coordinate system by placing</c>
+<c>* the mouse pointer over the label of the coordinate system.</c>
+<c>* The local coordinate system of the object is always shown.</c>
+<c>* According to the position of the mouse pointer, the</c>
+<c>* corresponding coordinate system is displayed. The pose of the</c>
+<c>* object given in terms of this coordinate system is shown in a</c>
+<c>* box to the right of the object. Figurative relative distances are used.</c>
+<c>* The program can be stopped by clicking the right mouse button in the window</c>
+<l>dev_close_window ()</l>
+<l>dev_get_preferences ('graphics_window_context_menu', GraphicsWindowContextMenu)</l>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>Width := 640</l>
+<l>Height := 480</l>
+<c>* Init the window</c>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>gen_robot_cam_object (Image, WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (2)</l>
+<c>* Pose of the world coordinate system</c>
+<l>create_pose (0.0, 0.0, 0.0, 0, 0, 0.0, 'Rp+T', 'gba', 'point', WorldCSPose)</l>
+<c>* Pose of the object in world coordinate system</c>
+<l>create_pose (0.05, 0.20, 0.0, 180, 0, 45, 'Rp+T', 'gba', 'point', ObjInWorldPose)</l>
+<c>* Pose of the robot base in world coordinate system</c>
+<l>create_pose (-0.30, 0.20, 0.0, 90, 0, 0, 'Rp+T', 'gba', 'point', RobotInWorldPose)</l>
+<c>* Pose of the camera in world coordinate system</c>
+<l>create_pose (0.1, -0.15, 0.0, -90, 0, 0, 'Rp+T', 'gba', 'point', CamInWorldPose)</l>
+<c>* Show the select coordinate system and the pose of the object with respect to this selected</c>
+<c>* coordinate system.</c>
+<l>show_pose_in_selected_cs (Image, WindowHandle, ObjInWorldPose, RobotInWorldPose, CamInWorldPose, WorldCSPose)</l>
+<c>* Stop program by clicking right mouse button in the window</c>
+<c>* </c>
+<c>* Reset preferences</c>
+<l>wait_seconds (0.5)</l>
+<l>dev_set_preferences ('graphics_window_context_menu', GraphicsWindowContextMenu)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_3d_coord_system_in_image">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Orientation3D" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Col" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure displays a 3D coordinate system.</c>
+<c>* It needs the procedure gen_arrow_contour_xld.</c>
+<c>* </c>
+<c>* Input parameters:</c>
+<c>* WindowHandle: The window where the coordinate system shall be displayed</c>
+<c>* CamParam: The camera paramters</c>
+<c>* Pose: The Orientation of the pose to be displayed</c>
+<c>* CoordAxesLength: The length of the coordinate axes in world coordinates</c>
+<c>* </c>
+<l>CoordAxesLength := 0.01</l>
+<l>get_window_extents (WindowHandle, WinRow, WinColumn, Width, Height)</l>
+<l>OffsetRow := Row - Height / 2.0</l>
+<l>OffsetColumn := Col - Width / 2.0</l>
+<l>create_pose (0, 0, 0.2, Orientation3D[0], Orientation3D[1], Orientation3D[2], 'Rp+T', 'gba', 'point', OriginPose)</l>
+<c>* Convert the pose to a transformation matrix</c>
+<l>pose_to_hom_mat3d (OriginPose, TransWorld2Cam)</l>
+<c>* Project the world origin into the image</c>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, 0, 0, OrigCamX, OrigCamY, OrigCamZ)</l>
+<l>project_3d_point (OrigCamX, OrigCamY, OrigCamZ, CamParam, Row0, Column0)</l>
+<c>* Project the coordinate axes into the image</c>
+<l>affine_trans_point_3d (TransWorld2Cam, CoordAxesLength, 0, 0, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxX, ColumnAxX)</l>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, CoordAxesLength, 0, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxY, ColumnAxY)</l>
+<l>affine_trans_point_3d (TransWorld2Cam, 0, 0, CoordAxesLength, X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, RowAxZ, ColumnAxZ)</l>
+<c>* </c>
+<c>* Generate an XLD contour for each axis</c>
+<l>distance_pp ([Row0,Row0,Row0], [Column0,Column0,Column0], [RowAxX,RowAxY,RowAxZ], [ColumnAxX,ColumnAxY,ColumnAxZ], Distance)</l>
+<l>HeadLength := int(max([max(Distance) / 12.0,5.0]))</l>
+<l>gen_arrow_contour_xld (Arrows, [Row0,Row0,Row0], [Column0,Column0,Column0], [RowAxX,RowAxY,RowAxZ], [ColumnAxX,ColumnAxY,ColumnAxZ], HeadLength, HeadLength)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<c>* -5, -4 to compensate interal offset in projective_trans_contour_xld</c>
+<l>ImageRowOffset := OffsetRow - 5</l>
+<l>ImageColOffset := OffsetColumn - 4</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, ImageRowOffset, ImageColOffset, HomMat2DTranslate)</l>
+<l>hom_mat2d_translate (HomMat2DTranslate, 0.5, 0.5, HomMat2DTmp)</l>
+<l>hom_mat2d_translate_local (HomMat2DTmp, -0.5, -0.5, HomMat2DAdapted)</l>
+<l>projective_trans_contour_xld (Arrows, Arrows, HomMat2DTmp)</l>
+<c>* </c>
+<c>* Display coordinate system</c>
+<l>disp_xld (Arrows, WindowHandle)</l>
+<c>* </c>
+<l>get_rgb (WindowHandle, Red, Green, Blue)</l>
+<l>set_rgb (WindowHandle, Red[0], Green[0], Blue[0])</l>
+<l>set_tposition (WindowHandle, RowAxX + 3 + ImageRowOffset, ColumnAxX + 3 + ImageColOffset)</l>
+<l>write_string (WindowHandle, 'X')</l>
+<l>set_rgb (WindowHandle, Red[1 % |Red|], Green[1 % |Green|], Blue[1 % |Blue|])</l>
+<l>set_tposition (WindowHandle, RowAxY + 3 + ImageRowOffset, ColumnAxY + 3 + ImageColOffset)</l>
+<l>write_string (WindowHandle, 'Y')</l>
+<l>set_rgb (WindowHandle, Red[2 % |Red|], Green[2 % |Green|], Blue[2 % |Blue|])</l>
+<l>set_tposition (WindowHandle, RowAxZ + 3 + ImageRowOffset, ColumnAxZ + 3 + ImageColOffset)</l>
+<l>write_string (WindowHandle, 'Z')</l>
+<l>set_rgb (WindowHandle, Red, Green, Blue)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_3d_coord_system_in_image">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Col"/>
+<parameter id="Orientation3D"/>
+<parameter id="Row"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_pose_in_selected_cs">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ObjInWorldPose" base_type="ctrl" dimension="0"/>
+<par name="RobotInWorldPose" base_type="ctrl" dimension="0"/>
+<par name="CamInWorldPose" base_type="ctrl" dimension="0"/>
+<par name="WorldCSPose" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* This procedure tests the regions defined below whether they</c>
+<c>* currently contain the mouse pointer. Then the pose of the object</c>
+<c>* is computed with respect to the coordinate system that is</c>
+<c>* enclose by the region where the mouse pointer currently is.</c>
+<c>* All input poses are given with respect to the world coordinate system.</c>
+<c>* </c>
+<c>* Set default camera parameter (needed for projecting the</c>
+<c>* coordinate systems)</c>
+<l>gen_cam_par_area_scan_division (0.01, 0, 7.32e-006, 7.4e-6, 323.6, 245.555, 640, 480, CamParam)</l>
+<l>dev_update_off ()</l>
+<c>* To avoid flickering, set 'flush' to false.</c>
+<l>get_window_param (WindowHandle, 'flush', Flush)</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* Depending on mouse position show the object pose in</c>
+<c>* the corresponding coordinate system</c>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<c>* Set x,y,z color</c>
+<l>ColorX := 'red'</l>
+<l>ColorY := 'forest green'</l>
+<l>ColorZ := 'blue'</l>
+<l>TextColor := 'black'</l>
+<c>* Image coordinates for showing the object coordinate system</c>
+<l>ObjRow := 425</l>
+<l>ObjColumn := 385</l>
+<c>* Image coordinates for showing the world coordinate system</c>
+<l>WorldRow := 220</l>
+<l>WorldColumn := 310</l>
+<c>* Image coordinates for showing the robot coordinate system</c>
+<l>RobotRow := 425</l>
+<l>RobotColumn := 46</l>
+<c>* Image coordinates for showing the camera coordinate system</c>
+<l>CamRow := 70</l>
+<l>CamColumn := 450</l>
+<c>* Offset of the label with repect to coordinate in image coordinates</c>
+<l>LabelOffsetColumn := 85</l>
+<l>LabelOffsetRow := -15</l>
+<c>* Image coordinates of the label for the object coordinate system</c>
+<l>LabelObjInImage := [ObjRow + LabelOffsetRow,ObjColumn + LabelOffsetColumn]</l>
+<c>* Image coordinates of the label for the world coordinate system</c>
+<l>LabelWorldInImage := [WorldRow + LabelOffsetRow,WorldColumn + LabelOffsetColumn]</l>
+<c>* Image coordinates of the label for the robot base coordinate system</c>
+<l>LabelRobotInImage := [RobotRow + LabelOffsetRow,RobotColumn + LabelOffsetColumn]</l>
+<c>* Image coordinates of the label for the camera coordinate system</c>
+<l>LabelCamInImage := [CamRow + LabelOffsetRow,CamColumn + LabelOffsetColumn]</l>
+<c>* Generate rectangles for which a mouse reaction is defined</c>
+<l>AreaSizeRow := 150</l>
+<l>AreaSizeColumn := 220</l>
+<l>StartOffset := -80</l>
+<l>gen_rectangle1 (ROIObj, ObjRow + StartOffset, ObjColumn + StartOffset, ObjRow + AreaSizeRow, ObjColumn + AreaSizeColumn)</l>
+<l>gen_rectangle1 (ROICam, CamRow + StartOffset, CamColumn + StartOffset, CamRow + AreaSizeRow, CamColumn + AreaSizeColumn)</l>
+<l>gen_rectangle1 (ROIRob, RobotRow + StartOffset, RobotColumn + StartOffset, RobotRow + AreaSizeRow, RobotColumn + AreaSizeColumn)</l>
+<l>gen_rectangle1 (ROIWorld, WorldRow + StartOffset, WorldColumn + StartOffset, WorldRow + AreaSizeRow, WorldColumn + AreaSizeColumn)</l>
+<c>* Images coordinates for displaying the pose values</c>
+<l>PoseTextRow := 260</l>
+<l>PoseTextColumn := 460</l>
+<l>Orientation3D := [ObjInWorldPose[3],ObjInWorldPose[4],ObjInWorldPose[5]]</l>
+<l>Colors := [TextColor,TextColor,TextColor,ColorX,ColorY,ColorZ,ColorX,ColorY,ColorZ]</l>
+<l>CurrentlyDisplayed := 0</l>
+<l>ToBeDisplayed := 1</l>
+<l>Button := 0</l>
+<l>while (Button != 4)</l>
+<c>    * Update display, if a new region has been selected</c>
+<l>    if (ToBeDisplayed != CurrentlyDisplayed)</l>
+<l>        CurrentlyDisplayed := ToBeDisplayed</l>
+<l>        switch (ToBeDisplayed)</l>
+<l>        case 0:</l>
+<c>            * Nothing selected: Do nothing</c>
+<l>            break</l>
+<l>        case 1:</l>
+<c>            * Compute object pose in camera coordinate system</c>
+<l>            SelectedString := 'camera'</l>
+<l>            SelectedOrientation := [CamInWorldPose[3],CamInWorldPose[4],CamInWorldPose[5]]</l>
+<l>            SelectedRow := CamRow</l>
+<l>            SelectedColumn := CamColumn</l>
+<c>            * This inverted pose is needed for the transformation of</c>
+<c>            * the object pose into the camera coordinate systems.</c>
+<l>            pose_invert (CamInWorldPose, WorldInCamPose)</l>
+<c>            * Compute the pose of the object in camera coordinates (ObjInCamPose).</c>
+<l>            pose_compose (WorldInCamPose, ObjInWorldPose, ObjInCamPose)</l>
+<l>            DisplayedPose := ObjInCamPose</l>
+<l>            display_poses (Image, WindowHandle, LabelObjInImage, LabelRobotInImage, LabelCamInImage, LabelWorldInImage, CamParam, Orientation3D, ObjRow, ObjColumn, SelectedOrientation, SelectedRow, SelectedColumn, SelectedString, DisplayedPose, PoseTextRow, PoseTextColumn, Colors, Message)</l>
+<l>            break</l>
+<l>        case 2:</l>
+<c>            * Compute object pose in robot coordinate system</c>
+<l>            SelectedString := 'robot'</l>
+<l>            SelectedOrientation := [RobotInWorldPose[3],RobotInWorldPose[4],RobotInWorldPose[5]]</l>
+<l>            SelectedRow := RobotRow</l>
+<l>            SelectedColumn := RobotColumn</l>
+<c>            * This inverted pose is needed for the transformation of</c>
+<c>            * the object pose into the robot coordinate systems.</c>
+<l>            pose_invert (RobotInWorldPose, WorldInRobotPose)</l>
+<c>            * Compute the pose of the object in robot base coordinates (ObjInRobotPose).</c>
+<l>            pose_compose (WorldInRobotPose, ObjInWorldPose, ObjInRobotPose)</l>
+<l>            DisplayedPose := ObjInRobotPose</l>
+<l>            display_poses (Image, WindowHandle, LabelObjInImage, LabelRobotInImage, LabelCamInImage, LabelWorldInImage, CamParam, Orientation3D, ObjRow, ObjColumn, SelectedOrientation, SelectedRow, SelectedColumn, SelectedString, DisplayedPose, PoseTextRow, PoseTextColumn, Colors, Message)</l>
+<l>            break</l>
+<l>        case 4:</l>
+<c>            * Show object pose in world coordinate system</c>
+<c>            * No computation is needed since the input pose is already</c>
+<c>            * the pose of the object in the world coordinate system.</c>
+<l>            SelectedString := 'world'</l>
+<l>            SelectedOrientation := [WorldCSPose[3],WorldCSPose[4],WorldCSPose[5]]</l>
+<l>            SelectedRow := WorldRow</l>
+<l>            SelectedColumn := WorldColumn</l>
+<l>            DisplayedPose := ObjInWorldPose</l>
+<l>            display_poses (Image, WindowHandle, LabelObjInImage, LabelRobotInImage, LabelCamInImage, LabelWorldInImage, CamParam, Orientation3D, ObjRow, ObjColumn, SelectedOrientation, SelectedRow, SelectedColumn, SelectedString, DisplayedPose, PoseTextRow, PoseTextColumn, Colors, Message)</l>
+<l>            break</l>
+<l>        case 8:</l>
+<c>            * Object coordinate system</c>
+<l>            SelectedString := 'object'</l>
+<l>            SelectedOrientation := [ObjInWorldPose[3],ObjInWorldPose[4],ObjInWorldPose[5]]</l>
+<l>            SelectedRow := ObjRow</l>
+<l>            SelectedColumn := ObjColumn</l>
+<c>            * The pose of the object in the object attached coordinate system equal</c>
+<c>            * its origin.</c>
+<l>            DisplayedPose := gen_tuple_const(7,0)</l>
+<l>            display_poses (Image, WindowHandle, LabelObjInImage, LabelRobotInImage, LabelCamInImage, LabelWorldInImage, CamParam, Orientation3D, ObjRow, ObjColumn, SelectedOrientation, SelectedRow, SelectedColumn, SelectedString, DisplayedPose, PoseTextRow, PoseTextColumn, Colors, Message)</l>
+<l>            break</l>
+<l>        default:</l>
+<c>            * This branch can only be reached, if the selection</c>
+<c>            * regions overlap and the mouse points to an</c>
+<c>            * overlapping part.</c>
+<c>            * In this case, do nothing.</c>
+<l>            break</l>
+<l>        endswitch</l>
+<l>    endif</l>
+<c>    * Flush the content of the graphics window.</c>
+<l>    flush_buffer (WindowHandle)</l>
+<c>    * Get mouse position</c>
+<l>    try</l>
+<l>        get_mposition (WindowHandle, MouseRow, MouseColumn, Button)</l>
+<l>    catch (Exception)</l>
+<l>        continue</l>
+<l>    endtry</l>
+<c>    * Test if mouse is in region defined for the camera</c>
+<l>    test_region_point (ROICam, MouseRow, MouseColumn, MouseOnCam)</l>
+<l>    test_region_point (ROIRob, MouseRow, MouseColumn, MouseOnRob)</l>
+<l>    test_region_point (ROIWorld, MouseRow, MouseColumn, MouseOnWorld)</l>
+<l>    test_region_point (ROIObj, MouseRow, MouseColumn, MouseOnObj)</l>
+<c>    * Calculate index depending on mouse position</c>
+<l>    ToBeDisplayed := MouseOnCam + 2 * MouseOnRob + 4 * MouseOnWorld + 8 * MouseOnObj</l>
+<l>endwhile</l>
+<l>set_window_param (WindowHandle, 'flush', Flush)</l>
+<l>return ()</l>
+</body>
+<docu id="show_pose_in_selected_cs">
+<parameters>
+<parameter id="CamInWorldPose"/>
+<parameter id="Image"/>
+<parameter id="ObjInWorldPose"/>
+<parameter id="RobotInWorldPose"/>
+<parameter id="WindowHandle"/>
+<parameter id="WorldCSPose"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="reset_visualization">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ObjInImage" base_type="ctrl" dimension="0"/>
+<par name="RobotInImage" base_type="ctrl" dimension="0"/>
+<par name="CamInImage" base_type="ctrl" dimension="0"/>
+<par name="WorldInImage" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>ShowBox := 'false'</l>
+<l>disp_message (WindowHandle, 'Robot base\ncoordinate system', 'image', RobotInImage[0], RobotInImage[1], 'black', ShowBox)</l>
+<l>disp_message (WindowHandle, 'Camera\ncoordinate\nsystem', 'image', CamInImage[0], CamInImage[1], 'black', ShowBox)</l>
+<l>disp_message (WindowHandle, 'World\ncoordinate system', 'image', WorldInImage[0], WorldInImage[1], 'black', ShowBox)</l>
+<l>disp_message (WindowHandle, 'Object\ncoordinate system', 'image', ObjInImage[0] + 20, ObjInImage[1] - 40, 'black', ShowBox)</l>
+<l>disp_message (WindowHandle, 'Choose coordinate system by placing\nmouse pointer on label.\n \nStop by clicking right mouse button.', 'image', 10, 10, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="reset_visualization">
+<parameters>
+<parameter id="CamInImage"/>
+<parameter id="Image"/>
+<parameter id="ObjInImage"/>
+<parameter id="RobotInImage"/>
+<parameter id="WindowHandle"/>
+<parameter id="WorldInImage"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_robot_cam_object">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* </c>
+<c>* Draws the stylized camera and the robot into the given window.</c>
+<c>* The contents of the window is dumped into an image</c>
+<c>* object and returned.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_line_width (3)</l>
+<l>gen_rectangle2_contour_xld (Rectangle, 69.5, 449.5, rad(-90), 34, 22.8293)</l>
+<l>gen_contour_polygon_xld (Triangle, [105,131,131,131,105,131], [449,426,426,469,449,469])</l>
+<l>dev_display (Rectangle)</l>
+<l>dev_display (Triangle)</l>
+<l>dev_set_line_width (4)</l>
+<l>gen_rectangle1 (Robot1, 423.5, 0.875, 432.5, 99.5)</l>
+<l>dev_display (Robot1)</l>
+<l>gen_circle_contour_xld (Robot2, 422.5, 46.5, 5.38516, 0, 6.28318, 'positive', 1)</l>
+<l>dev_display (Robot2)</l>
+<l>gen_circle_contour_xld (Robot3, 332.5, 16.5, 6, 0, 6.28318, 'positive', 1)</l>
+<l>dev_display (Robot3)</l>
+<l>gen_circle_contour_xld (Robot4, 255, 151, 5.5, 0, 6.28318, 'positive', 1)</l>
+<l>dev_display (Robot4)</l>
+<l>gen_circle_contour_xld (Robot5, 253.5, 251, 5.09902, 0, 6.28318, 'positive', 1)</l>
+<l>dev_display (Robot5)</l>
+<l>gen_contour_polygon_xld (Robot6, [417,337], [44.5,17.5])</l>
+<l>dev_display (Robot6)</l>
+<l>gen_contour_polygon_xld (Robot7, [329,257], [21,147])</l>
+<l>dev_display (Robot7)</l>
+<l>gen_contour_polygon_xld (Robot8, [253.5,253.5], [156,245.5])</l>
+<l>dev_display (Robot8)</l>
+<l>gen_contour_polygon_xld (Robot9, [254.75,297], [256,299])</l>
+<l>dev_display (Robot9)</l>
+<l>gen_contour_polygon_xld (Robot10, [284,310], [314.25,287.75])</l>
+<l>dev_display (Robot10)</l>
+<l>gen_contour_polygon_xld (Robot11, [284.25,298.5], [314,328])</l>
+<l>dev_display (Robot11)</l>
+<l>gen_contour_polygon_xld (Robot12, [309.5,324], [287.75,302])</l>
+<l>dev_display (Robot12)</l>
+<l>dump_window_image (Image, WindowHandle)</l>
+<l>rgb1_to_gray (Image, Image)</l>
+<l>read_image (ObjectImage, 'clamp_sloped/clamp_sloped_02')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>Scale := 0.3</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, Scale, Scale, 0, 0, HomMat2DScale)</l>
+<l>affine_trans_image_size (ObjectImage, ImageScaled, HomMat2DScale, 'constant', Width * Scale, Height * Scale)</l>
+<l>concat_obj (Image, ImageScaled, Images)</l>
+<l>ImagePosRow := 330</l>
+<l>ImagePosCol := 350</l>
+<c>* compute current position of the caltab image in the Title Images</c>
+<l>tile_images_offset (Images, Image, [0,ImagePosRow], [0,ImagePosCol], [-1,0], [-1,30], [-1,125], [-1,160], Width, Height)</l>
+<l>dev_set_line_width (2)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_robot_cam_object">
+<parameters>
+<parameter id="Image"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_poses">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="LabelObjInImage" base_type="ctrl" dimension="0"/>
+<par name="LabelRobotInImage" base_type="ctrl" dimension="0"/>
+<par name="LabelCamInImage" base_type="ctrl" dimension="0"/>
+<par name="LabelWorldInImage" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="Orientation3D" base_type="ctrl" dimension="0"/>
+<par name="ObjRow" base_type="ctrl" dimension="0"/>
+<par name="ObjColumn" base_type="ctrl" dimension="0"/>
+<par name="SelectedOrientation" base_type="ctrl" dimension="0"/>
+<par name="SelectedRow" base_type="ctrl" dimension="0"/>
+<par name="SelectedColumn" base_type="ctrl" dimension="0"/>
+<par name="SelectedString" base_type="ctrl" dimension="0"/>
+<par name="DisplayedPose" base_type="ctrl" dimension="0"/>
+<par name="PoseTextRow" base_type="ctrl" dimension="0"/>
+<par name="PoseTextColumn" base_type="ctrl" dimension="0"/>
+<par name="Colors" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Display poses</c>
+<l>reset_visualization (Image, WindowHandle, LabelObjInImage, LabelRobotInImage, LabelCamInImage, LabelWorldInImage)</l>
+<l>dev_set_colored (3)</l>
+<l>disp_3d_coord_system_in_image (WindowHandle, CamParam, Orientation3D, ObjRow, ObjColumn)</l>
+<l>disp_3d_coord_system_in_image (WindowHandle, CamParam, SelectedOrientation, SelectedRow, SelectedColumn)</l>
+<l>Message := ['Pose of object','in ' + SelectedString,'coordinates']</l>
+<l>Message[3] := 'Tx = ' + DisplayedPose[0]$'.02f' + ' m'</l>
+<l>Message[4] := 'Ty = ' + DisplayedPose[1]$'.02f' + ' m'</l>
+<l>Message[5] := 'Tz = ' + DisplayedPose[2]$'.02f' + ' m'</l>
+<l>Message[6] := 'Rx = ' + DisplayedPose[3]$'.02f' + ' deg'</l>
+<l>Message[7] := 'Ry = ' + DisplayedPose[4]$'.02f' + ' deg'</l>
+<l>Message[8] := 'Rz = ' + DisplayedPose[5]$'.02f' + ' deg'</l>
+<l>disp_message (WindowHandle, Message, 'image', PoseTextRow, PoseTextColumn, Colors, 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_poses">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Colors"/>
+<parameter id="DisplayedPose"/>
+<parameter id="Image"/>
+<parameter id="LabelCamInImage"/>
+<parameter id="LabelObjInImage"/>
+<parameter id="LabelRobotInImage"/>
+<parameter id="LabelWorldInImage"/>
+<parameter id="Message"/>
+<parameter id="ObjColumn"/>
+<parameter id="ObjRow"/>
+<parameter id="Orientation3D"/>
+<parameter id="PoseTextColumn"/>
+<parameter id="PoseTextRow"/>
+<parameter id="SelectedColumn"/>
+<parameter id="SelectedOrientation"/>
+<parameter id="SelectedRow"/>
+<parameter id="SelectedString"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

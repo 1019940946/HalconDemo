@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates how to use the operator</c>
+<c>* triangulate_object_model_3d</c>
+<c>* </c>
+<c>* </c>
+<c>* Init visualization</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 800, 600, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Overview of all default triangulation parameters (implicit mode):</c>
+<c>* 'implicit_octree_depth' --&gt; 6</c>
+<c>* 'implicit_solver_depth' --&gt; 6</c>
+<c>* 'implicit_min_num_samples' --&gt; 1</c>
+<c>* </c>
+<l>read_object_model_3d ('mvtec_bunny_normals.om3', 'm', [], [], ObjectModel3D, Status)</l>
+<c>* </c>
+<c>* This model is already triangulated.</c>
+<c>* We copy only its points and normals for demonstration purposes.</c>
+<l>copy_object_model_3d (ObjectModel3D, ['point_coord','point_normal'], RawPointData3D)</l>
+<l>clear_object_model_3d (ObjectModel3D)</l>
+<c>* </c>
+<c>* Inspect the point cloud data</c>
+<l>create_pose (-43, 47, 920, 218, 37, 352, 'Rp+T', 'gba', 'point', Pose)</l>
+<l>visualize_object_model_3d (WindowHandle, RawPointData3D, [], Pose, 'point_size', 1, 'Raw point data to be triangulated', [], Instructions, Pose)</l>
+<c>* </c>
+<c>* </c>
+<c>* Triangulation with default settings</c>
+<c>* </c>
+<c>* (Only 'information' is set to 'verbose',</c>
+<c>* to give additional informations about the</c>
+<c>* triangulation process.)</c>
+<c>* </c>
+<c>* Display status</c>
+<l>DescriptionText := 'Triangulation in \'implicit\' mode with default settings'</l>
+<l>ParameterNames := 'information'</l>
+<l>ParameterValues := 'verbose'</l>
+<l>Status := 'This may take a minute. Please wait ...'</l>
+<l>disp_message (WindowHandle, [DescriptionText,' ',Status], 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Perform triangulation</c>
+<l>count_seconds (Start)</l>
+<l>triangulate_object_model_3d (RawPointData3D, 'implicit', ParameterNames, ParameterValues, Surface3DDefault, Info)</l>
+<l>count_seconds (End)</l>
+<l>TimeDefault := End - Start</l>
+<c>* If 'information' is set to 'verbose', a lot of useful</c>
+<c>* information is returned by triangulate_object_model_3d</c>
+<l>* dev_inspect_ctrl (Info)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>VisParNames := ['disp_lines','color','line_color','alpha']</l>
+<l>VisParValues := ['true','white','green',0.5]</l>
+<l>Status := 'Execution time: ' + TimeDefault$'.2' + 's'</l>
+<l>visualize_object_model_3d (WindowHandle, Surface3DDefault, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* </c>
+<c>* Triangulation with a deeper octree</c>
+<c>* </c>
+<l>ParameterNames := 'implicit_octree_depth'</l>
+<l>ParameterValues := 7</l>
+<c>* </c>
+<c>* Display status</c>
+<l>DescriptionText := 'A triangulation with a higher level of detail can be achieved'</l>
+<l>DescriptionText[1] := 'by increasing the octree depth. This results in a longer'</l>
+<l>DescriptionText[2] := 'execution time of the operator.'</l>
+<l>Status := 'Performing triangulation with a deeper octree ...'</l>
+<l>disp_message (WindowHandle, [DescriptionText,' ',Status], 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Perform triangulation</c>
+<l>count_seconds (Start)</l>
+<l>triangulate_object_model_3d (RawPointData3D, 'implicit', [ParameterNames,'information'], [ParameterValues,'verbose'], Surface3DDepth7, Info)</l>
+<l>count_seconds (End)</l>
+<l>TimeDepth7 := End - Start</l>
+<c>* </c>
+<c>* Display results</c>
+<l>Status := 'Execution time (octree depth = 7): ' + TimeDepth7$'.2' + 's'</l>
+<l>visualize_object_model_3d (WindowHandle, Surface3DDepth7, [], Pose, VisParNames, VisParValues, [DescriptionText,Status], [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Cleanup memory</c>
+<l>clear_object_model_3d ([RawPointData3D,Surface3DDefault,Surface3DDepth7])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

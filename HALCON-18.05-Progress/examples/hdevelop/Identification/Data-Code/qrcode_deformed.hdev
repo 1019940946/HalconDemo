@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This programs shows the robustness of the QR Code reader with</c>
+<c>* respect to slight perspective distortions and local deformations</c>
+<c>* when dealing with large codes. For this, an artificial image is</c>
+<c>* randomly distorted. Three random sequences are tested, where</c>
+<c>* the data code is</c>
+<c>*   1. perspectively distorted</c>
+<c>*   2. locally deformed</c>
+<c>*   3. perspectively distorted and locally deformed</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'datacode/qrcode/qr_version_25')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Create a data code model</c>
+<l>create_data_code_2d_model ('QR Code', [], [], DataCodeHandle)</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'polarity', 'dark_on_light')</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'module_gap', 'no')</l>
+<c>* </c>
+<c>* 1. Apply perspective distortions</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Find QR Code with perspective distortions', 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>AmpPersp := 50</l>
+<l>AmpDeform := 0</l>
+<l>AmpNoise := 50</l>
+<l>find_deformed_codes (Image, AmpPersp, AmpDeform, AmpNoise, DataCodeHandle, WindowHandle)</l>
+<c>* </c>
+<c>* 2. Apply local deformations</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, 'Find QR Code with local deformations', 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>AmpPersp := 0</l>
+<l>AmpDeform := 50</l>
+<l>AmpNoise := 50</l>
+<l>find_deformed_codes (Image, AmpPersp, AmpDeform, AmpNoise, DataCodeHandle, WindowHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* 3. Apply perspective distortions and local deformations</c>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, ['Find QR Code with perspective distortions','and local deformations'], 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>AmpPersp := 50</l>
+<l>AmpDeform := 50</l>
+<l>AmpNoise := 50</l>
+<l>find_deformed_codes (Image, AmpPersp, AmpDeform, AmpNoise, DataCodeHandle, WindowHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_random_distortions">
+<interface>
+<oo>
+<par name="VFRow" base_type="iconic" dimension="0"/>
+<par name="VFCol" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AmpPersp" base_type="ctrl" dimension="0"/>
+<par name="AmpDeform" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HomMat2D" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Generate two kinds of random distortions:</c>
+<c>* </c>
+<c>*   1. Perspective distortions</c>
+<l>vector_to_proj_hom_mat2d ([0,0,Height - 1,Height - 1], [0,Width - 1,Width - 1,0], [0,0,Height - 1,Height - 1] + (rand(4) - 0.5) * AmpPersp, [0,Width - 1,Width - 1,0] + (rand(4) - 0.5) * AmpPersp, 'normalized_dlt', [], [], [], [], [], [], HomMat2D, Covariance)</l>
+<l>HomMat2D := HomMat2D / HomMat2D[8]</l>
+<c>* </c>
+<c>*   2. Local deformations</c>
+<l>gen_random_vector_field (VectorField, Width, Height, AmpDeform, 2.5)</l>
+<l>vector_field_to_real (VectorField, VFRow, VFCol)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="gen_random_distortions">
+<short lang="de_DE">Generate random perspective distortions and local deformations</short>
+<short lang="en_US">Generate random perspective distortions and local deformations</short>
+<parameters>
+<parameter id="AmpDeform">
+<default_type>integer</default_type>
+<default_value>30</default_value>
+<description lang="de_DE">Maximum amplitude of the perspective deformations (in pixels)</description>
+<description lang="en_US">Maximum amplitude of the perspective deformations (in pixels)</description>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="AmpPersp">
+<default_type>integer</default_type>
+<default_value>30</default_value>
+<description lang="de_DE">Maximum amplitude of the perspective deformations (in pixels)</description>
+<description lang="en_US">Maximum amplitude of the perspective deformations (in pixels)</description>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Height">
+<default_type>integer</default_type>
+<description lang="de_DE">Width of the image to be distorted</description>
+<description lang="en_US">Width of the image to be distorted</description>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="HomMat2D">
+<default_type>integer</default_type>
+<description lang="de_DE">Homogeneous transformation matrix describing the perspective transformation</description>
+<description lang="en_US">Homogeneous transformation matrix describing the perspective transformation</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat2d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VFCol">
+<description lang="de_DE">Column component of vector field representing the local deformations</description>
+<description lang="en_US">Column component of vector field representing the local deformations</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VFRow">
+<description lang="de_DE">Row component of vector field representing the local deformations</description>
+<description lang="en_US">Row component of vector field representing the local deformations</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Width">
+<default_type>integer</default_type>
+<description lang="de_DE">Width of the image to be distorted</description>
+<description lang="en_US">Width of the image to be distorted</description>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="apply_random_distortions">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="VFFromRow" base_type="iconic" dimension="0"/>
+<par name="VFFromCol" base_type="iconic" dimension="0"/>
+<par name="VFToRow" base_type="iconic" dimension="0"/>
+<par name="VFToCol" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageDistorted" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="HomMat2DFrom" base_type="ctrl" dimension="0"/>
+<par name="HomMat2DTo" base_type="ctrl" dimension="0"/>
+<par name="T" base_type="ctrl" dimension="0"/>
+<par name="AmpNoise" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Generate background image</c>
+<l>gen_image_proto (Image, ImageCleared, 224)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<c>* Apply the projective transformation</c>
+<l>HomMat2DInt := HomMat2DFrom + T * (HomMat2DTo - HomMat2DFrom)</l>
+<l>projective_trans_image (Image, ImageProjTrans, HomMat2DInt, 'bilinear', 'false', 'false')</l>
+<l>concat_obj (ImageCleared, ImageProjTrans, ObjectsConcat)</l>
+<l>tile_images_offset (ObjectsConcat, ImageDistPersp, [0,0], [0,0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], Width, Height)</l>
+<c>* </c>
+<c>* Apply the local deformations</c>
+<l>scale_image (VFFromRow, VFFromRowInt, 1.0 - T, 0)</l>
+<l>scale_image (VFFromCol, VFFromColInt, 1.0 - T, 0)</l>
+<l>scale_image (VFToRow, VFToRowInt, T, 0)</l>
+<l>scale_image (VFToCol, VFToColInt, T, 0)</l>
+<l>add_image (VFFromRowInt, VFToRowInt, VFRowInt, 1.0, 0)</l>
+<l>add_image (VFFromColInt, VFToColInt, VFColInt, 1.0, 0)</l>
+<l>real_to_vector_field (VFRowInt, VFColInt, VectorFieldInt, 'vector_field_relative')</l>
+<l>unwarp_image_vector_field (ImageDistPersp, VectorFieldInt, ImageDistDeform)</l>
+<c>* </c>
+<c>* Finally, add noise</c>
+<l>add_noise_white (ImageDistDeform, ImageDistorted, AmpNoise)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="apply_random_distortions">
+<short lang="de_DE">Apply perspective distortions, local deformations and noise to an image</short>
+<short lang="en_US">Apply random perspective, local distortions, and noise to an image</short>
+<parameters>
+<parameter id="AmpNoise">
+<default_type>real</default_type>
+<description lang="en_US">Amplitude of the added image noise</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="HomMat2DFrom">
+<default_type>integer</default_type>
+<description lang="en_US">Homogeneous matrix representing the source perspective deformations</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat2d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="HomMat2DTo">
+<default_type>integer</default_type>
+<description lang="en_US">Homogeneous matrix representing the target  perspective deformations</description>
+<mixed_type>optional</mixed_type>
+<multivalue>true</multivalue>
+<sem_type>hom_mat2d</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="en_US">Input image to be distorted</description>
+<multichannel>optional</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="ImageDistorted">
+<description lang="en_US">Resulting distorted image</description>
+<multichannel>optional</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="T">
+<default_type>real</default_type>
+<description lang="en_US">Variable running from 0 to 1, smoothly blending from source to target deformations</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VFFromCol">
+<description lang="en_US">Column component of the source vector field representing the local image distortions</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VFFromRow">
+<description lang="en_US">Row component of the source vector field representing the local image distortions</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VFToCol">
+<description lang="en_US">Column component of the target vector field representing the local image distortions</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VFToRow">
+<description lang="en_US">Row component of the target vector field representing the local image distortions</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_random_vector_field">
+<interface>
+<oo>
+<par name="VectorField" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="MaxDeform" base_type="ctrl" dimension="0"/>
+<par name="Sigma" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>WidthVec := 16</l>
+<l>HeightVec := 16</l>
+<l>gen_image_const (VectorField, 'vector_field', WidthVec, HeightVec)</l>
+<l>vector_field_to_real (VectorField, VecRow, VecCol)</l>
+<l>if (MaxDeform &gt; 0.0)</l>
+<l>    for R := 0 to HeightVec - 1 by 1</l>
+<l>        for C := 0 to WidthVec - 1 by 1</l>
+<l>            DR := (rand(1) - 0.5) * 2 * MaxDeform</l>
+<l>            DC := (rand(1) - 0.5) * 2 * MaxDeform</l>
+<l>            set_grayval (VecRow, R, C, DR)</l>
+<l>            set_grayval (VecCol, R, C, DC)</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>    derivate_gauss (VecRow, VecRow, Sigma, 'none')</l>
+<l>    derivate_gauss (VecCol, VecCol, Sigma, 'none')</l>
+<l>endif</l>
+<l>zoom_image_size (VecRow, VecRowOrig, Width, Height, 'constant')</l>
+<l>zoom_image_size (VecCol, VecColOrig, Width, Height, 'constant')</l>
+<l>real_to_vector_field (VecRowOrig, VecColOrig, VectorField, 'vector_field_relative')</l>
+<l>return ()</l>
+</body>
+<docu id="gen_random_vector_field">
+<short lang="de_DE">Generate a random field representing local image deformations</short>
+<short lang="en_US">Generate a random field representing local image deformations</short>
+<parameters>
+<parameter id="Height">
+<default_type>integer</default_type>
+<description lang="de_DE">Height of the image to be destorted</description>
+<description lang="en_US">Height of the image to be destorted</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="MaxDeform">
+<default_type>integer</default_type>
+<default_value>30</default_value>
+<description lang="de_DE">Maximum deformation in pixels</description>
+<description lang="en_US">Maximum deformation in pixels</description>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Sigma">
+<default_type>real</default_type>
+<default_value>2.0</default_value>
+<description lang="de_DE">Sigma of the smoothing that is applied to the vector field</description>
+<description lang="en_US">Sigma of the smoothing that is applied to the vector field</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>number</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="VectorField">
+<description lang="de_DE">Vector field that represents the local image deformations</description>
+<description lang="en_US">Vector field that represents the local image deformations</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>vector_field</item>
+</type_list>
+</parameter>
+<parameter id="Width">
+<default_type>integer</default_type>
+<description lang="de_DE">Width of the image to be destorted</description>
+<description lang="en_US">Width of the image to be destorted</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="find_deformed_codes">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="AmpPersp" base_type="ctrl" dimension="0"/>
+<par name="AmpDeform" base_type="ctrl" dimension="0"/>
+<par name="AmpNoise" base_type="ctrl" dimension="0"/>
+<par name="DataCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Initialize the source distortions</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>gen_random_distortions (VFFromRow, VFFromCol, 0, 0, Width, Height, HomMat2DFrom)</l>
+<l>for Iter := 1 to 10 by 1</l>
+<c>    * Generate random target distortions</c>
+<l>    gen_random_distortions (VFToRow, VFToCol, AmpPersp, AmpDeform, Width, Height, HomMat2DTo)</l>
+<c>    * </c>
+<c>    * Smoothly fade between source and target distortions</c>
+<l>    for T := 0.0 to 1.0 by 0.05</l>
+<l>        apply_random_distortions (Image, VFFromRow, VFFromCol, VFToRow, VFToCol, ImageDistorted, HomMat2DFrom, HomMat2DTo, T, AmpNoise)</l>
+<c>        * </c>
+<c>        * Find the symbol</c>
+<l>        count_seconds (Seconds1)</l>
+<l>        find_data_code_2d (ImageDistorted, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := 1000.0 * (Seconds2 - Seconds1)</l>
+<c>        * </c>
+<c>        * Display the result</c>
+<l>        dev_display (ImageDistorted)</l>
+<l>        disp_message (WindowHandle, |ResultHandles| + ' QR Code found and decoded in ' + Time$'3.0f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>        dev_display (SymbolXLDs)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Copy target to source distortions</c>
+<l>    copy_obj (VFToRow, VFFromRow, 1, 1)</l>
+<l>    copy_obj (VFToCol, VFFromCol, 1, 1)</l>
+<l>    HomMat2DFrom := HomMat2DTo</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="find_deformed_codes">
+<parameters>
+<parameter id="AmpDeform"/>
+<parameter id="AmpNoise"/>
+<parameter id="AmpPersp"/>
+<parameter id="DataCodeHandle"/>
+<parameter id="Image"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

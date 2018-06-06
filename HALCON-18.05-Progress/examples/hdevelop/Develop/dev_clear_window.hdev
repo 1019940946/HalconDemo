@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>regiongrowing (Image, Regions, 3, 3, 6, 100)</l>
+<l>count_obj (Regions, Number)</l>
+<l>dev_update_window ('off')</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (Regions, RegionSelected, i)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (RegionSelected)</l>
+<l>*     stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

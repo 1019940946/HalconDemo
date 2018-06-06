@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This program shows how to iteratively track wire bondings.</c>
+<c>* It assumes that the following values are present from a previous</c>
+<c>* initialization phase:</c>
+<c>* 1. Coordinates of the start and end points corresponding to the bond sites</c>
+<c>* 2. Angle with which the wire departs from each of the above mentioned points</c>
+<c>* 3. Approximated wire widths in pixels</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'die/die_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* SEARCH PARAMETERS ********************************</c>
+<c>* Approximated half-widths of wires in image</c>
+<l>WireWidths := [1.8,0,0,8,6,1.7,7.5]</l>
+<c>* Minimum length of contours which may correspond to a wire</c>
+<l>MinSegmentLength := 5</l>
+<c>* Angular search domain</c>
+<l>AngleTolerance := rad(20)</l>
+<c>* Radius of the circular section defining the search region</c>
+<l>MinSearchRadius := 10</l>
+<l>MinWireDeviation := 5</l>
+<c>* Radius of the circle with the center at the end point</c>
+<c>* that the tracking algorithm must reach to</c>
+<c>* consider the tracking as successful</c>
+<l>AcceptanceRadius := 5</l>
+<l>MinWireLength := 80</l>
+<c>* ***************************************************</c>
+<c>* </c>
+<c>* </c>
+<l>for Img := 1 to 7 by 1</l>
+<l>    dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<l>    try</l>
+<l>        read_tuple ('die_' + Img$'02' + '_params.tup', Parameters)</l>
+<l>    catch (Exception)</l>
+<l>        continue</l>
+<l>    endtry</l>
+<l>    dev_set_preferences ('suppress_handled_exceptions_dlg', PreferenceValue)</l>
+<l>    NPads := Parameters[0]</l>
+<l>    StartPadRows := Parameters[1:NPads]</l>
+<l>    StartPadCols := Parameters[NPads + 1:2 * NPads]</l>
+<l>    StartInitOrientation := Parameters[2 * NPads + 1:3 * NPads]</l>
+<l>    EndPadRows := Parameters[3 * NPads + 1:4 * NPads]</l>
+<l>    EndPadCols := Parameters[4 * NPads + 1:5 * NPads]</l>
+<l>    EndInitOrientation := Parameters[5 * NPads + 1:6 * NPads]</l>
+<l>    gen_empty_obj (Wires)</l>
+<l>    read_image (Image, 'die/die_' + Img$'02')</l>
+<l>    dev_display (Image)</l>
+<l>    for Pad := 0 to |StartPadRows| - 1 by 1</l>
+<c>        * Maximum distance between two consecutive contours</c>
+<c>        * corresponding to the same wire</c>
+<l>        MaxDistSegment := 17 * WireWidths[Img - 1]</l>
+<l>        track_wire (Image, FwdWireSegments, StartPadRows[Pad], StartPadCols[Pad], StartInitOrientation[Pad], EndPadRows[Pad], EndPadCols[Pad], WireWidths[Img - 1], AngleTolerance, MinSegmentLength, MaxDistSegment)</l>
+<c>        * Fuse all segments of the wire into a long contour covering the</c>
+<c>        * whole trajectory</c>
+<l>        fuse_wire_segments (FwdWireSegments, Wire, StartPadRows[Pad], StartPadCols[Pad], EndPadRows[Pad], EndPadCols[Pad], MinWireLength, MaxDistSegment, MinWireDeviation)</l>
+<c>        * </c>
+<c>        * Check whether the algorithm could successfully track the whole wire.</c>
+<c>        * If not, try to track the wire starting at the end point back to the</c>
+<c>        * start point, and merge the results</c>
+<l>        distance_pc (Wire, EndPadRows[Pad], EndPadCols[Pad], DistanceMin, DistanceMax)</l>
+<l>        if (DistanceMin &gt; AcceptanceRadius)</l>
+<c>            * The new end points correspond to the end points of the contour</c>
+<c>            * where the algorithm left off in the previous attempt</c>
+<l>            count_obj (FwdWireSegments, NXLDs)</l>
+<l>            select_obj (FwdWireSegments, ObjectSelected, NXLDs)</l>
+<l>            get_contour_xld (ObjectSelected, Row, Column)</l>
+<l>            track_wire (Image, BckWireSegments, EndPadRows[Pad], EndPadCols[Pad], EndInitOrientation[Pad], sum([Row[0],Row[|Row| - 1]]) / 2, sum([Column[0],Column[|Column| - 1]]) / 2, WireWidths[Img - 1], AngleTolerance, MinSegmentLength, MaxDistSegment)</l>
+<l>            count_obj (BckWireSegments, WiresFound)</l>
+<l>            if (WiresFound &gt; 0)</l>
+<c>                * </c>
+<c>                * Find the point at which both contours cross each other</c>
+<l>                contour_intersection_point (FwdWireSegments, BckWireSegments, EndSegmentForwards, EndSegmentBackwards, IntersecRow, IntersecColumn)</l>
+<c>                * Crop contours so that they do not go beyond the crossing point</c>
+<l>                crop_to_cross_point (FwdWireSegments, EndSegmentForwards, CroppedSegmentsFwd, IntersecRow, IntersecColumn)</l>
+<l>                crop_to_cross_point (BckWireSegments, EndSegmentBackwards, CroppedSegmentsBck, IntersecRow, IntersecColumn)</l>
+<l>                concat_obj (CroppedSegmentsFwd, CroppedSegmentsBck, WireSegments)</l>
+<l>            else</l>
+<l>                count_obj (FwdWireSegments, NSegments)</l>
+<l>                Sequence := [1:NSegments]</l>
+<l>                select_obj (FwdWireSegments, WireSegments, Sequence)</l>
+<l>            endif</l>
+<c>            * Merge the resulting contours</c>
+<l>            length_xld (WireSegments, Length)</l>
+<l>            union_adjacent_contours_xld (WireSegments, FusedSegments, max(Length), max(Length) / max([min(Length),1]), 'attr_keep')</l>
+<l>            smooth_contours_xld (FusedSegments, Wire, 11)</l>
+<l>            concat_obj (Wires, Wire, Wires)</l>
+<l>        else</l>
+<l>            smooth_contours_xld (Wire, SmoothedContours1, 11)</l>
+<l>            concat_obj (Wires, SmoothedContours1, Wires)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (Wires)</l>
+<l>    if (Img &lt; 7)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_search_region">
+<interface>
+<oo>
+<par name="SearchRegion" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="StartRow" base_type="ctrl" dimension="0"/>
+<par name="StartColumn" base_type="ctrl" dimension="0"/>
+<par name="SearchAngle" base_type="ctrl" dimension="0"/>
+<par name="SearchRadius" base_type="ctrl" dimension="0"/>
+<par name="AngleTolerance" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_ellipse_contour_xld (ContEllipse, StartRow, StartColumn, SearchAngle, SearchRadius, SearchRadius, -AngleTolerance, 2 * AngleTolerance, 'positive', 1.5)</l>
+<l>get_contour_xld (ContEllipse, ContRow, ContCol)</l>
+<l>ContRow := [StartRow,ContRow]</l>
+<l>ContCol := [StartColumn,ContCol]</l>
+<l>gen_contour_polygon_xld (Cone, ContRow, ContCol)</l>
+<l>gen_region_contour_xld (Cone, SearchRegion, 'filled')</l>
+<l>return ()</l>
+</body>
+<docu id="gen_search_region">
+<parameters>
+<parameter id="AngleTolerance"/>
+<parameter id="SearchAngle"/>
+<parameter id="SearchRadius"/>
+<parameter id="SearchRegion"/>
+<parameter id="StartColumn"/>
+<parameter id="StartRow"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="select_longest_contour">
+<interface>
+<io>
+<par name="UnionContours" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Wire" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="MaxLength" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>length_xld (UnionContours, MaxLength)</l>
+<l>if (|MaxLength| == 0)</l>
+<l>    gen_empty_obj (Wire)</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>MaxLength := max(MaxLength)</l>
+<l>tuple_find (MaxLength, MaxLength, IndMax)</l>
+<l>select_obj (UnionContours, Wire, IndMax + 1)</l>
+<l>return ()</l>
+</body>
+<docu id="select_longest_contour">
+<parameters>
+<parameter id="MaxLength"/>
+<parameter id="UnionContours"/>
+<parameter id="Wire"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="union_collinear_wire_segments">
+<interface>
+<io>
+<par name="Segments" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="UnionContours" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MaxIterations" base_type="ctrl" dimension="0"/>
+<par name="MaxAngle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Usually there are dark areas around the chip corresponding to shadows</c>
+<c>* which give rise to gaps when tracking the wire. We need to overcome such</c>
+<c>* gaps by joining separate segments.</c>
+<c>* </c>
+<c>* The idea of the lines below is the following: the longer the segments are,</c>
+<c>* the higher are the chances that those segments actually correspond to a</c>
+<c>* wire and, therefore, we decide to join them even when the separation among</c>
+<c>* them is bigger</c>
+<l>length_xld (Segments, Lengths)</l>
+<l>MaxDistAbs := max(Lengths)</l>
+<l>MaxDistRel := max(Lengths) / min(Lengths)</l>
+<l>union_collinear_contours_ext_xld (Segments, UnionContours, MaxDistAbs, MaxDistRel, 5, MaxAngle, 0, -1, 1, 1, 1, 1, 1, 0, 'attr_keep')</l>
+<c>* </c>
+<l>Iter := 0</l>
+<l>length_xld (UnionContours, Lengths)</l>
+<l>while (Iter &lt; MaxIterations and |Lengths| &gt; 1)</l>
+<l>    MaxDistAbs := 0.4 * max(Lengths)</l>
+<l>    MaxDistRel := 0.1 * max(Lengths) / min(Lengths)</l>
+<l>    union_collinear_contours_ext_xld (UnionContours, UnionContours, MaxDistAbs, MaxDistRel, 5, 0.5, 0, -1, 1, 1, 1, 1, 1, 0, 'attr_keep')</l>
+<l>    Iter := Iter + 1</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="union_collinear_wire_segments">
+<parameters>
+<parameter id="MaxAngle"/>
+<parameter id="MaxIterations"/>
+<parameter id="Segments"/>
+<parameter id="UnionContours"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="update_search_parameters">
+<interface>
+<io>
+<par name="WireSegment" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="StartPointRow" base_type="ctrl" dimension="0"/>
+<par name="StartPointCol" base_type="ctrl" dimension="0"/>
+<par name="RefOrientation" base_type="ctrl" dimension="0"/>
+<par name="MinSearchRadius" base_type="ctrl" dimension="0"/>
+<par name="MaxDistSegment" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="StartPointRowOut" base_type="ctrl" dimension="0"/>
+<par name="StartPointColOut" base_type="ctrl" dimension="0"/>
+<par name="RefOrientationOut" base_type="ctrl" dimension="0"/>
+<par name="SearchRadius" base_type="ctrl" dimension="0"/>
+<par name="DistSegmentThreshold" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>RefOrientationOut := RefOrientation</l>
+<l>StartPointColOut := StartPointCol</l>
+<l>StartPointRowOut := StartPointRow</l>
+<c>* </c>
+<c>* Find the contour's extreme point furthest from the current start point</c>
+<c>* and define it as the new starting search point for the next iteration</c>
+<l>fit_line_contour_xld (WireSegment, 'tukey', -1, 0, 5, 2, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>EndPointsRow := [RowBegin,RowEnd]</l>
+<l>EndPointsCol := [ColBegin,ColEnd]</l>
+<l>distance_pp (EndPointsRow, EndPointsCol, [StartPointRowOut,StartPointRowOut], [StartPointColOut,StartPointColOut], Distance)</l>
+<l>if (Distance[0] &gt; Distance[1])</l>
+<l>    StartPointRowOut := EndPointsRow[0]</l>
+<l>    StartPointColOut := EndPointsCol[0]</l>
+<l>else</l>
+<l>    StartPointRowOut := EndPointsRow[1]</l>
+<l>    StartPointColOut := EndPointsCol[1]</l>
+<l>endif</l>
+<c>* </c>
+<c>* Calculate the local contour orientation and define it as the reference</c>
+<c>* angle for the next iteration. The underlying idea is that the wire bends</c>
+<c>* smoothly (little) from one iteration (segment) to the next</c>
+<l>orientation_points_xld (WireSegment, RefOrientation)</l>
+<c>* </c>
+<c>* Define the radius of the search domain according to the length of the</c>
+<c>* current segment: the longer the contour, the larger the radius. The idea</c>
+<c>* thereby is that long segments correspond to parts of the wire which bend</c>
+<c>* very little. Therefore we can speed up the tracking by taking a larger</c>
+<c>* area</c>
+<l>length_xld (WireSegment, SearchRadius)</l>
+<l>SearchRadius := 1.5 * max([SearchRadius,MinSearchRadius])</l>
+<l>DistSegmentThreshold := min([SearchRadius / 2.0,MaxDistSegment])</l>
+<l>return ()</l>
+</body>
+<docu id="update_search_parameters">
+<parameters>
+<parameter id="DistSegmentThreshold"/>
+<parameter id="MaxDistSegment"/>
+<parameter id="MinSearchRadius"/>
+<parameter id="RefOrientation"/>
+<parameter id="RefOrientationOut"/>
+<parameter id="SearchRadius"/>
+<parameter id="StartPointCol"/>
+<parameter id="StartPointColOut"/>
+<parameter id="StartPointRow"/>
+<parameter id="StartPointRowOut"/>
+<parameter id="WireSegment"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="track_wire">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Wire" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="StartPadRows" base_type="ctrl" dimension="0"/>
+<par name="StartPadCols" base_type="ctrl" dimension="0"/>
+<par name="StartInitOrientation" base_type="ctrl" dimension="0"/>
+<par name="EndPadRows" base_type="ctrl" dimension="0"/>
+<par name="EndPadCols" base_type="ctrl" dimension="0"/>
+<par name="WireWidths" base_type="ctrl" dimension="0"/>
+<par name="AngleTolerance" base_type="ctrl" dimension="0"/>
+<par name="MinSegmentLength" base_type="ctrl" dimension="0"/>
+<par name="MaxDistSegment" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_empty_obj (Wire)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* Coordinates of the point at which to resume the tracking of the wire</c>
+<l>StartPointRow := StartPadRows</l>
+<l>StartPointCol := StartPadCols</l>
+<c>* Orientation of the last wire segment found. It serves as a reference for</c>
+<c>* the search in the next iteration. The idea is that the curvature of the</c>
+<c>* wire does not change much from iteration to iteration</c>
+<l>RefOrientation := StartInitOrientation</l>
+<c>* Radius of the circular region within which the wire is supposed to lie</c>
+<l>SearchRadius := 30 * WireWidths</l>
+<l>MinSearchRadius := 5 * WireWidths</l>
+<l>DistSegmentThreshold := min([SearchRadius / 3.0,MaxDistSegment])</l>
+<l>while (1)</l>
+<l>    gen_search_region (SearchRegion, StartPointRow, StartPointCol, RefOrientation, SearchRadius, AngleTolerance)</l>
+<l>    reduce_domain (Image, SearchRegion, ImageReduced)</l>
+<c>    * Iterative search for candidates. When the image contrast is low</c>
+<c>    * we need to lower the high threshold</c>
+<l>    NXLDs := 0</l>
+<l>    HighThreshold := 1</l>
+<l>    while (NXLDs == 0 and HighThreshold &gt;= 0.1)</l>
+<l>        lines_gauss (ImageReduced, Lines, WireWidths / sqrt(3), 0.05, HighThreshold, 'dark', 'true', 'true', 'true')</l>
+<l>        select_contours_xld (Lines, SelectedContours, 'contour_length', MinSegmentLength, max([Width,Height]) / 2.0, -0.5, 0.5)</l>
+<l>        count_obj (SelectedContours, NXLDs)</l>
+<l>        HighThreshold := 0.5 * HighThreshold</l>
+<l>    endwhile</l>
+<l>    if (NXLDs == 0)</l>
+<l>        break</l>
+<l>    endif</l>
+<c>    * Track the wire</c>
+<c>    * First, select contours having a similar orientation to the previous segment</c>
+<l>    LowerLimit := [RefOrientation - AngleTolerance,RefOrientation - AngleTolerance + rad(180),RefOrientation - AngleTolerance - rad(180)]</l>
+<l>    UpperLimit := [RefOrientation + AngleTolerance,RefOrientation + AngleTolerance + rad(180),RefOrientation + AngleTolerance - rad(180)]</l>
+<l>    select_shape_xld (SelectedContours, ObjectSelected, ['phi_points','phi_points','phi_points'], 'or', LowerLimit, UpperLimit)</l>
+<c>    * </c>
+<c>    * Among those, take the one closest to the previous one</c>
+<l>    count_obj (ObjectSelected, NContours)</l>
+<l>    if (NContours &gt; 1)</l>
+<c>        * Try to connect remaining candidates</c>
+<l>        union_collinear_wire_segments (ObjectSelected, UnionContours, 5, 0.5)</l>
+<l>        count_obj (UnionContours, NUCont)</l>
+<l>        DistMin := []</l>
+<c>        * If there are still more than one candidate,</c>
+<c>        * choose the one closest to the start point</c>
+<l>        for C := 1 to NUCont by 1</l>
+<l>            select_obj (UnionContours, ObjectSelected1, C)</l>
+<l>            distance_pc (ObjectSelected1, StartPointRow, StartPointCol, DistanceMin, DistanceMax)</l>
+<l>            DistMin := [DistMin,DistanceMin]</l>
+<l>        endfor</l>
+<l>        tuple_find (DistMin, min(DistMin), IndMin)</l>
+<l>        if (DistMin[IndMin[0]] &gt; DistSegmentThreshold)</l>
+<l>            break</l>
+<l>        endif</l>
+<l>        select_obj (UnionContours, WireSegment, IndMin[0] + 1)</l>
+<l>    elseif (NContours == 0)</l>
+<l>        break</l>
+<l>    else</l>
+<c>        * Only one candidate</c>
+<l>        copy_obj (ObjectSelected, WireSegment, 1, 1)</l>
+<l>    endif</l>
+<l>    concat_obj (Wire, WireSegment, Wire)</l>
+<c>    * Update search parameters for the next iteration</c>
+<l>    update_search_parameters (WireSegment, StartPointRow, StartPointCol, RefOrientation, MinSearchRadius, MaxDistSegment, StartPointRow, StartPointCol, RefOrientation, SearchRadius, DistSegmentThreshold)</l>
+<c>    * Check, whether the contour has already reached the end point</c>
+<c>    * </c>
+<c>    * V1: Unit vector going from StartPoint to EndPoint</c>
+<l>    V1 := [EndPadRows - StartPointRow,EndPadCols - StartPointCol]</l>
+<l>    V1 := V1 / sqrt(sum(V1 * V1))</l>
+<c>    * v2: unit vector going from StartPoint oriented along the wire</c>
+<l>    V2 := [-sin(RefOrientation),cos(RefOrientation)]</l>
+<l>    if (V1[0] * V2[0] + V1[1] * V2[1] &lt; 0)</l>
+<l>        break</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="track_wire">
+<parameters>
+<parameter id="AngleTolerance"/>
+<parameter id="EndPadCols"/>
+<parameter id="EndPadRows"/>
+<parameter id="Image"/>
+<parameter id="MaxDistSegment"/>
+<parameter id="MinSegmentLength"/>
+<parameter id="StartInitOrientation"/>
+<parameter id="StartPadCols"/>
+<parameter id="StartPadRows"/>
+<parameter id="Wire"/>
+<parameter id="WireWidths"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="fuse_wire_segments">
+<interface>
+<io>
+<par name="WireSegments" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Wire" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="StartPadRows" base_type="ctrl" dimension="0"/>
+<par name="StartPadCols" base_type="ctrl" dimension="0"/>
+<par name="EndPadRows" base_type="ctrl" dimension="0"/>
+<par name="EndPadCols" base_type="ctrl" dimension="0"/>
+<par name="MinWireLength" base_type="ctrl" dimension="0"/>
+<par name="MaxDistSegment" base_type="ctrl" dimension="0"/>
+<par name="MinWireDeviation" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>count_obj (WireSegments, NumWires)</l>
+<l>if (NumWires &gt; 0)</l>
+<l>    smooth_contours_xld (WireSegments, SmoothedContours, 9)</l>
+<l>    union_adjacent_contours_xld (SmoothedContours, UnionContours, MaxDistSegment, 3, 'attr_keep')</l>
+<l>    select_longest_contour (UnionContours, Wire, Length)</l>
+<l>    if (Length &lt; MinWireLength)</l>
+<l>        gen_empty_obj (Wire)</l>
+<l>        return ()</l>
+<l>    endif</l>
+<c>    * Sometimes the tracking procedure goes beyond the end point because it finds</c>
+<c>    * structures in the image similar to a line (an elongated region with dark pixels</c>
+<c>    * surrounded by brighter pixels on both sides).</c>
+<c>    * We crop the resulting contours, so they stop at the end points</c>
+<l>    crop_contours_xld (Wire, Wire, min([StartPadRows,EndPadRows]) - MinWireDeviation, min([StartPadCols,EndPadCols]) - MinWireDeviation, max([StartPadRows,EndPadRows]) + MinWireDeviation, max([StartPadCols,EndPadCols]) + MinWireDeviation, 'true')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="fuse_wire_segments">
+<parameters>
+<parameter id="EndPadCols"/>
+<parameter id="EndPadRows"/>
+<parameter id="MaxDistSegment"/>
+<parameter id="MinWireDeviation"/>
+<parameter id="MinWireLength"/>
+<parameter id="StartPadCols"/>
+<parameter id="StartPadRows"/>
+<parameter id="Wire"/>
+<parameter id="WireSegments"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="crop_to_cross_point">
+<interface>
+<io>
+<par name="WireSegments" base_type="iconic" dimension="0"/>
+<par name="EndSegmentForwards" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="CroppedSegments" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="IntersecRow" base_type="ctrl" dimension="0"/>
+<par name="IntersecColumn" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>count_obj (WireSegments, NSegments)</l>
+<l>if (NSegments == 0)</l>
+<l>    throw (['Missing input contours','First argument: \'WireSegments\''])</l>
+<l>elseif (NSegments == 1)</l>
+<l>    copy_obj (WireSegments, CroppedSegments, 1, 1)</l>
+<l>else</l>
+<l>    select_obj (WireSegments, FwdPreLast, NSegments - 1)</l>
+<l>    get_contour_xld (FwdPreLast, Row, Column)</l>
+<l>    RowBeginFwd := Row[0]</l>
+<l>    RowEndFwd := Row[|Row| - 1]</l>
+<l>    ColBeginFwd := Column[0]</l>
+<l>    ColEndFwd := Column[|Column| - 1]</l>
+<l>    distance_pp ([RowBeginFwd,RowEndFwd], [ColBeginFwd,ColEndFwd], [IntersecRow,IntersecRow], [IntersecColumn,IntersecColumn], Distance)</l>
+<l>    if (Distance[0] &lt; Distance[1])</l>
+<l>        crop_contours_xld (EndSegmentForwards, FwdCropped, min([RowBeginFwd,IntersecRow]), min([ColBeginFwd,IntersecColumn]), max([RowBeginFwd,IntersecRow]), max([ColBeginFwd,IntersecColumn]), 'false')</l>
+<l>    else</l>
+<l>        crop_contours_xld (EndSegmentForwards, FwdCropped, min([RowEndFwd,IntersecRow]), min([ColEndFwd,IntersecColumn]), max([RowEndFwd,IntersecRow]), max([ColEndFwd,IntersecColumn]), 'false')</l>
+<l>    endif</l>
+<l>    select_obj (WireSegments, CroppedSegments, 1)</l>
+<l>    for I := 2 to NSegments - 1 by 1</l>
+<l>        select_obj (WireSegments, ObjectSelected1, I)</l>
+<l>        concat_obj (CroppedSegments, ObjectSelected1, CroppedSegments)</l>
+<l>    endfor</l>
+<l>    concat_obj (CroppedSegments, FwdCropped, CroppedSegments)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="crop_to_cross_point">
+<parameters>
+<parameter id="CroppedSegments"/>
+<parameter id="EndSegmentForwards"/>
+<parameter id="IntersecColumn"/>
+<parameter id="IntersecRow"/>
+<parameter id="WireSegments"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="contour_intersection_point">
+<interface>
+<io>
+<par name="FwdWireSegments" base_type="iconic" dimension="0"/>
+<par name="BckWireSegments" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="EndSegmentForwards" base_type="iconic" dimension="0"/>
+<par name="EndSegmentBackwards" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IntersecRow" base_type="ctrl" dimension="0"/>
+<par name="IntersecColumn" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>count_obj (FwdWireSegments, NSegments)</l>
+<l>select_obj (FwdWireSegments, EndSegmentForwards, NSegments)</l>
+<l>fit_line_contour_xld (EndSegmentForwards, 'tukey', -1, 0, 5, 2, RowBegin1, ColBegin1, RowEnd1, ColEnd1, Nr, Nc, Dist)</l>
+<l>count_obj (BckWireSegments, NSegments1)</l>
+<l>select_obj (BckWireSegments, EndSegmentBackwards, NSegments1)</l>
+<l>fit_line_contour_xld (EndSegmentBackwards, 'tukey', -1, 0, 5, 2, RowBegin2, ColBegin2, RowEnd2, ColEnd2, Nr1, Nc1, Dist1)</l>
+<l>intersection_lines (RowBegin1, ColBegin1, RowEnd1, ColEnd1, RowBegin2, ColBegin2, RowEnd2, ColEnd2, IntersecRow, IntersecColumn, IsOverlapping)</l>
+<l>return ()</l>
+</body>
+<docu id="contour_intersection_point">
+<parameters>
+<parameter id="BckWireSegments"/>
+<parameter id="EndSegmentBackwards"/>
+<parameter id="EndSegmentForwards"/>
+<parameter id="FwdWireSegments"/>
+<parameter id="IntersecColumn"/>
+<parameter id="IntersecRow"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

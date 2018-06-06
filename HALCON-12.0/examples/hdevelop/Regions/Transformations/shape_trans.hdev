@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>regiongrowing (Image, Regions, 1, 1, 3, 100)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Regions)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'convex')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'ellipse')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'outer_circle')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'inner_circle')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'rectangle1')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'rectangle2')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+<l>stop ()</l>
+<l>shape_trans (Regions, RegionTrans, 'inner_center')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (RegionTrans)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

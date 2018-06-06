@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the use of the component-based matching</c>
+<c>* to locate a compound object.  In this case, several modules should</c>
+<c>* be found in an image, of which the relations, i.e., the relative</c>
+<c>* movements, are known by the user. Thus, only one operator is</c>
+<c>* necessary in order to create the component model:</c>
+<c>*     1.)  create_component_model</c>
+<c>* Finally, the component model is searched using</c>
+<c>*     2.)  find_component_model</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (ModelImage, 'modules/modules_model')</l>
+<l>dev_open_window_fit_image (ModelImage, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_display (ModelImage)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This program shows how to use the'</l>
+<l>Message[1] := 'component-based matching'</l>
+<l>Message[2] := 'to locate a compound object'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Define the regions for the components</c>
+<l>gen_rectangle2 (ComponentRegions, 318, 109, -1.62, 34, 19)</l>
+<l>gen_rectangle2 (Rectangle2, 342, 238, -1.63, 32, 17)</l>
+<l>gen_rectangle2 (Rectangle3, 355, 505, 1.41, 25, 17)</l>
+<l>gen_rectangle2 (Rectangle4, 247, 448, 0, 14, 8)</l>
+<l>gen_rectangle2 (Rectangle5, 237, 537, -1.57, 13, 10)</l>
+<l>concat_obj (ComponentRegions, Rectangle2, ComponentRegions)</l>
+<l>concat_obj (ComponentRegions, Rectangle3, ComponentRegions)</l>
+<l>concat_obj (ComponentRegions, Rectangle4, ComponentRegions)</l>
+<l>concat_obj (ComponentRegions, Rectangle5, ComponentRegions)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (ModelImage)</l>
+<l>dev_display (ComponentRegions)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle, 'Regions of the components', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the component model by explicitly specifying the relations</c>
+<l>create_component_model (ModelImage, ComponentRegions, 20, 20, rad(25), 0, rad(360), 15, 40, 15, 10, 0.8, [4,3,3,3,3], 0, 'none', 'use_polarity', 'true', ComponentModelID, RootRanking)</l>
+<c>* </c>
+<c>* Find the component model in a run-time image</c>
+<l>ImageName := 'modules/modules_'</l>
+<l>for I := 1 to 12 by 1</l>
+<l>    read_image (SearchImage, ImageName + I$'.2d')</l>
+<l>    find_component_model (SearchImage, ComponentModelID, RootRanking, 0, rad(360), 0.5, 0, 0.5, 'stop_search', 'search_from_best', 'none', 0.8, 'interpolation', 0, 0.8, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    dev_display (SearchImage)</l>
+<c>    * Display the found component models</c>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        dev_set_line_width (1)</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, 'Found component models', 'window', 12, 12, 'black', 'true')</l>
+<c>    * If the program shall stop after every image, the following lines</c>
+<c>    * must be activated</c>
+<l>    if (I &lt; 12)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>clear_component_model (ComponentModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

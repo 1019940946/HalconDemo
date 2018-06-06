@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates descriptor-based matching and</c>
+<c>* compares three different possibilities to calculate a pose</c>
+<c>* from point correspondences.</c>
+<c>* The first method uses the calibrated version of</c>
+<c>* descriptor-based matching, i.e. find_calib_descriptor_model,</c>
+<c>* which directly returns a pose.</c>
+<c>* The second method uses the operator proj_hom_mat2d_to_pose</c>
+<c>* to calculate a pose from a perspective map given by a 2D homography.</c>
+<c>* The third method uses the operator vector_to_pose which</c>
+<c>* calculates the pose from known world coordinates and their</c>
+<c>* corresponding image coordinates.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'packaging/cookie_box_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>CamParam := [0.0155565,-109.42,1.28008e-005,1.28e-005,322.78,240.31,640,480]</l>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, 0.0, CamParPlain)</l>
+<l>cam_par_to_cam_mat (CamParPlain, CameraMatrix, ImageWidth, ImageHeight)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Press \'Run\' to start model creation ...','(may take a few minutes)'], 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* generate ROI for model training</c>
+<l>gen_rectangle1 (Rectangle, 224, 115, 406, 540)</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Rectangle)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>disp_message (WindowHandle, 'Creating model  ... please wait.', 'window', 10, 10, 'black', 'true')</l>
+<c>* </c>
+<c>* reference pose of the object to the camera is computed</c>
+<l>RowsRoi := [224,224,406,406]</l>
+<l>ColumnsRoi := [115,540,540,115]</l>
+<l>WorldX := [-189,189,189,-189] / 1000.0</l>
+<l>WorldY := [-80,-80,80,80] / 1000.0</l>
+<l>vector_to_pose (WorldX, WorldY, [], RowsRoi, ColumnsRoi, CamParam, 'iterative', 'error', Pose, Quality)</l>
+<l>image_points_to_world_plane (CamParam, Pose, RowsRoi, ColumnsRoi, 'm', XOuterBox, YOuterBox)</l>
+<c>* </c>
+<l>count_seconds (SecondsCreation1)</l>
+<l>create_calib_descriptor_model (ImageReduced, CamParam, Pose, 'harris_binomial', [], [], ['depth','number_ferns','patch_size','min_scale','max_scale'], [11,30,17,0.4,1.2], 42, DescriptorHandle)</l>
+<l>count_seconds (SecondsCreation2)</l>
+<l>TimeCreation := SecondsCreation2 - SecondsCreation1</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'One model created in ' + TimeCreation$'.02f' + ' seconds.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* Main loop:</c>
+<c>* search model in image sequence</c>
+<l>for Index := 1 to 10 by 1</l>
+<l>    read_image (Image, 'packaging/cookie_box_' + Index$'.02')</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * find model (using default parameters)</c>
+<l>    count_seconds (Seconds1)</l>
+<l>    find_calib_descriptor_model (Image, DescriptorHandle, [], [], [], [], 0.25, 1, CamParam, 'num_points', Pose, Score)</l>
+<l>    count_seconds (Seconds2)</l>
+<l>    TimeCalib := Seconds2 - Seconds1</l>
+<c>    * </c>
+<c>    * display results</c>
+<l>    if (|Score| &gt; 0)</l>
+<c>        * prepare point matches [SearchRow,SearchColumn] &lt;-&gt; [X,Y]</c>
+<l>        get_descriptor_model_points (DescriptorHandle, 'search', 0, SearchRow, SearchColumn)</l>
+<l>        image_points_to_world_plane (CamParam, Pose, SearchRow, SearchColumn, 'm', X, Y)</l>
+<l>        tuple_gen_const (|SearchRow|, 1.0, Ones)</l>
+<c>        * find the pose with proj_hom_mat2d_to_pose</c>
+<c>        * you can select a 'decomposition' or 'decomposition_svd' method</c>
+<l>        hom_vector_to_proj_hom_mat2d (X, Y, Ones, SearchColumn, SearchRow, Ones, 'normalized_dlt', HomMat2D)</l>
+<l>        proj_hom_mat2d_to_pose (HomMat2D, CameraMatrix, 'decomposition_svd', HomPose)</l>
+<c>        * find the pose with vector_to_pose</c>
+<c>        * you can try out any of the methods: 'iterative', 'analytic', or 'planar_analytic'</c>
+<l>        vector_to_pose (X, Y, Ones * 0.0, SearchRow, SearchColumn, CamParam, 'planar_analytic', 'error', VectorPose, Quality1)</l>
+<c>        * </c>
+<c>        * Display results</c>
+<c>        * </c>
+<c>        * For visualization purposes, the Box is projected into the image.</c>
+<l>        pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>        affine_trans_point_3d (HomMat3D, XOuterBox, YOuterBox, [0,0,0,0], XTrans, YTrans, ZTrans)</l>
+<l>        project_3d_point (XTrans, YTrans, ZTrans, CamParam, RowTrans, ColTrans)</l>
+<c>        * </c>
+<l>        gen_contour_polygon_xld (Contour, RowTrans, ColTrans)</l>
+<l>        close_contours_xld (Contour, Contour)</l>
+<l>        dev_set_color ('slate blue')</l>
+<l>        dev_display (Contour)</l>
+<l>        get_descriptor_model_points (DescriptorHandle, 'search', 0, Row, Col)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_set_colored (12)</l>
+<l>        dev_set_line_width (1)</l>
+<l>        gen_cross_contour_xld (Cross1, Row, Col, 6, 0.785398)</l>
+<l>        dev_display (Cross1)</l>
+<l>        dev_set_line_width (3)</l>
+<l>        dev_set_color ('red')</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParam, Pose, 0.11)</l>
+<l>        dev_set_color ('lime green')</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParam, HomPose, 0.08)</l>
+<l>        dev_set_color ('blue')</l>
+<l>        disp_3d_coord_system (WindowHandle, CamParam, VectorPose, 0.05)</l>
+<l>        OutputString := ['Pose from','find_calib_descriptor_model','proj_hom_mat2d_to_pose','vector_to_pose']</l>
+<c>        * </c>
+<l>    else</l>
+<l>        OutputString := 'No model found'</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, OutputString, 'window', 10, 10, ['black','red','forest green','blue'], 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Program finished.\nPress \'Run\' to clear all descriptor models.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* created descriptor model has to be deleted</c>
+<l>clear_descriptor_model (DescriptorHandle)</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

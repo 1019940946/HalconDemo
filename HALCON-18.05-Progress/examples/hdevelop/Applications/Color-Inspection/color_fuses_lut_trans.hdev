@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* color_fuses_lut_trans.hdev: classify fuses by color</c>
+<l>dev_update_off ()</l>
+<c>* ****</c>
+<c>* step: set up fuse properties and hue ranges</c>
+<c>* ****</c>
+<l>FuseColors := ['Orange','Red','Blue','Yellow','Green']</l>
+<l>DisplayColors := ['coral','red','blue','goldenrod','forest green']</l>
+<l>FuseTypes := [5,10,15,20,30]</l>
+<c>* HueRanges: Orange 10-30, Red 0-10...</c>
+<l>HueRanges := [10,30,0,10,125,162,30,64,96,128]</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'color/color_fuses_00')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* ****</c>
+<c>* step: create look-up-table for color space transformation</c>
+<c>* ****</c>
+<l>create_color_trans_lut ('hsv', 'from_rgb', 8, ColorTransLUTHandle)</l>
+<l>for Count := 0 to 4 by 1</l>
+<c>    * ****</c>
+<c>    * step: acquire image</c>
+<c>    * ****</c>
+<l>    read_image (Image, 'color/color_fuses_0' + Count)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'color/color_fuses0' + Count + '.png', 'window', 12, 512, 'black', 'true')</l>
+<c>    * ****</c>
+<c>    * step: extract saturated hues</c>
+<c>    * ****</c>
+<l>    decompose3 (Image, Red, Green, Blue)</l>
+<l>    apply_color_trans_lut (Red, Green, Blue, Hue, Saturation, Intensity, ColorTransLUTHandle)</l>
+<l>    threshold (Saturation, Saturated, 60, 255)</l>
+<l>    reduce_domain (Hue, Saturated, HueSaturated)</l>
+<l>    Output := []</l>
+<l>    for Fuse := 0 to |FuseTypes| - 1 by 1</l>
+<c>        * ****</c>
+<c>        * step: classify specific fuse</c>
+<c>        * ****</c>
+<l>        threshold (HueSaturated, CurrentFuse, HueRanges[Fuse * 2], HueRanges[Fuse * 2 + 1])</l>
+<l>        connection (CurrentFuse, CurrentFuseConn)</l>
+<l>        fill_up (CurrentFuseConn, CurrentFuseFill)</l>
+<l>        select_shape (CurrentFuseFill, CurrentFuseSel, 'area', 'and', 6000, 20000)</l>
+<l>        area_center (CurrentFuseSel, FuseArea, Row1, Column1)</l>
+<l>        dev_set_color ('magenta')</l>
+<l>        disp_message (WindowHandle, FuseColors[Fuse] + ' ' + FuseTypes[Fuse] + ' Ampere', 'image', Row1 + 40, Column1 - 100, DisplayColors[Fuse], 'white')</l>
+<l>        Output := [Output,FuseColors[Fuse] + ' Fuses: ' + |FuseArea|]</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, Output, 'window', 12, 12, DisplayColors, 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_update_on ()</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Add a translation to a homogeneous 2D transformation matrix</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>gen_image_gray_ramp (Gray, 0, 0, 128, 8, 8, 32, 32)</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>Row := 2</l>
+<l>Col := 2</l>
+<l>set_grayval (Gray, Row, Col, 255)</l>
+<l>dev_display (Gray)</l>
+<l>for Trans := 0 to 29 by 1</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_translate (HomMat2DIdentity, Trans, Trans, HomMat2DTranslate)</l>
+<c>    * Apply an arbitrary affine transformation to image.</c>
+<l>    affine_trans_image (Gray, ImageRotate, HomMat2DTranslate, 'constant', 'false')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Orientation with reading direction of a bar code</c>
+<c>* </c>
+<l>read_image (Image, 'barcode/ean13/ean1305')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>create_bar_code_model ('element_size_min', 1.5, BarCodeHandle)</l>
+<l>for Rot := 0 to 360 by 30</l>
+<l>    rotate_image (Image, ImageRotate, Rot, 'weighted')</l>
+<l>    dev_display (ImageRotate)</l>
+<l>    get_image_size (ImageRotate, Width, Height)</l>
+<l>    dev_set_window_extents (0, 0, Width, Height)</l>
+<l>    find_bar_code (ImageRotate, SymbolRegions, BarCodeHandle, 'EAN-13', DecodedDataStrings)</l>
+<l>    dev_display (SymbolRegions)</l>
+<l>    get_bar_code_result (BarCodeHandle, 'all', 'orientation', Orientation)</l>
+<l>    area_center (SymbolRegions, Area, Row, Col)</l>
+<l>    gen_arrow_contour_xld (Arrow, Row + sin(rad(Orientation)) * 70, Col - cos(rad(Orientation)) * 70, Row - sin(rad(Orientation)) * 70, Col + cos(rad(Orientation)) * 70, 25, 25)</l>
+<l>    dev_display (Arrow)</l>
+<l>    disp_message (WindowHandle, DecodedDataStrings, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Rot &lt; 360)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

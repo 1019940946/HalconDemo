@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the usage of the shape based matching timeout</c>
+<c>* mechanism integrated in HALCON.</c>
+<c>* To enforce varying runtimes, artificial clutter is added to</c>
+<c>* the image containing the pattern.</c>
+<c>* </c>
+<c>* **********************  ATTENTION!  *********************</c>
+<c>* The timeout mechanism throws exceptions!</c>
+<c>* That implies, that HDevelop will open an error dialog,</c>
+<c>* unless 'Suppress error message dialog' is checked within</c>
+<c>* Edit -&gt; Preferences -&gt; General Options -&gt; Experienced User.</c>
+<c>* To get meaningful runtime measurements,</c>
+<c>* make sure that the error messages are suppressed.</c>
+<c>* *********************************************************</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Suppress the opening of error message dialogs</c>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<c>* Define that the shape model to be found may not</c>
+<c>* partially lie outside the image</c>
+<l>get_system ('border_shape_models', BorderShapeModels)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[0]" as_ord="2">set_system ('border_shape_models', 'false')</l>
+<c>* </c>
+<c>* Read the model image</c>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,1,1]" as_ord="2">read_image (Image, 'coins/20cent_italian.png')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, [600,800], [400,600], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<c>* Display warning</c>
+<l>Warning := 'ATTENTION!'</l>
+<l>Warning[1] := 'This examples throws exceptions to demonstrate'</l>
+<l>Warning[2] := 'timeouts!'</l>
+<l>Warning[3] := 'To get meaningful runtime measurements make sure that'</l>
+<l>Warning[4] := 'the error messages are suppressed in'</l>
+<l>Warning[5] := 'Edit / Preferences / General Options / Experienced User'</l>
+<l>disp_message (WindowHandle, Warning, 'window', 12, 12, 'red', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the shape model</c>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,1,2]" as_ord="2">gen_circle (ModelRegion, 245.5, 353.5, 145)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,2]" as_ord="2">reduce_domain (Image, ModelRegion, TemplateImage)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,3]" as_ord="2">create_shape_model (TemplateImage, 4, rad(0), rad(360), 'auto', ['point_reduction_high','no_pregeneration'], 'ignore_local_polarity', [21,34,7], 6, ModelId)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[2]" as_ord="2">get_shape_model_contours (ModelContours, ModelId, 1)</l>
+<c>* </c>
+<c>* Measure the runtime of find_shape_model with the</c>
+<c>* model image. The first run is made to fill the caches.</c>
+<l as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="3">find_shape_model (Image, ModelId, rad(0), rad(360), 0.7, 1, 0.5, 'least_squares', [4,1], 0.75, ModelRow, ModelColumn, ModelAngle, ModelScore)</l>
+<l>Loops := 10</l>
+<l>count_seconds (S1)</l>
+<l>for Index := 1 to Loops by 1</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="3">    find_shape_model (Image, ModelId, rad(0), rad(360), 0.7, 1, 0.5, 'least_squares', [4,1], 0.75, ModelRow, ModelColumn, ModelAngle, ModelScore)</l>
+<l>endfor</l>
+<l>count_seconds (S2)</l>
+<l>Runtime := (S2 - S1) * 1000.0 / Loops</l>
+<c>* </c>
+<c>* Set the maximum runtime used to find the shape model. It</c>
+<c>* should not exceed the measured runtime by more than 50 percent</c>
+<l>Timeout := floor(Runtime * 1.5)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Model image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Timeout set to ' + Timeout + ' ms', 'window', 40, 12, 'lime green', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set the timeout of the shape model and the mode for</c>
+<c>* the time measurement</c>
+<l>set_shape_model_param (ModelId, 'timeout', Timeout)</l>
+<l>set_system ('timer_mode', 'performance_counter')</l>
+<c>* </c>
+<c>* Find the shape model, measure the runtime and display the</c>
+<c>* error message in case of timeout</c>
+<l>for Index := 1 to Loops by 1</l>
+<c>    * </c>
+<c>    * Add artificial clutter to enforce varying runtimes</c>
+<l>    add_clutter (Image, ImageClutter)</l>
+<l>    dev_display (ImageClutter)</l>
+<c>    * </c>
+<c>    * Prepare error handling in case of timeout</c>
+<l>    try</l>
+<c>        * </c>
+<c>        * Find the shape model in the cluttered image and</c>
+<c>        * measure the runtime</c>
+<l>        count_seconds (S1)</l>
+<l>        find_shape_model (ImageClutter, ModelId, rad(0), rad(360), 0.7, 1, 0.5, 'least_squares', [4,1], 0.75, ModelRow, ModelColumn, ModelAngle, ModelScore)</l>
+<l>        count_seconds (S2)</l>
+<l>        Time := (S2 - S1) * 1000.0</l>
+<c>        * </c>
+<c>        * Display the found match and the runtime</c>
+<l>        dev_display_shape_matching_results (ModelId, 'lime green', ModelRow, ModelColumn, ModelAngle, 1, 1, ModelId)</l>
+<l>        disp_message (WindowHandle, 'Search image ' + Index + ' of ' + Loops, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_message (WindowHandle, 'Runtime of \'find_shape_model\': ' + Time$'.4' + ' ms', 'window', 40, 12, 'lime green', 'true')</l>
+<c>        * </c>
+<c>        * In case of timeout display the error message</c>
+<l>    catch (Exception)</l>
+<l>        count_seconds (S2)</l>
+<l>        Time := (S2 - S1) * 1000.0</l>
+<c>        * </c>
+<c>        * Get the error code. If the timeout error code</c>
+<c>        * is returned display the corresponding message</c>
+<l>        dev_get_exception_data (Exception, 'error_code', Error)</l>
+<l>        if (Error == 9400)</l>
+<l>            disp_message (WindowHandle, 'Search image ' + Index + ' of ' + Loops, 'window', 12, 12, 'black', 'true')</l>
+<l>            disp_message (WindowHandle, 'Timeout occured after ' + Time$'.4' + ' ms', 'window', 40, 12, 'red', 'true')</l>
+<l>            Message := ['Error message:\n',Exception]</l>
+<l>            disp_message (WindowHandle, Message, 'window', 60, 12, 'red', 'true')</l>
+<l>        else</l>
+<l>            throw (Exception)</l>
+<l>        endif</l>
+<l>    endtry</l>
+<c>    * </c>
+<c>    * Display the continue message</c>
+<l>    if (Index &lt; Loops)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Reset the values of the parameters</c>
+<l>set_system ('border_shape_models', BorderShapeModels)</l>
+<l>set_shape_model_param (ModelId, 'timeout', 'false')</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptionSetting)</l>
+<c>* </c>
+<c>* Clear the model</c>
+<l>clear_shape_model (ModelId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="add_clutter">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageClutter" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<l>NumRectangle := int(rand(1) * 127.0) + 1</l>
+<l>gen_random_regions (Regions, 'rectangle2', 2, 5, 10, 20, -0.78539997339248657, 0.78539997339248657, NumRectangle, Width, Height)</l>
+<l>Colors := int(rand(NumRectangle) * 255.0)</l>
+<l>paint_region (Regions, Image, ImageClutter, Colors, 'fill')</l>
+<l>return ()</l>
+</body>
+<docu id="add_clutter">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageClutter"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

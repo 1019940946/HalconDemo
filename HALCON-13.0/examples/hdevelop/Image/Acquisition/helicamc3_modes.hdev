@@ -1,0 +1,525 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *********************************************************************</c>
+<c>* Halcon Example: Change between different heliCam mode</c>
+<c>* *********************************************************************</c>
+<c>* </c>
+<c as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,1]" as_ord="1">* close all image window</c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* *********************************************************************</c>
+<c>* ToDo: Set motor configuration for heliCam</c>
+<c>*       Please be careful with the optics!!</c>
+<c>* *********************************************************************</c>
+<l>IP := '192.168.2.100'</l>
+<l>Port := 10001</l>
+<l>CntPerMM := 1000</l>
+<l>start_position_mm := 89.2</l>
+<l>end_position_mm := 91.7</l>
+<l>home_position_mm := 89.2</l>
+<l>tgu_position := 89.7</l>
+<l>tgd_position := 0.0</l>
+<l>drive_speed := 20.0</l>
+<l>measurement_speed := 5.0</l>
+<c>* Pending on the system configuration, the result must be rotated for 0, 90, 180 or 270 degree</c>
+<l>rotate_image := 270</l>
+<c>* *********************************************************************</c>
+<l>genericParam := ['axis_ip=' + IP + '','axis_port=' + Port + '','axis_cnt_per_mm=' + CntPerMM + '']</l>
+<c>* </c>
+<c>* Open heliCam with motor</c>
+<l>open_framegrabber ('heliCamC3', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', genericParam, 'true', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* Set default heliCam parameters (the same value for all camMode until intensity mode)</c>
+<l>set_framegrabber_param (AcqHandle, 'SensNavM2', 2)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNFrames', 350)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensTqp', 539)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutEnDrv', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'Use_zTags', 'true')</l>
+<l>set_framegrabber_param (AcqHandle, 'InvEncCnt', 0)</l>
+<c>* Optional set Timeout (default is 5000ms)</c>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 10000)</l>
+<c>* </c>
+<c>* Configure measurement position</c>
+<l>set_framegrabber_param (AcqHandle, 'start_position_mm', start_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'end_position_mm', end_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'home_position_mm', home_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'tgu_position', tgu_position)</l>
+<l>set_framegrabber_param (AcqHandle, 'tgd_position', tgd_position)</l>
+<l>set_framegrabber_param (AcqHandle, 'drive_speed', drive_speed)</l>
+<l>set_framegrabber_param (AcqHandle, 'measurement_speed', measurement_speed)</l>
+<c>* </c>
+<c>* Example to reset all camera buffers (not really needed in this case)</c>
+<l>set_framegrabber_param (AcqHandle, 'do_clear_buffer', 1)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 300, 300, 'black', WinHandle1)</l>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_open_window (0, 0, 300, 300, 'black', WinHandle2)</l>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_open_window (0, 0, 300, 300, 'black', WinHandle3)</l>
+<l>dev_set_lut ('default')</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * *************************************</c>
+<c>    * Grab a image in rawIQ mode</c>
+<c>    * *************************************</c>
+<l>    rawIQ (Image, AcqHandle)</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<c>    * access to one I and one Q image:</c>
+<l>    access_channel (Image, rawI, 51)</l>
+<l>    access_channel (Image, rawQ, 52)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle1)</l>
+<l>    dev_display (rawI)</l>
+<l>    dev_set_window (WinHandle2)</l>
+<l>    dev_display (rawQ)</l>
+<l>    dev_update_off ()</l>
+<c>    * </c>
+<c>    * *************************************</c>
+<c>    * Grab image in amplitude mode</c>
+<c>    * *************************************</c>
+<l>    amplitude (Image, AcqHandle)</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<c>    * show frame 51 and 52 (for example)</c>
+<l>    access_channel (Image, Frame51, 51)</l>
+<l>    access_channel (Image, Frame52, 52)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle1)</l>
+<l>    dev_display (Frame51)</l>
+<l>    dev_set_window (WinHandle2)</l>
+<l>    dev_display (Frame52)</l>
+<l>    dev_update_off ()</l>
+<c>    * </c>
+<c>    * *************************************</c>
+<c>    * Grab an image in smoothed amplitude mode</c>
+<c>    * *************************************</c>
+<l>    smoothedAmplitude (Image, AcqHandle)</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<c>    * show frame 51 and 52 (for example)</c>
+<l>    access_channel (Image, Frame51, 51)</l>
+<l>    access_channel (Image, Frame52, 52)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle1)</l>
+<l>    dev_display (Frame51)</l>
+<l>    dev_set_window (WinHandle2)</l>
+<l>    dev_display (Frame52)</l>
+<l>    dev_update_off ()</l>
+<c>    * </c>
+<c>    * *************************************</c>
+<c>    * Grab an image in intensity mode</c>
+<c>    * *************************************</c>
+<l>    intensity2D (Image, AcqHandle)</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle3)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_update_off ()</l>
+<c>    * </c>
+<c>    * *************************************</c>
+<c>    * Grab an image in simple max mode</c>
+<c>    * *************************************</c>
+<l>    simpleMax (Surface, Amplitude, AcqHandle)</l>
+<l>    rotate_image (Surface, Surface, rotate_image, 'constant')</l>
+<l>    rotate_image (Amplitude, Amplitude, rotate_image, 'constant')</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle1)</l>
+<l>    dev_display (Surface)</l>
+<l>    dev_set_window (WinHandle2)</l>
+<l>    dev_display (Amplitude)</l>
+<l>    dev_update_off ()</l>
+<c>    * </c>
+<c>    * *************************************</c>
+<c>    * Grab an image in extended simple max mode</c>
+<c>    * *************************************</c>
+<l>    extendedSimpleMax (Surface, Amplitude, Phase, AcqHandle)</l>
+<l>    rotate_image (Surface, Surface, rotate_image, 'constant')</l>
+<l>    rotate_image (Amplitude, Amplitude, rotate_image, 'constant')</l>
+<l>    rotate_image (Phase, Phase, rotate_image, 'constant')</l>
+<c>    * show surface. amplitude and phase from the middle</c>
+<l>    count_channels (Surface, NofChannels)</l>
+<l>    Middle := (NofChannels - 1) / 2</l>
+<l>    access_channel (Surface, Surface, Middle)</l>
+<l>    access_channel (Amplitude, Amplitude, Middle)</l>
+<l>    access_channel (Phase, Phase, Middle)</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle1)</l>
+<l>    dev_display (Surface)</l>
+<l>    dev_set_window (WinHandle2)</l>
+<l>    dev_display (Amplitude)</l>
+<l>    dev_set_window (WinHandle3)</l>
+<l>    dev_display (Phase)</l>
+<l>    dev_update_off ()</l>
+<c>    * </c>
+<c>    * *************************************</c>
+<c>    * Grab an image in minimize energy mode</c>
+<c>    * *************************************</c>
+<l>    minEnergy (Surface, Amplitude, AcqHandle)</l>
+<l>    rotate_image (Surface, Surface, rotate_image, 'constant')</l>
+<l>    rotate_image (Amplitude, Amplitude, rotate_image, 'constant')</l>
+<l>    dev_update_on ()</l>
+<l>    dev_set_window (WinHandle1)</l>
+<l>    dev_display (Surface)</l>
+<l>    dev_set_window (WinHandle2)</l>
+<l>    dev_display (Amplitude)</l>
+<l>    dev_update_off ()</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Close heliCam</c>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="rawIQ">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 0 (rawIQ)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 0)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="rawIQ">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="de_DE">rawIQ measurement</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="amplitude">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 1 (amplitude - volumen)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 1)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="amplitude">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="de_DE">volume measurement</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="smoothedAmplitude">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 2 (smoothed amplitude - volumen)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 2)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="smoothedAmplitude">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="de_DE">rawIQ measurement</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="simpleMax">
+<interface>
+<oo>
+<par name="Surface" base_type="iconic" dimension="0"/>
+<par name="Amplitude" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 4 (simple max - surface)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 4)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* splitt measurement into surface and amplitude</c>
+<l>access_channel (Image, Surface, 1)</l>
+<l>access_channel (Image, Amplitude, 2)</l>
+<l>return ()</l>
+</body>
+<docu id="simpleMax">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Amplitude">
+<description lang="de_DE">amplitude from the measured surface</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Surface">
+<description lang="de_DE">measured surface</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="minEnergy">
+<interface>
+<oo>
+<par name="Surface" base_type="iconic" dimension="0"/>
+<par name="Amplitude" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 7 (minimize energy - surface)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 7)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* splitt measurement into surface and amplitude</c>
+<l>access_channel (Image, Surface, 1)</l>
+<l>access_channel (Image, Amplitude, 2)</l>
+<l>return ()</l>
+</body>
+<docu id="minEnergy">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Amplitude">
+<description lang="de_DE">amplitude from the measured surface</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Surface">
+<description lang="de_DE">measured surface</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="extendedSimpleMax">
+<interface>
+<oo>
+<par name="Surface" base_type="iconic" dimension="0"/>
+<par name="Amplitude" base_type="iconic" dimension="0"/>
+<par name="Phase" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 5 (extended simple max)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 5)</l>
+<c>* </c>
+<c>* configure heliCam for camMode 3:</c>
+<l>ExSimpMaxHwin := 5</l>
+<l>set_framegrabber_param (AcqHandle, 'ExSimpMaxHwin', ExSimpMaxHwin)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<c>* volume size (number of frames per surfaec, amplitude and phase)</c>
+<l>VolumeSize := 2 * ExSimpMaxHwin + 1</l>
+<c>* define output image:</c>
+<l>access_channel (Image, Surface, 1)</l>
+<l>access_channel (Image, Amplitude, 1 + VolumeSize)</l>
+<l>access_channel (Image, Phase, 1 + 2 * VolumeSize)</l>
+<c>* </c>
+<c>* split measurement into</c>
+<l>for i := 2 to VolumeSize by 1</l>
+<c>    * Surface</c>
+<l>    access_channel (Image, TempSurface, i)</l>
+<l>    append_channel (Surface, TempSurface, Surface)</l>
+<c>    * Amplitude</c>
+<l>    access_channel (Image, TempAmplitude, i + VolumeSize)</l>
+<l>    append_channel (Amplitude, TempAmplitude, Amplitude)</l>
+<c>    * Phase</c>
+<l>    access_channel (Image, TempPhase, i + 2 * VolumeSize)</l>
+<l>    append_channel (Phase, TempPhase, Phase)</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="extendedSimpleMax">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Amplitude">
+<description lang="de_DE">amplitude from the measured surface - volume</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Phase">
+<description lang="de_DE">phase from the measured surface - volume</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Surface">
+<description lang="de_DE">surface measurement -volumen</description>
+<multichannel>true</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="intensity2D">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* change camMode to 3 (intensity - 2D)</c>
+<l>set_framegrabber_param (AcqHandle, 'camMode', 3)</l>
+<c>* configure heliCam for camMode 3:</c>
+<c>* store previous used SensNFrames</c>
+<l>get_framegrabber_param (AcqHandle, 'SensNFrames', NFrames)</l>
+<l>set_framegrabber_param (AcqHandle, 'BSEnable', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNFrames', 11)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNDarkFrames', 7)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensExpTime', 1023)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensExpTimeMult', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensExpRatio', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutEnDrv', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'BSEnable', 0)</l>
+<c>* </c>
+<c>* grab image</c>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* Image 3 is calculated HDR image</c>
+<l>access_channel (Image, Image, 3)</l>
+<c>* </c>
+<c>* set SensNFrames back to previous value</c>
+<l>set_framegrabber_param (AcqHandle, 'SensNFrames', NFrames)</l>
+<l>set_framegrabber_param (AcqHandle, 'BSEnable', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutEnDrv', 1)</l>
+<c>* wait 0.5 second until the light is powered up</c>
+<l>wait_seconds (0.5)</l>
+<l>return ()</l>
+</body>
+<docu id="intensity2D">
+<parameters>
+<parameter id="AcqHandle">
+<default_type>integer</default_type>
+<description lang="de_DE">AcqHandle</description>
+<mixed_type>false</mixed_type>
+<sem_type>framegrabber</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="de_DE">intensity image</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

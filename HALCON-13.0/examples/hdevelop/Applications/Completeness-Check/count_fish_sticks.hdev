@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program performs a completeness check by counting the</c>
+<c>* fish sticks contained in each package.</c>
+<c>* Here, one-dimensional measuring tools are used to determine</c>
+<c>* the boundary between adjacent fish sticks.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'food/fish_stick_package_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width * .9, Height * .9, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_open_window (0, Width * .9 + 12, 420, 150, 'black', GraphicsWindow)</l>
+<l>set_display_font (GraphicsWindow, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('yellow')</l>
+<c>* </c>
+<c>* Read and process the images</c>
+<l>NumImages := 6</l>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'food/fish_stick_package_' + Index$'02')</l>
+<c>    * </c>
+<c>    * Segment the content of the fish stick package</c>
+<l>    threshold (Image, Region, 100, 255)</l>
+<l>    closing_circle (Region, RegionClosing, 5)</l>
+<l>    fill_up (RegionClosing, RegionFillUp)</l>
+<l>    difference (RegionFillUp, RegionClosing, RegionDifference)</l>
+<l>    fill_up (RegionDifference, RegionFillUp1)</l>
+<l>    closing_circle (RegionFillUp1, RegionClosing1, 10)</l>
+<l>    smallest_rectangle2 (RegionClosing1, Row, Column, Phi, Length1, Length2)</l>
+<l>    MeasureLength1 := Length1 - 5</l>
+<c>    * </c>
+<c>    * Measure the gray value profile of the fish stick package</c>
+<l>    gen_rectangle2 (Rectangle, Row, Column, Phi, Length1, 80)</l>
+<l>    gen_measure_rectangle2 (Row, Column, Phi, MeasureLength1, 60, Width, Height, 'nearest_neighbor', MeasureHandle)</l>
+<l>    measure_projection (Image, MeasureHandle, GrayValues)</l>
+<l>    close_measure (MeasureHandle)</l>
+<l>    create_funct_1d_array (GrayValues, Function)</l>
+<l>    local_min_max_funct_1d (Function, 'plateaus_center', 'true', Minima, Maxima)</l>
+<c>    * </c>
+<c>    * Evaluate the gray profile</c>
+<l>    get_y_value_funct_1d (Function, Minima, 'mirror', YValues)</l>
+<l>    SelectedMinima := subset(Minima,find(sgn(YValues - 50),-1))</l>
+<l>    Num := |SelectedMinima| + 1</l>
+<l>    StickEdges := [-5,SelectedMinima,2 * MeasureLength1 + 5]</l>
+<l>    StickWidth := StickEdges[1:Num] - StickEdges[0:Num - 1]</l>
+<c>    * </c>
+<c>    * Display the results</c>
+<l>    BorderX := Column + cos(Phi) * (MeasureLength1 * ((StickEdges - MeasureLength1) / MeasureLength1))</l>
+<l>    BorderY := Row - sin(Phi) * (MeasureLength1 * ((StickEdges - MeasureLength1) / MeasureLength1))</l>
+<l>    CenterX := (BorderX[1:Num] + BorderX[0:Num - 1]) / 2</l>
+<l>    CenterY := (BorderY[1:Num] + BorderY[0:Num - 1]) / 2</l>
+<l>    gen_cross_contour_xld (BorderCross, BorderY, BorderX, 15, rad(45))</l>
+<l>    gen_cross_contour_xld (CenterCross, CenterY, CenterX, 15, rad(45))</l>
+<l>    IndexFish := find(sgn(StickWidth - 20),1)</l>
+<l>    if (IndexFish != -1)</l>
+<l>        NumFish := |IndexFish|</l>
+<l>        gen_rectangle2 (FishRegions, subset(CenterY,IndexFish), subset(CenterX,IndexFish), gen_tuple_const(NumFish,Phi), subset(StickWidth,IndexFish) / 2, gen_tuple_const(NumFish,Length2) / 2)</l>
+<l>    else</l>
+<l>        NumFish := 0</l>
+<l>    endif</l>
+<l>    gen_empty_region (Flipped)</l>
+<l>    IndexFlipped := find(sgn(StickWidth - 48),1)</l>
+<l>    if (IndexFlipped != -1)</l>
+<l>        NumFlipped := |IndexFlipped|</l>
+<l>        gen_rectangle2 (Flipped, subset(CenterY,IndexFlipped), subset(CenterX,IndexFlipped), gen_tuple_const(NumFlipped,Phi), subset(StickWidth,IndexFlipped) / 2, gen_tuple_const(NumFlipped,Length2) / 2)</l>
+<l>    else</l>
+<l>        NumFlipped := 0</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    dev_set_window (GraphicsWindow)</l>
+<l>    dev_clear_window ()</l>
+<l>    plot_funct_1d (GraphicsWindow, Function, [], [], 'yellow', 'axes_color', 'none')</l>
+<l>    disp_message (GraphicsWindow, 'Gray Profile', 'window', 12, 12, 'white', 'false')</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (FishRegions)</l>
+<l>    dev_display (BorderCross)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (Flipped)</l>
+<l>    if (NumFish == 15 and NumFlipped == 0)</l>
+<l>        String := 'OK'</l>
+<l>        Color := 'green'</l>
+<l>    else</l>
+<l>        String := 'Not OK'</l>
+<l>        Color := 'red'</l>
+<l>    endif</l>
+<l>    String[1] := 'Number of fish sticks:' + NumFish$'3'</l>
+<l>    if (NumFish != 15)</l>
+<l>        Color := [Color,'red']</l>
+<l>    else</l>
+<l>        Color := [Color,'white']</l>
+<l>    endif</l>
+<l>    if (NumFlipped != 0)</l>
+<l>        String[2] := 'Flipped fishsticks:  ' + NumFlipped$'3'</l>
+<l>        Color := [Color,'red']</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, String, 'window', 12, 12, Color, 'false')</l>
+<l>    dev_set_color (Color[0])</l>
+<l>    dev_display (Rectangle)</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

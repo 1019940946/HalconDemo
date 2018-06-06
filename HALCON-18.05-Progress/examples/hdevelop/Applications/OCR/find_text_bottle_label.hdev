@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example uses the operator find_text to segment</c>
+<c>* text on a bottle label.</c>
+<c>* First, a text model is created and some parameters</c>
+<c>* are set. Before the actual segmentation can be</c>
+<c>* performed, the image has to be aligned horizontally,</c>
+<c>* which is done by the operators text_line_orientation</c>
+<c>* and rotate_image. Then, find_text is called and OCR</c>
+<c>* is performed on the results.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'ocr/bottle_label_01')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>read_ocr_class_cnn ('Universal_Rej.occ', OCRHandle)</l>
+<c>* </c>
+<c>* Create text model and specify parameter settings</c>
+<l>create_text_model_reader ('manual', [], TextModel)</l>
+<c>* </c>
+<l>set_text_model_param (TextModel, 'manual_char_width', 18)</l>
+<l>set_text_model_param (TextModel, 'manual_char_height', 40)</l>
+<l>set_text_model_param (TextModel, 'manual_stroke_width', 3)</l>
+<l>set_text_model_param (TextModel, 'manual_is_dotprint', 'true')</l>
+<l>set_text_model_param (TextModel, 'manual_return_separators', 'true')</l>
+<l>set_text_model_param (TextModel, 'manual_max_line_num', 1)</l>
+<l>set_text_model_param (TextModel, 'manual_uppercase_only', 'true')</l>
+<l>set_text_model_param (TextModel, 'manual_eliminate_horizontal_lines', 'true')</l>
+<c>* The character '/' may be classified as a character or as a</c>
+<c>* separator. Therefore, we specify two different text line</c>
+<c>* structures to ensure a robust detection of the text line.</c>
+<l>set_text_model_param (TextModel, 'manual_text_line_structure_0', '5 11')</l>
+<l>set_text_model_param (TextModel, 'manual_text_line_structure_1', '2 2 11')</l>
+<c>* </c>
+<c>* Process images</c>
+<l>NumImages := 8</l>
+<l>for ImageIndex := 1 to NumImages by 1</l>
+<c>    * Read the text in every image</c>
+<l>    read_image (ImageIn, 'ocr/bottle_label_' + ImageIndex$'02')</l>
+<c>    * Because find_text only works for horizontally aligned</c>
+<c>    * text lines, the orientation of the input image has to</c>
+<c>    * be corrected first</c>
+<l>    correct_text_orientation (ImageIn, Image, TextModel, Phi)</l>
+<l>    find_text (Image, TextModel, TextResult)</l>
+<c>    * </c>
+<c>    * Perform OCR for all segmented text lines and</c>
+<c>    * display the results in a loop</c>
+<l>    get_text_result (TextResult, 'manual_num_lines', NumLines)</l>
+<l>    dev_display (Image)</l>
+<l>    for LineIndex := 0 to NumLines - 1 by 1</l>
+<l>        get_text_object (Line, TextResult, ['manual_line',LineIndex])</l>
+<l>        do_ocr_multi_class_cnn (Line, Image, OCRHandle, Class, Confidence)</l>
+<c>        * </c>
+<c>        * Display results</c>
+<l>        count_obj (Line, NumberOfCharacters)</l>
+<l>        smallest_rectangle1 (Line, Row1, Column1, Row2, Column2)</l>
+<l>        dev_set_colored (6)</l>
+<l>        dev_display (Line)</l>
+<l>        dev_set_color ('dark green')</l>
+<l>        for CharacterIndex := 1 to NumberOfCharacters by 1</l>
+<l>            select_obj (Line, Character, CharacterIndex)</l>
+<l>            set_tposition (WindowHandle, Row2[0] + 10, Column1[CharacterIndex - 1])</l>
+<l>            write_string (WindowHandle, Class[CharacterIndex - 1])</l>
+<l>        endfor</l>
+<l>    endfor</l>
+<l>    if (ImageIndex &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="correct_text_orientation">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageOut" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="TextModel" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Phi" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure prepares the input image for the</c>
+<c>* text segmentation with find_text.</c>
+<c>* </c>
+<c>* Input:</c>
+<c>* - Image: The image to be corrected</c>
+<c>* - TextModel: The text model handle to determine</c>
+<c>*              the correct polarity and other settings</c>
+<c>* Output:</c>
+<c>* - ImageOut: The corrected image</c>
+<c>* - Phi: The determined orientation angle</c>
+<c>* </c>
+<l>get_text_model_param (TextModel, 'manual_polarity', Polarity)</l>
+<l>get_text_model_param (TextModel, 'manual_is_dotprint', IsDot)</l>
+<l>get_text_model_param (TextModel, 'manual_stroke_width', StrokeWidth)</l>
+<l>get_text_model_param (TextModel, 'manual_char_height', CharHeight)</l>
+<l>if (Polarity == 'light_on_dark')</l>
+<l>    invert_image (Image, Image)</l>
+<l>endif</l>
+<l>if (IsDot == 'true')</l>
+<l>    text_line_orientation (Image, Image, CharHeight + int(StrokeWidth), rad(-45), rad(45), Phi)</l>
+<l>else</l>
+<l>    text_line_orientation (Image, Image, CharHeight, rad(-45), rad(45), Phi)</l>
+<l>endif</l>
+<l>rotate_image (Image, ImageOut, -deg(Phi), 'constant')</l>
+<l>return ()</l>
+</body>
+<docu id="correct_text_orientation">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageOut"/>
+<parameter id="Phi"/>
+<parameter id="TextModel"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

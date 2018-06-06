@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the procedure</c>
+<c>* check_hand_eye_calibration_input_poses to identify errors in the</c>
+<c>* input data of the hand-eye calibration, which otherwise would be</c>
+<c>* hard to identify. For this, we simulate two scenarios:</c>
+<c>* </c>
+<c>* In the first scenario, we select a wrong setup type, i.e., we</c>
+<c>* select 'hand_eye_stationary_cam' instead of</c>
+<c>* 'hand_eye_scara_stationary_cam'.</c>
+<c>* </c>
+<c>* In the second scenario, we select the correct setup type but</c>
+<c>* modify one robot pose to simulate an erroneous pose.</c>
+<c>* </c>
+<l>CalPlateDescr := 'calibrate_hand_eye_scara_setup_01_calplate.cpd'</l>
+<l>CalibrationPlateThickness := 0.003</l>
+<l>gen_cam_par_area_scan_division (0.0165251, -642.277, 4.65521e-006, 4.65e-006, 595.817, 521.75, 1280, 1024, CameraParam)</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 1280, 1024, 640, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>disp_message_block_1 (WindowHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Scenario 1: Wrong calibration setup type.</c>
+<c>* </c>
+<c>* Instead of selecting the correct setup type 'hand_eye_scara_stationary_cam',</c>
+<c>* we selected 'hand_eye_stationary_cam' to simulate an error.</c>
+<l>create_calib_data ('hand_eye_stationary_cam', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], CameraParam)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalPlateDescr)</l>
+<l>for Index := 1 to 10 by 1</l>
+<l>    read_image (CalibImage, '3d_machine_vision/handeye/scara_stationary_cam_setup_01_calib_' + Index$'02')</l>
+<c>    * Read and set the robot pose.</c>
+<l>    read_pose ('scara_stationary_cam_setup_01_tool_in_base_pose_' + Index$'02' + '.dat', ToolInBasePose)</l>
+<l>    set_calib_data (CalibDataID, 'tool', Index, 'tool_in_base_pose', ToolInBasePose)</l>
+<c>    * Determine and set the pose of the calibration plate.</c>
+<l>    find_calib_object (CalibImage, CalibDataID, 0, 0, Index, [], [])</l>
+<c>    * Visualize</c>
+<l>    dev_display (CalibImage)</l>
+<l>    get_calib_data_observ_pose (CalibDataID, 0, 0, Index, ObjInCameraPose)</l>
+<l>    disp_caltab (WindowHandle, CalPlateDescr, CameraParam, ObjInCameraPose, 1)</l>
+<l>    dev_disp_text (['First scenario: Wrong calibration setup type','Calibration image ' + Index + ' of 10'], 'window', 12, 12, 'black', [], [])</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Check the input poses for consistency.</c>
+<l>check_hand_eye_calibration_input_poses (CalibDataID, 0.05, 0.005, Warnings)</l>
+<l>if (|Warnings| != 0)</l>
+<l>    dev_disp_text (['Inspect the variable \'Warnings\' for the result of','check_hand_eye_calibration_input_poses.','','-&gt; It indicates that a wrong calibration setup type was selected.'], 'window', 80, 12, 'black', [], [])</l>
+<c>    * The warning indicates that a wrong calibration setup type was selected.</c>
+<c>    * Therefore, in the next step, we create a new calibration data model</c>
+<c>    * with the correct setup type.</c>
+<l>    dev_inspect_ctrl (Warnings)</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>    dev_close_inspect_ctrl (Warnings)</l>
+<l>endif</l>
+<l>clear_calib_data (CalibDataID)</l>
+<c>* </c>
+<c>* Scenario 2: Correct calibration setup type but one erroneous input pose.</c>
+<c>* </c>
+<l>create_calib_data ('hand_eye_scara_stationary_cam', 1, 1, CalibDataID)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, [], CameraParam)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalPlateDescr)</l>
+<l>for Index := 1 to 10 by 1</l>
+<l>    read_image (CalibImage, '3d_machine_vision/handeye/scara_stationary_cam_setup_01_calib_' + Index$'02')</l>
+<c>    * Read and set the robot pose.</c>
+<l>    read_pose ('scara_stationary_cam_setup_01_tool_in_base_pose_' + Index$'02' + '.dat', ToolInBasePose)</l>
+<l>    if (Index == 5)</l>
+<c>        * We modify the robot pose with index 5 to simulate an erroneous pose.</c>
+<l>        ToolInBasePose := ToolInBasePose + [0.05,0.01,-0.06,0,0,0,0]</l>
+<l>    endif</l>
+<l>    set_calib_data (CalibDataID, 'tool', Index, 'tool_in_base_pose', ToolInBasePose)</l>
+<c>    * Determine and set the pose of the calibration plate.</c>
+<l>    find_calib_object (CalibImage, CalibDataID, 0, 0, Index, [], [])</l>
+<c>    * Visualize</c>
+<l>    dev_display (CalibImage)</l>
+<l>    get_calib_data_observ_pose (CalibDataID, 0, 0, Index, ObjInCameraPose)</l>
+<l>    disp_caltab (WindowHandle, CalPlateDescr, CameraParam, ObjInCameraPose, 1)</l>
+<l>    dev_disp_text (['Second scenario: One erroneous robot pose (index 5)','Calibration image ' + Index + ' of 10'], 'window', 12, 12, 'black', [], [])</l>
+<l>endfor</l>
+<l>calibrate_hand_eye (CalibDataID, ErrorsBefore)</l>
+<c>* Check the input poses for consistency.</c>
+<l>check_hand_eye_calibration_input_poses (CalibDataID, 0.05, 0.005, Warnings)</l>
+<l>if (|Warnings| != 0)</l>
+<l>    dev_disp_text (['Inspect the variable \'Warnings\' for the result of','check_hand_eye_calibration_input_poses.','','-&gt; Because pose 5 occurs in multiple inconsistent pose pairs,','   it is very likely that pose 5 is erroneous.'], 'window', 80, 12, 'black', [], [])</l>
+<c>    * The warnings indicate that the (robot or calibration object)</c>
+<c>    * pose with index 5 is erroneous. Therefore, we remove the</c>
+<c>    * robot pose and the pose of the calibration plate with</c>
+<c>    * index 5 from the calibration data model.</c>
+<l>    dev_inspect_ctrl (Warnings)</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>    dev_close_inspect_ctrl (Warnings)</l>
+<c>    * Remove the robot pose.</c>
+<l>    remove_calib_data (CalibDataID, 'tool', 5)</l>
+<c>    * Remove the corresponding pose of the calibration plate.</c>
+<l>    remove_calib_data_observ (CalibDataID, 0, 0, 5)</l>
+<c>    * Executing the check again should yield no warnings.</c>
+<l>    check_hand_eye_calibration_input_poses (CalibDataID, 0.05, 0.005, Warnings)</l>
+<l>    dev_disp_text ('After removing the erroneous pose, \'Warnings\' should be empty.', 'window', 200, 12, 'black', [], [])</l>
+<l>    dev_inspect_ctrl (Warnings)</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>    dev_close_inspect_ctrl (Warnings)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Finally, perform the hand-eye calibration.</c>
+<l>calibrate_hand_eye (CalibDataID, ErrorsAfter)</l>
+<l>dev_clear_window ()</l>
+<l>disp_message_block_2 (ErrorsBefore, ErrorsAfter, WindowHandle)</l>
+<c>* Clear the calibration data model.</c>
+<l>clear_calib_data (CalibDataID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_message_block_1">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Message := []</l>
+<l>Message := [Message,'This example shows how to use the procedure']</l>
+<l>Message := [Message,'check_hand_eye_calibration_input_poses to identify errors']</l>
+<l>Message := [Message,'in the input data of the hand-eye calibration, which otherwise']</l>
+<l>Message := [Message,'would be hard to identify. For this, we simulate two scenarios:']</l>
+<l>Message := [Message,'']</l>
+<l>Message := [Message,'In the first scenario, we select a wrong setup type, i.e., we']</l>
+<l>Message := [Message,'select \'hand_eye_stationary_cam\' instead of']</l>
+<l>Message := [Message,'\'hand_eye_scara_stationary_cam\'.']</l>
+<l>Message := [Message,'']</l>
+<l>Message := [Message,'In the second scenario, we select the correct setup type but']</l>
+<l>Message := [Message,'modify one robot pose to simulate an erroneous pose.']</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block_1">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block_2">
+<interface>
+<ic>
+<par name="ErrorsBefore" base_type="ctrl" dimension="0"/>
+<par name="ErrorsAfter" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Message := []</l>
+<l>Message := [Message,'The hand-eye calibration is performed with the remaining']</l>
+<l>Message := [Message,'correct poses.']</l>
+<l>Message := [Message,'']</l>
+<l>Message := [Message,'RMS error with erroneous pose:']</l>
+<l>Message := [Message,'  Translation: ' + ErrorsBefore[0]$'5.4f' + ' m']</l>
+<l>Message := [Message,'  Rotation:    ' + ErrorsBefore[1]$'5.4f' + ' degrees']</l>
+<l>Message := [Message,'']</l>
+<l>Message := [Message,'RMS error after removing the erroneous pose:']</l>
+<l>Message := [Message,'  Translation: ' + ErrorsAfter[0]$'5.4f' + ' m']</l>
+<l>Message := [Message,'  Rotation:    ' + ErrorsAfter[1]$'5.4f' + ' degrees']</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>disp_end_of_program_message (200000, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block_2">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="ErrorsAfter">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="ErrorsBefore">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to estimate the center of a rotation</c>
+<c>* between two succeeding images with the operator optical_flow_mg.</c>
+<c>* Because a robust estimation of the optical flow is only</c>
+<c>* possible in inhomogeneous regions, sobel_amp</c>
+<c>* followed by threshold is used to select the significant vectors</c>
+<c>* from the optical flow field for the rotation estimation.</c>
+<c>* </c>
+<c>* </c>
+<c>* application initializations</c>
+<l>ImageFilenames := 'pcb_rotation/pcb_rotated_'</l>
+<l>BorderSize := 5</l>
+<l>GridWidth := 10</l>
+<l>NumImages := 10</l>
+<l>Threshold := 50</l>
+<l>Step := 1</l>
+<l>CenterRows := []</l>
+<l>CenterColumns := []</l>
+<c>* </c>
+<c>* display initializations</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image1, ImageFilenames + '01')</l>
+<l>get_image_size (Image1, Width, Height)</l>
+<l>dev_open_window_fit_image (Image1, 0, 0, Width, Height, WindowHandle)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image1)</l>
+<l>gen_rectangle1 (Rectangle, BorderSize, BorderSize, Height - BorderSize - 1, Width - BorderSize - 1)</l>
+<c>* </c>
+<c>* main loop</c>
+<l>for Index := 1 + Step to NumImages by Step</l>
+<l>    read_image (Image2, ImageFilenames + Index$'02')</l>
+<c>    * </c>
+<c>    * calculate optical flow field</c>
+<l>    optical_flow_mg (Image1, Image2, VectorField, 'fdrig', 0.8, 1, 20, 5, 'default_parameters', 'fast_accurate')</l>
+<c>    * </c>
+<c>    * extract only significant points</c>
+<l>    sobel_amp (Image1, EdgeAmplitude1, 'sum_abs', 3)</l>
+<l>    threshold (EdgeAmplitude1, Region1, Threshold, 255)</l>
+<l>    sobel_amp (Image2, EdgeAmplitude2, 'sum_abs', 3)</l>
+<l>    threshold (EdgeAmplitude2, Region2, Threshold, 255)</l>
+<l>    union2 (Region1, Region2, RegionUnion)</l>
+<l>    dilation_circle (RegionUnion, RegionDilation, 2.5)</l>
+<l>    intersection (RegionDilation, Rectangle, RegionIntersection)</l>
+<l>    gen_grid_region (RegionGrid, GridWidth, GridWidth, 'points', Width, Height)</l>
+<l>    intersection (RegionIntersection, RegionGrid, RegionIntersection)</l>
+<l>    reduce_domain (VectorField, RegionIntersection, VectorFieldReduced)</l>
+<c>    * </c>
+<c>    * collect vectors and calculate transformation matrix</c>
+<l>    get_region_points (RegionIntersection, Rows, Columns)</l>
+<l>    vector_field_to_real (VectorFieldReduced, RowImage, ColImage)</l>
+<l>    get_grayval (RowImage, Rows, Columns, RowDisplacement)</l>
+<l>    get_grayval (ColImage, Rows, Columns, ColumnDisplacement)</l>
+<l>    vector_to_rigid (Rows, Columns, Rows + RowDisplacement, Columns + ColumnDisplacement, HomMat2D)</l>
+<c>    * </c>
+<c>    * calculate rotation center</c>
+<c>    * </c>
+<c>    * the calculation is based on the assumption that the</c>
+<c>    * real transformation is indeed a rotation with NO scaling or slanting.</c>
+<c>    * HomMat2D is assumed to look like:</c>
+<c>    * [ cos(Alpha), -sin(Alpha), -x*cos(Alpha)+y*sin(Alpha)+x,</c>
+<c>    *   sin(Alpha), cos(Alpha), -x*sin(Alpha)-y*cos(Alpha)+y ]</c>
+<c>    * for robustness, Alpha is estimated with vector_field_to_hom_mat2d,</c>
+<c>    * and after that the rotation center can be easily calculated</c>
+<l>    hom_mat2d_to_affine_par (HomMat2D, Sx, Sy, Alpha, Theta, Tx, Ty)</l>
+<l>    CosAlpha := cos(Alpha)</l>
+<l>    SinAlpha := sin(Alpha)</l>
+<l>    Temp := (1 - CosAlpha) / SinAlpha</l>
+<l>    RotationColumn := (HomMat2D[2] + Temp * HomMat2D[5]) / (Temp * (1 - CosAlpha) + SinAlpha)</l>
+<l>    RotationRow := ((1 - CosAlpha) * RotationColumn - HomMat2D[5]) / SinAlpha</l>
+<l>    CenterRows := [CenterRows,RotationRow]</l>
+<l>    CenterColumns := [CenterColumns,RotationColumn]</l>
+<c>    * </c>
+<c>    * display results</c>
+<l>    dev_display (Image2)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (VectorFieldReduced)</l>
+<l>    disp_message (WindowHandle, 'Rotation center row:    ' + RotationRow + '\nRotation center column: ' + RotationColumn, 'window', -1, -1, 'black', 'true')</l>
+<l>    gen_cross_contour_xld (Cross, RotationRow, RotationColumn, 25, Alpha)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (Cross)</l>
+<l>    copy_obj (Image2, Image1, 1, 1)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* display summary and deviation</c>
+<l>dev_display (Image2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (VectorFieldReduced)</l>
+<l>gen_cross_contour_xld (Cross, CenterRows, CenterColumns, 25, Alpha)</l>
+<l>disp_message (WindowHandle, 'Rotation centers and mean', 'window', -1, -1, 'black', 'true')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Cross)</l>
+<l>gen_circle (Center, mean(CenterRows), mean(CenterColumns), 3 * sqrt(pow(deviation(CenterRows),2) + pow(deviation(CenterColumns),2)))</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Center)</l>
+<l>disp_message (WindowHandle, 'Program finished', 'window', 450, 400, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

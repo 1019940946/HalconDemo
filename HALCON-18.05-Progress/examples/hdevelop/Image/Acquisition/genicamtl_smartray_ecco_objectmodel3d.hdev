@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a SmartRay 3D sensor in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire images and data from the sensor</c>
+<c>* and use it to generate and visualize a HALCON ObjectModel3D.</c>
+<c>* </c>
+<c>* Please note that you first need to install the appropriate</c>
+<c>* SmartRay GenTL Producer which comes with the sensor. After this,</c>
+<c>* you can access the sensor with the HALCON GenICamTL interface.</c>
+<c>* </c>
+<c>* Connect to the sensor.</c>
+<l>open_framegrabber ('GenICamTL', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', 'default', 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Set acquisition timeout in milliseconds. Default = 10 seconds, i.e. 10,000 milliseconds.</c>
+<l>set_framegrabber_param (AcqHandle, 'grab_timeout', 10000)</l>
+<c>* </c>
+<c>* Load parameter set (*.par) in 3D Repeat Snapshot mode.</c>
+<c>* *******************************************************************</c>
+<c>* IT IS STRONGLY RECOMMENDED TO CONFIGURE ACQUISIION IN</c>
+<c>* "REPEAT SNAPSHOT MODE" FOR USE IN TYPICAL INDUSTRIAL APPLICATIONS</c>
+<c>* *******************************************************************</c>
+<l>get_framegrabber_param (AcqHandle, 'Parameter_Set_values', ParameterSetValues)</l>
+<l>tuple_regexp_select (ParameterSetValues, '.*_3D_Repeat_Snapshot', ParameterSet)</l>
+<l>set_framegrabber_param (AcqHandle, 'Parameter_Set', ParameterSet)</l>
+<c>* </c>
+<c>* Configure region of interest (ROI).</c>
+<l>* set_framegrabber_param (AcqHandle, 'X_Origin', 0)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Y_Origin', 0)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Width', 1920)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Height', 1200)</l>
+<c>* </c>
+<c>* Configure exposure time in milliseconds.</c>
+<c>* Note that 'Exposure_Time_2' is only available if Double Exposure is enabled.</c>
+<l>* set_framegrabber_param (AcqHandle, 'Exposure_Time_1', 50)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Double_Exposure_HDR', 1)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Exposure_Time_2', 500)</l>
+<c>* </c>
+<c>* Configure number of profiles to capture.</c>
+<l>* set_framegrabber_param (AcqHandle, 'Number_of_Profiles_to_Capture', 100)</l>
+<c>* </c>
+<c>* Force capturing 3D data format to ZIL (Z-Map + Intensity + LaserLineThickness in "one image").</c>
+<l>set_framegrabber_param (AcqHandle, 'Activate_Calibration', true)</l>
+<c>* </c>
+<c>* If the 3D data format configured is ZIL, configure Z-Map Tuner values.</c>
+<c>* Z-Map Tuner: Z-Map Lateral Resolution and Z-Map Vertical Resolution</c>
+<c>*              (depends on sensor model, refer to datasheet)</c>
+<c>* PLEASE CHANGE ACCORDINGLY FOR THE USED 3D SENSOR MODEL!</c>
+<l>* get_framegrabber_param (AcqHandle, 'ZMap_Lateral_Resolution_range', ZMap_Lateral_Resolution_range)</l>
+<l>* set_framegrabber_param (AcqHandle, 'ZMap_Lateral_Resolution', ZMap_Lateral_Resolution_range[3])</l>
+<l>* get_framegrabber_param (AcqHandle, 'ZMap_Vertical_Resolution_range', ZMap_Vertical_Resolution_range)</l>
+<l>* set_framegrabber_param (AcqHandle, 'ZMap_Vertical_Resolution', ZMap_Vertical_Resolution_range)</l>
+<c>* </c>
+<c>* Configure 3D image type (ZIL or Z-Map only).</c>
+<l>* get_framegrabber_param (AcqHandle, 'SmartRay_Image_Selector_values', SmartRay_Image_Selector_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'SmartRay_Image_Selector', 'Profile_Intensity_LaserLineThickness')</l>
+<l>* set_framegrabber_param (AcqHandle, 'SmartRay_Image_Selector', 'Profile_3D')</l>
+<c>* </c>
+<c>* Configure Start Trigger (Digital Input 1).</c>
+<l>* get_framegrabber_param (AcqHandle, 'Start_Trigger_Mode_values', Start_Trigger_Mode_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Start_Trigger_Mode', 'Disabled')</l>
+<l>* get_framegrabber_param (AcqHandle, 'Start_Trigger_Condition_values', Start_Trigger_Condition_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Start_Trigger_Condition', 'Rising_Edge')</l>
+<c>* </c>
+<c>* Configure Data Trigger.</c>
+<l>* get_framegrabber_param (AcqHandle, 'Data_Trigger_Mode_values', Data_Trigger_Mode_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Data_Trigger_Mode', 'Free_Run')</l>
+<l>* set_framegrabber_param (AcqHandle, 'Internal_Trigger_Frequency', 50)</l>
+<l>* get_framegrabber_param (AcqHandle, 'External_Trigger_Source_values', External_Trigger_Source_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'External_Trigger_Source', 'QuadEncoder')</l>
+<c>* </c>
+<c>* Configure Gain.</c>
+<l>* set_framegrabber_param (AcqHandle, 'Gain', 2)</l>
+<c>* </c>
+<c>* Configure Laser Parameters.</c>
+<l>* get_framegrabber_param (AcqHandle, 'Laser_Mode_values', Laser_Mode_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Laser_Mode', 'Continuous')</l>
+<l>* set_framegrabber_param (AcqHandle, 'Laser_Brightness', 100)</l>
+<c>* </c>
+<c>* Configure Laser Line Threshold.</c>
+<c>* Note that Laser Line Threshold 2 is only available if Double Exposure is enabled.</c>
+<l>* set_framegrabber_param (AcqHandle, 'Laser_Line_Threshold_1_COG', 40)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Laser_Line_Threshold_2_COG', 40)</l>
+<c>* </c>
+<c>* Configure Real Time Reflection Filter (not supported for ECCO 75 Series):</c>
+<c>* 'Disable': Disabled reflection filter.</c>
+<c>* 'Filter_Reflection_ABOVE_LaserLine': Filter reflections above laser line.</c>
+<c>* 'Filter_Reflection_BELOW_LaserLine': Filter reflections below laser line.</c>
+<l>* set_framegrabber_param (AcqHandle, 'ReflectionFilterMode', 'Filter_Reflection_ABOVE_LaserLine')</l>
+<l>* set_framegrabber_param (AcqHandle, 'RealTimeReflectionFilterSearchArea', 480)</l>
+<c>* </c>
+<c>* Configure SmartRay Smoothing Filter.</c>
+<l>* get_framegrabber_param (AcqHandle, 'Smoothing_Filter_values', Smoothing_Filter_values)</l>
+<l>* set_framegrabber_param (AcqHandle, 'Smoothing_Filter', 'Moderate')</l>
+<c>* </c>
+<c>* Get ZIL parameters.</c>
+<l>get_framegrabber_param (AcqHandle, 'X_Origin', ROIOriginX)</l>
+<l>get_framegrabber_param (AcqHandle, 'Y_Origin', ROIOriginY)</l>
+<l>get_framegrabber_param (AcqHandle, 'Width', ROIWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'Height', ROIHeight)</l>
+<l>get_framegrabber_param (AcqHandle, 'Start_Y_Lateral_Position', ZILOriginYImgCoordinate)</l>
+<l>get_framegrabber_param (AcqHandle, 'ZMap_Lateral_Resolution', ZILLatRes)</l>
+<l>get_framegrabber_param (AcqHandle, 'ZMap_Vertical_Resolution', ZILVerRes)</l>
+<l>get_framegrabber_param (AcqHandle, 'Number_of_Profiles_to_Capture', NumberOfZILCaptured)</l>
+<c>* </c>
+<c>* Prepare graphics windows.</c>
+<l>get_framegrabber_param (AcqHandle, 'DataModeReg', SmartRayImageSelectorModeReg)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ROIWidth, ROIHeight, 'black', WindowHandle)</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Configure X-Coordinate:</c>
+<c>* Transport Rate (mm/profile) | X-Coordinate | User Defined</c>
+<c>* PLEASE CHANGE ACCORDINGLY DEPENDING ON YOUR APPLICATION</c>
+<l>TransportRate := 0.1628</l>
+<c>* </c>
+<c>* Grab 3D Data in Snapshot Mode.</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>* while (true)</l>
+<c>    * Grab image (ZIL).</c>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<c>    * Stop Sensor (abort image acquisition process).</c>
+<l>    set_framegrabber_param (AcqHandle, 'do_abort_grab', 0)</l>
+<l>    get_image_size (Image, Width, NumberOfZILCaptured)</l>
+<c>    * </c>
+<c>    * Z Mode</c>
+<l>    if (SmartRayImageSelectorModeReg == 0)</l>
+<l>        ZMap := Image</l>
+<c>        * </c>
+<c>        * ZIL Mode</c>
+<l>    elseif (SmartRayImageSelectorModeReg == 2)</l>
+<c>        * Split ZIL into 3 separate images: Z-Map, Intensity and LaserLineThickness.</c>
+<l>        NumberOfZILCaptured := NumberOfZILCaptured / 3</l>
+<c>        * Extract Z-Map from ZIL (possible only if 'grab_image_async' was successful).</c>
+<l>        crop_rectangle1 (Image, ZMap, 0, 0, NumberOfZILCaptured - 1, Width - 1)</l>
+<c>        * Extract Intensity from ZIL (possible only if 'grab_image_async' was successful).</c>
+<l>        crop_rectangle1 (Image, Intensity, NumberOfZILCaptured, 0, (NumberOfZILCaptured * 2) - 1, Width - 1)</l>
+<c>        * Extract LaserLineThickness from ZIL (possible only if 'grab_image_async' was successful).</c>
+<l>        crop_rectangle1 (Image, LaserLineThickness, NumberOfZILCaptured * 2, 0, (NumberOfZILCaptured * 3) - 1, Width - 1)</l>
+<l>    else</l>
+<c>        * ObjectModel3D cannot be generated without Z-Map data.</c>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Generate a region from this image.</c>
+<l>    threshold (ZMap, RegionValidity, 0, 65535)</l>
+<c>    * </c>
+<c>    * Prepare to work with HALCON ObjectModel3D (X, Y and Z Coordinate):</c>
+<c>    * X-coordinate: Transport Rate (in millimeters).</c>
+<l>    gen_image_surface_first_order (PointCloudX, 'real', TransportRate, 0, 0, NumberOfZILCaptured / 2, Width / 2, Width, NumberOfZILCaptured)</l>
+<c>    * Y-coordinate: Points along the Laser Line (in millimeters).</c>
+<l>    gen_image_surface_first_order (ImageYVal, 'real', 0, ZILLatRes, 0, NumberOfZILCaptured / 2, Width / 2, Width, NumberOfZILCaptured)</l>
+<c>    * Scale Y image.</c>
+<l>    scale_image (ImageYVal, PointCloudY, 1, ZILOriginYImgCoordinate)</l>
+<c>    * Z-coordinate: Height information between sensor and the scanned part (in millimeters).</c>
+<l>    reduce_domain (ZMap, RegionValidity, ImageMeasureValid)</l>
+<l>    convert_image_type (ImageMeasureValid, ImageMeasureReal, 'real')</l>
+<l>    get_image_size (ImageMeasureReal, zMap_Width, zMap_Height)</l>
+<l>    gen_image_const (PointCloudZ, 'real', zMap_Width, zMap_Height)</l>
+<l>    threshold (ImageMeasureReal, Region_Valid, 1, 9999999)</l>
+<l>    tuple_pow (2, 15, hv_offset)</l>
+<l>    scale_image (ImageMeasureReal, PointCloudZ, ZILVerRes, -hv_offset * ZILVerRes)</l>
+<l>    reduce_domain (PointCloudZ, Region_Valid, PointCloudZ)</l>
+<c>    * </c>
+<c>    * Generate and visualize ObjectModel3D (press button to continue).</c>
+<l>    xyz_to_object_model_3d (PointCloudX, PointCloudY, PointCloudZ, ObjectModel3D)</l>
+<l>    visualize_object_model_3d (WindowHandle, ObjectModel3D, [], [], 'intensity', 'coord_z', 'ObjectModel3D', [], Instructions, PoseOut)</l>
+<l>* endwhile</l>
+<c>* </c>
+<c>* Stop acquisition and disconnect from the sensor:</c>
+<c>* Stop sensor before disconnect: Only applicable in Repeat Snapshot Mode.</c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 0)</l>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

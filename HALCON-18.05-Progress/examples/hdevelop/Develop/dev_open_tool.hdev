@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *********************************************************</c>
+<c>* This examples shows how to use the HDevelop operators</c>
+<c>* dev_open_tool,</c>
+<c>* dev_show_tool,</c>
+<c>* dev_set_tool_geometry and</c>
+<c>* dev_close_tool.</c>
+<c>* **********************************************************</c>
+<c>* </c>
+<c>* Open the Image Acquisiton Assistant</c>
+<l>dev_open_tool ('image_acquisition_assistant', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<c>* Move it to the left top corner leaving the size as it is</c>
+<l>dev_set_tool_geometry (ToolId, 0, 0, 'default', 'default')</l>
+<l>stop ()</l>
+<c>* Hide the tool when it is not needed</c>
+<l>dev_show_tool (ToolId, 'hide')</l>
+<l>stop ()</l>
+<c>* Show the tool again</c>
+<l>dev_show_tool (ToolId, 'normal')</l>
+<l>stop ()</l>
+<c>* Close the tool</c>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<c>* *********************************************************</c>
+<c>* Open other assistants</c>
+<c>* *********************************************************</c>
+<l>dev_open_tool ('calibration_assistant', 10, 10, 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<l>dev_open_tool ('matching_assistant', 50, 50, 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<l>dev_open_tool ('measure1d_assistant', 100, 100, 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<l>dev_open_tool ('ocr_assistant', 100, 100, 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<c>* ********************************************************</c>
+<c>* Open tools</c>
+<c>* ********************************************************</c>
+<c>* feature_histogram</c>
+<l>dev_open_tool ('feature_histogram', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* feature_inspection</c>
+<l>dev_open_tool ('feature_inspection', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* gray_histogram</c>
+<l>dev_open_tool ('gray_histogram', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* line_profile</c>
+<l>dev_open_tool ('line_profile', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* zoom_window</c>
+<l>dev_open_tool ('zoom_window', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_set_tool_geometry (ToolId, 'default', 'default', 500, 500)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<c>* ********************************************************</c>
+<c>* Open main windows</c>
+<c>* ********************************************************</c>
+<c>* graphics_window</c>
+<l>dev_open_tool ('graphics_window', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* program_window</c>
+<l>dev_open_tool ('program_window', 0, 0, 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* variable_window</c>
+<l>dev_open_tool ('variable_window', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<l>dev_show_tool (ToolId, 'normal')</l>
+<c>* operator_window</c>
+<l>dev_open_tool ('operator_window', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<c>* *******************************************************</c>
+<c>* Open dialogs</c>
+<c>* *******************************************************</c>
+<c>* output_console</c>
+<l>dev_open_tool ('output_console', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* create_procedure_dialog</c>
+<l>dev_open_tool ('create_procedure_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* browse_examples_dialog</c>
+<l>dev_open_tool ('browse_examples_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* edit_procedure_interface</c>
+<l>dev_open_tool ('edit_procedure_interface_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* find_replace_dialog</c>
+<l>dev_open_tool ('find_replace_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* visualization_parameters</c>
+<l>dev_open_tool ('visualization_parameters_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* *******************************************************</c>
+<c>* Special tools and generic parameters</c>
+<c>* *******************************************************</c>
+<c>* </c>
+<c>* -------------------------------------------------------</c>
+<c>* help</c>
+<c>* -------------------------------------------------------</c>
+<l>dev_open_tool ('help', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<c>* -------------------------------------------------------</c>
+<c>* preferences</c>
+<c>* -------------------------------------------------------</c>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* --------------------------------------------------------</c>
+<c>* HALCON news</c>
+<c>* --------------------------------------------------------</c>
+<c>* </c>
+<c>* halcon_news</c>
+<l>dev_open_tool ('halcon_news', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* </c>
+<c>* preferences/manage_procedures</c>
+<l>dev_open_tool ('manage_procedures', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* Show the use of the generic parameters</c>
+<c>* </c>
+<c>* preferences/user_interface</c>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'user_interface/program_window', ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'user_interface/fonts', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'user_interface/language', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'user_interface/layout', ToolId)</l>
+<l>stop ()</l>
+<c>* preferences/procedures</c>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures', ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures/directories', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures/external_procedures', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures/manage_procedure_libraries', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures/manage_passwords', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures/procedure_use', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'procedures/unresolved_procedure_calls', ToolId)</l>
+<l>stop ()</l>
+<c>* preferences/general_options</c>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'general_options/general_options', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'general_options/experienced_user', ToolId)</l>
+<l>stop ()</l>
+<c>* preferences/visualization_parameters</c>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'visualization_settings/pen', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'visualization_settings/lut', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'visualization_settings/paint', ToolId)</l>
+<l>stop ()</l>
+<c>* preferences/runtime settings</c>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'runtime_settings/runtime_settings', ToolId)</l>
+<l>stop ()</l>
+<l>dev_open_tool ('preferences', 'default', 'default', 'default', 'default', 'page', 'runtime_settings/override_operator_behavior', ToolId)</l>
+<l>stop ()</l>
+<c>* --------------------------------------------------------</c>
+<c>* Quick Navigation shortcuts</c>
+<c>* --------------------------------------------------------</c>
+<l>dev_open_tool ('quick_navigation', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* breakpoints_dialog</c>
+<l>dev_open_tool ('breakpoints_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* bookmarks_dialog</c>
+<l>dev_open_tool ('bookmarks_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+<c>* invalid_lines_dialog</c>
+<l>dev_open_tool ('invalid_lines_dialog', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+<l>stop ()</l>
+<l>dev_close_tool (ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

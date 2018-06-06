@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to read a flat structure and unions</c>
+<c>* with simple data types.</c>
+<c>* </c>
+<c>* This example requires the Unified Automation CPP Demo Server v1.5.5.</c>
+<c>* You can download this server for free along with other useful tools</c>
+<c>* at https://www.unified-automation.com/.</c>
+<c>* </c>
+<l>Device := 'opc.tcp://localhost:48010'</l>
+<c></c>
+<c>* Initialize handles</c>
+<l>IOServerHandle := []</l>
+<l>StructureHandle := []</l>
+<l>UnionHandle := []</l>
+<l>EnumerationHandle := []</l>
+<l>OptionSetHandle := []</l>
+<c></c>
+<l>try</l>
+<c>    * Get the revision of the interface.</c>
+<l>    query_io_interface ('OPC_UA', 'revision', Revision)</l>
+<c>    * </c>
+<c>    * Connect to the server.</c>
+<l>    open_io_device ('OPC_UA', Device, [], [], IOServerHandle)</l>
+<c>    * </c>
+<c>    * Flat Structure Node that represents a person</c>
+<c>    * with {Name, Height, Weight}.</c>
+<l>    control_io_device (IOServerHandle, 'translate', ['','/Objects/2:Demo/2:Static/2:Scalar/2:Structures/2:Person1'], StructureNodeId)</l>
+<c>    * Union Node that represents an analog measurement</c>
+<c>    * that can represent a {Temperature, Voltage, Pressure}.</c>
+<l>    control_io_device (IOServerHandle, 'translate', ['','/Objects/2:Demo/2:Static/2:Scalar/2:Structures/2:AnalogMeasurement'], UnionNodeId)</l>
+<c>    * Enumeration Node that represents the priority</c>
+<c>    * of a job {10=Low, 40=Normal, 70=High, 90=Urgent, 100=Immediate}.</c>
+<l>    control_io_device (IOServerHandle, 'translate', ['','/Objects/2:Demo/2:Static/2:Scalar/2:Priority'], EnumerationNodeId)</l>
+<c>    * OptionSet Nodes are bit mask representation.</c>
+<c>    * In this case, it represent extra things</c>
+<c>    * that you can order with your car.</c>
+<l>    control_io_device (IOServerHandle, 'translate', ['','/Objects/2:Demo/2:Static/2:Scalar/2:Structures/2:CarExtras'], OptionSetNodeId)</l>
+<c>    * </c>
+<l>    open_io_channel (IOServerHandle, StructureNodeId, [], [], StructureHandle)</l>
+<l>    open_io_channel (IOServerHandle, UnionNodeId, [], [], UnionHandle)</l>
+<l>    open_io_channel (IOServerHandle, EnumerationNodeId, [], [], EnumerationHandle)</l>
+<l>    open_io_channel (IOServerHandle, OptionSetNodeId, [], [], OptionSetHandle)</l>
+<c></c>
+<c>    * </c>
+<c>    * We can query the data types and other information</c>
+<c>    * of any complex data type.</c>
+<l>    query_io_device (IOServerHandle, [StructureNodeId,UnionNodeId], 'data_type', DataTypes)</l>
+<c>    * </c>
+<c>    * Using the meta_type parameter, we can know if the nodes</c>
+<c>    * are of known complex type.</c>
+<l>    query_io_device (IOServerHandle, [OptionSetNodeId,EnumerationNodeId], 'meta_type', MetaType)</l>
+<c>    * </c>
+<c>    * NOTE: Structures, Unions and OptionSets cannot be read or written</c>
+<c>    * as part of a multichannel call.</c>
+<c>    * </c>
+<c>    * ** Structures **</c>
+<c>    * </c>
+<c>    * These nodes represent a group of variables (fields) that can be</c>
+<c>    * of any data type known to the server. The HALCON OPC UA interface</c>
+<c>    * currently only supports flat structures made of built-in data types</c>
+<c>    * with no arrays because they cannot be represented properly in HALCON.</c>
+<c>    * Structures have ModelingRules for each of their fields, marking them</c>
+<c>    * as optional or mandatory. When reading a structure, if a field is marked</c>
+<c>    * as optional and a value is not set, HALCON OPC UA interface will ignore</c>
+<c>    * its value. When writing to a structure, you must provide a value</c>
+<c>    * for all fields including those marked as optional.</c>
+<c>    * </c>
+<c>    * We can get information about the structs by using the parameter 'fields'.</c>
+<c>    * </c>
+<c>    * In this case the structure represents a Person and contains three members.</c>
+<c>    * A person must have a Name, Height and Weight.</c>
+<l>    get_io_channel_param (StructureHandle, 'fields', StructureFields)</l>
+<c>    * </c>
+<c>    * Writing a Structure requires that you provide a value for each field,</c>
+<c>    * even the optional, in the correct data type and order.</c>
+<l>    StructureWriteValue := ['Thomas Mueller',186,75.0]</l>
+<l>    write_io_channel (StructureHandle, StructureWriteValue, StatusCode)</l>
+<c>    * </c>
+<c>    * We can only read flat structures (not nested)</c>
+<c>    * with built-in data types and no arrays.</c>
+<l>    read_io_channel (StructureHandle, StructureValue, StatusCode)</l>
+<c>    * </c>
+<c>    * ** Unions **</c>
+<c>    * </c>
+<c>    * Unions in OPC UA contain a switch field and a value. The switch field</c>
+<c>    * is the index that selects one of the available field and always starts</c>
+<c>    * with number 1. A switch field of 0 represents that the union is not set.</c>
+<c>    * The switch field of a particular union field can be implied</c>
+<c>    * from the order in which the fields are returned by using</c>
+<c>    * the 'fields' parameter on the node. If you want to write to a Union,</c>
+<c>    * you must provide the switch field and the value.</c>
+<c>    * </c>
+<c>    * This union represents an analog measurement of a device.</c>
+<c>    * An analog measurement can represent</c>
+<c>    * three kinds of measurements: Temperature, Voltage and Pressure.</c>
+<l>    get_io_channel_param (UnionHandle, 'fields', UnionFields)</l>
+<c>    * </c>
+<c>    * Write the Voltage part of the Analog Measurement Union.</c>
+<l>    UnionWriteValue := [2,20]</l>
+<l>    write_io_channel (UnionHandle, UnionWriteValue, StatusCode)</l>
+<c>    * </c>
+<c>    * Reading a Union will return a size two tuple</c>
+<c>    * with the switch field and the value [Switch Field,Value]</c>
+<l>    read_io_channel (UnionHandle, UnionValue, StatusCode)</l>
+<c>    * </c>
+<c>    * ** OptionSet **</c>
+<c>    * </c>
+<c>    * These nodes are a special kind of structure that is used</c>
+<c>    * to represent a bit mask. OptionSets contain</c>
+<c>    * two ByteString fields: 'valid bits' and 'value'.</c>
+<c>    * These nodes may have the optional property 'option set values'</c>
+<c>    * that contains the human readable representation</c>
+<c>    * of each bit of the bit mask. The format in which HALCON works</c>
+<c>    * with OptionSets is by alternating between the value</c>
+<c>    * and the valid bits, one Byte at the time, until the whole length</c>
+<c>    * of the ByteStrings is returned:</c>
+<c>    * [Value[0],ValidBits[0],Value[1],ValidBits[1],...]</c>
+<c>    * </c>
+<c>    * This OptionSet represents the extra things</c>
+<c>    * that you can add when buying a new car.</c>
+<l>    get_io_channel_param (OptionSetHandle, 'option_set_values', OptionDescription)</l>
+<l>    read_io_channel (OptionSetHandle, OptionValue, StatusCode)</l>
+<l>    OptionWriteValue := [10,15]</l>
+<l>    write_io_channel (OptionSetHandle, OptionWriteValue, StatusCode)</l>
+<c>    * </c>
+<c>    * ** Enumerations **</c>
+<c>    * </c>
+<c>    * Enumerations represent a list of defined numerical values.</c>
+<c>    * The nodes that inherit from this data type</c>
+<c>    * are always represented as int32 by OPC UA.</c>
+<c>    * These nodes may have one of the two optional properties</c>
+<c>    * EnumStrings or EnumValues that provide</c>
+<c>    * the human readable representation of the enumeration values.</c>
+<c>    * </c>
+<c>    * Using the parameter 'enum_values' will return</c>
+<c>    * a list of the defined numerical values and,</c>
+<c>    * if EnumStrings or EnumValues property is present,</c>
+<c>    * the human readable representations are also provided.</c>
+<l>    get_io_channel_param (EnumerationHandle, 'enum_values', EnumValues)</l>
+<c>    * </c>
+<c>    * Reading and writing Enumerations is the same</c>
+<c>    * as with normal integers.</c>
+<l>    read_io_channel (EnumerationHandle, EnumerationValue, StatusCode)</l>
+<l>    write_io_channel (EnumerationHandle, 40, StatusCode)</l>
+<c>    * </c>
+<c>    * At the end, close the handles to release the memory.</c>
+<l>    close_io_channel (StructureHandle)</l>
+<l>    close_io_channel (UnionHandle)</l>
+<l>    close_io_channel (EnumerationHandle)</l>
+<l>    close_io_channel (OptionSetHandle)</l>
+<l>    close_io_device (IOServerHandle)</l>
+<c></c>
+<l>catch (Exception)</l>
+<l>    get_extended_error_info (OpName, ErrorCode, ErrorMessage)</l>
+<l>    close_io_channel (StructureHandle)</l>
+<l>    close_io_channel (UnionHandle)</l>
+<l>    close_io_channel (EnumerationHandle)</l>
+<l>    close_io_channel (OptionSetHandle)</l>
+<l>    close_io_device (IOServerHandle)</l>
+<l>    stop ()</l>
+<l>endtry</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

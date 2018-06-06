@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the MatrixVisionAcquire interface</c>
+<c>* (multiple instances with one camera)</c>
+<c>* </c>
+<l>open_framegrabber ('MatrixVisionAcquire', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', 1.0, 'default', 'mvBlue*', '0', -1, -1, AcqHandle)</l>
+<l>ImgCount := 100</l>
+<l>cnt := 1</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to ImgCount by 1</l>
+<l>    cnt := cnt + 1</l>
+<l>    if (cnt &gt; 25)</l>
+<l>        cnt := 1</l>
+<l>        get_framegrabber_param (AcqHandle, 'Statistics/FramesPerSecond', fps)</l>
+<l>    endif</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>framesPerSec_total := ImgCount / (Seconds2 - Seconds1)</l>
+<c>* </c>
+<c>* open a second handle to the device</c>
+<c>* This handle will automatically get it's own set of instance specific properties</c>
+<l>open_framegrabber ('MatrixVisionAcquire', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'mvBlue*', '0', -1, -1, AcqHandle2)</l>
+<l>set_framegrabber_param (AcqHandle2, 'Camera/Expose_us', 45000)</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to ImgCount by 1</l>
+<c>    * This will be slower as we increased the exposure time</c>
+<l>    grab_image_async (Image, AcqHandle2, -1)</l>
+<l>    cnt := cnt + 1</l>
+<l>    if (cnt &gt; 25)</l>
+<l>        cnt := 1</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>fps_instance2 := ImgCount / (Seconds2 - Seconds1)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+<c>* Grabbing should still be possible because of the first device handle</c>
+<c>* now we are working with the first handle thus we get the original exposure time</c>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to ImgCount by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>fps_instance1_grabloop_2 := ImgCount / (Seconds2 - Seconds1)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

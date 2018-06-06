@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of ifm 3D time of flight cameras (O3D3xx)</c>
+<c>* (demonstrate how to use the confidence image in order to find</c>
+<c>*  out which data points are valid. )</c>
+<c>* </c>
+<c>* </c>
+<l>AcqName := 'O3D3xx'</l>
+<l>DeviceName := 'default'</l>
+<c>* </c>
+<l>open_framegrabber (AcqName, 0, 0, 0, 0, 0, 0, 'default', 0, 'default', -1, 'false', 'default', DeviceName, -1, 0, AcqHandle)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 600, 'black', WindowHandle)</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 100 by 1</l>
+<l>    grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<c>    * </c>
+<c>    * Extract the valid data from the confidence image</c>
+<c>    * </c>
+<l>    select_obj (Image, ConfidenceImage, 6)</l>
+<l>    bit_slice (ConfidenceImage, ImageSlice, 1)</l>
+<l>    threshold (ImageSlice, ValidRegion, 0, 0)</l>
+<l>    select_obj (Image, ImageZ, 3)</l>
+<l>    reduce_domain (ImageZ, ValidRegion, ImageZReduced)</l>
+<l>    dev_display (ImageZ)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (ValidRegion)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

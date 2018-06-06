@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-3DCamera interface</c>
+<c>* </c>
+<c>* This example shows how to use the SICK frame grabber's</c>
+<c>* internal queue of buffers, how to calculate the number of</c>
+<c>* buffers in case of Ethernet devices and how to detect</c>
+<c>* overflow.</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* ****************************************************************</c>
+<c>* MEASUREMENT configuration</c>
+<c>* ****************************************************************</c>
+<c>* Open default device</c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'default', -1, 'measurement', ['buffer_size=20','use_error_handler=1'], 'false', 'default', 'default', 0, -1, AcqHandle)</l>
+<l>prepare_display_window (AcqHandle, WindowHandle)</l>
+<c>* Get device type (Ethernet or CameraLink)</c>
+<l>get_framegrabber_param (AcqHandle, 'device_type', DeviceType)</l>
+<l>Index := strstr(DeviceType,'RangerC')</l>
+<l>if (Index == -1)</l>
+<l>    EthernetCamera := 1</l>
+<l>else</l>
+<l>    EthernetCamera := 0</l>
+<l>endif</l>
+<l>get_framegrabber_param (AcqHandle, '&lt;Measurement&gt;scan height', ScanHeight)</l>
+<l>if (EthernetCamera)</l>
+<c>    * Ethernet Camera</c>
+<c>    * Calculate the number of available buffers</c>
+<l>    get_framegrabber_param (AcqHandle, 'buffer_size', BufferSize)</l>
+<l>    get_framegrabber_param (AcqHandle, 'scan_size', ScanSizeMeas)</l>
+<c>    * NumBuffers (MEASUREMENT) = BufferSize[MB] * 2^20[bytes/MB] /</c>
+<c>    *                            (ScanHeight[scans/buffer] *</c>
+<c>    *                            ScanSize[bytes/scan])</c>
+<l>    NumBuffersMeas := floor(BufferSize * pow(2,20) / (ScanHeight * ScanSizeMeas))</l>
+<c>    * Mark data with counter (Ethernet device)</c>
+<l>    set_framegrabber_param (AcqHandle, '&lt;Measurement&gt;mark', 1)</l>
+<l>    set_framegrabber_param (AcqHandle, '&lt;Measurement&gt;mark with', 1)</l>
+<l>else</l>
+<c>    * Mark data with counter (Camer Link device)</c>
+<l>    set_framegrabber_param (AcqHandle, '&lt;Measurement&gt;mark', 3)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Enable the use of SICK frame grabber's internal queue of</c>
+<c>* buffers. Notice that it is only available for the continuous</c>
+<c>* asynchronous grabbing case.</c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'buffer_queue', 'enable')</l>
+<c>* Grab some images</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>GrabStart := 1</l>
+<l>for I := 1 to 50 by 1</l>
+<l>    grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Grab #' + I, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (GrabStart)</l>
+<c>        * Initialize previous mark data</c>
+<l>        PreviousMarkData := Data[1] - ScanHeight</l>
+<l>        GrabStart := 0</l>
+<l>    else</l>
+<l>        PreviousMarkData := MarkData_First</l>
+<l>    endif</l>
+<c>    * Get the mark data for the first and last profile</c>
+<l>    tuple_length (Data, DataLength)</l>
+<l>    MarkData_First := Data[1]</l>
+<l>    MarkData_Last := Data[DataLength - 2]</l>
+<l>    if ((MarkData_First != (PreviousMarkData + ScanHeight)) and (MarkData_Last != (PreviousMarkData - 1 + 2 * ScanHeight)))</l>
+<c>        * Scans lost -&gt; Overflow</c>
+<l>        disp_message (WindowHandle, 'OVERFLOW!', 'window', 36, 12, 'red', 'true')</l>
+<l>        if (EthernetCamera)</l>
+<l>            disp_message (WindowHandle, 'SICK internal queue size: ' + NumBuffersMeas, 'window', 60, 12, 'black', 'true')</l>
+<l>        endif</l>
+<l>        stop ()</l>
+<c>        * Force stop grabbing and flush buffer</c>
+<l>        set_framegrabber_param (AcqHandle, 'do_abort_grab', -1)</l>
+<l>        GrabStart := 1</l>
+<l>    else</l>
+<l>        BufferNumber := MarkData_First / ScanHeight + 1</l>
+<l>        disp_message (WindowHandle, 'Buffer number: ' + BufferNumber + '\n' + 'Scans counter: ' + MarkData_Last, 'window', 36, 12, 'black', 'true')</l>
+<c>        * Force overflow state</c>
+<l>        wait_seconds (5)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* ****************************************************************</c>
+<c>* IMAGE configuration</c>
+<c>* ****************************************************************</c>
+<c>* Open default device</c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'default', -1, 'image', ['buffer_size=100','use_error_handler=1'], 'false', 'default', 'default', 0, -1, AcqHandle)</l>
+<l>prepare_display_window (AcqHandle, WindowHandle)</l>
+<c>* Get device type (Ethernet or CameraLink)</c>
+<l>get_framegrabber_param (AcqHandle, 'device_type', DeviceType)</l>
+<l>Index := strstr(DeviceType,'RangerC')</l>
+<l>if (Index == -1)</l>
+<l>    EthernetCamera := 1</l>
+<l>else</l>
+<l>    EthernetCamera := 0</l>
+<l>endif</l>
+<l>if (EthernetCamera)</l>
+<c>    * Ethernet Camera</c>
+<c>    * Calculate the number of available buffers</c>
+<l>    get_framegrabber_param (AcqHandle, 'buffer_size', BufferSize)</l>
+<l>    get_framegrabber_param (AcqHandle, 'scan_size', ScanSizeImg)</l>
+<c>    * NumBuffers (IMAGE) = BufferSize[MB] * 2^20[bytes/MB] /</c>
+<c>    *                      1 * ScanSize[bytes/scan])</c>
+<l>    NumBuffersImg := floor(BufferSize * pow(2,20) / (1 * ScanSizeImg))</l>
+<l>endif</l>
+<c>* </c>
+<c>* Enable the use of SICK frame grabber's internal queue of</c>
+<c>* buffers. Notice that it is only available for the continuous</c>
+<c>* asynchronous grabbing case.</c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'buffer_queue', 'enable')</l>
+<c>* Grab some images</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for I := 1 to 50 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Grab #' + I, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (EthernetCamera)</l>
+<l>        disp_message (WindowHandle, 'SICK internal queue size: ' + NumBuffersImg, 'window', 36, 12, 'black', 'true')</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="prepare_display_window">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Get image dimensions</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<c>* Prepare display window</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="prepare_display_window">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

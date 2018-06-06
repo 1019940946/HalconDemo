@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program compares the 'gradient_8dir' feature to the 'pixel_invar' feature.</c>
+<c>* The stroke width of the trained characters is subsequently decreased by gray value dilation,</c>
+<c>* while the number of incorrect classifications of both features is compared.</c>
+<c>* In addition, the MLP classificator is compared to the SVM classificator.</c>
+<c>* The experiment shows that the 'gradient_8dir' feature is more robust</c>
+<c>* to a variation in stroke width than the 'pixel_invar' feature, and the</c>
+<c>* SVM classificator leads to an even better classification rate.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'letters')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_colored (12)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Segment the image.</c>
+<c>* </c>
+<l>binary_threshold (Image, Region, 'max_separability', 'dark', UsedThreshold)</l>
+<c>* Connect the i's and j's with their dots.</c>
+<l>dilation_circle (Region, RegionDilation, 3.5)</l>
+<c>* Compute the correct connected components.</c>
+<l>connection (RegionDilation, ConnectedRegions)</l>
+<c>* Reduce each connected component (character) to its original shape.</c>
+<l>intersection (ConnectedRegions, Region, RegionIntersection)</l>
+<c>* Sort the characters line-by-line.</c>
+<l>sort_region (RegionIntersection, Characters, 'character', 'true', 'row')</l>
+<l>dev_display (Characters)</l>
+<l>disp_message (WindowHandle, ['Press Run to start training!','(this may take several seconds)'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image)</l>
+<c>* Compute the true class of each character.</c>
+<l>count_obj (Characters, Number)</l>
+<l>Classes := []</l>
+<l>for J := 0 to 25 by 1</l>
+<l>    Classes := [Classes,gen_tuple_const(20,chr(ord('a') + J))]</l>
+<l>endfor</l>
+<l>Classes := [Classes,gen_tuple_const(20,'.')]</l>
+<c>* Construct the necessary training file from the segmented characters.</c>
+<l>write_ocr_trainf (Characters, Image, Classes, 'letters.trf')</l>
+<c>* </c>
+<c>* Create the classifier. We read out the classes from the training file. Therefore,</c>
+<c>* the training part of the program is generic and can be used to train any MLP</c>
+<c>* OCR classifier.</c>
+<l>read_ocr_trainf_names ('letters.trf', CharacterNames, CharacterCount)</l>
+<c>* To reduce computation time for training, only a small number of hidden layer neurons is chosen</c>
+<c>* Note that the 'default' feature is a combination of 'pixel_invar' and 'ratio'</c>
+<l>create_ocr_class_mlp (8, 10, 'weighted', 'pixel_invar', CharacterNames, 60, 'none', 26, 42, OCRHandleDefault)</l>
+<l>create_ocr_class_mlp (8, 10, 'weighted', 'gradient_8dir', CharacterNames, 60, 'none', 26, 42, OCRHandleGradient)</l>
+<l>create_ocr_class_svm (8, 10, 'weighted', 'gradient_8dir', CharacterNames, 'rbf', 0.000001, 0.05, 'one-versus-one', 'none', 10, SVMHandleGradient)</l>
+<l>disp_message (WindowHandle, 'Training \'pixel_invar\' MLP ...', 'window', 12, 12, 'black', 'true')</l>
+<l>trainf_ocr_class_mlp (OCRHandleDefault, 'letters.trf', 100, 0.001, 0.001, Error, ErrorLog)</l>
+<l>disp_message (WindowHandle, 'Training \'gradient_8dir\' MLP ...', 'image', 52, 12, 'black', 'true')</l>
+<l>trainf_ocr_class_mlp (OCRHandleGradient, 'letters.trf', 100, 0.001, 0.001, Error, ErrorLog)</l>
+<l>disp_message (WindowHandle, 'Training \'gradient_8dir\' SVM ...', 'image', 92, 12, 'black', 'true')</l>
+<l>trainf_ocr_class_svm (SVMHandleGradient, 'letters.trf', 0.000001, 'default')</l>
+<l>disp_message (WindowHandle, 'Done. Press Run to start classification!', 'image', 132, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Use gray_dilation_shape on image and reclassify characters using MLP</c>
+<c>* in combination with the 'pixel_invar' feature vector</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'First using the \'pixel_invar\' feature.', 'window', 12, 12, 'black', 'true')</l>
+<l>wait_seconds (2)</l>
+<l>WronglyClassifiedDefault := []</l>
+<c>* Prepare buffer window</c>
+<l>get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>open_window (Row, Column, Width, Height, 0, 'buffer', '', BufferHandle)</l>
+<l>set_display_font (BufferHandle, 14, 'mono', 'true', 'false')</l>
+<l>set_insert (BufferHandle, 'copy')</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>set_part (BufferHandle, Row1, Column1, Row2, Column2)</l>
+<l>ClassificationTimeMLPDefault := 0</l>
+<l>for DilationRadius := 2.5 to 7.0 by 0.2</l>
+<c>    * Re-classify the segmented characters and display the classification result.</c>
+<l>    filter_image (Image, ImageMax, DilationRadius)</l>
+<l>    count_seconds (TimeBefore)</l>
+<l>    do_ocr_multi_class_mlp (Characters, ImageMax, OCRHandleDefault, Class, Confidence)</l>
+<l>    count_seconds (TimeAfter)</l>
+<l>    display_classification_result (Characters, ImageMax, BufferHandle, WindowHandle, Class, Classes, Width, Height, DilationRadius, WronglyClassified)</l>
+<l>    ClassificationTimeMLPDefault := ClassificationTimeMLPDefault + (TimeAfter - TimeBefore)</l>
+<l>    WronglyClassifiedDefault := [WronglyClassifiedDefault,WronglyClassified]</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Use gray_dilation_shape on image and reclassify characters using MLP</c>
+<c>* in combination with the 'gradient_8dir' feature vector</c>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Now using the \'gradient_8dir\' feature.', 'window', 12, 12, 'black', 'true')</l>
+<l>wait_seconds (2)</l>
+<l>WronglyClassifiedGradient := []</l>
+<l>DilationRadii := []</l>
+<l>ClassificationTimeMLPGradient := 0</l>
+<l>for DilationRadius := 2.5 to 7.0 by 0.2</l>
+<l>    DilationRadii := [DilationRadii,DilationRadius]</l>
+<c>    * Re-classify the segmented characters and display the classification result.</c>
+<l>    filter_image (Image, ImageMax, DilationRadius)</l>
+<l>    count_seconds (TimeBefore)</l>
+<l>    do_ocr_multi_class_mlp (Characters, ImageMax, OCRHandleGradient, Class, Confidence)</l>
+<l>    count_seconds (TimeAfter)</l>
+<l>    display_classification_result (Characters, ImageMax, BufferHandle, WindowHandle, Class, Classes, Width, Height, DilationRadius, WronglyClassified)</l>
+<l>    ClassificationTimeMLPGradient := ClassificationTimeMLPGradient + (TimeAfter - TimeBefore)</l>
+<l>    WronglyClassifiedGradient := [WronglyClassifiedGradient,WronglyClassified]</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Use gray_dilation_shape on image and reclassify characters using SVM</c>
+<c>* in combination with the 'gradient_8dir' feature vector</c>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Now using the \'gradient_8dir\' feature','and SVM.'], 'window', 12, 12, 'black', 'true')</l>
+<l>wait_seconds (2)</l>
+<l>WronglyClassifiedGradientSVM := []</l>
+<l>ClassificationTimeSVMGradient := 0</l>
+<l>for DilationRadius := 2.5 to 7.0 by 0.2</l>
+<c>    * Re-classify the segmented characters and display the classification result.</c>
+<l>    filter_image (Image, ImageMax, DilationRadius)</l>
+<l>    count_seconds (TimeBefore)</l>
+<l>    do_ocr_multi_class_svm (Characters, ImageMax, SVMHandleGradient, Class)</l>
+<l>    count_seconds (TimeAfter)</l>
+<l>    display_classification_result (Characters, ImageMax, BufferHandle, WindowHandle, Class, Classes, Width, Height, DilationRadius, WronglyClassified)</l>
+<l>    ClassificationTimeSVMGradient := ClassificationTimeSVMGradient + (TimeAfter - TimeBefore)</l>
+<l>    WronglyClassifiedGradientSVM := [WronglyClassifiedGradientSVM,WronglyClassified]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Clean up OCR handles</c>
+<l>clear_ocr_class_mlp (OCRHandleDefault)</l>
+<l>clear_ocr_class_mlp (OCRHandleGradient)</l>
+<l>clear_ocr_class_svm (SVMHandleGradient)</l>
+<c>* </c>
+<c>* Display results</c>
+<l>IncorrectPercent := [WronglyClassifiedDefault,WronglyClassifiedGradient,WronglyClassifiedGradientSVM] / real(|Classes|) * 100.0</l>
+<l>Title := ['MLP: \'pixel_invar\'','MLP: \'gradient_8dir\'','SVM: \'gradient_8dir\'']</l>
+<l>Colors := ['magenta','cyan','green']</l>
+<l>dev_set_part (0, 0, Height / 2 - 1, Width / 2 - 1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_line_width (2)</l>
+<l>plot_tuple (WindowHandle, DilationRadii, IncorrectPercent, 'Dilation Radii', 'Incorrect classifications in %', Colors, ['ticks_x','grid_y','ticks_y','margin_top','margin_left'], [1,5,10,100,80])</l>
+<l>disp_message (WindowHandle, Title, 'window', 160, 100, Colors, 'false')</l>
+<c>* Display classification times</c>
+<l>NumRadii := |DilationRadii|</l>
+<l>TotalClassifications := NumRadii * |Classes|</l>
+<l>ClassificationTimeMLPDefault := 1000 * ClassificationTimeMLPDefault / TotalClassifications</l>
+<l>ClassificationTimeMLPGradient := 1000 * ClassificationTimeMLPGradient / TotalClassifications</l>
+<l>ClassificationTimeSVMGradient := 1000 * ClassificationTimeSVMGradient / TotalClassifications</l>
+<l>Message := 'Classification times per character'</l>
+<l>Message[1] := 'MLP \'pixel_invar\':    ' + ClassificationTimeMLPDefault$'.1' + ' ms'</l>
+<l>Message[2] := 'MLP \'gradient_8_dir\': ' + ClassificationTimeMLPGradient$'.1' + ' ms'</l>
+<l>Message[3] := 'SVM \'gradient_8_dir\': ' + ClassificationTimeSVMGradient$'.1' + ' ms'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_classification_result">
+<interface>
+<io>
+<par name="Characters" base_type="iconic" dimension="0"/>
+<par name="ImageMax" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="BufferHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Class" base_type="ctrl" dimension="0"/>
+<par name="Classes" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="DilationRadius" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WronglyClassified" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>area_center (Characters, Area, Row, Column)</l>
+<l>disp_image (ImageMax, BufferHandle)</l>
+<l>set_color (BufferHandle, 'blue')</l>
+<l>WronglyClassified := 0</l>
+<l>for J := 0 to |Row| - 1 by 1</l>
+<l>    if (not (Class[J] == Classes[J]))</l>
+<l>        disp_message (BufferHandle, Class[J], 'image', Row[J], Column[J] + 5, 'red', 'false')</l>
+<l>        WronglyClassified := WronglyClassified + 1</l>
+<l>    else</l>
+<l>        disp_message (BufferHandle, Class[J], 'image', Row[J], Column[J] + 5, 'blue', 'false')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>disp_message (BufferHandle, ['Dilation Radius: ' + DilationRadius$'.2f','Incorrect classifications: ' + WronglyClassified], 'window', 12, 12, 'black', 'true')</l>
+<l>copy_rectangle (BufferHandle, WindowHandle, 0, 0, Height - 1, Width - 1, 0, 0)</l>
+<l>return ()</l>
+</body>
+<docu id="display_classification_result">
+<parameters>
+<parameter id="BufferHandle"/>
+<parameter id="Characters"/>
+<parameter id="Class"/>
+<parameter id="Classes"/>
+<parameter id="DilationRadius"/>
+<parameter id="Height"/>
+<parameter id="ImageMax"/>
+<parameter id="Width"/>
+<parameter id="WindowHandle"/>
+<parameter id="WronglyClassified"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="filter_image">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageMax" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="DilationRadius" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gray_dilation_shape (Image, ImageMax, DilationRadius, DilationRadius, 'octagon')</l>
+<l>emphasize (ImageMax, ImageMax, 7, 7, 1)</l>
+<l>return ()</l>
+</body>
+<docu id="filter_image">
+<parameters>
+<parameter id="DilationRadius"/>
+<parameter id="Image"/>
+<parameter id="ImageMax"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

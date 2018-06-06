@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example shows how to robustly measure the width of frames in between</c>
+<c>* the cells of an LCD display, using the measure tool.</c>
+<c>* There are two basic difficulties in this task:</c>
+<c>* 1. The frames have a very low contrast. With adequately wide ROIs</c>
+<c>* the measure tool is able to still detect them robustly.</c>
+<c>* 2. The dark spots can lead to wrong measurements. The idea is to</c>
+<c>* take multiple measurements along the frame. Using a fitting</c>
+<c>* with outlier suppression the correct measurements still can be determined</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>Path := 'lcd/lcd_cells_'</l>
+<l>read_image (Image, Path + '01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, 640, 480, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>for F := 1 to 8 by 1</l>
+<l>    read_image (Image, Path + F$'.2i')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    decompose3 (Image, R, G, B)</l>
+<l>    segment_stripes (R, VerticalStripes, 'vertical', 20)</l>
+<l>    segment_stripes (R, HorizontalStripes, 'horizontal', 20)</l>
+<l>    measure_stripes_width (R, VerticalStripes, VertContours, VertFittedLines, 50, 40, 'vertical', VertWidth)</l>
+<l>    measure_stripes_width (R, HorizontalStripes, HorzContours, HorzFittedLines, 50, 40, 'horizontal', HorzWidths)</l>
+<c>    * </c>
+<c>    * Visualization of resulting measurements.</c>
+<l>    concat_obj (HorzContours, VertContours, Contours)</l>
+<l>    count_obj (Contours, NContours)</l>
+<l>    for C := 1 to NContours by 1</l>
+<l>        select_obj (Contours, ObjectSelected, C)</l>
+<l>        get_contour_xld (ObjectSelected, Row, Col)</l>
+<l>        gen_cross_contour_xld (Cross, Row, Col, 12, rad(0))</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (Cross)</l>
+<l>        dev_set_color ('blue')</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, 'Initial measurements', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>    concat_obj (HorzFittedLines, VertFittedLines, FittedLines)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (FittedLines)</l>
+<l>    disp_message (WindowHandle, 'Fitted lines using a robust statistics', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (FittedLines)</l>
+<l>    disp_message (WindowHandle, 'Measured stripe widths in pixels', 'window', 12, 12, 'black', 'true')</l>
+<l>    concat_obj (VerticalStripes, HorizontalStripes, Stripes)</l>
+<l>    Measurements := [VertWidth,HorzWidths]</l>
+<l>    smallest_rectangle1 (Stripes, Row1, Column1, Row2, Column2)</l>
+<l>    disp_message (WindowHandle, Measurements$'3.1f', 'image', Row2 - 75, Column2 - 80, 'green', 'false')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Count the amount of defects per cell.</c>
+<c>    * First segment cells by using the crossing stripes.</c>
+<l>    detect_defects (R, Defects)</l>
+<l>    union2 (HorizontalStripes, VerticalStripes, RegionUnion)</l>
+<l>    union1 (RegionUnion, RegionUnion1)</l>
+<l>    difference (R, RegionUnion1, RegionDifference)</l>
+<l>    opening_rectangle1 (RegionDifference, RegionOpening, 3, 3)</l>
+<l>    connection (RegionOpening, Cells)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Cells)</l>
+<c>    * </c>
+<c>    * Find the defects contained in each lcd cell.</c>
+<l>    union1 (Defects, UnionDefects)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (Defects)</l>
+<l>    count_obj (Cells, NCells)</l>
+<l>    get_font_extents (WindowHandle, MaxAscent, MaxDescent, MaxWidth, MaxHeight)</l>
+<l>    TxtWith := strlen(10 + ' defects') * MaxWidth</l>
+<l>    for C := 1 to NCells by 1</l>
+<l>        select_obj (Cells, ObjectSelected, C)</l>
+<l>        intersection (ObjectSelected, UnionDefects, RegionIntersection)</l>
+<l>        connection (RegionIntersection, DefectsInCell)</l>
+<l>        count_obj (DefectsInCell, NDefectsInCell)</l>
+<l>        if (NDefectsInCell != 0)</l>
+<l>            area_center (ObjectSelected, Area, CellRow, CellColumn)</l>
+<l>            disp_message (WindowHandle, NDefectsInCell + ' defects', 'image', CellRow - 20, CellColumn - 70, 'white', 'red')</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    if (F &lt; 8)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="segment_stripes">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Stripes" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Orientation" base_type="ctrl" dimension="0"/>
+<par name="StripeWidth" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* StripeWidth is an approximate value for the width of the frame to measure</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>if (Orientation == 'vertical')</l>
+<l>    mean_image (Image, ImageMean, 0.5, Height / 3)</l>
+<l>    mean_image (ImageMean, ImageMean1, StripeWidth + 1, StripeWidth + 1)</l>
+<l>    dyn_threshold (ImageMean, ImageMean1, RegionDynThresh, 1, 'light')</l>
+<l>    connection (RegionDynThresh, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, ['height','width'], 'and', [Height * 0.9,StripeWidth], [99999,99999])</l>
+<l>else</l>
+<l>    mean_image (Image, ImageMean, Width / 3, 0.5)</l>
+<l>    mean_image (ImageMean, ImageMean1, StripeWidth + 1, StripeWidth + 1)</l>
+<l>    dyn_threshold (ImageMean, ImageMean1, RegionDynThresh, 1, 'light')</l>
+<l>    connection (RegionDynThresh, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, ['width','height'], 'and', [Width * 0.9,StripeWidth], [99999,99999])</l>
+<l>endif</l>
+<l>fill_up (SelectedRegions, RegionFillUp)</l>
+<l>union1 (RegionFillUp, RegionUnion)</l>
+<l>closing_rectangle1 (RegionUnion, RegionClosing, StripeWidth / 2, StripeWidth / 2)</l>
+<l>connection (RegionClosing, Candidates)</l>
+<c>* discard stripes lying at the border of the image, for its width cannot be measured</c>
+<l>count_obj (Candidates, NStripes)</l>
+<l>gen_empty_obj (Stripes)</l>
+<l>if (Orientation == 'vertical')</l>
+<l>    for k := 1 to NStripes by 1</l>
+<l>        select_obj (Candidates, ObjectSelected, k)</l>
+<l>        get_region_runs (ObjectSelected, Row, ColumnBegin, ColumnEnd)</l>
+<l>        if ((min(ColumnBegin) != 0) and (max(ColumnEnd) != Width - 1))</l>
+<l>            shape_trans (ObjectSelected, RegionTrans, 'convex')</l>
+<l>            concat_obj (Stripes, RegionTrans, Stripes)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>else</l>
+<l>    for k := 1 to NStripes by 1</l>
+<l>        select_obj (Candidates, ObjectSelected, k)</l>
+<l>        get_region_runs (ObjectSelected, Row, ColumnBegin, ColumnEnd)</l>
+<l>        if ((max(Row) != Height - 1) and (min(Row) != 0))</l>
+<l>            shape_trans (ObjectSelected, RegionTrans, 'convex')</l>
+<l>            concat_obj (Stripes, RegionTrans, Stripes)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="segment_stripes">
+<parameters>
+<parameter id="Image"/>
+<parameter id="Orientation"/>
+<parameter id="StripeWidth"/>
+<parameter id="Stripes"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="measure_stripes_width">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="Stripes" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Contours" base_type="iconic" dimension="0"/>
+<par name="FittedLines" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="NPoints" base_type="ctrl" dimension="0"/>
+<par name="MesRectHeight" base_type="ctrl" dimension="0"/>
+<par name="Orientation" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Widths" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* the procedure measures the width of the frame at NPoints positions along</c>
+<c>* the frame. MesRectHeight is the height of the measuring rectangle. Its value</c>
+<c>* should be high enough so as to reduce the influence of noise and precisely</c>
+<c>* determine the position of the edges despite the low contrast, yet small</c>
+<c>* enough so that dark spots affect the least number of measurements</c>
+<c>* </c>
+<l>Widths := []</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>smallest_rectangle1 (Stripes, Row1, Column1, Row2, Column2)</l>
+<l>count_obj (Stripes, NStripes)</l>
+<l>tuple_gen_const (NStripes, 1, Ones)</l>
+<l>area_center (Stripes, Area, MesRectRow, MesRectCol)</l>
+<c>* </c>
+<c>* calculate center position and orientation of the measure rectangles</c>
+<l>if (Orientation == 'vertical')</l>
+<l>    StripeWidth := Column2 - Column1</l>
+<l>    StripeHeight := Row2 - Row1</l>
+<c>    * distance between the centers of consecutive measure rectangles</c>
+<l>    CenterInterDist := (StripeHeight - MesRectHeight) / real(NPoints)</l>
+<c>    * orientation of measure rectangle</c>
+<l>    MesAngle := rad(0)</l>
+<l>    tuple_gen_const (NPoints, 1, Ones)</l>
+<l>    Index := cumul(Ones) - 1</l>
+<c>    * center coordinates of each measure rectangle</c>
+<l>    RectRow := []</l>
+<l>    RectCol := []</l>
+<l>    for s := 1 to NStripes by 1</l>
+<l>        RectRow := [RectRow,Index * CenterInterDist[s - 1] + MesRectHeight / 2]</l>
+<l>        RectCol := [RectCol,MesRectCol[s - 1] * Ones]</l>
+<l>    endfor</l>
+<l>elseif (Orientation == 'horizontal')</l>
+<l>    StripeHeight := Column2 - Column1</l>
+<l>    StripeWidth := Row2 - Row1</l>
+<l>    CenterInterDist := (StripeHeight - MesRectHeight) / real(NPoints)</l>
+<l>    MesAngle := rad(90)</l>
+<l>    tuple_gen_const (NPoints, 1, Ones)</l>
+<l>    Index := cumul(Ones) - 1</l>
+<l>    RectRow := []</l>
+<l>    RectCol := []</l>
+<l>    for s := 1 to NStripes by 1</l>
+<l>        RectRow := [RectRow,MesRectRow[s - 1] * Ones]</l>
+<l>        RectCol := [RectCol,Index * CenterInterDist[s - 1] + MesRectHeight / 2]</l>
+<l>    endfor</l>
+<l>endif</l>
+<c>* </c>
+<l>gen_empty_obj (Contours)</l>
+<l>gen_empty_obj (FittedLines)</l>
+<l>for k := 0 to NStripes - 1 by 1</l>
+<l>    select_obj (Stripes, ObjectSelected, k + 1)</l>
+<l>    REdgeFirst := []</l>
+<l>    CEdgeFirst := []</l>
+<l>    REdgeSecond := []</l>
+<l>    CEdgeSecond := []</l>
+<c>    * take the measurements at each point</c>
+<l>    for p := 0 to NPoints - 1 by 1</l>
+<l>        gen_measure_rectangle2 (RectRow[k * NPoints + p], RectCol[k * NPoints + p], MesAngle, StripeWidth[k] * 1.5, MesRectHeight / 2, Width, Height, 'bilinear', MeasureHandle)</l>
+<l>        measure_pairs (Image, MeasureHandle, 3.0, 4, 'all_strongest', 'all', RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<l>        if (|RowEdgeFirst| != 0)</l>
+<l>            REdgeFirst := [REdgeFirst,RowEdgeFirst]</l>
+<l>            CEdgeFirst := [CEdgeFirst,ColumnEdgeFirst]</l>
+<l>            REdgeSecond := [REdgeSecond,RowEdgeSecond]</l>
+<l>            CEdgeSecond := [CEdgeSecond,ColumnEdgeSecond]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * for each edge, create an xld-contour whose points are given by the resulting</c>
+<c>    * measurements and fit a line to each of them via a robust regression algorithm</c>
+<l>    if (|REdgeFirst| * |CEdgeFirst| * |REdgeSecond| * |CEdgeSecond| &gt; 1)</l>
+<l>        gen_contour_polygon_xld (Contour, REdgeFirst, CEdgeFirst)</l>
+<l>        fit_line_contour_xld (Contour, 'tukey', -1, 0, 5, 1, RowBegin, ColBegin, RowEnd, ColEnd, Nr, Nc, Dist)</l>
+<l>        gen_contour_polygon_xld (StraightLine, [RowBegin,RowEnd], [ColBegin,ColEnd])</l>
+<l>        gen_contour_polygon_xld (Contour1, REdgeSecond, CEdgeSecond)</l>
+<l>        fit_line_contour_xld (Contour1, 'tukey', -1, 0, 5, 1, RowBegin1, ColBegin1, RowEnd1, ColEnd1, Nr1, Nc1, Dist1)</l>
+<l>        gen_contour_polygon_xld (StraightLine1, [RowBegin1,RowEnd1], [ColBegin1,ColEnd1])</l>
+<c>        * the width of the frame is given by the distance between the two fitted lines</c>
+<l>        distance_cc_min (StraightLine, StraightLine1, 'point_to_segment', DistanceMin)</l>
+<l>        Widths := [Widths,DistanceMin]</l>
+<c>        * </c>
+<l>        gen_image_extent_line (ExtendedContour, Width, Height, RowBegin, RowEnd, ColBegin, ColEnd)</l>
+<l>        gen_image_extent_line (ExtendedContour1, Width, Height, RowBegin1, RowEnd1, ColBegin1, ColEnd1)</l>
+<l>        concat_obj (Contours, Contour, Contours)</l>
+<l>        concat_obj (Contours, Contour1, Contours)</l>
+<l>        concat_obj (FittedLines, ExtendedContour, FittedLines)</l>
+<l>        concat_obj (FittedLines, ExtendedContour1, FittedLines)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="measure_stripes_width">
+<parameters>
+<parameter id="Contours"/>
+<parameter id="FittedLines"/>
+<parameter id="Image"/>
+<parameter id="MesRectHeight"/>
+<parameter id="NPoints"/>
+<parameter id="Orientation"/>
+<parameter id="Stripes"/>
+<parameter id="Widths"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="detect_defects">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="Defects" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<l>var_threshold (Image, Region, 17, 17, 0.7, 9, 'dark')</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, Defects, 'area', 'and', 4, 99999)</l>
+<l>return ()</l>
+</body>
+<docu id="detect_defects">
+<parameters>
+<parameter id="Defects"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_image_extent_line">
+<interface>
+<oo>
+<par name="ExtendedContour" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="RowBegin" base_type="ctrl" dimension="0"/>
+<par name="RowEnd" base_type="ctrl" dimension="0"/>
+<par name="ColBegin" base_type="ctrl" dimension="0"/>
+<par name="ColEnd" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (RowBegin == RowEnd)</l>
+<c>    * horizontal line</c>
+<l>    gen_contour_polygon_xld (ExtendedContour, [RowBegin,RowEnd], [0,Width])</l>
+<l>else</l>
+<l>    if (ColBegin == ColEnd)</l>
+<c>        * vertical line</c>
+<l>        gen_contour_polygon_xld (ExtendedContour, [0,Height], [ColBegin,ColEnd])</l>
+<l>    else</l>
+<l>        Slope := abs((RowEnd - RowBegin) / real(ColEnd - ColBegin))</l>
+<c>        * determine with which image border does the line intersect</c>
+<l>        RefSlope := real(Height) / Width</l>
+<l>        if (Slope &gt; RefSlope)</l>
+<c>            * intersects with the upper and lower borders</c>
+<l>            intersection_lines (0, 0, 0, Width, RowBegin, ColBegin, RowEnd, ColEnd, Row, Column, IsOverlapping)</l>
+<l>            intersection_lines (Height, 0, Height, Width, RowBegin, ColBegin, RowEnd, ColEnd, Row1, Column1, IsOverlapping)</l>
+<l>            gen_contour_polygon_xld (ExtendedContour, [Row,Row1], [Column,Column1])</l>
+<l>        else</l>
+<c>            * intersects with the left and right borders</c>
+<l>            intersection_lines (0, 0, Height, 0, RowBegin, ColBegin, RowEnd, ColEnd, Row, Column, IsOverlapping)</l>
+<l>            intersection_lines (0, Width, Height, Width, RowBegin, ColBegin, RowEnd, ColEnd, Row1, Column1, IsOverlapping)</l>
+<l>            gen_contour_polygon_xld (ExtendedContour, [Row,Row1], [Column,Column1])</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="gen_image_extent_line">
+<parameters>
+<parameter id="ColBegin"/>
+<parameter id="ColEnd"/>
+<parameter id="ExtendedContour"/>
+<parameter id="Height"/>
+<parameter id="RowBegin"/>
+<parameter id="RowEnd"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

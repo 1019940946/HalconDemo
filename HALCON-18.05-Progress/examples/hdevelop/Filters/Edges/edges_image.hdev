@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>edges_image (Image, ImaAmp, ImaDir, 'lanser2', 0.5, 'nms', 12, 22)</l>
+<l>threshold (ImaAmp, Edges, 1, 255)</l>
+<l>skeleton (Edges, Skeleton)</l>
+<l>gen_contours_skeleton_xld (Skeleton, Contours, 1, 'filter')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Contours)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

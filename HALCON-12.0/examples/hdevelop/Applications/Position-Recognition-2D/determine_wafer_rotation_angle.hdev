@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to determine the angle of</c>
+<c>* rotation leading to a correct alignment of a wafer</c>
+<c>* using the operator text_line_orientation. For that,</c>
+<c>* the position of the center of rotation of the wafer must</c>
+<c>* be known.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'wafer/wafer_rotated')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<c>* The coordinates of the center of rotation can be determined</c>
+<c>* e.g. by using the operator optical_flow_mg.</c>
+<c>* See also the example: rotation_from_optical_flow.hdev</c>
+<l>RotCenterRow := 360.13</l>
+<l>RotCenterCol := 359.99</l>
+<l>gen_cross_contour_xld (Cross, RotCenterCol, RotCenterCol, 20, 0.785398)</l>
+<l>gen_rectangle1 (Rectangle, RotCenterRow - 55, RotCenterCol - 300, RotCenterRow + 55, RotCenterCol + 300)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Rectangle)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'Determine the angle of rotation of the wafer\nby using the area around the center of rotation', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the angle of rotation of the wafer to</c>
+<c>* correct the alignment</c>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>text_line_orientation (Rectangle, ImageReduced, 25, rad(-30), rad(30), OrientationAngle)</l>
+<l>Angle := -deg(OrientationAngle)</l>
+<l>rotate_image (Image, ImageRotate, Angle, 'constant')</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageRotate)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Rectangle)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, 'The wafer must be rotated by ' + Angle$'.2f' + '° \nto be correctly aligned', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

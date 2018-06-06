@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Alpha2, 'alpha2')</l>
+<l>dev_set_color ('red')</l>
+<l>threshold (Alpha2, Region, 0, 100)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>dev_set_color ('green')</l>
+<l>clip_region (ConnectedRegions, RegionClipped, 100, 100, 400, 400)</l>
+<l>stop ()</l>
+<l>dev_display (Alpha2)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_color ('green')</l>
+<l>clip_region_rel (ConnectedRegions, RegionClipped1, 2, 2, 2, 2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ------------------------------------------------------------------------------------------------</c>
+<c>* This example program demonstrates how to start one image processing method</c>
+<c>* several times in parallel in different threads and how to collect</c>
+<c>* the results of the calls in vector variables.</c>
+<c>* ---------------------------------------------------------------------------</c>
+<c>* </c>
+<c>* Initialize visualization</c>
+<l>dev_update_off ()</l>
+<l>read_image (ModelImage, 'razors1')</l>
+<l>get_image_size (ModelImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (ModelImage, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_line_width (1)</l>
+<c>* </c>
+<c>* Create shape model for alignment</c>
+<l>create_razor_shape_model (ModelImage, CenterROIRow, CenterROIColumn, ModelID)</l>
+<c>* </c>
+<c>* Create measurement ROIs</c>
+<l>create_measurement_rois (ModelImage, MeasureROI1Ref, MeasureROI2Ref, CenterROIRow, CenterROIColumn, Width, Height, DistRect1CenterRow, DistRect1CenterCol, DistRect2CenterRow, DistRect2CenterCol, RectPhi, RectLength1, RectLength2)</l>
+<c>* </c>
+<c>* Find razor blades and inspect the results in parallel running threads</c>
+<l>read_image (SearchImage, 'razors2')</l>
+<l>dev_display (SearchImage)</l>
+<l>find_shape_model (SearchImage, ModelID, 0, 0, 0.8, 0, 0.5, 'least_squares', 0, 0.7, RowCheck, ColumnCheck, AngleCheck, Score)</l>
+<l>dev_display_shape_matching_results (ModelID, 'yellow', RowCheck, ColumnCheck, AngleCheck, 1, 1, 0)</l>
+<l>if (|Score| &gt; 0)</l>
+<c>    * </c>
+<c>    * Detect defects on all razor blades in parallel and collect the results</c>
+<c>    * in vector variables for row and column</c>
+<l>    for I := 0 to |Score| - 1 by 1</l>
+<l>        par_start&lt;VThreads.at(I)&gt; : detect_defects (MeasureROI1Ref, MeasureROI2Ref, SearchImage, RowCheck[I], ColumnCheck[I], AngleCheck[I], DistRect1CenterRow, DistRect1CenterCol, DistRect2CenterRow, DistRect2CenterCol, RectPhi, RectLength1, RectLength2, Width, Height, VRowDefect.at(I), VColumnDefect.at(I))</l>
+<l>    endfor</l>
+<c>    * Wait for all threads to finish</c>
+<l>    convert_vector_to_tuple (VThreads, Threads)</l>
+<l>    par_join (Threads)</l>
+<c>    * </c>
+<c>    * Display results</c>
+<l>    convert_vector_to_tuple (VRowDefect, RowDefect)</l>
+<l>    convert_vector_to_tuple (VColumnDefect, ColumnDefect)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    gen_rectangle1 (Rectangle, RowDefect - 10, ColumnDefect - 10, RowDefect + 10, ColumnDefect + 10)</l>
+<l>    dev_display (Rectangle)</l>
+<l>    disp_message (WindowHandle, ['Checked ' + |Score| + ' razor blades','Found ' + |RowDefect| + ' defects'], 'window', 12, 12, ['black','red'], 'true')</l>
+<c>    * </c>
+<l>endif</l>
+<c>* Clean up memory</c>
+<l>clear_shape_model (ModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_razor_shape_model">
+<interface>
+<io>
+<par name="ModelImage" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="CenterROIRow" base_type="ctrl" dimension="0"/>
+<par name="CenterROIColumn" base_type="ctrl" dimension="0"/>
+<par name="ModelID" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Create model region</c>
+<l>Row1 := 46</l>
+<l>Column1 := 57</l>
+<l>Row2 := 79</l>
+<l>Column2 := 94</l>
+<l>gen_rectangle1 (ROIPart1, Row1, Column1, Row2, Column2)</l>
+<l>gen_rectangle1 (ROIPart2, Row1 + 364, Column1 + 13, Row2 + 364, Column2 + 13)</l>
+<l>union2 (ROIPart1, ROIPart2, ModelROI)</l>
+<l>area_center (ModelROI, Area, CenterROIRow, CenterROIColumn)</l>
+<l>reduce_domain (ModelImage, ModelROI, ImageROI)</l>
+<c>* Create model</c>
+<l>create_shape_model (ImageROI, 4, 0, 0, 'auto', 'none', 'use_polarity', 30, 10, ModelID)</l>
+<l>return ()</l>
+</body>
+<docu id="create_razor_shape_model">
+<parameters>
+<parameter id="CenterROIColumn"/>
+<parameter id="CenterROIRow"/>
+<parameter id="ModelID"/>
+<parameter id="ModelImage"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_measurement_rois">
+<interface>
+<io>
+<par name="ModelImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="MeasureROI1Ref" base_type="iconic" dimension="0"/>
+<par name="MeasureROI2Ref" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="CenterROIRow" base_type="ctrl" dimension="0"/>
+<par name="CenterROIColumn" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DistRect1CenterRow" base_type="ctrl" dimension="0"/>
+<par name="DistRect1CenterCol" base_type="ctrl" dimension="0"/>
+<par name="DistRect2CenterRow" base_type="ctrl" dimension="0"/>
+<par name="DistRect2CenterCol" base_type="ctrl" dimension="0"/>
+<par name="RectPhi" base_type="ctrl" dimension="0"/>
+<par name="RectLength1" base_type="ctrl" dimension="0"/>
+<par name="RectLength2" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Define reference measurement regions</c>
+<l>Rect1Row := 244</l>
+<l>Rect1Col := 73</l>
+<l>DistColRect1Rect2 := 18</l>
+<l>Rect2Row := Rect1Row</l>
+<l>Rect2Col := Rect1Col + DistColRect1Rect2</l>
+<l>RectPhi := rad(90)</l>
+<l>RectLength1 := 122</l>
+<l>RectLength2 := 2</l>
+<c>* </c>
+<c>* Generate reference measurement regions (for later visualization)</c>
+<l>gen_rectangle2 (MeasureROI1, Rect1Row, Rect1Col, RectPhi, RectLength1, RectLength2)</l>
+<l>gen_rectangle2 (MeasureROI2, Rect2Row, Rect2Col, RectPhi, RectLength1, RectLength2)</l>
+<c>* Translate reference measurement regions to match the shape model (without clipping!)</c>
+<l>get_system ('clip_region', OriginalClipRegion)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>move_region (MeasureROI1, MeasureROI1Ref, -CenterROIRow, -CenterROIColumn)</l>
+<l>move_region (MeasureROI2, MeasureROI2Ref, -CenterROIRow, -CenterROIColumn)</l>
+<l>set_system ('clip_region', OriginalClipRegion)</l>
+<c>* </c>
+<c>* Calculate offset to the shape model</c>
+<l>DistRect1CenterRow := Rect1Row - CenterROIRow</l>
+<l>DistRect1CenterCol := Rect1Col - CenterROIColumn</l>
+<l>DistRect2CenterRow := Rect2Row - CenterROIRow</l>
+<l>DistRect2CenterCol := Rect2Col - CenterROIColumn</l>
+<l>return ()</l>
+</body>
+<docu id="create_measurement_rois">
+<parameters>
+<parameter id="CenterROIColumn"/>
+<parameter id="CenterROIRow"/>
+<parameter id="DistRect1CenterCol"/>
+<parameter id="DistRect1CenterRow"/>
+<parameter id="DistRect2CenterCol"/>
+<parameter id="DistRect2CenterRow"/>
+<parameter id="Height"/>
+<parameter id="MeasureROI1Ref"/>
+<parameter id="MeasureROI2Ref"/>
+<parameter id="ModelImage"/>
+<parameter id="RectLength1"/>
+<parameter id="RectLength2"/>
+<parameter id="RectPhi"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="detect_defects">
+<interface>
+<io>
+<par name="MeasureROI1Ref" base_type="iconic" dimension="0"/>
+<par name="MeasureROI2Ref" base_type="iconic" dimension="0"/>
+<par name="SearchImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="RowCheck" base_type="ctrl" dimension="0"/>
+<par name="ColumnCheck" base_type="ctrl" dimension="0"/>
+<par name="AngleCheck" base_type="ctrl" dimension="0"/>
+<par name="DistRect1CenterRow" base_type="ctrl" dimension="0"/>
+<par name="DistRect1CenterCol" base_type="ctrl" dimension="0"/>
+<par name="DistRect2CenterRow" base_type="ctrl" dimension="0"/>
+<par name="DistRect2CenterCol" base_type="ctrl" dimension="0"/>
+<par name="RectPhi" base_type="ctrl" dimension="0"/>
+<par name="RectLength1" base_type="ctrl" dimension="0"/>
+<par name="RectLength2" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="RowFault" base_type="ctrl" dimension="0"/>
+<par name="ColFault" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Create measure region at found position</c>
+<l>vector_angle_to_rigid (0, 0, 0, RowCheck, ColumnCheck, AngleCheck, MovementOfObject)</l>
+<l>affine_trans_pixel (MovementOfObject, DistRect1CenterRow, DistRect1CenterCol, Rect1RowCheck, Rect1ColCheck)</l>
+<l>affine_trans_pixel (MovementOfObject, DistRect2CenterRow, DistRect2CenterCol, Rect2RowCheck, Rect2ColCheck)</l>
+<l>RectPhiCheck := RectPhi + AngleCheck</l>
+<l>gen_measure_rectangle2 (Rect1RowCheck, Rect1ColCheck, RectPhiCheck, RectLength1, RectLength2, Width, Height, 'bilinear', MeasureHandle1)</l>
+<l>gen_measure_rectangle2 (Rect2RowCheck, Rect2ColCheck, RectPhiCheck, RectLength1, RectLength2, Width, Height, 'bilinear', MeasureHandle2)</l>
+<c>* Visualize measurement regions</c>
+<l>affine_trans_region (MeasureROI1Ref, MeasureROI1AtNewPosition, MovementOfObject, 'constant')</l>
+<l>affine_trans_region (MeasureROI2Ref, MeasureROI2AtNewPosition, MovementOfObject, 'constant')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (MeasureROI1AtNewPosition)</l>
+<l>dev_display (MeasureROI2AtNewPosition)</l>
+<c>* </c>
+<c>* Perform the measurement</c>
+<l>measure_pairs (SearchImage, MeasureHandle1, 2, 25, 'negative', 'all', RowEdge11, ColEdge11, Amp11, RowEdge21, ColEdge21, Amp21, Width1, Distance1)</l>
+<l>measure_pairs (SearchImage, MeasureHandle2, 2, 25, 'negative', 'all', RowEdge12, ColEdge12, Amp12, RowEdge22, ColEdge22, Amp22, Width2, Distance2)</l>
+<l>close_measure (MeasureHandle1)</l>
+<l>close_measure (MeasureHandle2)</l>
+<c>* </c>
+<c>* Check for too short or missing teeth</c>
+<l>NumberTeeth1 := |Width1|</l>
+<l>NumberTeeth2 := |Width2|</l>
+<l>RowFault := []</l>
+<l>ColFault := []</l>
+<c>* Store defect positions</c>
+<l>if (NumberTeeth1 &lt; 37)</l>
+<l>    for J := 0 to NumberTeeth1 - 2 by 1</l>
+<l>        if (Distance1[J] &gt; 4.0)</l>
+<l>            RowFault := [RowFault,round(0.5 * (RowEdge11[J + 1] + RowEdge21[J]))]</l>
+<l>            ColFault := [ColFault,round(0.5 * (ColEdge11[J + 1] + ColEdge21[J]))]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>if (NumberTeeth2 &lt; 37)</l>
+<l>    for J := 0 to NumberTeeth2 - 2 by 1</l>
+<l>        if (Distance2[J] &gt; 4.0)</l>
+<l>            RowFault := [RowFault,round(0.5 * (RowEdge12[J + 1] + RowEdge22[J]))]</l>
+<l>            ColFault := [ColFault,round(0.5 * (ColEdge12[J + 1] + ColEdge22[J]))]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="detect_defects">
+<parameters>
+<parameter id="AngleCheck"/>
+<parameter id="ColFault"/>
+<parameter id="ColumnCheck"/>
+<parameter id="DistRect1CenterCol"/>
+<parameter id="DistRect1CenterRow"/>
+<parameter id="DistRect2CenterCol"/>
+<parameter id="DistRect2CenterRow"/>
+<parameter id="Height"/>
+<parameter id="MeasureROI1Ref"/>
+<parameter id="MeasureROI2Ref"/>
+<parameter id="RectLength1"/>
+<parameter id="RectLength2"/>
+<parameter id="RectPhi"/>
+<parameter id="RowCheck"/>
+<parameter id="RowFault"/>
+<parameter id="SearchImage"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

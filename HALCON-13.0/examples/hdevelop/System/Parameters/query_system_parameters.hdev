@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  This example queries HALCON relevant system parameters.</c>
+<c>*  These parameters are about the</c>
+<c>*    - used HALCON version</c>
+<c>*    - used operating system</c>
+<c>*    - relevant environment settings</c>
+<c>*    - automatic operator parallelization</c>
+<c>*    - usable image acquisition interfaces</c>
+<c>*    - usable compute devices</c>
+<c>*    - installed open gl</c>
+<c>*  The parameters will be displayed in an inspect window</c>
+<c>*  and written to the file:</c>
+<c>*  Path+'halcon_system_parameters.txt'</c>
+<c>* </c>
+<c>* The directory into which the information file will be written:</c>
+<l>Path := ''</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', ExceptionHandlingOld)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* </c>
+<l>SystemKeys := []</l>
+<l>SystemValues := []</l>
+<c>* </c>
+<c>* HALCON Information</c>
+<l>get_system ('version', HalconVersion)</l>
+<l>if (HalconVersion &gt;= '11.0')</l>
+<l>    get_system ('file_version', HalconFileVersion)</l>
+<l>else</l>
+<l>    get_system ('revision', HalconRevision)</l>
+<l>    if (HalconRevision &gt; '')</l>
+<l>        HalconFileVersion := HalconVersion + '.' + HalconRevision</l>
+<l>    else</l>
+<l>        HalconFileVersion := HalconVersion</l>
+<l>    endif</l>
+<l>endif</l>
+<l>get_system ('last_update', HalconDate)</l>
+<l>get_system ('halcon_arch', HalconArchitecture)</l>
+<l>get_system ('halcon_xl', HalconXL)</l>
+<l>SystemKeys := [SystemKeys,'*** HALCON Information ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>SystemKeys := [SystemKeys,'    HALCON Version:']</l>
+<l>SystemValues := [SystemValues,HalconFileVersion + ' ' + HalconDate]</l>
+<l>SystemKeys := [SystemKeys,'    HALCON Architecture:']</l>
+<l>SystemValues := [SystemValues,HalconArchitecture]</l>
+<l>SystemKeys := [SystemKeys,'    HALCON XL:']</l>
+<l>SystemValues := [SystemValues,HalconXL]</l>
+<l>if (HalconVersion &gt;= '11.0')</l>
+<l>    get_system ('library_fullname', HALCONLib)</l>
+<l>    SystemKeys := [SystemKeys,'    HALCON Library:']</l>
+<l>    SystemValues := [SystemValues,HALCONLib]</l>
+<l>endif</l>
+<c>* </c>
+<c>* System</c>
+<l>get_system ('operating_system', OSName)</l>
+<l>get_system ('operating_system_version', OSVersion)</l>
+<l>SystemKeys := [SystemKeys,'*** System Information ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>SystemKeys := [SystemKeys,'    Operating system:']</l>
+<l>SystemValues := [SystemValues,OSName]</l>
+<l>SystemKeys := [SystemKeys,'    Operating system version:']</l>
+<l>SystemValues := [SystemValues,OSVersion]</l>
+<c>* </c>
+<c>* Environment</c>
+<l>EnvHalconRoot := environment('HALCONROOT')</l>
+<l>EnvHalconArch := environment('HALCONARCH')</l>
+<l>EnvHalconExamples := environment('HALCONEXAMPLES')</l>
+<l>EnvHalconImages := environment('HALCONIMAGES')</l>
+<l>EnvHalconExtensions := environment('HALCONEXTENSIONS')</l>
+<l>EnvPath := environment('PATH')</l>
+<l>if (OSName != 'Windows NT')</l>
+<l>    tuple_environment ('LD_LIBRARY_PATH', EnvLDPath)</l>
+<l>endif</l>
+<l>get_system ('example_dir', ExampleDir)</l>
+<l>get_system ('image_dir', ImageDir)</l>
+<l>get_system ('3d_model_dir', Model3DDir)</l>
+<l>get_system ('help_dir', HelpDir)</l>
+<l>SystemKeys := [SystemKeys,'*** Environment ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>SystemKeys := [SystemKeys,'    %HALCONROOT%:']</l>
+<l>SystemValues := [SystemValues,EnvHalconRoot]</l>
+<l>SystemKeys := [SystemKeys,'    %HALCONARCH%:']</l>
+<l>SystemValues := [SystemValues,EnvHalconArch]</l>
+<l>SystemKeys := [SystemKeys,'    %HALCONEXAMPLES%:']</l>
+<l>SystemValues := [SystemValues,EnvHalconExamples]</l>
+<l>SystemKeys := [SystemKeys,'    %HALCONIMAGES%:']</l>
+<l>SystemValues := [SystemValues,EnvHalconImages]</l>
+<l>SystemKeys := [SystemKeys,'    %HALCONEXTENSIONS%:']</l>
+<l>SystemValues := [SystemValues,EnvHalconExtensions]</l>
+<l>SystemKeys := [SystemKeys,'    %PATH%:']</l>
+<l>SystemValues := [SystemValues,EnvPath]</l>
+<l>if (OSName != 'Windows NT')</l>
+<l>    SystemKeys := [SystemKeys,'    $LD_LIBRARY_PATH:']</l>
+<l>    SystemValues := [SystemValues,EnvLDPath]</l>
+<l>endif</l>
+<l>SystemKeys := [SystemKeys,'    Help directory:']</l>
+<l>SystemValues := [SystemValues,HelpDir]</l>
+<l>SystemKeys := [SystemKeys,'    Example directory:']</l>
+<l>SystemValues := [SystemValues,ExampleDir]</l>
+<l>SystemKeys := [SystemKeys,'    Image directory:']</l>
+<l>SystemValues := [SystemValues,ImageDir]</l>
+<l>SystemKeys := [SystemKeys,'    3D model directory:']</l>
+<l>SystemValues := [SystemValues,Model3DDir]</l>
+<c>* </c>
+<c>* Parallelization</c>
+<l>get_system ('processor_num', ProcessorNum)</l>
+<l>get_system ('thread_pool', ThreadPool)</l>
+<l>get_system ('thread_num', ThreadNum)</l>
+<l>get_system ('parallelize_operators', AOP)</l>
+<l>SystemKeys := [SystemKeys,'*** Parallelization ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>SystemKeys := [SystemKeys,'    Processor number:']</l>
+<l>SystemValues := [SystemValues,ProcessorNum]</l>
+<l>SystemKeys := [SystemKeys,'    Used thread number:']</l>
+<l>SystemValues := [SystemValues,ThreadNum]</l>
+<l>SystemKeys := [SystemKeys,'    Automatic operator parallelization:']</l>
+<l>SystemValues := [SystemValues,AOP]</l>
+<l>SystemKeys := [SystemKeys,'    Using thread pool:']</l>
+<l>SystemValues := [SystemValues,ThreadPool]</l>
+<c>* </c>
+<c>* SIMD Extensions</c>
+<l>SIMDExtensions := ['mmx','sse2','sse3','ssse3','sse41','sse42','avx','avx2']</l>
+<l>SystemKeys := [SystemKeys,'*** Supported SIMD Extensions ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>for I := 0 to |SIMDExtensions| - 1 by 1</l>
+<l>    get_system (SIMDExtensions[I] + '_supported', Information)</l>
+<l>    SystemKeys := [SystemKeys,'    ' + SIMDExtensions[I] + ':']</l>
+<l>    SystemValues := [SystemValues,Information]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Misc</c>
+<l>get_system ('do_low_error', LLE)</l>
+<l>SystemKeys := [SystemKeys,'*** Misc ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>SystemKeys := [SystemKeys,'    Low Level Errors:']</l>
+<l>SystemValues := [SystemValues,LLE]</l>
+<c>* </c>
+<c>* Acquisition interfaces</c>
+<l>get_param_info ('info_framegrabber', 'Name', 'values', AcqInterfaces)</l>
+<l>set_system ('do_low_error', 'disabled')</l>
+<l>SystemKeys := [SystemKeys,'*** Image Acquisition Interfaces ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>AcqString := []</l>
+<l>for I := 0 to |AcqInterfaces| - 1 by 1</l>
+<l>    SystemKeys := [SystemKeys,'    ' + AcqInterfaces[I] + ':']</l>
+<l>    try</l>
+<l>        info_framegrabber (AcqInterfaces[I], 'revision', Info, AcqRevision)</l>
+<l>        SystemValues := [SystemValues,AcqRevision]</l>
+<l>    catch (Exception)</l>
+<l>        SystemValues := [SystemValues,Exception[0]]</l>
+<l>    endtry</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Compute Devices</c>
+<l>CDString := []</l>
+<l>query_available_compute_devices (DeviceIdentifiers)</l>
+<l>SystemKeys := [SystemKeys,'*** Compute Devices ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>for I := 0 to |DeviceIdentifiers| - 1 by 1</l>
+<l>    get_compute_device_info (DeviceIdentifiers[I], 'name', DeviceName)</l>
+<l>    get_compute_device_info (DeviceIdentifiers[I], 'vendor', DeviceVendor)</l>
+<l>    get_compute_device_info (DeviceIdentifiers[I], 'platform_version', DevicePlatform)</l>
+<l>    get_compute_device_info (DeviceIdentifiers[I], 'driver_version', DeviceDriver)</l>
+<l>    SystemKeys := [SystemKeys,'    [' + I + '] Device:']</l>
+<l>    SystemValues := [SystemValues,DeviceVendor + ', ' + DeviceName]</l>
+<l>    SystemKeys := [SystemKeys,'       Platform:']</l>
+<l>    SystemValues := [SystemValues,DevicePlatform]</l>
+<l>    SystemKeys := [SystemKeys,'       Driver:']</l>
+<l>    SystemValues := [SystemValues,DeviceDriver]</l>
+<l>    get_compute_device_info (DeviceIdentifiers[I], 'image_support', DeviceImage)</l>
+<l>    SystemKeys := [SystemKeys,'       Image Support:']</l>
+<l>    if (DeviceImage == 'true')</l>
+<l>        get_compute_device_info (DeviceIdentifiers[I], 'image2d_max_width', DeviceImageWidth)</l>
+<l>        get_compute_device_info (DeviceIdentifiers[I], 'image2d_max_height', DeviceImageHeight)</l>
+<l>        SystemValues := [SystemValues,DeviceImageWidth + ' x ' + DeviceImageHeight]</l>
+<l>    else</l>
+<l>        SystemValues := [SystemValues,DeviceImage]</l>
+<l>    endif</l>
+<l>    get_compute_device_info (DeviceIdentifiers[I], 'extensions', DeviceExtensions)</l>
+<l>    SystemKeys := [SystemKeys,'       Extensions:']</l>
+<l>    SystemValues := [SystemValues,DeviceExtensions]</l>
+<l>endfor</l>
+<l>if (|DeviceIdentifiers| == 0)</l>
+<l>    SystemKeys := [SystemKeys,'    none']</l>
+<l>    SystemValues := [SystemValues,'']</l>
+<l>endif</l>
+<c>* </c>
+<c>* OpenGL Information</c>
+<l>get_system ('opengl_hidden_surface_removal_available', OpenGL_HSRA)</l>
+<l>get_system ('opengl_hidden_surface_removal_enable', OpenGL_HSRE)</l>
+<l>get_system ('opengl_info', OpenGL_Info)</l>
+<l>Substrings := split(OpenGL_Info,'\n')</l>
+<l>Substrings := split(Substrings,'=')</l>
+<l>EvenIdx := [0:2:|Substrings| - 1]</l>
+<l>OddIdx := [1:2:|Substrings| - 1]</l>
+<l>SystemKeys := [SystemKeys,'*** OpenGL Information ***']</l>
+<l>SystemValues := [SystemValues,'']</l>
+<l>SystemKeys := [SystemKeys,'    Hidden Surface Removal:']</l>
+<l>if (OpenGL_HSRA == 'true')</l>
+<l>    if (OpenGL_HSRE == 'true')</l>
+<l>        SystemValues := [SystemValues,'available, enabled']</l>
+<l>    else</l>
+<l>        SystemValues := [SystemValues,'available, disabled']</l>
+<l>    endif</l>
+<l>else</l>
+<l>    SystemValues := [SystemValues,OpenGL_HSRA]</l>
+<l>endif</l>
+<l>SystemKeys := [SystemKeys,'    ' + Substrings[EvenIdx] + ':']</l>
+<l>SystemValues := [SystemValues,Substrings[OddIdx]]</l>
+<c>* </c>
+<c>* </c>
+<l>set_system ('do_low_error', LLE)</l>
+<c>* </c>
+<c>* Current date and time</c>
+<l>get_system_time (MSecond, Second, Minute, Hour, Day, YDay, Month, Year)</l>
+<l>DayString := Year$'4d' + '.' + Month$'02d' + '.' + Day$'02d'</l>
+<l>TimeString := Hour$'02d' + '.' + Minute$'02d' + '.' + Second$'02d'</l>
+<c>* </c>
+<c>* Print the results in a ctrl inspection window</c>
+<l>dev_inspect_ctrl ([SystemKeys,SystemValues])</l>
+<c>* </c>
+<c>* Write the information to the support file</c>
+<l>open_file (Path + 'halcon_system_parameters.txt', 'output', FileHandle)</l>
+<c>* </c>
+<l>fwrite_string (FileHandle, '************************************************************\n')</l>
+<l>fwrite_string (FileHandle, '*                 HALCON System Parameters                 *\n')</l>
+<l>fwrite_string (FileHandle, '************************************************************\n')</l>
+<l>fwrite_string (FileHandle, '*')</l>
+<l>fnew_line (FileHandle)</l>
+<l>fwrite_string (FileHandle, 'Created: ' + DayString + ' ' + TimeString)</l>
+<l>fnew_line (FileHandle)</l>
+<l>fwrite_string (FileHandle, '*')</l>
+<l>fnew_line (FileHandle)</l>
+<l>if (OSName == 'Windows NT')</l>
+<l>    EnvCompName := environment('COMPUTERNAME')</l>
+<l>    fwrite_string (FileHandle, 'System: ' + EnvCompName + '\n')</l>
+<l>endif</l>
+<l>for I := 0 to |SystemKeys| - 1 by 1</l>
+<l>    fwrite_string (FileHandle, SystemKeys[I] + ' ')</l>
+<l>    fwrite_string (FileHandle, SystemValues[I])</l>
+<l>    fnew_line (FileHandle)</l>
+<l>endfor</l>
+<l>close_file (FileHandle)</l>
+<c>* </c>
+<c>* Cleanup</c>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', ExceptionHandlingOld)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

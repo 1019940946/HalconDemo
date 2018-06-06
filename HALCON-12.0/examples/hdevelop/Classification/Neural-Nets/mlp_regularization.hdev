@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the effect of regularizing an MLP using</c>
+<c>* two-dimensional data.  2D data is used because it can easily be visualized</c>
+<c>* as regions and images.  The example uses three classes that overlap</c>
+<c>* substantially.  It generates samples from each class and trains the MLP with</c>
+<c>* the samples using different amounts of regularization.  Then, the MLP is used</c>
+<c>* for evaluation to determine the probabilities of each class in the complete 2D</c>
+<c>* feature space.  This is used to create three probability images.  From the</c>
+<c>* probability images, it can be seen that the more the MLP is regularized, the</c>
+<c>* smoother the transitions between the classes are.  Furthermore, this example</c>
+<c>* intentionally uses too many neurons in the hidden layer to also show that the</c>
+<c>* regularization can be used to prevent overfitting of the data.  (A better</c>
+<c>* solution to the latter problem is, of course, to choose the number of neurons</c>
+<c>* in the hidden layer adequately.)</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 600, 600, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 199, 199)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* Generate three overlapping ellipses as the regions from which the training</c>
+<c>* samples are drawn.</c>
+<l>gen_ellipse (RegionClass1, 60, 60, rad(-45), 60, 40)</l>
+<l>gen_ellipse (RegionClass2, 70, 130, rad(-145), 70, 30)</l>
+<l>gen_ellipse (RegionClass3, 140, 100, rad(100), 55, 40)</l>
+<c>* Sample feature points from each region by segmenting a different noisy image</c>
+<c>* for each region and intersecting the segmented region with the class region.</c>
+<l>gen_image_const (Image, 'byte', 200, 200)</l>
+<l>add_noise_white (Image, ImageNoise1, 60)</l>
+<l>add_noise_white (Image, ImageNoise2, 60)</l>
+<l>add_noise_white (Image, ImageNoise3, 60)</l>
+<l>threshold (ImageNoise1, RegionNoise1, 40, 255)</l>
+<l>threshold (ImageNoise2, RegionNoise2, 40, 255)</l>
+<l>threshold (ImageNoise3, RegionNoise3, 40, 255)</l>
+<l>intersection (RegionClass1, RegionNoise1, SamplesClass1)</l>
+<l>intersection (RegionClass2, RegionNoise2, SamplesClass2)</l>
+<l>intersection (RegionClass3, RegionNoise3, SamplesClass3)</l>
+<c>* Display the samples of each class.</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (SamplesClass1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SamplesClass2)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (SamplesClass3)</l>
+<l>Message := 'Training samples of the 3 classes'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Read out the sample points and add them as training samples to the MLP.</c>
+<l>concat_obj (SamplesClass1, SamplesClass2, Samples)</l>
+<l>concat_obj (Samples, SamplesClass3, Samples)</l>
+<l>WeightPriors := [0.1,1.0,10.0]</l>
+<l>for I := 0 to |WeightPriors| - 1 by 1</l>
+<l>    WeightPrior := WeightPriors[I]</l>
+<l>    for UseRejectionClass := 0 to 1 by 1</l>
+<l>        if (UseRejectionClass)</l>
+<c>            * For the second run, add a rejection class</c>
+<l>            create_class_mlp (2, 10, 4, 'softmax', 'normalization', 1, 42, MLPHandle)</l>
+<l>            set_rejection_params_class_mlp (MLPHandle, 'sampling_strategy', 'hyperbox_ring_around_each_class')</l>
+<l>            set_rejection_params_class_mlp (MLPHandle, 'rejection_sample_factor', 6)</l>
+<l>            set_rejection_params_class_mlp (MLPHandle, 'hyperbox_tolerance', 2.5)</l>
+<l>            Message := 'Weight prior = ' + WeightPrior + ' and rejection class'</l>
+<l>        else</l>
+<l>            create_class_mlp (2, 10, 3, 'softmax', 'normalization', 1, 42, MLPHandle)</l>
+<l>            Message := 'Weight prior = ' + WeightPrior + ', no rejection class'</l>
+<l>        endif</l>
+<c>        * Set the weight prior ro regularize the MLP.</c>
+<l>        set_regularization_params_class_mlp (MLPHandle, 'weight_prior', WeightPrior)</l>
+<l>        for Class := 0 to 2 by 1</l>
+<l>            select_obj (Samples, SamplesClass, Class + 1)</l>
+<l>            get_region_points (SamplesClass, Rows, Cols)</l>
+<l>            for J := 0 to |Rows| - 1 by 1</l>
+<l>                add_sample_class_mlp (MLPHandle, real([Rows[J],Cols[J]]), Class)</l>
+<l>            endfor</l>
+<l>        endfor</l>
+<l>        get_sample_num_class_mlp (MLPHandle, NumSamples)</l>
+<c>        * Train the MLP.</c>
+<l>        train_class_mlp (MLPHandle, 300, 0.01, 0.01, Error, ErrorLog)</l>
+<c>        * Now determine the probability for the occurrence of each class for all points in</c>
+<c>        * the 2D feature space and accumulate them in three real images.  Furthermore,</c>
+<c>        * store the most likely class in a class label image.</c>
+<l>        gen_image_const (ProbClass1, 'real', 200, 200)</l>
+<l>        gen_image_const (ProbClass2, 'real', 200, 200)</l>
+<l>        gen_image_const (ProbClass3, 'real', 200, 200)</l>
+<l>        gen_image_const (LabelClass, 'byte', 200, 200)</l>
+<l>        for R := 0 to 199 by 1</l>
+<l>            for C := 0 to 199 by 1</l>
+<l>                Features := real([R,C])</l>
+<l>                evaluate_class_mlp (MLPHandle, Features, Prob)</l>
+<l>                classify_class_mlp (MLPHandle, Features, 1, Class, Confidence)</l>
+<l>                set_grayval (ProbClass1, R, C, Prob[0])</l>
+<l>                set_grayval (ProbClass2, R, C, Prob[1])</l>
+<l>                set_grayval (ProbClass3, R, C, Prob[2])</l>
+<l>                set_grayval (LabelClass, R, C, Class)</l>
+<l>            endfor</l>
+<l>        endfor</l>
+<l>        label_to_region (LabelClass, Classes)</l>
+<l>        compose3 (ProbClass1, ProbClass2, ProbClass3, Probs)</l>
+<c>        * Display the probabilities of each class.</c>
+<l>        dev_display (ProbClass1)</l>
+<l>        Message[1] := 'Probability of class 1'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_display (ProbClass2)</l>
+<l>        Message[1] := 'Probability of class 2'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_display (ProbClass3)</l>
+<l>        Message[1] := 'Probability of class 3'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<c>        * Display the probabilities of the three classes as an RGB image.</c>
+<l>        dev_display (Probs)</l>
+<l>        dev_set_color ('white')</l>
+<l>        dev_set_draw ('margin')</l>
+<l>        dev_display (RegionClass1)</l>
+<l>        dev_display (RegionClass2)</l>
+<l>        dev_display (RegionClass3)</l>
+<l>        dev_set_draw ('fill')</l>
+<l>        Message[1] := 'Probabilities of the 3 classes'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<c>        * Display the most likely class for each point in the feature space.</c>
+<l>        dev_set_colored (6)</l>
+<l>        dev_display (Classes)</l>
+<l>        dev_set_color ('white')</l>
+<l>        dev_set_draw ('margin')</l>
+<l>        dev_display (RegionClass1)</l>
+<l>        dev_display (RegionClass2)</l>
+<l>        dev_display (RegionClass3)</l>
+<l>        dev_set_draw ('fill')</l>
+<l>        Message[1] := 'Most probable classes'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>        if (I &lt; |WeightPriors| - 1 or UseRejectionClass == 0)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        endif</l>
+<l>        stop ()</l>
+<l>        clear_class_mlp (MLPHandle)</l>
+<l>    endfor</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

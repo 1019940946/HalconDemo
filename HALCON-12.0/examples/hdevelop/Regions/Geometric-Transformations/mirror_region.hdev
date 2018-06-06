@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>dev_set_color ('black')</l>
+<c>* Draw with the mouse an arbitrary region into the window</c>
+<l>draw_region (Region, WindowID)</l>
+<l>mirror_region (Region, RegionMirror1, 'row', 512)</l>
+<l>mirror_region (Region, RegionMirror2, 'column', 512)</l>
+<l>mirror_region (RegionMirror2, RegionMirror3, 'row', 512)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RegionMirror1)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (RegionMirror2)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (RegionMirror3)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

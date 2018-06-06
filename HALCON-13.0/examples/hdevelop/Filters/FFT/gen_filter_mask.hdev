@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>gen_filter_mask (ImageFilterEE, 'laws_ee', 1.0, 512, 512)</l>
+<l>fft_image (ImageFilterEE, EE)</l>
+<l>gen_filter_mask (ImageFilterSS, 'laws_ss', 1.5, 512, 512)</l>
+<l>fft_image (ImageFilterSS, SS)</l>
+<l>gen_filter_mask (ImageFilterRR, 'laws_rr', 0.1, 512, 512)</l>
+<l>fft_image (ImageFilterRR, RR)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

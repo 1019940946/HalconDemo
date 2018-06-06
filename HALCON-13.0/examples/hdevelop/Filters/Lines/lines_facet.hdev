@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Bk45, 'bk45')</l>
+<l>dev_set_colored (6)</l>
+<l>lines_facet (Bk45, Lines, 5, 3, 5, 'light')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

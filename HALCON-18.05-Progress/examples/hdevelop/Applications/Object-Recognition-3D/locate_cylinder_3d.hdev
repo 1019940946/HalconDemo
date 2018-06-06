@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates a 3D application, which combines</c>
+<c>* a stereo setup and the 3D shape-based matching feature. Given</c>
+<c>* a box of aluminum cylinders, the task is to find the highest</c>
+<c>* object in this heap. To do so, we first use a stereo setup to narrow</c>
+<c>* down the area of interest. In a second step a third camera takes</c>
+<c>* a close up shot of the scene, which is used to apply the</c>
+<c>* 3D Matching to determine the actual pose and orientation of</c>
+<c>* the object. In the right graphics window the height map of the</c>
+<c>* scene is displayed. The close up shot of the highest object</c>
+<c>* determined from the height map is then displayed in the left</c>
+<c>* graphics window.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>Path := 'metal_cylinders/'</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 752 * 0.5, 480 * 0.5, 'black', WindowHandleL)</l>
+<l>dev_set_part (0, 0, 480, 752)</l>
+<l>dev_set_lut ('default')</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandleL, 11, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>dev_open_window (0, 752 * 0.5, 640 * 0.95, 512 * 0.95, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 485, 607)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_set_lut ('temperature')</l>
+<l>dev_set_paint ('default')</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_division (0.00855613, -2579.17, 5.99979e-006, 6e-006, 399.681, 232.327, 752, 480, CamParamMatching)</l>
+<l>gen_cam_par_area_scan_division (0.0121469, -2514.3, 9.30281e-006, 9.3e-006, 272.773, 273.689, 640, 512, CamParam1)</l>
+<l>gen_cam_par_area_scan_division (0.0121592, -2687.76, 9.30085e-006, 9.3e-006, 302.665, 263.738, 640, 512, CamParam2)</l>
+<l>create_pose (0.202198, 0.00177953, 0.0376427, 0.325733, 342.295, 359.167, 'Rp+T', 'gba', 'point', RelPose)</l>
+<l>gen_binocular_rectification_map (Map1, Map2, CamParam1, CamParam2, RelPose, 1, 'geometric', 'bilinear', CamParamRect1, CamParamRect2, CamPoseRect1, CamPoseRect2, RelPoseRect)</l>
+<c>* </c>
+<l>file_exists ('cylinder.sm3', FileExists)</l>
+<l>if (FileExists)</l>
+<c>    * Load the model from file</c>
+<l>    read_shape_model_3d ('cylinder.sm3', ShapeModel3DID)</l>
+<l>else</l>
+<c>    * Recreate the model from the DXF file</c>
+<l>    read_object_model_3d ('cylinder.dxf', 'mm', [], [], ObjectModel3DID, DxfStatus)</l>
+<l>    prepare_object_model_3d (ObjectModel3DID, 'shape_based_matching_3d', 'true', [], [])</l>
+<l>    create_shape_model_3d (ObjectModel3DID, CamParamMatching, rad(90), 0, 0, 'gba', 0, 0, 0, rad(45), 0, rad(360), 0.3, 0.45, 10, 'num_levels', 5, ShapeModel3DID)</l>
+<l>    write_shape_model_3d (ShapeModel3DID, 'cylinder.sm3')</l>
+<l>endif</l>
+<c>* </c>
+<l>for Index := 1 to 15 by 1</l>
+<c>    * </c>
+<c>    * emphasize() enhances the texture on the cylinders surface</c>
+<l>    read_image (Image1, Path + 'stereo_left_' + Index$'02')</l>
+<l>    emphasize (Image1, ImageEmphasize1, 5, 5, 2)</l>
+<l>    map_image (ImageEmphasize1, Map1, ImageMapped1)</l>
+<l>    read_image (Image2, Path + 'stereo_right_' + Index$'02')</l>
+<l>    emphasize (Image2, ImageEmphasize2, 5, 5, 2)</l>
+<l>    map_image (ImageEmphasize2, Map2, ImageMapped2)</l>
+<c>    * </c>
+<c>    * the mask width and height must be (approximately) set according to the size</c>
+<c>    * of the pattern projected onto the setup</c>
+<l>    binocular_disparity (ImageMapped2, ImageMapped1, Disparity, Score, 'ncc', 7, 7, 0, -20, 140, 1, 0.7, 'left_right_check', 'none')</l>
+<l>    select_best_candidates (Disparity, TopMost)</l>
+<l>    remove_shadowed_regions (Disparity, 0.01)</l>
+<c>    * </c>
+<c>    * display height map and highest object extracted</c>
+<l>    clear_window (WindowHandleL)</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (ImageMapped2)</l>
+<l>    dev_display (Disparity)</l>
+<l>    wait_seconds (0.5)</l>
+<l>    dev_display (TopMost)</l>
+<l>    dev_display (Disparity)</l>
+<l>    wait_seconds (0.5)</l>
+<c>    * </c>
+<c>    * determine exact 3D pose of highest object</c>
+<l>    dev_set_window (WindowHandleL)</l>
+<l>    read_image (Image, Path + 'closeup_' + Index$'02')</l>
+<l>    dev_display (Image)</l>
+<l>    find_shape_model_3d (Image, ShapeModel3DID, 0.8, 0.7, [0,2], [], [], Pose, CovPose, Score_CTRL)</l>
+<l>    if (|Score_CTRL| != 0)</l>
+<l>        dev_set_color ('green')</l>
+<l>        display_match_pose (ShapeModel3DID, Pose, WindowHandleL)</l>
+<l>    else</l>
+<l>        disp_message (WindowHandleL, ' No match found ', 'window', 12, 12, 'black', 'true')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (Index != 15)</l>
+<l>        disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>disp_message (WindowHandleL, 'Program finished \nPress \'Run\' to clear the shape model', 'window', 1, 1, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="remove_shadowed_regions">
+<interface>
+<io>
+<par name="Disparity" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Threshold" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* for every stereo setup</c>
+<c>* occlusions and shadows produce small regions with very high disparity</c>
+<c>* which would be understood as being objects lying close to the camera</c>
+<c>* </c>
+<c>* in order to improve the quality of the results we remove such regions</c>
+<l>scale_image_max (Disparity, ImageScaleMax)</l>
+<l>gray_histo (ImageScaleMax, ImageScaleMax, AbsoluteHisto, RelativeHisto)</l>
+<l>Percent := RelativeHisto[255]</l>
+<l>i := 254</l>
+<l>while (Percent &lt; Threshold)</l>
+<l>    Percent := RelativeHisto[i] + Percent</l>
+<l>    i := i - 1</l>
+<l>endwhile</l>
+<l>threshold (ImageScaleMax, Region, i, 255)</l>
+<l>overpaint_region (Disparity, Region, 0.0, 'fill')</l>
+<l>return ()</l>
+</body>
+<docu id="remove_shadowed_regions">
+<parameters>
+<parameter id="Disparity"/>
+<parameter id="Threshold"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_match_pose">
+<interface>
+<ic>
+<par name="ShapeModel3DID" base_type="ctrl" dimension="0"/>
+<par name="Pose" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_shape_model_3d_params (ShapeModel3DID, 'reference_point', ReferencePoint)</l>
+<l>get_shape_model_3d_params (ShapeModel3DID, 'cam_param', CamParam)</l>
+<c>* </c>
+<c>* Project the reference point</c>
+<l>pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>affine_trans_point_3d (HomMat3D, ReferencePoint[0], ReferencePoint[1], ReferencePoint[2], X, Y, Z)</l>
+<l>project_3d_point (X, Y, Z, CamParam, Row, Column)</l>
+<c>* </c>
+<c>* </c>
+<c>* display the projected 3D model</c>
+<l>project_shape_model_3d (ModelContours, ShapeModel3DID, CamParam, Pose, 'true', rad(30))</l>
+<l>dev_display (ModelContours)</l>
+<l>return ()</l>
+</body>
+<docu id="display_match_pose">
+<chapters lang="en_US">
+<item>Matching-3D</item>
+</chapters>
+<short lang="en_US">Display a 3D matching pose at the projected reference point</short>
+<parameters>
+<parameter id="Pose"/>
+<parameter id="ShapeModel3DID"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="select_best_candidates">
+<interface>
+<io>
+<par name="Disparity" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="TopMost" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* </c>
+<l>full_domain (Disparity, DisparityFull)</l>
+<l>scale_image_max (DisparityFull, ImageScaleMax2)</l>
+<l>gray_dilation_shape (ImageScaleMax2, ImageMax, 3, 3, 'octagon')</l>
+<c>* </c>
+<c>* </c>
+<l>regiongrowing_n (ImageMax, cylinders, '2-norm', 0, 5, 200)</l>
+<l>intensity (cylinders, ImageScaleMax2, Mean1, Deviation1)</l>
+<l>tuple_max (Mean1, MaxVal)</l>
+<l>select_gray (cylinders, ImageScaleMax2, SelectedRegions, 'mean', 'and', MaxVal / 2, MaxVal + 1)</l>
+<l>select_shape (SelectedRegions, SelectedRegions, ['area','rectangularity'], 'and', [7000,0.65], [25000,1.0])</l>
+<l>intensity (SelectedRegions, ImageScaleMax2, Mean, Deviation)</l>
+<c>* </c>
+<l>min_max_gray (SelectedRegions, ImageScaleMax2, 0, Min, Max, Range)</l>
+<l>tuple_sort_index (Max, Indices)</l>
+<l>select_obj (SelectedRegions, TopMost, Indices[|Max| - 1] + 1)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="select_best_candidates">
+<parameters>
+<parameter id="Disparity"/>
+<parameter id="TopMost"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

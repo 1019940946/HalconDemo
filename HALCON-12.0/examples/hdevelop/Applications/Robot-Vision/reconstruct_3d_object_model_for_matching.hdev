@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  This example shows the complete pipeline from</c>
+<c>*  3D object acquisition and model creation to matching</c>
+<c>* </c>
+<c>*  The steps are:</c>
+<c>*    - pairwise registration of 3D data</c>
+<c>*    - global   registration of all 3D data</c>
+<c>*    - union of the registered 3D data</c>
+<c>*    - subsampling and smoothing to suppress outliers</c>
+<c>*    - triangulation</c>
+<c>*    - model extraction and training</c>
+<c>*    - matching in images from another sensor</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* Get om3-filenames</c>
+<l>list_image_files ('universal_joint_part', 'default', [], AllImageFiles)</l>
+<l>tuple_regexp_select (AllImageFiles, 'intensities', ImageFiles)</l>
+<l>ImageFiles := sort(ImageFiles)</l>
+<c>* </c>
+<c>* Prepare windows</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (250, 0, 748 + 12, 300, 'black', WindowHandle3D)</l>
+<l>dev_open_window (0, 0, 748 / 2, 240, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, 748 / 2 + 12, 748 / 2, 240, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandle3D, 16, 'mono', 'true', 'false')</l>
+<c>* Prepare Visualization</c>
+<l>Color1 := 'green'</l>
+<l>Color2 := 'yellow'</l>
+<l>Color3 := 'gray'</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color (Color1)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color (Color2)</l>
+<c>* Prepare 3D Visualization</c>
+<l>CamParam1 := [0.06,0,8.5e-6,8.5e-6,380.0,150.0,760,300]</l>
+<l>CamParam2 := [0.06,0,8.5e-6,8.5e-6,380.0,275.0,760,550]</l>
+<l>create_pose (70, -20, 1800, 125, 345, 185, 'Rp+T', 'gba', 'point', PoseVisualize)</l>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>VisualizeParameterNames := ['color','color_0','color_1','point_size','point_size_0','point_size_1']</l>
+<l>VisualizeParameterValues := [Color3,Color1,Color2,1.0,1.0,1.0]</l>
+<c>* </c>
+<l>read_image (Image, 'universal_joint_part/universal_joint_part_intensities_00')</l>
+<l>read_image (Image2, 'universal_joint_part/universal_joint_part_intensities_01')</l>
+<l>gen_rectangle1 (Rectangle, 0, 0, 479, 747)</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_display (Image)</l>
+<l>Message := 'This program creates a 3D model for surface-based 3D-matching'</l>
+<l>Message[1] := 'from a series of 3D sensor images by 3D registration.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'After that, the model is used to locate the object'</l>
+<l>Message[4] := 'in 3D data of a different source.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'Step 1:'</l>
+<l>Message[7] := 'Pairwise registration of 3D sensor data'</l>
+<c>* </c>
+<l>disp_message (WindowHandle3D, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle3D, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 1</c>
+<c>* </c>
+<c>* Pairwise registration of the 3D sensor data</c>
+<c>* </c>
+<c>* The reference frame will be the first object model:</c>
+<l>read_object_model_3d ('universal_joint_part/universal_joint_part_xyz_00.om3', 'm', [], [], ObjectModel3D, Status)</l>
+<l>PreviousOM3 := ObjectModel3D</l>
+<l>RegisteredOM3s := ObjectModel3D</l>
+<l>copy_object_model_3d (ObjectModel3D, 'all', CollectedAffineObjects)</l>
+<l>Offsets := []</l>
+<l>hom_mat3d_identity (HomMat3DStart)</l>
+<l>HomMat3DCompose := HomMat3DStart</l>
+<c>* Take 15 of 22 scans for the triangulation process</c>
+<l>NumTrainingImages := 15</l>
+<l>NumSearchImages := |ImageFiles| - NumTrainingImages</l>
+<l>for Index := 1 to NumTrainingImages - 1 by 1</l>
+<c>    * </c>
+<c>    * Read next 3D object model</c>
+<l>    read_object_model_3d ('universal_joint_part/universal_joint_part_xyz_' + Index$'02d', 'm', [], [], ObjectModel3D, Status)</l>
+<c>    * Skip small objects, because the registration will likely fail</c>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', ParamValue)</l>
+<l>    if (ParamValue &lt; 1000)</l>
+<l>        clear_object_model_3d (ObjectModel3D)</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    * Register the last successful match and the current model</c>
+<l>    register_object_model_3d_pair (ObjectModel3D, PreviousOM3, 'matching', 'default_parameters', 'accurate', Pose, Score)</l>
+<c>    * If registration failed, ignore this view</c>
+<l>    if (|Pose| == 0 or Score &lt; 0.7)</l>
+<l>        clear_object_model_3d (ObjectModel3D)</l>
+<l>        continue</l>
+<l>    endif</l>
+<l>    try</l>
+<c>        * Accumulate the result</c>
+<l>        pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>        RegisteredOM3s := [RegisteredOM3s,ObjectModel3D]</l>
+<l>        Offsets := [Offsets,HomMat3D]</l>
+<c>        * Create 3D object model for visualization</c>
+<l>        hom_mat3d_compose (HomMat3DCompose, HomMat3D, HomMat3DCompose)</l>
+<l>        affine_trans_object_model_3d (ObjectModel3D, HomMat3DCompose, ObjectModel3DAffineTrans)</l>
+<l>        CollectedAffineObjects := [ObjectModel3DAffineTrans,CollectedAffineObjects]</l>
+<c>        * Prepare next round</c>
+<l>        PreviousOM3 := ObjectModel3D</l>
+<c>        * Show all 3D object models</c>
+<l>        dev_set_window (WindowHandle3D)</l>
+<l>        disp_object_model_3d_safe (WindowHandle3D, CollectedAffineObjects, CamParam1, PoseVisualize, VisualizeParameterNames, VisualizeParameterValues)</l>
+<l>        disp_message (WindowHandle3D, 'Registered models', 'window', 12, 12, 'black', 'true')</l>
+<c>        * Display gray value images for illustration</c>
+<l>        dev_set_window (WindowHandle1)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_line_width (3)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        Message := 'View ' + Index</l>
+<l>        disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>        * Read an image</c>
+<l>        read_image (Image, ImageFiles[Index])</l>
+<c>        * Display the new frame now, to see both frames</c>
+<l>        dev_set_window (WindowHandle2)</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_line_width (3)</l>
+<l>        dev_display (Rectangle)</l>
+<l>        Message := 'View ' + (Index + 1)</l>
+<l>        disp_message (WindowHandle2, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    catch (Exception1)</l>
+<l>        clear_object_model_3d (ObjectModel3D)</l>
+<l>    endtry</l>
+<l>endfor</l>
+<c>* Cleanup after step 1</c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle3D)</l>
+<l>dev_set_window_extents (0, 0, 760, 550)</l>
+<l>dev_clear_window ()</l>
+<c>* Display results of pairwise registration</c>
+<l>Message := 'Result of the pairwise registration'</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>Message := 'Pairwise registration carries the risk of'</l>
+<l>Message[1] := 'accumulating errors over many images.'</l>
+<l>Message[2] := 'Therefore, the results will be refined globally'</l>
+<l>Message[3] := 'in the next step.'</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle3D, CollectedAffineObjects, CamParam2, PoseVisualize, ['colored','disp_background'], [12,'true'], [], [], Instructions, PoseVisualize)</l>
+<l>clear_object_model_3d (CollectedAffineObjects)</l>
+<c>* </c>
+<c>* Part 2</c>
+<c>* </c>
+<c>* Global registration of all views based on the</c>
+<c>* result of the pairwise registration</c>
+<c>* </c>
+<c>* Global registration needs approximations of the</c>
+<c>* relative poses (represented by homogeneous matrices)</c>
+<c>* as input.</c>
+<c>* In this example, the results of the pairwise</c>
+<c>* registration are used.</c>
+<c>* Another possibility is to use robot poses,</c>
+<c>* e.g., if the sensor is attached to a robot arm.</c>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Step 2:'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'Global registration of 3D sensor data'</l>
+<l>Message[4] := 'to refine the results.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'This may take a minute, please wait...'</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>register_object_model_3d_global (RegisteredOM3s, Offsets, 'previous', [], 'max_num_iterations', 1, HomMat3DRefined, Score)</l>
+<c>* Apply results</c>
+<l>affine_trans_object_model_3d (RegisteredOM3s, HomMat3DRefined, GloballyRegisteredOM3s)</l>
+<c>* Clear input data</c>
+<l>clear_object_model_3d (RegisteredOM3s)</l>
+<c>* </c>
+<l>Title := 'Result of the global registration'</l>
+<l>visualize_object_model_3d (WindowHandle3D, GloballyRegisteredOM3s, CamParam2, PoseVisualize, 'colored', 12, Title, [], Instructions, Pose)</l>
+<c>* </c>
+<c>* Part 3</c>
+<c>* </c>
+<c>* Unification</c>
+<c>* </c>
+<c>* </c>
+<l>union_object_model_3d (GloballyRegisteredOM3s, 'points_surface', UnionOptimized)</l>
+<l>dev_clear_window ()</l>
+<l>Title := 'Union of the registered models'</l>
+<l>Message := 'The result still is very noisy.'</l>
+<l>Message[2] := 'Therefore further processing is done in the next steps.'</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle3D, UnionOptimized, CamParam2, PoseVisualize, ['point_size','color','disp_background'], [1.0,'gray','true'], Title, [], Instructions, Pose)</l>
+<l>clear_object_model_3d (GloballyRegisteredOM3s)</l>
+<c>* </c>
+<c>* Part 4</c>
+<c>* </c>
+<c>* Process the raw data:</c>
+<c>* </c>
+<c>* Subsampling, smoothing and triangulation</c>
+<c>* </c>
+<c>* 4a) Subsampling</c>
+<c>* </c>
+<c>* The sample distance denotes the targeted accuracy.</c>
+<c>* In sampling mode 'accurate', a voxel of this size must</c>
+<c>* contain at least 'min_num_points' points to be considred</c>
+<c>* valid. The mean of all points in a voxel is returned.</c>
+<l>MinNumPoints := 5</l>
+<l>SampleDistance := 0.5</l>
+<l>sample_object_model_3d (UnionOptimized, 'accurate', SampleDistance, 'min_num_points', MinNumPoints, SampleExact)</l>
+<c>* </c>
+<l>Title := 'Subsampled object (sample distance: ' + SampleDistance + 'mm)'</l>
+<l>Message := 'Subsampling reduces the number of points in overlapping areas.'</l>
+<l>Message[1] := 'Therefore, the points are now more equally distributed.'</l>
+<l>Message[2] := 'Additionally, points in voxels with'</l>
+<l>Message[3] := 'less than ' + MinNumPoints + ' points are removed.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle3D, SampleExact, CamParam2, Pose, ['point_size','color','disp_background'], [1.0,'gray','true'], Title, [], Instructions, Pose)</l>
+<l>clear_object_model_3d (UnionOptimized)</l>
+<c>* </c>
+<c>* 4b) Normal calculation with smoothing</c>
+<c>* Move the object temporarily, so that the origin of the coordinate system</c>
+<c>* lies conveniently below the object. This way, in combination</c>
+<c>* with the 'mls_force_inwards' option of smooth_object_model_3d,</c>
+<c>* the normals of the smoothed object model will point downwards</c>
+<c>* making the surface-based 3D matching more robust.</c>
+<l>get_object_model_3d_params (SampleExact, 'center', Center)</l>
+<l>get_object_model_3d_params (SampleExact, 'bounding_box1', BoundingBox)</l>
+<l>hom_mat3d_identity (HomMat3DTrans)</l>
+<l>hom_mat3d_translate_local (HomMat3DTrans, -Center[0], -Center[1], -BoundingBox[2], HomMat3DTranslate)</l>
+<l>affine_trans_object_model_3d (SampleExact, HomMat3DTranslate, SampleExactTrans)</l>
+<l>smooth_object_model_3d (SampleExactTrans, 'mls', 'mls_force_inwards', 'true', SmoothObject3DTrans)</l>
+<l>hom_mat3d_invert (HomMat3DTranslate, HomMat3DInvert)</l>
+<l>affine_trans_object_model_3d (SmoothObject3DTrans, HomMat3DInvert, SmoothObject3D)</l>
+<l>Title := 'Smoothed object'</l>
+<l>Message := 'Smoothing reduces the noise some more.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle3D, SmoothObject3D, CamParam2, Pose, ['point_size','color','disp_background'], [1.0,'gray','true'], Title, [], Instructions, Pose)</l>
+<l>clear_object_model_3d (SampleExact)</l>
+<l>clear_object_model_3d (SampleExactTrans)</l>
+<l>clear_object_model_3d (SmoothObject3DTrans)</l>
+<c>* </c>
+<c>* 4c) Triangulation</c>
+<l>Message := 'Please wait while triangulating...'</l>
+<l>Message[1] := 'Check the status bar for progress information.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>triangulate_object_model_3d (SmoothObject3D, 'greedy', [], [], Surface3D, Information)</l>
+<l>Title := 'Smoothed and triangulated surface'</l>
+<l>dev_clear_window ()</l>
+<l>visualize_object_model_3d (WindowHandle3D, Surface3D, CamParam2, Pose, 'disp_background', 'true', Title, [], Instructions, Pose)</l>
+<l>clear_object_model_3d (SmoothObject3D)</l>
+<c>* </c>
+<c>* Part 5</c>
+<c>* </c>
+<c>* Segment the universal joint part from</c>
+<c>* the processed data and train a model for</c>
+<c>* surface-based 3D matching from it.</c>
+<c>* </c>
+<l>connection_object_model_3d (Surface3D, 'mesh', 1, ObjectModel3DConnected)</l>
+<l>clear_object_model_3d (Surface3D)</l>
+<c>* Select the large components</c>
+<l>select_object_model_3d (ObjectModel3DConnected, ['has_triangles','num_triangles'], 'and', [1,2000], [1,100000], ObjectModel3DSelected)</l>
+<l>Title := 'Large connected components in different colors'</l>
+<l>Message := 'After triangulation, the desired object can easily be'</l>
+<l>Message[1] := 'segmented as a training model for surface-based 3D matching.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle3D, ObjectModel3DSelected, CamParam2, Pose, ['colored','disp_background'], [12,'true'], Title, '#' + ObjectModel3DSelected, Instructions, Pose)</l>
+<l>clear_object_model_3d (ObjectModel3DConnected)</l>
+<l>select_object_model_3d (ObjectModel3DSelected, ['central_moment_2_x','central_moment_2_y'], 'and', [150,200], [400,230], ObjectModel3DCross)</l>
+<l>clear_object_model_3d (ObjectModel3DSelected)</l>
+<l>Title := 'Segmented training model'</l>
+<l>Message := 'This object is used as input for surface-based 3D matching.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>visualize_object_model_3d (WindowHandle3D, ObjectModel3DCross, CamParam2, Pose, ['colored','disp_background'], [12,'true'], Title, '#' + ObjectModel3DCross, Instructions, Pose)</l>
+<c>* </c>
+<c>* Determine the directions of the normals of the resulting 3D object model</c>
+<l>test_normal_direction (ObjectModel3DCross, InvertNormals)</l>
+<c>* Create a surface model with eventually inverted normals</c>
+<l>create_surface_model (ObjectModel3DCross, 0.03, 'model_invert_normals', InvertNormals, SurfaceModelID)</l>
+<c>* </c>
+<c>* Part 6</c>
+<c>* </c>
+<c>* Surface-based 3D matching in data from</c>
+<c>* the original sensor</c>
+<c>* </c>
+<c>* Apply the results from the triangulation to similar data from the same sensor</c>
+<c>* as used for the registration/triangulation pipeline. In this step we assess how</c>
+<c>* accurate the model is.</c>
+<c>* </c>
+<l>Message := 'First, we try to find the model in 3D data'</l>
+<l>Message := 'acquired by the same sensor than the training data.'</l>
+<l>for Index := 1 to NumSearchImages by 1</l>
+<c>    * Read the next view</c>
+<l>    read_image (Image, ImageFiles[NumTrainingImages + Index - 1])</l>
+<l>    read_object_model_3d ('universal_joint_part/universal_joint_part_xyz_' + (NumTrainingImages + Index - 1)$'02d', 'm', [], [], ObjectModel3D, Status)</l>
+<l>    set_grayvals_object_model_3d (Image, ObjectModel3D)</l>
+<c>    * 6a) Find the model in the scene.</c>
+<l>    find_surface_model (SurfaceModelID, ObjectModel3D, 0.07, 0.2, 0.5, 'false', [], [], PoseMatch, Score, SurfaceMatchingResultID)</l>
+<l>    pose_to_hom_mat3d (PoseMatch, HomMat3D)</l>
+<l>    affine_trans_object_model_3d (ObjectModel3DCross, HomMat3D, ObjectModel3DAffineTrans)</l>
+<l>    dev_clear_window ()</l>
+<l>    Title := 'Surface-based matching result in original data (' + Index + '/' + NumSearchImages + ')'</l>
+<l>    visualize_object_model_3d (WindowHandle3D, [ObjectModel3DAffineTrans,ObjectModel3D], CamParam2, Pose, ['alpha_0','alpha_1','color_0','intensity_1'], [1.0,0.8,'green','&amp;gray'], Title, [], Instructions, Pose)</l>
+<c>    * 6b) Calculate the distance between model and scene.</c>
+<l>    distance_object_model_3d (ObjectModel3D, ObjectModel3DAffineTrans, [], 0, 'distance_to', 'points')</l>
+<c>    * Prepare the colors in the visualization</c>
+<c>    * blue : Far (-&gt;), green : Near (&lt;-), red : Near (-&gt;)</c>
+<c>    * -&gt;: Intensity increasing with distance.</c>
+<c>    * &lt;-: Intensity decreasing with distance</c>
+<l>    set_distance_colors (ObjectModel3D, 1.0, 2.0)</l>
+<l>    Title := 'Quality assessment of the model. Scene points are displayed'</l>
+<l>    Message := 'The green shaded parts correspond well with the model '</l>
+<l>    Message[1] := 'The red   shaded parts have a high distance to the model'</l>
+<l>    Message[2] := 'The blue  shaded parts are background.'</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>    visualize_object_model_3d (WindowHandle3D, ObjectModel3D, CamParam2, Pose, ['alpha_0','color_0','intensity_red_0','intensity_green_0','intensity_blue_0','disp_background'], [1.0,'gray','&amp;interest','&amp;correct','&amp;distance','true'], Title, [], Instructions, Pose)</l>
+<c>    * Clear the scene and the transformed model</c>
+<l>    clear_object_model_3d (ObjectModel3DAffineTrans)</l>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<l>endfor</l>
+<l>clear_surface_model (SurfaceModelID)</l>
+<c>* </c>
+<c>* Part 7</c>
+<c>* </c>
+<c>* Surface-based 3D matching in data from</c>
+<c>* a different sensor.</c>
+<c>* In this case: stereo reconstruction</c>
+<c>* </c>
+<l>init_stereo_and_surface_model (CamParam0, StereoModelID, cam_H_ref)</l>
+<l>tuple_regexp_select (AllImageFiles, 'camera_0', ImageFiles1)</l>
+<l>tuple_regexp_select (AllImageFiles, 'camera_1', ImageFiles2)</l>
+<l>tuple_regexp_select (AllImageFiles, 'camera_2', ImageFiles3)</l>
+<l>tuple_regexp_select (AllImageFiles, 'camera_3', ImageFiles4)</l>
+<l>hom_mat3d_identity (HomMat3DScale)</l>
+<c>* Scale from mm to m (Differences between the sensor data)</c>
+<l>HomMat3DScale[0] := 0.001</l>
+<l>HomMat3DScale[5] := 0.001</l>
+<l>HomMat3DScale[10] := 0.001</l>
+<l>affine_trans_object_model_3d (ObjectModel3DCross, HomMat3DScale, OM3DModelTmp)</l>
+<l>clear_object_model_3d (ObjectModel3DCross)</l>
+<l>get_object_model_3d_params (OM3DModelTmp, 'center', Center)</l>
+<l>hom_mat3d_identity (HomMat3DTrans)</l>
+<l>hom_mat3d_translate_local (HomMat3DTrans, -Center[0], -Center[1], -Center[2], HomMat3DTranslate)</l>
+<l>affine_trans_object_model_3d (OM3DModelTmp, HomMat3DTranslate, OM3DModel)</l>
+<l>get_object_model_3d_params (OM3DModelTmp, 'diameter', Diameter)</l>
+<l>clear_object_model_3d (OM3DModelTmp)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Create a surface model for both possible normal orientations.</c>
+<c>* This direction is not predictable in a multicam setup, since</c>
+<c>* it depends on which camera pair was used to reconstruct a point.</c>
+<l>create_surface_model (OM3DModel, 0.04, 'model_invert_normals', 'false', SurfaceModelID)</l>
+<c>* Start matching</c>
+<l>for IndexScene := 0 to |ImageFiles1| - 1 by 1</l>
+<c>    * Open 4 images per scene</c>
+<l>    gen_empty_obj (Images)</l>
+<l>    read_image (Image1, ImageFiles1[IndexScene])</l>
+<l>    concat_obj (Images, Image1, Images)</l>
+<l>    read_image (Image2, ImageFiles2[IndexScene])</l>
+<l>    concat_obj (Images, Image2, Images)</l>
+<l>    read_image (Image3, ImageFiles3[IndexScene])</l>
+<l>    concat_obj (Images, Image3, Images)</l>
+<l>    read_image (Image4, ImageFiles4[IndexScene])</l>
+<l>    concat_obj (Images, Image4, Images)</l>
+<c>    * Display the scene as images</c>
+<l>    dev_set_window (WindowHandle3D)</l>
+<l>    tile_images (Images, TiledImage, 2, 'vertical')</l>
+<l>    gen_rectangle1 (ImageBorders, [0,0,480,480], [0,754,0,754], [479,479,959,959], [753,1507,753,1507])</l>
+<l>    dev_display (TiledImage)</l>
+<l>    dev_set_colored (12)</l>
+<l>    dev_display (ImageBorders)</l>
+<l>    Message := 'Reconstruct scene from 4 different views'</l>
+<l>    disp_message (WindowHandle3D, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * Perform stereo reconstrucion</c>
+<l>    count_seconds (T0)</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModelScene)</l>
+<l>    count_seconds (T1)</l>
+<l>    Message[1] := 'Perform matching...'</l>
+<l>    disp_message (WindowHandle3D, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Do preprocessing of the 3D data</c>
+<c>    * First filter outliers by eliminatzing sparse points:</c>
+<c>    * 1. Search for points with nearby other points and segment</c>
+<c>    *    the object model into connected components</c>
+<c>    * 2. Select only big components</c>
+<c>    * 3. Union the remaining components into one object (If more than one object was remaining)</c>
+<c>    * 4. On the remainings points a smoothing can be performed in order to calculate normals.</c>
+<c>    *    This step can flip the normals in a arbitrary direction, since there is no</c>
+<c>    *    context availabale, which direction might be preferable</c>
+<c>    * </c>
+<l>    count_seconds (T2)</l>
+<l>    connection_object_model_3d (ObjectModelScene, 'distance_3d', 0.006, ObjectModel3DConnected)</l>
+<l>    select_object_model_3d (ObjectModel3DConnected, 'num_points', 'and', 2000, 10000000, ObjectModel3DSelected)</l>
+<l>    clear_object_model_3d (ObjectModel3DConnected)</l>
+<c>    * </c>
+<l>    if (|ObjectModel3DSelected| &gt; 0)</l>
+<l>        union_object_model_3d (ObjectModel3DSelected, 'points_surface', UnionObjectModel3D)</l>
+<l>        smooth_object_model_3d (UnionObjectModel3D, 'mls', [], [], SmoothObject3D1)</l>
+<l>        count_seconds (T3)</l>
+<c>        * Perform the matching, if no obejct was found, try the other normal direction</c>
+<l>        find_surface_model (SurfaceModelID, SmoothObject3D1, 0.02, 0.7, 0.25, 'false', 'num_matches', 3, Pose, Score, SurfaceMatchingResultID)</l>
+<l>        count_seconds (T4)</l>
+<l>    else</l>
+<l>        Score := []</l>
+<l>    endif</l>
+<l>    Title := 'Found ' + |Score| + ' objects (with indicated score) in scene ' + (IndexScene + 1) + ' of ' + |ImageFiles1|</l>
+<l>    Message := 'Total execution time: ' + (T4 - T0)$'4.2' + 's'</l>
+<l>    Message[1] := ' - Reconstruction:    ' + (T1 - T0)$'4.2' + 's'</l>
+<l>    Message[2] := ' - Preprocessing:     ' + (T3 - T2)$'4.2' + 's'</l>
+<l>    Message[3] := ' - Matching:          ' + (T4 - T3)$'4.2' + 's'</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle3D, Message, 'window', 50, 12, 'white', 'false')</l>
+<l>    if (|Score| &gt; 0)</l>
+<l>        Objects := []</l>
+<l>        for I := 0 to |Score| - 1 by 1</l>
+<l>            pose_to_hom_mat3d (Pose[I * 7:I * 7 + 6], HomMat3D)</l>
+<l>            affine_trans_object_model_3d (OM3DModel, HomMat3D, ObjectModel3DAffineTrans)</l>
+<l>            Objects := [Objects,ObjectModel3DAffineTrans]</l>
+<l>        endfor</l>
+<c>        * Set the gray values</c>
+<l>        set_grayval_object_model_3d (Image1, SmoothObject3D1, cam_H_ref, CamParam0)</l>
+<c>        * Display results in 3D</c>
+<l>        visualize_object_model_3d (WindowHandle3D, [SmoothObject3D1,Objects], CamParam0, [], ['point_size','alpha','alpha_0','color','color_0','intensity_0','disp_background'], [1.5,1.0,1.0,'green','white','&amp;gray','true'], Title, [' ',Score$'0.2f'], Instructions, PoseOut1)</l>
+<l>        clear_object_model_3d ([ObjectModel3DSelected,SmoothObject3D1,Objects,UnionObjectModel3D])</l>
+<l>        clear_object_model_3d (ObjectModelScene)</l>
+<l>    else</l>
+<l>        set_grayval_object_model_3d (Image1, SmoothObject3D1, cam_H_ref, CamParam0)</l>
+<l>        visualize_object_model_3d (WindowHandle3D, SmoothObject3D1, CamParam0, [], ['intensity','disp_background'], ['&amp;gray','true'], Title, [], Instructions, PoseOut)</l>
+<l>        clear_object_model_3d (ObjectModelScene)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>clear_object_model_3d (OM3DModel)</l>
+<l>clear_surface_model (SurfaceModelID)</l>
+<l>clear_stereo_model (StereoModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="init_stereo_and_surface_model">
+<interface>
+<oc>
+<par name="CamParam0" base_type="ctrl" dimension="0"/>
+<par name="StereoModelID" base_type="ctrl" dimension="0"/>
+<par name="cam_H_ref" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>read_camera_setup_model ('four_camera_setup_model.csm', CameraSetupModelID)</l>
+<c>* </c>
+<l>get_camera_setup_param (CameraSetupModelID, 'general', 'num_cameras', NumCameras)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 0, 'pose', Pose0)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 1, 'pose', Pose1)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 2, 'pose', Pose2)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 3, 'pose', Pose3)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 0, 'params', CamParam0)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 1, 'params', CamParam1)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 2, 'params', CamParam2)</l>
+<l>get_camera_setup_param (CameraSetupModelID, 3, 'params', CamParam3)</l>
+<c>* </c>
+<c>* </c>
+<c>* Create a multi-view stereo model, initialize it, and clear</c>
+<c>* the camera setup, which is no longer required</c>
+<l>create_stereo_model (CameraSetupModelID, 'surface_pairwise', [], [], StereoModelID)</l>
+<l>clear_camera_setup_model (CameraSetupModelID)</l>
+<c>* -&gt; Subsampling X, Y, Z</c>
+<l>set_stereo_model_param (StereoModelID, 'sub_sampling_step', 1)</l>
+<c>* -&gt; Interpolation aliasing by binocular image rectification</c>
+<l>set_stereo_model_param (StereoModelID, 'rectif_interpolation', 'bilinear')</l>
+<l>set_stereo_model_param (StereoModelID, 'rectif_sub_sampling', 2.0)</l>
+<c>* </c>
+<c>* -&gt; Binocular disparity parameters</c>
+<l>set_stereo_model_param (StereoModelID, 'binocular_method', 'ncc')</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_num_levels', 1)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_mask_width', 11)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_mask_height', 11)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_texture_thresh', 0)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_score_thresh', 0.7)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_filter', 'left_right_check')</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_sub_disparity', 'interpolation')</l>
+<c>* -&gt; Define bounding box and camera pairs</c>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', [-0.1,-0.1,-0.07,0.1,0.1,0.0])</l>
+<l>set_stereo_model_image_pairs (StereoModelID, [0,1,2], [1,2,3])</l>
+<c>* </c>
+<l>ref_P_cam := Pose0</l>
+<l>pose_to_hom_mat3d (ref_P_cam, ref_H_cam)</l>
+<l>hom_mat3d_invert (ref_H_cam, cam_H_ref)</l>
+<l>hom_mat3d_to_pose (cam_H_ref, cam_P_ref)</l>
+<l>return ()</l>
+</body>
+<docu id="init_stereo_and_surface_model">
+<parameters>
+<parameter id="CamParam0"/>
+<parameter id="StereoModelID"/>
+<parameter id="cam_H_ref"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="set_grayval_object_model_3d">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="SmoothObject3D" base_type="ctrl" dimension="0"/>
+<par name="HomMat3D" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Move szene to match reference view and read point coordinates</c>
+<l>affine_trans_object_model_3d (SmoothObject3D, HomMat3D, SmoothObject3DInCam)</l>
+<l>get_object_model_3d_params (SmoothObject3DInCam, 'point_coord_x', X)</l>
+<l>get_object_model_3d_params (SmoothObject3DInCam, 'point_coord_y', Y)</l>
+<l>get_object_model_3d_params (SmoothObject3DInCam, 'point_coord_z', Z)</l>
+<l>clear_object_model_3d (SmoothObject3DInCam)</l>
+<c>* Project szene points into reference camera view</c>
+<l>project_3d_point (X, Y, Z, CamParam, Row, Column)</l>
+<c>* Clip point that lie outside the image</c>
+<l>tuple_gen_const (|Row|, CamParam[11] - 1, RowMax)</l>
+<l>tuple_gen_const (|Row|, 0, RowMin)</l>
+<l>tuple_min2 (RowMax, Row, Row)</l>
+<l>tuple_max2 (RowMin, Row, Row)</l>
+<l>tuple_gen_const (|Column|, CamParam[10] - 1, ColumnMax)</l>
+<l>tuple_gen_const (|Column|, 0, ColumnMin)</l>
+<l>tuple_min2 (ColumnMax, Column, Column)</l>
+<l>tuple_max2 (ColumnMin, Column, Column)</l>
+<c>* Assign gray values of the reference image to the</c>
+<c>* extended points attribute '&amp;gray'</c>
+<l>get_grayval_interpolated (Image, Row, Column, 'bilinear', Grayval)</l>
+<l>set_object_model_3d_attrib_mod (SmoothObject3D, '&amp;gray', 'points', Grayval)</l>
+<l>return ()</l>
+</body>
+<docu id="set_grayval_object_model_3d">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="HomMat3D"/>
+<parameter id="Image"/>
+<parameter id="SmoothObject3D"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="set_grayvals_object_model_3d">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Get the mapping between model points and image coordinates</c>
+<l>get_object_model_3d_params (ObjectModel3D, 'mapping_row', Rows)</l>
+<l>get_object_model_3d_params (ObjectModel3D, 'mapping_col', Columns)</l>
+<c>* Assign the image gray values to the 3D object model points</c>
+<l>access_channel (Image, ImageGray, 1)</l>
+<l>get_grayval (ImageGray, Rows, Columns, Grayval)</l>
+<l>set_object_model_3d_attrib_mod (ObjectModel3D, '&amp;gray', 'points', Grayval)</l>
+<l>return ()</l>
+</body>
+<docu id="set_grayvals_object_model_3d">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ObjectModel3D"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="set_distance_colors">
+<interface>
+<ic>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+<par name="NearField" base_type="ctrl" dimension="0"/>
+<par name="FarField" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Adapt the distance for visualization:</c>
+<l>get_object_model_3d_params (ObjectModel3D, '&amp;distance', Distances)</l>
+<l>Interest := Distances</l>
+<c>* threshold the old channel to the nearfield of 2mm, 2mm - 1mm will get the maximal value 1mm assigned (for visualization)</c>
+<l>tuple_find (Distances [&lt;] FarField, 1, Indices)</l>
+<l>tuple_find (Distances [&lt;] NearField, 1, Indices2)</l>
+<l>tuple_find (Distances [&gt;] FarField, 1, Indices3)</l>
+<l>Distances[Indices3] := 0.0</l>
+<l>Distances[Indices] := 0.0</l>
+<l>Distances[Indices2] := NearField - Interest[Indices2]</l>
+<l>Interest[Indices3] := 0.0</l>
+<c>* Set a new channel</c>
+<l>set_object_model_3d_attrib_mod (ObjectModel3D, '&amp;correct', 'points', Distances)</l>
+<l>set_object_model_3d_attrib_mod (ObjectModel3D, '&amp;interest', 'points', Interest)</l>
+<l>return ()</l>
+</body>
+<docu id="set_distance_colors">
+<parameters>
+<parameter id="FarField"/>
+<parameter id="NearField"/>
+<parameter id="ObjectModel3D"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="test_normal_direction">
+<interface>
+<ic>
+<par name="ObjectModel3D" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="InvertNormals" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Request the Diameter for estimating a reasonable  subsampling rate</c>
+<l>get_object_model_3d_params (ObjectModel3D, 'diameter', Diameter)</l>
+<c>* Subsample the scene and compute the normals only for those few points</c>
+<l>sample_object_model_3d (ObjectModel3D, 'fast_compute_normals', Diameter * 0.01, [], [], SampledObjectModel3D)</l>
+<c>* Request all normals and point values</c>
+<l>get_object_model_3d_params (SampledObjectModel3D, 'point_normal_x', NX)</l>
+<l>get_object_model_3d_params (SampledObjectModel3D, 'point_normal_y', NY)</l>
+<l>get_object_model_3d_params (SampledObjectModel3D, 'point_normal_z', NZ)</l>
+<l>get_object_model_3d_params (SampledObjectModel3D, 'point_coord_x', X)</l>
+<l>get_object_model_3d_params (SampledObjectModel3D, 'point_coord_y', Y)</l>
+<l>get_object_model_3d_params (SampledObjectModel3D, 'point_coord_z', Z)</l>
+<c>* Compute the mean point, which will be used as a virtual center</c>
+<l>moments_object_model_3d (SampledObjectModel3D, 'mean_points', M)</l>
+<l>clear_object_model_3d (SampledObjectModel3D)</l>
+<c>* Calculate the distance of all points + and - their normals to the virtual center</c>
+<l>Test1 := mean(((X + NX * Diameter * 0.03) - M[0]) * ((X + NX * Diameter * 0.03) - M[0]) + ((Y + NY * Diameter * 0.03) - M[1]) * ((Y + NY * Diameter * 0.03) - M[1]) + ((Z + NZ * Diameter * 0.03) - M[2]) * ((Z + NZ * Diameter * 0.03) - M[2]))</l>
+<l>Test2 := mean(((X - NX * Diameter * 0.03) - M[0]) * ((X - NX * Diameter * 0.03) - M[0]) + ((Y - NY * Diameter * 0.03) - M[1]) * ((Y - NY * Diameter * 0.03) - M[1]) + ((Z - NZ * Diameter * 0.03) - M[2]) * ((Z - NZ * Diameter * 0.03) - M[2]))</l>
+<c>*  If Test2 is larger than Test1 the normals point to the center and have to be inverted for surface based matching</c>
+<l>if (Test1 &lt; Test2)</l>
+<l>    InvertNormals := 'true'</l>
+<l>else</l>
+<l>    InvertNormals := 'false'</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="test_normal_direction">
+<abstract lang="en_US">This procedure returns for an approximately convex 3D object model if the normals point outwards.
+
+The resulting string is supposed to be used for create_surface_model_3d as the value for the generic parameter 'model_invert_normals'.</abstract>
+<chapters lang="en_US">
+<item>Matching</item>
+<item>Surface-Based</item>
+</chapters>
+<short lang="en_US">Tests the direction of normals of a 3D object model for the usage in create_surface_model_3d.</short>
+<successor>
+<item>create_surface_model_3d</item>
+</successor>
+<parameters>
+<parameter id="InvertNormals">
+<default_type>string</default_type>
+<description lang="en_US">Returns if a surface model creation with ObjectModel3D requires the setting 'model_invert_normals'. This value is 'true' if the normals have to be inverted.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'true'</item>
+<item>'false'</item>
+</value_list>
+</parameter>
+<parameter id="ObjectModel3D">
+<default_type>integer</default_type>
+<description lang="en_US">3D object model which should be tested regarding the normal direction.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>object_model_3d</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

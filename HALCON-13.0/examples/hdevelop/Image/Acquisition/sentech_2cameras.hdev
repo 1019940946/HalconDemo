@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from Sentech cameras</c>
+<c>* (concurrent grabbing from two connected cameras)</c>
+<c>* </c>
+<c>* Query the actual HALCON Image Acquisition Interface revision</c>
+<l>info_framegrabber ('Sentech', 'revision', RevInfo, RevValue)</l>
+<c>* </c>
+<c>* Query device index and device model name</c>
+<l>info_framegrabber ('Sentech', 'info_boards', Information, ValueList)</l>
+<c>* </c>
+<l>if (|ValueList| &lt; 2)</l>
+<c>    * Less than two cameras found</c>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Specifiy the model via the device index</c>
+<l>Model1 := '0'</l>
+<l>Model2 := '1'</l>
+<c>* </c>
+<c>* Specify the desired camera models via the device name</c>
+<l>* Model1 := 'STC-MBA5MUSB3(12GE976)'</l>
+<l>* Model2 := 'STC-C33USB(JC7K3007)'</l>
+<c>* </c>
+<l>get_index_of_camera_model (ValueList, Model1, DeviceIndex1)</l>
+<l>get_index_of_camera_model (ValueList, Model2, DeviceIndex2)</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('Sentech', 1, 1, 0, 0, 0, 0, 'progressive', 8, 'default', -1, 'false', 'default', DeviceIndex1, 0, -1, AcqHandle1)</l>
+<l>open_framegrabber ('Sentech', 1, 1, 0, 0, 0, 0, 'progressive', 8, 'default', -1, 'false', 'default', DeviceIndex2, 0, -1, AcqHandle2)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 320, 240, 'black', WindowHandle1)</l>
+<l>dev_open_window (0, 335, 320, 240, 'black', WindowHandle2)</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    grab_image_async (Image1, AcqHandle1, -1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image1)</l>
+<l>    grab_image_async (Image2, AcqHandle2, -1)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Image2)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle1)</l>
+<l>close_framegrabber (AcqHandle2)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_index_of_camera_model">
+<interface>
+<ic>
+<par name="ValueList" base_type="ctrl" dimension="0"/>
+<par name="Model" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DeviceIndex" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_number (Model, Int)</l>
+<l>tuple_is_number (Int, IsNumber)</l>
+<l>if (IsNumber != 1)</l>
+<l>    for Index := 0 to |ValueList| - 1 by 1</l>
+<l>        tuple_split (ValueList[Index], ' ', Substrings)</l>
+<l>        tuple_split (Substrings[1], ':', CameraID)</l>
+<l>        if (CameraID[1] == Model)</l>
+<l>            tuple_string (Index, 'd', DeviceIndex)</l>
+<l>            break</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>else</l>
+<l>    DeviceIndex := Model</l>
+<l>endif</l>
+<l>return ()</l>
+<c>* </c>
+</body>
+<docu id="get_index_of_camera_model">
+<parameters>
+<parameter id="DeviceIndex"/>
+<parameter id="Model"/>
+<parameter id="ValueList"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

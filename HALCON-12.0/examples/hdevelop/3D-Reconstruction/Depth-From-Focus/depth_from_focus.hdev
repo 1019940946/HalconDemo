@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>Sequence := [1:10]</l>
+<l>Names := 'dff/focus_' + (Sequence$'.2')</l>
+<l>read_image (Image, Names)</l>
+<l>channels_to_image (Image, Image)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>for I := 1 to 10 by 1</l>
+<l>    access_channel (Image, Image1, I)</l>
+<l>    dev_display (Image1)</l>
+<l>    disp_message (WindowHandle, 'Focus series (' + I + '/10)', 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>depth_from_focus (Image, Depth, Confidence, 'highpass', 'next_maximum')</l>
+<c>* Construct sharp image</c>
+<l>mean_image (Depth, DepthHighConf, 51, 51)</l>
+<l>select_grayvalues_from_channels (Image, DepthHighConf, SharpImage)</l>
+<c>* Smooth depth map</c>
+<l>scale_image_max (DepthHighConf, ImageScaleMax)</l>
+<l>mean_image (ImageScaleMax, DepthMean, 51, 51)</l>
+<l>dev_display (SharpImage)</l>
+<l>disp_message (WindowHandle, 'Sharp image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* 3D reconstruction</c>
+<l>dev_set_paint (['3d_plot','texture'])</l>
+<l>compose2 (DepthMean, SharpImage, TexturedImage)</l>
+<l>dev_display (TexturedImage)</l>
+<l>disp_message (WindowHandle, 'Textured depth image', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program reflects an image about an arbitrary axis.  It then</c>
+<c>* displays the original image in magenta and the transformed image in</c>
+<c>* green blended together along with the reflection axis in blue.  Thus,</c>
+<c>* this program visualizes that the reflection axis remains invariant.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image, 'mreut')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<c>* Since we are using full_domain below, it is wise to ensure that the</c>
+<c>* output images are initialized.</c>
+<l>get_system ('init_new_image', InitNewImage)</l>
+<l>set_system ('init_new_image', 'true')</l>
+<l>for A := 0 to 180 by 1</l>
+<c>    * Compute two points on the reflection axis.  The reflection axis goes</c>
+<c>    * through the point (Height/2,Width/2) and has the direction A (in</c>
+<c>    * degrees).  Note that it is immaterial which two points on the axis</c>
+<c>    * are used to define the reflection axis.  In this example, they are</c>
+<c>    * chosen in such a way that the reflection axis covers the entire</c>
+<c>    * image.  Thus, the two points can be used to visualize the axis below.</c>
+<l>    L := 0.75 * max([Width,Height])</l>
+<l>    Mr := Height / 2.0</l>
+<l>    Mc := Width / 2.0</l>
+<l>    Pr := Mr + L * sin(rad(A))</l>
+<l>    Pc := Mc - L * cos(rad(A))</l>
+<l>    Qr := Mr - L * sin(rad(A))</l>
+<l>    Qc := Mc + L * cos(rad(A))</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_reflect (HomMat2DIdentity, Pr, Pc, Qr, Qc, HomMat2DReflect)</l>
+<l>    affine_trans_image (Image, ImageReflect, HomMat2DReflect, 'constant', 'false')</l>
+<l>    full_domain (ImageReflect, ImageReflectFull)</l>
+<l>    compose3 (Image, ImageReflectFull, Image, ImageColor)</l>
+<l>    dev_display (ImageColor)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    disp_line (WindowHandle, Pr, Pc, Qr, Qc)</l>
+<l>endfor</l>
+<l>set_system ('init_new_image', InitNewImage)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

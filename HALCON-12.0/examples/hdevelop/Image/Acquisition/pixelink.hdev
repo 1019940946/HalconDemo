@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the PixeLink interface</c>
+<c>* (performance evaluation to show the difference between grab_image and grab_imamge_async)</c>
+<c>* </c>
+<c>* </c>
+<l>get_system ('operating_system', OperatingSystem)</l>
+<c>* </c>
+<l>info_framegrabber ('PixeLink', 'info_boards', InfoBoardsInfo, InfoBoardsValues)</l>
+<l>info_framegrabber ('PixeLink', 'camera_type', CameraTypeInfo, CameraTypeValues)</l>
+<l>info_framegrabber ('PixeLink', 'defaults', DefaultsInfo, DefaultsValues)</l>
+<l>info_framegrabber ('PixeLink', 'parameters', ParametersInfo, ParametersValues)</l>
+<l>info_framegrabber ('PixeLink', 'port', PortInfo, PortValues)</l>
+<l>info_framegrabber ('PixeLink', 'revision', RevisionInfo, RevisionValues)</l>
+<c>* </c>
+<c>* Select device by its GUID or 'default' for current camera settings</c>
+<l>MyDevice := 'default'</l>
+<c>* Select device by "format:mode:framerate" or 'default' for current camera settings</c>
+<c>* NOTE: When using 'default' settings the frame rate is set to the lowest available frame rate of the camera!</c>
+<l>MyCameraType := 'default'</l>
+<l>* MyCameraType := '0:5:3'</l>
+<l>* MyCameraType := '0:5:4'</l>
+<l>* MyCameraType := '1:4:2'</l>
+<l>* MyCameraType := '2:6:2'</l>
+<l>* MyCameraType := '7:0:0'</l>
+<l>* MyCameraType := '7:0:5'</l>
+<c>* </c>
+<l>open_framegrabber ('PixeLink', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCameraType, MyDevice, -1, -1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>if (OperatingSystem == 'Linux')</l>
+<l>    set_system ('clock_mode', 'elapsed_time')</l>
+<l>endif</l>
+<l>* set_framegrabber_param (AcqHandle, 'volatile', 'enable')</l>
+<l>* set_framegrabber_param (AcqHandle, 'swap_bytes', 'true')</l>
+<c>* </c>
+<l>GrabAsync := true</l>
+<l>NumImages := 25</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, ImageSize[0] / 2, ImageSize[1] / 2, 'black', WindowID)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* </c>
+<c>* Starting the time measurements</c>
+<l>if (GrabAsync)</l>
+<l>    grab_image_start (AcqHandle, -1)</l>
+<l>endif</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    access_channel (Image, ImageChannel1, 1)</l>
+<l>    sobel_amp (ImageChannel1, EdgeAmplitude, 'sum_abs', 5)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds3)</l>
+<l>for i := 1 to NumImages by 1</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>    access_channel (Image, ImageChannel1, 1)</l>
+<l>    sobel_amp (ImageChannel1, EdgeAmplitude, 'sum_abs', 5)</l>
+<l>endfor</l>
+<l>count_seconds (Seconds4)</l>
+<c>* </c>
+<l>dev_update_window ('on')</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_var ('on')</l>
+<c>* </c>
+<l>TimeGrab := (Seconds2 - Seconds1) / NumImages</l>
+<l>TimeSobel := (Seconds3 - Seconds2) / NumImages</l>
+<l>TimeAll := (Seconds4 - Seconds3) / NumImages</l>
+<l>Overhead := TimeAll - TimeSobel</l>
+<l>stop ()</l>
+<c>* </c>
+<l>while (1)</l>
+<l>    if (GrabAsync)</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<l>    else</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

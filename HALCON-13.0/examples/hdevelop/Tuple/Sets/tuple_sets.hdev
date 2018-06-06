@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to apply several fundamental</c>
+<c>* set-operators on tuples.</c>
+<c>* In particular the program demonstrates how to compute the</c>
+<c>* union, intersection, difference, and symmetric difference</c>
+<c>* of two tuples. The computation is shown for each possible</c>
+<c>* type of tuple element.</c>
+<c>* </c>
+<c>* Informations:</c>
+<c>* I.  The elements in the output tuple will be in the same order</c>
+<c>*     as they were given in the input tuples.</c>
+<c>* II. The output tuple is a legitimate set, which means there</c>
+<c>*     are no duplicate elements. However, please note that, the</c>
+<c>*     elements could have different types. For example, 1.0 is</c>
+<c>*     not equal with 1, since the former is a float and the</c>
+<c>*     latter is an integer.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This program gives an overview of tuple'</l>
+<l>Message[1] := 'set operators and how to use them.'</l>
+<l>Message[2] := 'Please'</l>
+<l>Message[3] := ' - step through the program,'</l>
+<l>Message[4] := ' - read the comments,'</l>
+<l>Message[5] := ' - and check the variable view.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Integer</c>
+<c>* The input tuples contain only integer elements.</c>
+<l>TupleInt1 := [3,1,2,9,1]</l>
+<l>TupleInt2 := [10,2,4,3,2]</l>
+<l>tuple_union (TupleInt1, TupleInt2, UnionInt)</l>
+<l>tuple_intersection (TupleInt1, TupleInt2, IntersectionInt)</l>
+<l>tuple_difference (TupleInt1, TupleInt2, DifferenceInt)</l>
+<l>tuple_symmdiff (TupleInt1, TupleInt2, SymmDiffInt)</l>
+<c>* </c>
+<c>* The corresponding HDevelop functions.</c>
+<l>UnionIntHDev := union(TupleInt1,TupleInt2)</l>
+<l>IntersectionIntHDev := intersection(TupleInt1,TupleInt2)</l>
+<l>DifferenceIntHDev := difference(TupleInt1,TupleInt2)</l>
+<l>SymmDiffIntHDev := symmdiff(TupleInt1,TupleInt2)</l>
+<c>* </c>
+<c>* Real Values</c>
+<c>* The input tuples contain only floating point numbers.</c>
+<l>TupleFloat1 := real([3,1,2,9,1])</l>
+<l>TupleFloat2 := real([10,2,4,3,2])</l>
+<l>tuple_union (TupleFloat1, TupleFloat2, UnionFloat)</l>
+<l>tuple_intersection (TupleFloat1, TupleFloat2, IntersectionFloat)</l>
+<l>tuple_difference (TupleFloat1, TupleFloat2, DifferenceFloat)</l>
+<l>tuple_symmdiff (TupleFloat1, TupleFloat2, SymmDiffFloat)</l>
+<c>* </c>
+<c>* String</c>
+<c>* The input tuples contain only string elements.</c>
+<l>TupleString1 := ['ab','a','s','a','1']</l>
+<l>TupleString2 := ['1','ab','a','c']</l>
+<l>tuple_union (TupleString1, TupleString2, UnionString)</l>
+<l>tuple_intersection (TupleString1, TupleString2, IntersectionString)</l>
+<l>tuple_difference (TupleString1, TupleString2, DifferenceString)</l>
+<l>tuple_symmdiff (TupleString1, TupleString2, SymmDiffString)</l>
+<c>* </c>
+<c>* Mixed</c>
+<c>* The input tuples contain a mixed type of elements.</c>
+<l>TupleMixed1 := [0,2.9,5,'a',3,5,'s']</l>
+<l>TupleMixed2 := ['s',5,1,3.0,2.9]</l>
+<l>tuple_union (TupleMixed1, TupleMixed2, UnionMixed)</l>
+<l>tuple_intersection (TupleMixed1, TupleMixed2, IntersectionMixed)</l>
+<l>tuple_difference (TupleMixed1, TupleMixed2, DifferenceMixed)</l>
+<l>tuple_symmdiff (TupleMixed1, TupleMixed2, SymmDiffMixed)</l>
+<c>* </c>
+<c>* Complex set-operations</c>
+<c>* It is also possible to compute complex set operations with</c>
+<c>* nested elements.</c>
+<l>Combined1 := union(intersection(TupleMixed1,TupleMixed2),intersection(TupleString1,TupleString2))</l>
+<l>Combined2 := intersection(symmdiff(TupleMixed1,TupleMixed2),intersection(TupleString1,TupleString2))</l>
+<c>* </c>
+<c>* Open the variable window to inspect the results.</c>
+<l>dev_open_tool ('variable_view', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

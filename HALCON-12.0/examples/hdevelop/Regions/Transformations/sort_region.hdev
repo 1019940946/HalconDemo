@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'alpha2')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>mean_image (Image, ImageMean, 21, 21)</l>
+<l>dyn_threshold (Image, ImageMean, RegionDynThresh, 5, 'dark')</l>
+<l>connection (RegionDynThresh, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 100, 1000)</l>
+<l>count_obj (SelectedRegions, Number)</l>
+<l>area_center (SelectedRegions, Area, Row, Column)</l>
+<l>dev_clear_window ()</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (SelectedRegions, ObjectSelected, i)</l>
+<l>    set_tposition (WindowID, Row[i - 1], Column[i - 1])</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    dev_set_color ('white')</l>
+<l>    write_string (WindowID, round(i))</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>sort_region (SelectedRegions, SortedRegions, 'character', 'true', 'row')</l>
+<l>area_center (SortedRegions, Area, Row, Column)</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (SortedRegions, ObjectSelected, i)</l>
+<l>    set_tposition (WindowID, Row[i - 1], Column[i - 1])</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    dev_set_color ('white')</l>
+<l>    write_string (WindowID, round(i))</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

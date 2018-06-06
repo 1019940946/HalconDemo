@@ -1,0 +1,666 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>*  This example creates a 3D model from 3 images taken from different points of view.</c>
+<c>*  It shows the recommended workflow necessary for the 'surface_fusion' method,</c>
+<c>*  which fuses the result of pairwise reconstruction into one surface.</c>
+<c>* </c>
+<c>* </c>
+<c>* Prepare visualization.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 600, 450, -1, -1, WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 14, 'mono', 'true', 'false')</l>
+<l>create_pose (0.03, 0.22, 19.4, 280, 0.0, 65.0, 'Rp+T', 'gba', 'point', VisPose)</l>
+<c>* </c>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* Display introduction text.</c>
+<l>disp_message_block01 ()</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read a previously created calibrated camera setup model</c>
+<c>* and the images of the object.</c>
+<l>read_camera_setup_model ('cam_setup_model.csm', CameraSetupModelID)</l>
+<l>read_image (Images, '3d_machine_vision/multi_view/' + 'engine_part_cam_' + [0:2] + '_01')</l>
+<l>get_image_size (Images, ImageWidth, ImageHeight)</l>
+<c>* </c>
+<c>* Create and initialize a multi-view stereo model using 'surface_fusion'.</c>
+<l>create_stereo_model (CameraSetupModelID, 'surface_fusion', [], [], StereoModelID)</l>
+<c>* </c>
+<c>* Configure the rectification parameters and set the image pairs.</c>
+<l>set_stereo_model_param (StereoModelID, 'rectif_interpolation', 'bilinear')</l>
+<l>set_stereo_model_image_pairs (StereoModelID, [0,0], [1,2])</l>
+<c>* </c>
+<c>* **** 1) Set a suitable bounding box.</c>
+<c>* </c>
+<c>* Create an initial bounding box.</c>
+<l>estimate_bounding_box_3d_reconstruction (StereoModelID, 0.06, BoundingBox)</l>
+<c>* Note that the reference coordinate system was defined using a elevated calibration plate</c>
+<c>* to lie in the measurement plane. We have to account for this 5 cm offset</c>
+<c>* when using the procedure, which expects the calibration plate to lie at the ground.</c>
+<l>BoundingBox[2] := BoundingBox[2] + 0.05</l>
+<l>BoundingBox[5] := BoundingBox[5] + 0.05</l>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', BoundingBox)</l>
+<c>* </c>
+<c>* Visualization of the initial bounding box.</c>
+<l>get_window_extents (WindowHandle1, Row1, Column1, Width1, Height1)</l>
+<l>dev_open_window (0, Width1 + 8, 400, Height1, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>disp_message_block02 ()</l>
+<c>* </c>
+<c>* The following procedures help to visualize the camera setup and the currently</c>
+<c>* set bounding box. This way, it is easy to configure the bounding box.</c>
+<l>CameraSize := 0.03</l>
+<l>ConeLength := 0.8</l>
+<l>gen_camera_setup_object_model_3d (CameraSetupModelID, CameraSize, ConeLength, ObjectModel3DCamera, ObjectModel3DCone)</l>
+<l>gen_bounding_box_object_model_3d (StereoModelID, ObjectModel3DBoundingBox)</l>
+<l>Title := 'Camera setup with initial bounding box'</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModel3DBoundingBox,ObjectModel3DCone,ObjectModel3DCamera], [], VisPose, ['lut','color_0','alpha','disp_pose_0'], ['sqrt','green',0.5,'true'], Title, [], Instructions, VisPose)</l>
+<c>* </c>
+<c>* Clear the camera setup, which is no longer required.</c>
+<l>clear_camera_setup_model (CameraSetupModelID)</l>
+<l>clear_object_model_3d (ObjectModel3DCone)</l>
+<l>clear_object_model_3d (ObjectModel3DCamera)</l>
+<l>clear_object_model_3d (ObjectModel3DBoundingBox)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* **** 2) Specify the parameters for the intermediate results of 'surface_pairwise'.</c>
+<c>*        For the first run, we only set the disparity method. We also enable the</c>
+<c>*        persistence mode which later will give us access to intermediate results.</c>
+<l>set_stereo_model_param (StereoModelID, 'persistence', 1)</l>
+<l>set_stereo_model_param (StereoModelID, 'disparity_method', 'binocular')</l>
+<c>* </c>
+<c>* Display input images.</c>
+<l>tile_images (Images, TiledImage, 2, 'vertical')</l>
+<l>display_reconstruction_message (TiledImage, WindowHandle1, 'binocular')</l>
+<c>* </c>
+<c>* Perform stereo reconstruction.</c>
+<l>dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<c>* </c>
+<c>* Query and analyze the results of 'surface_pairwise', which are intermediate</c>
+<c>* results of the 'surface_fusion method'.</c>
+<l>get_stereo_model_object_model_3d (StereoModelID, 'm3d_pairwise', ObjectModel3DPairwise)</l>
+<c>* </c>
+<c>* Visualize the default intermediate result of 'surface_pairwise'.</c>
+<l>gen_bounding_box_object_model_3d (StereoModelID, ObjectModel3DBoundingBox)</l>
+<l>get_window_extents (WindowHandle1, Row, Column, Width, Height)</l>
+<l>dev_open_window (0, Width + 8, 1000 - Width, Height, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 14, 'mono', 'true', 'false')</l>
+<l>disp_message_block03 (WindowHandle2)</l>
+<l>Title := 'Initial result of pairwise reconstruction and bounding box'</l>
+<l>create_pose (0.0, 0.03, 3.4, 285.0, 2.0, 100.0, 'Rp+T', 'gba', 'point', VisPose)</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModel3DPairwise,ObjectModel3DBoundingBox], [], VisPose, ['alpha_1','color_0','color_1','disp_pose_0','point_size'], [0.2,'yellow','white','true',1], Title, [], Instructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DFusion)</l>
+<l>clear_object_model_3d (ObjectModel3DPairwise)</l>
+<l>clear_object_model_3d (ObjectModel3DBoundingBox)</l>
+<c>* </c>
+<c>* Readjust bounding box and parameters of pairwise reconstruction.</c>
+<l>set_stereo_model_param (StereoModelID, 'bounding_box', [-0.14,-0.04,-0.01,-0.02,0.07,0.035])</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_mask_width', 11)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_mask_height', 11)</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_filter', 'left_right_check')</l>
+<l>set_stereo_model_param (StereoModelID, 'binocular_sub_disparity', 'interpolation')</l>
+<l>dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<l>get_stereo_model_object_model_3d (StereoModelID, 'm3d_pairwise', ObjectModel3DPairwise)</l>
+<l>gen_bounding_box_object_model_3d (StereoModelID, ObjectModel3DBoundingBox)</l>
+<c>* </c>
+<c>* Visualize the improved intermediate result of 'surface_pairwise'.</c>
+<l>disp_message_block04 (WindowHandle2)</l>
+<l>Title := 'Final result of pairwise reconstruction'</l>
+<l>Title[1] := 'and adapted bounding box'</l>
+<l>create_pose (0.0, 0.003, 1.78, 285.0, 2.0, 100.0, 'Rp+T', 'gba', 'point', VisPose)</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModel3DPairwise,ObjectModel3DBoundingBox], [], VisPose, ['alpha_1','color_0','color_1','point_size'], [0.2,'yellow','white',1], Title, [], Instructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DFusion)</l>
+<c>* </c>
+<c>* **** 3) Adapt the parameters of the 'surface_fusion' method.</c>
+<c>* </c>
+<c>* Create a first 'surface_fusion' result with default parameters.</c>
+<c>* For better visibility, triangulate the result:</c>
+<l>set_stereo_model_param (StereoModelID, 'point_meshing', 'isosurface')</l>
+<c>* Since we do not need intermediate results anymore, we can switch off the persistence mode.</c>
+<l>set_stereo_model_param (StereoModelID, 'persistence', 0)</l>
+<l>dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<c>* </c>
+<c>* Visualize the first 'surface_fusion' result.</c>
+<l>disp_message_block05 (WindowHandle2)</l>
+<l>Title := 'Initial result of fusion method together'</l>
+<l>Title[1] := 'with pairwise reconstruction'</l>
+<l>visualize_object_model_3d (WindowHandle1, [ObjectModel3DPairwise,ObjectModel3DFusion], [], VisPose, ['color_0','color_1','attribute_0','attribute_1','point_size'], ['yellow','orange','points','faces',1], Title, [], Instructions, VisPose)</l>
+<l>clear_object_model_3d (ObjectModel3DFusion)</l>
+<c>* </c>
+<c>* **** a) Adapt the parameter 'resolution'.</c>
+<l>disp_message_block06 (WindowHandle2)</l>
+<l>Resolutions := [0.0045,0.001]</l>
+<l>for Index := 0 to |Resolutions| - 1 by 1</l>
+<l>    Resolution := Resolutions[Index]</l>
+<l>    set_stereo_model_param (StereoModelID, 'resolution', Resolution)</l>
+<l>    count_seconds (T1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<l>    count_seconds (T2)</l>
+<l>    Time := T2 - T1</l>
+<l>    Title[0] := 'Coarse default resolution, reconstructed in ' + Time$'.2f' + ' s'</l>
+<l>    Title[1] := 'Finer resolution, reconstructed in ' + Time$'.2f' + ' s'</l>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModel3DFusion, [], VisPose, 'color', 'orange', Title[Index], [], Instructions, VisPose)</l>
+<l>    clear_object_model_3d (ObjectModel3DFusion)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* **** b) Adapt the parameter 'min_thickness'.</c>
+<l>disp_message_block07 (WindowHandle2)</l>
+<l>MinThicknesses := [0.008,0.2]</l>
+<l>for Index := 0 to |MinThicknesses| - 1 by 1</l>
+<l>    MinThickness := MinThicknesses[Index]</l>
+<l>    set_stereo_model_param (StereoModelID, 'min_thickness', MinThickness)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<l>    Title[0] := 'Small min_thickness, reduced depth of the object'</l>
+<l>    Title[1] := 'Large min_thickness, object ends at bounding box'</l>
+<l>    visualize_object_model_3d (WindowHandle1, [ObjectModel3DFusion,ObjectModel3DBoundingBox], [], VisPose, ['alpha_1','color_0','color_1'], [0.2,'orange','white'], Title[Index], [], Instructions, VisPose)</l>
+<l>    clear_object_model_3d (ObjectModel3DFusion)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* **** c) Adapt the parameter 'surface_tolerance'.</c>
+<l>disp_message_block08 (WindowHandle2)</l>
+<l>SurfaceTolerances := 0.002</l>
+<l>for Index := 0 to |SurfaceTolerances| - 1 by 1</l>
+<l>    SurfaceTolerance := SurfaceTolerances[Index]</l>
+<l>    set_stereo_model_param (StereoModelID, 'surface_tolerance', SurfaceTolerance)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<l>    Title := '\'surface_tolerance\' has little influence,'</l>
+<l>    Title[1] := 'since there are only a few outliers in this example.'</l>
+<l>    visualize_object_model_3d (WindowHandle1, [ObjectModel3DPairwise,ObjectModel3DFusion], [], VisPose, ['color_0','color_1','point_size'], ['yellow','orange',1], Title, [], Instructions, VisPose)</l>
+<l>    clear_object_model_3d (ObjectModel3DFusion)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* **** d) Adapt the parameter 'smoothing'.</c>
+<l>disp_message_block09 (WindowHandle2)</l>
+<l>Smoothings := [0.5,5.0,1.5]</l>
+<l>for Index := 0 to |Smoothings| - 1 by 1</l>
+<l>    Smoothing := Smoothings[Index]</l>
+<l>    set_stereo_model_param (StereoModelID, 'smoothing', Smoothing)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<l>    Title[0] := 'Smoothing too small, uneven surface.'</l>
+<l>    Title[1] := 'Smoothing too large, details are lost, hole is closed.'</l>
+<l>    Title[2] := 'Medium smoothing'</l>
+<l>    visualize_object_model_3d (WindowHandle1, ObjectModel3DFusion, [], VisPose, 'color_0', 'orange', Title[Index], [], Instructions, VisPose)</l>
+<l>    clear_object_model_3d (ObjectModel3DFusion)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Lastly, we perform a reconstruction with an</c>
+<c>* even higher resolution to get an appealing result.</c>
+<l>disp_message_block11 (WindowHandle2)</l>
+<c>* </c>
+<c>* Increase the resolution to 0.6 millimeters.</c>
+<l>set_stereo_model_param (StereoModelID, 'resolution', 0.0006)</l>
+<c>* </c>
+<c>* Adapt 'smoothing' to the new resolution.</c>
+<l>set_stereo_model_param (StereoModelID, 'smoothing', 0.7)</l>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_disp_text ('Reconstructing 3D Object Model...', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>reconstruct_surface_stereo (Images, StereoModelID, ObjectModel3DFusion)</l>
+<l>Title := 'Final output'</l>
+<l>visualize_object_model_3d (WindowHandle1, ObjectModel3DFusion, [], VisPose, 'color_0', 'orange', Title, [], Instructions, VisPose)</l>
+<c>* </c>
+<c>* By double-clinking on a 3D object model in the Variable Window</c>
+<c>* or with dev_inspect_ctrl, you can get more information about</c>
+<c>* 3D object models.</c>
+<l>dev_inspect_ctrl ([ObjectModel3DFusion,ObjectModel3DPairwise,ObjectModel3DBoundingBox])</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+<l>disp_message_block12 (WindowHandle1)</l>
+<l>stop ()</l>
+<l>dev_close_inspect_ctrl ([ObjectModel3DFusion,ObjectModel3DPairwise,ObjectModel3DBoundingBox])</l>
+<c>* </c>
+<c>* Clean up.</c>
+<l>clear_object_model_3d (ObjectModel3DFusion)</l>
+<l>clear_stereo_model (StereoModelID)</l>
+<l>clear_object_model_3d (ObjectModel3DPairwise)</l>
+<l>clear_object_model_3d (ObjectModel3DBoundingBox)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_reconstruction_message">
+<interface>
+<io>
+<par name="TiledImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Method" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display a message that reconstruction is in progress.</c>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>get_part (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>get_image_size (TiledImage, Width, Height)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_set_part (Row1, Column1, Row2, Column2)</l>
+<l>Message := 'Method: \'' + Method + '\''</l>
+<l>Message[1] := 'Reconstruct scene from 3 different views.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', 'box', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="display_reconstruction_message">
+<chapters lang="de_DE">
+<item>Graphik</item>
+<item>Text</item>
+</chapters>
+<chapters lang="en_US">
+<item>Graphics</item>
+<item>Text</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<parameters>
+<parameter id="Method"/>
+<parameter id="TiledImage"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block01">
+<interface/>
+<body>
+<l>Message := 'This example shows the necessary steps to get'</l>
+<l>Message[1] := 'meaningful output for a 3D object reconstruction'</l>
+<l>Message[2] := 'using the method \'surface_fusion\':'</l>
+<l>Message[3] := ' '</l>
+<l>Message[4] := '1) First, you have to set a suitable bounding box.'</l>
+<l>Message[5] := '2) Then, you have to specify the parameters for the'</l>
+<l>Message[6] := '   intermediate results of \'surface_pairwise\'.'</l>
+<l>Message[7] := '3) Lastly, adapt the parameters of \'surface_fusion\':'</l>
+<l>Message[8] := '     a) resolution'</l>
+<l>Message[9] := '     b) min_thickness'</l>
+<l>Message[10] := '     c) surface_tolerance'</l>
+<l>Message[11] := '     d) smoothing'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block01">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_message_block02">
+<interface/>
+<body>
+<l>Message := 'Setting a suitable bounding box'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'The bounding box should be set such'</l>
+<l>Message[3] := 'that the object to be reconstructed'</l>
+<l>Message[4] := 'fits completely, but also tightly,'</l>
+<l>Message[5] := 'into the bounding box.'</l>
+<l>Message[6] := ''</l>
+<l>Message[7] := 'If these requirements are not met,'</l>
+<l>Message[8] := 'the reconstruction will take longer'</l>
+<l>Message[9] := 'or even fail completely since internal'</l>
+<l>Message[10] := 'parameters derived from the'</l>
+<l>Message[11] := 'bounding box are estimated wrongly.'</l>
+<l>Message[12] := ' '</l>
+<l>Message[13] := 'Here, the procedure estimate_bounding_box_'</l>
+<l>Message[14] := '3d_reconstruction is used to'</l>
+<l>Message[15] := 'estimate a bounding box based on the'</l>
+<l>Message[16] := 'camera setup.'</l>
+<l>Message[17] := ' '</l>
+<l>Message[18] := 'Please note that even if the '</l>
+<l>Message[19] := 'reconstruction was successful, '</l>
+<l>Message[20] := 'the bounding box should be adapted'</l>
+<l>Message[21] := 'to perfectly fit the desired parts'</l>
+<l>Message[22] := 'of the object.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block02">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_message_block03">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Pairwise reconstruction'</l>
+<l>Message[1] := 'and bounding box'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'The pairwise reconstruction is an'</l>
+<l>Message[4] := 'intermediate result of the'</l>
+<l>Message[5] := '\'surface_fusion\' method. It can'</l>
+<l>Message[6] := 'be accessed using'</l>
+<l>Message[7] := 'get_stereo_model_object_model_3d.'</l>
+<l>Message[8] := ' '</l>
+<l>Message[9] := 'Using default values, the pairwise'</l>
+<l>Message[10] := 'reconstruction will not be perfect.'</l>
+<l>Message[11] := '(See other examples for more'</l>
+<l>Message[12] := 'information.)'</l>
+<l>Message[13] := ' '</l>
+<l>Message[14] := 'The bounding box should be set such'</l>
+<l>Message[15] := 'that the object to be reconstructed'</l>
+<l>Message[16] := 'completely, but also tightly, fits'</l>
+<l>Message[17] := 'into the bounding box. Otherwise the'</l>
+<l>Message[18] := 'reconstruction will take considerably'</l>
+<l>Message[19] := 'longer. This effect is much more'</l>
+<l>Message[20] := 'pronounced for \'surface_fusion\''</l>
+<l>Message[21] := 'than for \'surface_pairwise\'.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block03">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block04">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Pairwise reconstruction '</l>
+<l>Message[1] := 'and bounding box'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'The parameters of the pairwise'</l>
+<l>Message[4] := 'reconstruction have been adapted'</l>
+<l>Message[5] := 'such that surfaces of the object'</l>
+<l>Message[6] := 'to be reconstructed are discernible.'</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'It is important that not only the'</l>
+<l>Message[9] := 'edges of surfaces are represented'</l>
+<l>Message[10] := 'as points, but also the surfaces'</l>
+<l>Message[11] := 'themselves. Outliers in the result '</l>
+<l>Message[12] := 'of pairwise reconstruction usually'</l>
+<l>Message[13] := 'are no problem and can be removed '</l>
+<l>Message[14] := 'with the method \'surface_fusion\'.'</l>
+<l>Message[15] := ' '</l>
+<l>Message[16] := 'The bounding box is now set such that'</l>
+<l>Message[17] := 'the object to be reconstructed fits'</l>
+<l>Message[18] := 'completely, but also tightly,'</l>
+<l>Message[19] := 'into the bounding box.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block04">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block05">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Parameters of \'surface_fusion\''</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'Using default values, the'</l>
+<l>Message[3] := 'reconstruction will not be perfect.'</l>
+<l>Message[4] := 'To improve the result, adapt the four'</l>
+<l>Message[5] := 'parameters of the method'</l>
+<l>Message[6] := '\'surface_fusion\':'</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'a) resolution'</l>
+<l>Message[9] := 'b) min_thickness'</l>
+<l>Message[10] := 'c) surface_tolerance'</l>
+<l>Message[11] := 'd) smoothing'</l>
+<l>Message[12] := ' '</l>
+<l>Message[13] := 'Please note that the order of'</l>
+<l>Message[14] := 'adjusting the  parameters may vary'</l>
+<l>Message[15] := 'from the order shown in this example. '</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block05">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block06">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '\'resolution\''</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'determines the distance of points in'</l>
+<l>Message[3] := 'the discretization of the bounding box.'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'Too small values will drastically'</l>
+<l>Message[6] := 'increase the runtime. Too large values'</l>
+<l>Message[7] := 'will lead to a reconstruction with too '</l>
+<l>Message[8] := 'few details. Per default, it is set to'</l>
+<l>Message[9] := 'a coarse resolution depending on'</l>
+<l>Message[10] := 'the bounding box.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block06">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block07">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '\'min_thickness\''</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'This length behind the initial surface'</l>
+<l>Message[3] := '(obtained by pairwise reconstruction)'</l>
+<l>Message[4] := 'of the cone of sight of a camera'</l>
+<l>Message[5] := 'is considered to lie inside the object.'</l>
+<l>Message[6] := ' '</l>
+<l>Message[7] := 'Small values will reduce the depth of'</l>
+<l>Message[8] := 'an object. The backside is not'</l>
+<l>Message[9] := 'observed by any camera and thus'</l>
+<l>Message[10] := 'unaesthetic. If the parameter is set'</l>
+<l>Message[11] := 'to large values, the bounding box'</l>
+<l>Message[12] := 'determines where the object'</l>
+<l>Message[13] := 'is cut off.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block07">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block08">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '\'surface_tolerance\''</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'determines how much noise around the'</l>
+<l>Message[3] := 'input point cloud should be combined'</l>
+<l>Message[4] := 'to a surface. '</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'Small values lead to an uneven surface.'</l>
+<l>Message[7] := 'Large values smudge distinct surfaces'</l>
+<l>Message[8] := 'into one. '</l>
+<l>Message[9] := ' '</l>
+<l>Message[10] := 'This example exhibits only few'</l>
+<l>Message[11] := 'outliers along the lines of sight.'</l>
+<l>Message[12] := 'Thus, the parameter has little'</l>
+<l>Message[13] := 'influence in this case.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block08">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block09">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := '\'smoothing\''</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'regulates the importance of a small'</l>
+<l>Message[3] := 'total variation of the distance'</l>
+<l>Message[4] := 'function compared to the data fidelity,'</l>
+<l>Message[5] := 'i.e., the jumpiness of the resulting '</l>
+<l>Message[6] := 'surface.'</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'Too small values lead to an inclusion'</l>
+<l>Message[9] := 'of many outliers into the surface'</l>
+<l>Message[10] := 'whereas too large values lead to a'</l>
+<l>Message[11] := 'lost fidelity towards the initial data.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block09">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block10">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'The last and final reconstruction'</l>
+<l>Message[1] := 'uses a higher resolution and thus'</l>
+<l>Message[2] := 'may take a long time. You might want'</l>
+<l>Message[3] := 'to cancel the execution now.'</l>
+<l>Message[4] := ' '</l>
+<l>Message[5] := 'If you want to continue, press Run (F5).'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', ['box_color','shadow'], ['red','false'])</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block10">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block11">
+<interface>
+<ic>
+<par name="WindowHandle2" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>disp_message_block10 (WindowHandle2)</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Final output '</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'If the computing time is still'</l>
+<l>Message[3] := 'acceptable, the resolution can'</l>
+<l>Message[4] := 'be refined. Please note that a'</l>
+<l>Message[5] := 'finer resolution may require the'</l>
+<l>Message[6] := 'parameter smoothing to be adapted. '</l>
+<l>Message[7] := ' '</l>
+<l>Message[8] := 'Please see also the example program'</l>
+<l>Message[9] := 'reconstruct_surface_stereo_fusion.hdev '</l>
+<l>Message[10] := 'for a comparison of the methods and'</l>
+<l>Message[11] := 'visualization.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block11">
+<parameters>
+<parameter id="WindowHandle2"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_message_block12">
+<interface>
+<ic>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'Interactive visualization '</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'During the configuration of the stereo'</l>
+<l>Message[3] := 'model, it is often convenient to use'</l>
+<l>Message[4] := 'dev_inspect_ctrl on several object models. '</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := 'On the one hand, the inspection window'</l>
+<l>Message[7] := 'allows easy access to information like '</l>
+<l>Message[8] := 'extent or number of contained points. '</l>
+<l>Message[9] := ' '</l>
+<l>Message[10] := 'On the other hand, the inspection window'</l>
+<l>Message[11] := 'allows to interactively select and '</l>
+<l>Message[12] := 'deselect which models are displayed '</l>
+<l>Message[13] := 'in a common window. '</l>
+<l>Message[14] := ' '</l>
+<l>Message[15] := 'The menu in this common window allows'</l>
+<l>Message[16] := 'to choose parameters like the translucency'</l>
+<l>Message[17] := 'alpha, display of normals or origin of'</l>
+<l>Message[18] := 'the coordinate system.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_message_block12">
+<parameters>
+<parameter id="WindowHandle1"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

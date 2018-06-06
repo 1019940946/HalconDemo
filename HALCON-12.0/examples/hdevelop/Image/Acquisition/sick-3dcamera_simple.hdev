@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Simple example for the usage of the SICK-3DCamera interface</c>
+<c>* </c>
+<c>* Open first camera</c>
+<l>info_framegrabber ('SICK-3DCamera', 'device', Information, ValueList)</l>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'default', -1, 'image', -1, 'false', 'default', ValueList[0], 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Grab 50 images asynchronously in continuous grabbing mode</c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>get_framegrabber_param (AcqHandle, 'channel_names', channel_names)</l>
+<l>for i := 1 to 50 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    scale_image_max (Image, Image)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

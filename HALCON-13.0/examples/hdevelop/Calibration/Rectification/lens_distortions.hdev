@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates the effect of lens distortion on the</c>
+<c>* location of edges in an image.</c>
+<c>* The red edges are found in the original image that is subject</c>
+<c>* to lens distortions. This lens distortion is removed. The resulting</c>
+<c>* corrected edges are displayed in green.</c>
+<l>read_image (Image, 'pioneer')</l>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<l>gen_cam_par_area_scan_division (0.00219846, -78129.2, 5.46495e-06, 5.5e-06, 318.206, 236.732, 640, 480, CamParIn)</l>
+<l>change_radial_distortion_cam_par ('adaptive', CamParIn, 0, CamParOut)</l>
+<c>* </c>
+<c>* Edge detection in the original image</c>
+<c>* </c>
+<l>dev_set_color ('red')</l>
+<l>edges_sub_pix (GrayImage, Edges, 'canny', 1, 20, 40)</l>
+<c>* </c>
+<c>* Eliminating radial distortions</c>
+<c>* </c>
+<l>dev_set_color ('green')</l>
+<l>change_radial_distortion_contours_xld (Edges, EdgesRectified, CamParIn, CamParOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the photometric stereo technique</c>
+<c>* for the inspection of leather samples.</c>
+<c>* Input are 4 images taken from a leather sample with light coming from</c>
+<c>* different orientations.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>Message := 'Inspect leather samples using photometric stereo'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 1</c>
+<c>* </c>
+<c>* Show input images with different illumination</c>
+<l>read_image (Images, 'photometric_stereo/leather_1_0' + [1:4])</l>
+<l>for I := 1 to 4 by 1</l>
+<l>    Message := 'Sample 1: Acquire image ' + I + ' of 4'</l>
+<l>    select_obj (Images, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<c>* Apply photometric stereo to determine the albedo</c>
+<l>Tilts := [6.1,95.0,-176.1,-86.8]</l>
+<l>Slants := [41.4,42.6,41.7,40.9]</l>
+<l>ResultType := ['gradient','albedo']</l>
+<l>photometric_stereo (Images, HeightField, Gradient, Albedo, Slants, Tilts, ResultType, 'poisson', [], [])</l>
+<c>* </c>
+<c>* Display the albedo image</c>
+<l>dev_display (Albedo)</l>
+<l>disp_message (WindowHandle, 'The defect is clearly visible in the albedo image', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Detect defects</c>
+<c>* </c>
+<l>var_threshold (Albedo, Region, 15, 15, 0.4, 0.4, 'light')</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10, 99999)</l>
+<l>union1 (SelectedRegions, RegionUnion)</l>
+<l>closing_circle (RegionUnion, RegionClosing, 3.5)</l>
+<l>connection (RegionClosing, Defects)</l>
+<l>area_center (Defects, Area, Row, Column)</l>
+<l>gen_circle (Circle, Row, Column, gen_tuple_const(|Row|,sqrt(Area) + 30))</l>
+<c>* Display the defects</c>
+<l>dev_display (Albedo)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_display (Circle)</l>
+<l>disp_message (WindowHandle, 'Albedo image with defect', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 2</c>
+<c>* </c>
+<c>* Show input images with different illumination</c>
+<l>read_image (Images, 'photometric_stereo/leather_2_0' + [1:4])</l>
+<l>for I := 1 to 4 by 1</l>
+<l>    Message := 'Sample 2: Acquire image ' + I + ' of 4'</l>
+<l>    select_obj (Images, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<c>* Apply photometric stereo to determine the albedo</c>
+<l>photometric_stereo (Images, HeightField, Gradient, Albedo, Slants, Tilts, ResultType, 'poisson', [], [])</l>
+<l>threshold (Albedo, Region1, 128, 255)</l>
+<c>* </c>
+<c>* Display the albedo image</c>
+<l>dev_display (Albedo)</l>
+<l>Message := 'These defects are difficult to detect in the albedo image.'</l>
+<l>Message[1] := 'Therefore, we use the gradient information to detect them.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Detect texture defects using gradient information.</c>
+<c>* We are looking for areas with little surface changes.</c>
+<c>* </c>
+<l>derivate_vector_field (Gradient, Curl, 1, 'curl')</l>
+<l>derivate_gauss (Curl, CurlGradient, 1, 'gradient')</l>
+<c>* </c>
+<c>* Display changes of the curl of the gradient field</c>
+<l>dev_display (CurlGradient)</l>
+<l>Message := 'Changes in the gradient curl'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Detect texture defects</c>
+<l>threshold (CurlGradient, Region, 0, 0.01)</l>
+<l>rank_region (Region, RegionCount, 10, 10, 30)</l>
+<l>connection (RegionCount, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 2000, 99999)</l>
+<l>union1 (SelectedRegions, RegionUnion)</l>
+<l>rank_region (RegionUnion, RegionCount1, 25, 25, 170)</l>
+<l>connection (RegionCount1, NoTextured)</l>
+<c>* </c>
+<c>* Display texture defects</c>
+<l>dev_display (Albedo)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (NoTextured)</l>
+<l>disp_message (WindowHandle, 'Non-textured areas on leather', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Detect scratches using curvature information.</c>
+<c>* We are looking for areas with high curvature</c>
+<c>* </c>
+<l>derivate_vector_field (Gradient, MeanCurvature, 1, 'mean_curvature')</l>
+<c>* </c>
+<c>* Display the mean curvature of the surface</c>
+<l>dev_display (MeanCurvature)</l>
+<l>Message := 'Mean curvature of the surface'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_message (WindowHandle, 'Press F5', 'image', 720, 850, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Detect scratches</c>
+<l>abs_image (MeanCurvature, ImageAbs)</l>
+<l>threshold (ImageAbs, Region2, 0.15, 255)</l>
+<l>connection (Region2, ConnectedRegions1)</l>
+<l>select_shape (ConnectedRegions1, SelectedRegions1, 'area', 'and', 10, 99999)</l>
+<l>union1 (SelectedRegions1, RegionUnion1)</l>
+<l>closing_circle (RegionUnion1, RegionClosing, 1.5)</l>
+<l>connection (RegionClosing, ConnectedRegions2)</l>
+<l>select_shape (ConnectedRegions2, SelectedRegions2, 'max_diameter', 'and', 50, 99999)</l>
+<l>select_gray (SelectedRegions2, MeanCurvature, SelectedRegions3, 'deviation', 'and', 0.2, 255)</l>
+<c>* </c>
+<c>* Display scratches</c>
+<l>dev_display (Albedo)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (SelectedRegions3)</l>
+<l>disp_message (WindowHandle, 'Deep scratch', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

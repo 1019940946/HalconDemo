@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Search the best match of a template in an image (with rotation)</c>
+<c>* </c>
+<l>read_image (For6, 'for6')</l>
+<l>fill_interlace (For6, ImageFilled, 'odd')</l>
+<l>gen_rectangle1 (Rectangle, 266, 390, 348, 435)</l>
+<l>* gen_rectangle1 (Rectangle, 78, 292, 129, 402)</l>
+<l>* gen_rectangle1 (Rectangle, 258, 214, 296, 258)</l>
+<l>area_center (Rectangle, Area, Row, Column)</l>
+<c>* Reduce the definition domain of the image to the indicated region</c>
+<l>reduce_domain (ImageFilled, Rectangle, ImageReduced)</l>
+<l>pi := acos(0.0) * 2</l>
+<l>create_template_rot (ImageReduced, 4, -pi, 2 * pi, pi / 32, 'sort', 'original', TemplateID)</l>
+<c>* Define reference position for a matching template</c>
+<l>set_reference_template (TemplateID, Row, Column)</l>
+<l>for Phi := 0 to 360 by 5</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, rad(Phi), 256, 256, HomMat2DRotate)</l>
+<l>    affine_trans_image (ImageFilled, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<c>    * If you want the fast version: use best_match_rot_mg</c>
+<l>    best_match_rot (ImageAffinTrans, TemplateID, -pi, 2 * pi, 40, 'false', Row, Column, Angle, Error)</l>
+<l>    AngleDeg := deg(Angle)</l>
+<l>    DiffAngle := abs(AngleDeg - Phi)</l>
+<l>endfor</l>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

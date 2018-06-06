@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates various use cases for the remove_obj operator.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Load images of Apples, Berries, Carrots and Potatoes.</c>
+<l>read_image (ImagesAll, ['food/vegetables/apple_1','food/vegetables/blueberry_1','food/vegetables/carrot_1','food/vegetables/potato_1'])</l>
+<c>* </c>
+<c>* There are four objects in the iconic array.</c>
+<l>tile_images (ImagesAll, TiledImagesAll, 1, 'vertical')</l>
+<l>dev_display (TiledImagesAll)</l>
+<l>dev_disp_text ('There are four objects in the iconic array.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove the carrots (array element 3) from original.</c>
+<l>remove_obj (ImagesAll, ImagesReduced, 3)</l>
+<l>tile_images (ImagesReduced, TiledImage, 1, 'vertical')</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_disp_text ('Removed the Carrots (array element 3) from original.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove Carrots, Potatoes and Apples (Elements 1, 3, and 4).</c>
+<l>remove_obj (ImagesAll, ImagesReduced, [1,3,4])</l>
+<l>tile_images (ImagesReduced, TiledImage, 1, 'vertical')</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_disp_text ('Removed Carrots, Potatoes and Apples (Elements 1, 3 and 4).', 'window', 'top', 'left', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove_obj is tolerant against duplicates.</c>
+<l>remove_obj (ImagesAll, ImagesReduced, [3,2,2,3,3])</l>
+<l>tile_images (ImagesReduced, TiledImage, 1, 'vertical')</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_disp_text (['remove_obj is tolerant against duplicates.','Removed Carrots and Blueberries with Index [3,2,2,3,3].'], 'window', 'top', 'left', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove none of the objects.</c>
+<l>remove_obj (ImagesAll, ImagesReduced, [])</l>
+<l>tile_images (ImagesReduced, TiledImage, 1, 'vertical')</l>
+<l>dev_display (TiledImage)</l>
+<l>dev_disp_text ('Remove none of the objects.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Remove all objects.</c>
+<l>remove_obj (ImagesAll, ImagesReduced, [1,2,3,4])</l>
+<l>tile_images (ImagesReduced, TiledImage, 1, 'vertical')</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (TiledImage)</l>
+<l>count_obj (ImagesReduced, RemainCount)</l>
+<l>dev_disp_text ('Removed all objects, there are ' + RemainCount + ' remaining objects', 'window', 'top', 'left', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

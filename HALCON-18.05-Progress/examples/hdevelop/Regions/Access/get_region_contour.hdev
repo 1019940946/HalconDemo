@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Access the contour of an object</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<c>* Select gray values lying within an interval</c>
+<l>threshold (Image, Bright, 180, 255)</l>
+<l>connection (Bright, ConnectedRegions)</l>
+<c>* Select regions of a given shape</c>
+<l>select_shape_std (ConnectedRegions, MaxArea, 'max_area', 0)</l>
+<l>get_region_contour (MaxArea, Rows, Columns)</l>
+<l>Count := []</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (MaxArea)</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_time ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>for r := 0 to 511 by 1</l>
+<l>    Count[r] := 0</l>
+<l>endfor</l>
+<l>count_seconds (Seconds1)</l>
+<l>for i := 0 to |Rows| - 1 by 1</l>
+<l>    Count[Rows[i]] := Count[Rows[i]] + 1</l>
+<l>endfor</l>
+<l>count_seconds (Seconds2)</l>
+<l>Time := Seconds2 - Seconds1</l>
+<l>dev_set_color ('blue')</l>
+<l>for r := 0 to 511 by 1</l>
+<l>    disp_line (WindowID, r, 500 - Count[r], r, 500)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

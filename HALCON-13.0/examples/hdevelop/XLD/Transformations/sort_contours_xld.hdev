@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program for the sort_contours operator.</c>
+<c>* The program sorts the contours of the letters.</c>
+<c>* </c>
+<c>* Initialize program</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'letters')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2 + 100, 'black', WindowHandle)</l>
+<l>dev_set_part (-100, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>dev_set_color ('red')</l>
+<c>* </c>
+<c>* Easy generation of contours:</c>
+<l>threshold_sub_pix (Image, Edges, 128)</l>
+<l>select_contours_xld (Edges, SelectedContours, 'contour_length', 10, 200, -0.5, 0.5)</l>
+<c>* Sort the unsorted output:</c>
+<c>* First sort the contours by row coordinates. The position of a</c>
+<c>* contour is given by the upper left corner of its surrounding rectangle.</c>
+<l>count_obj (SelectedContours, Number)</l>
+<l>dev_set_line_width (3)</l>
+<c>* Display the result contour by contour</c>
+<l>sort_contours_xld (SelectedContours, SortedContours1, 'character', 'true', 'column')</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'XLD contours sorted by column', 'window', 12, 12, 'black', 'true')</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (SortedContours1, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    wait_seconds (0.01)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>sort_contours_xld (SortedContours1, SortedContours2, 'character', 'true', 'row')</l>
+<l>dev_display (Image)</l>
+<c>* Display the result contour by contour</c>
+<l>disp_message (WindowHandle, 'XLD contours sorted by row', 'window', 12, 12, 'black', 'true')</l>
+<l>for I := 1 to Number by 1</l>
+<l>    select_obj (SortedContours2, ObjectSelected, I)</l>
+<l>    dev_display (ObjectSelected)</l>
+<l>    wait_seconds (0.01)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

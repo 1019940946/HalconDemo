@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SwissRanger interface</c>
+<c>* (demonstrate usage of grab_image[_async] and grab_data[_async])</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* check interface revision</c>
+<l>info_framegrabber ('SwissRanger', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check actual configuration</c>
+<l>info_framegrabber ('SwissRanger', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* select camera type ('usb' or 'eth')</c>
+<l>CamType := 'usb'</l>
+<c>* </c>
+<c>* open camera</c>
+<l>open_framegrabber ('SwissRanger', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', CamType, 'default', 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* open some graphics windows</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowID1)</l>
+<l>dev_open_window (0, Width * 2 + 20, Width * 2, Height * 2, 'black', WindowID2)</l>
+<l>dev_open_window (0, Width * 4 + 40, Width * 2, Height * 2, 'black', WindowID3)</l>
+<l>dev_open_window (Height * 2 + 60, 0, Width * 2, Height * 2, 'black', WindowID4)</l>
+<l>dev_open_window (Height * 2 + 60, Width * 2 + 20, Width * 2, Height * 2, 'black', WindowID5)</l>
+<l>dev_open_window (Height * 2 + 60, Width * 4 + 40, Width * 2, Height * 2, 'black', WindowID6)</l>
+<c>* </c>
+<c>* query available parameter names</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', ParameterNames)</l>
+<c>* </c>
+<c>* query current integration time...</c>
+<l>get_framegrabber_param (AcqHandle, 'integration_time', IntegrationTime)</l>
+<c>* ... and set integration time to 100</c>
+<l>set_framegrabber_param (AcqHandle, 'integration_time', 100)</l>
+<c>* </c>
+<c>* </c>
+<c>* use grab_image[_async] to acquire the z image only (as UINT2 image)</c>
+<l>dev_set_window (WindowID1)</l>
+<l>dev_update_window ('off')</l>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<c>    * filter white spots for better visualization</c>
+<l>    threshold (Image, Region, 0, 65500)</l>
+<l>    reduce_domain (Image, Region, ImageReduced)</l>
+<l>    dev_display (ImageReduced)</l>
+<l>    disp_message (WindowID1, 'grab_image: calibrated z image (uint2)', 'window', 10, 10, 'black', 'true')</l>
+<l>endfor</l>
+<c>* </c>
+<l>disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* use grab_data[_async] to acquire all images (as float / UINT2 images)</c>
+<c>* </c>
+<c>* query current acquire mode</c>
+<l>get_framegrabber_param (AcqHandle, 'acquire_mode', AcquireMode)</l>
+<c>* turn on confidence image</c>
+<l>tuple_bor (AcquireMode, 256, AcquireModeWithConf)</l>
+<l>set_framegrabber_param (AcqHandle, 'acquire_mode', AcquireModeWithConf)</l>
+<c>* </c>
+<l>for i := 1 to 100 by 1</l>
+<l>    grab_data (ImageData, Region, Contours, AcqHandle, Data)</l>
+<l>    count_obj (ImageData, NumImageData)</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ImageX, 1)</l>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_display (ImageX)</l>
+<l>    disp_message (WindowID1, 'grab_data: calibrated x image (float)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ImageY, 2)</l>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_display (ImageY)</l>
+<l>    disp_message (WindowID2, 'grab_data: calibrated y image (float)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, ImageZ, 3)</l>
+<l>    dev_set_window (WindowID3)</l>
+<l>    dev_display (ImageZ)</l>
+<l>    disp_message (WindowID3, 'grab_data: calibrated z image (float)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, DistanceImage, 4)</l>
+<l>    dev_set_window (WindowID4)</l>
+<l>    dev_display (DistanceImage)</l>
+<l>    disp_message (WindowID4, 'grab_data: distance image (uint2)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    select_obj (ImageData, AmplitudeImage, 5)</l>
+<l>    dev_set_window (WindowID5)</l>
+<l>    dev_display (AmplitudeImage)</l>
+<l>    disp_message (WindowID5, 'grab_data: amplitude image (uint2)', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    if (NumImageData &gt; 5)</l>
+<l>        select_obj (ImageData, ConfidenceImage, 6)</l>
+<l>        dev_set_window (WindowID6)</l>
+<l>        dev_display (ConfidenceImage)</l>
+<l>        disp_message (WindowID6, 'grab_data: confidence image (uint2)', 'window', 10, 10, 'black', 'true')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+<c>* convert x/y/z image to object model for further processing</c>
+<l>xyz_to_object_model_3d (ImageX, ImageY, ImageZ, ObjectModel3DID)</l>
+<c>* </c>
+<c>* turn off confidence image</c>
+<l>tuple_band (AcquireMode, 65535 - 256, AcquireModeWithoutConf)</l>
+<l>set_framegrabber_param (AcqHandle, 'acquire_mode', AcquireModeWithoutConf)</l>
+<c>* </c>
+<l>stop ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

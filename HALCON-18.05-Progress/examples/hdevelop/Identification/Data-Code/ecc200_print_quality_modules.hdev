@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>Margin := 275</l>
+<c>* </c>
+<c>* Create data_code_2d model of type ECC 200</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<c>* </c>
+<c>* Set the parameters to enhanced recognition mode</c>
+<l>set_data_code_2d_param (DataCodeHandle, 'default_parameters', 'enhanced_recognition')</l>
+<c>* </c>
+<c>* Define set of files to work with</c>
+<l>ImageFiles := ['datacode/ecc200/ecc200_print_quality_02','datacode/ecc200/ecc200_disturbed_006.png']</l>
+<l>Mode := 'reflectance_margin_module_grades'</l>
+<l>QualityStandard := 'isoiec15415'</l>
+<l>DisplayInfo := true</l>
+<c>* </c>
+<c>* Iterate over images</c>
+<l>for I := 0 to |ImageFiles| - 1 by 1</l>
+<c>    * </c>
+<l>    read_image (Image, ImageFiles[I])</l>
+<c>    * </c>
+<c>    * Get the grade labels of the print quality elements (e.g., 'Contrast')</c>
+<l>    find_data_code_2d (Image, SymbolXLDs, DataCodeHandle, [], [], ResultHandle, DecodedDataStrings)</l>
+<c>    * Display results</c>
+<l>    if (|ResultHandle| &gt; 0)</l>
+<c>        * Visualization settings</c>
+<l>        get_image_size (Image, Width, Height)</l>
+<l>        dev_set_window_extents (-1, -1, Margin + Width, Height)</l>
+<l>        dev_set_part (0, -Margin, Height - 1, Width - 1)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (Image)</l>
+<l>        dev_set_line_width (2)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (SymbolXLDs)</l>
+<c>        * Display info text</c>
+<l>        gen_result_table (QualityStandard, DataCodeHandle, ResultHandle, Table)</l>
+<l>        dev_disp_text (Table, 'window', 'top', 'left', 'white', 'box_color', '#00000080')</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<c>        * Display modules with bad quality</c>
+<l>        dev_display_data_code_2d_print_quality_results (DataCodeHandle, ResultHandle, Mode, QualityStandard, [], [], [])</l>
+<l>        dev_disp_text ('Modules that caused bad rating', 'window', 'top', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_result_table">
+<interface>
+<ic>
+<par name="QualityStandard" base_type="ctrl" dimension="0"/>
+<par name="DataCodeHandle" base_type="ctrl" dimension="0"/>
+<par name="ResultHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Table" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_data_code_2d_results (DataCodeHandle, ResultHandle, 'quality_' + QualityStandard, Grades)</l>
+<l>get_data_code_2d_results (DataCodeHandle, ResultHandle, 'quality_' + QualityStandard + '_labels', Labels)</l>
+<l>LabelLength := strlen(Labels)</l>
+<l>tuple_str_first_n (':                         ', max(LabelLength) - LabelLength + 1, FillSpace)</l>
+<l>Table := [QualityStandard + ' results:',' ',Labels + FillSpace + Grades$'.1']</l>
+<l>return ()</l>
+</body>
+<docu id="gen_result_table">
+<parameters>
+<parameter id="DataCodeHandle"/>
+<parameter id="QualityStandard"/>
+<parameter id="ResultHandle"/>
+<parameter id="Table"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

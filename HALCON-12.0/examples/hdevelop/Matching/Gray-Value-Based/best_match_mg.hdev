@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 599, 464, 'black', WindowID)</l>
+<l>read_image (Image, 'pumpe')</l>
+<l>dev_set_draw ('margin')</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, 64, 64, HomMat2DTranslate)</l>
+<l>hom_mat2d_rotate (HomMat2DTranslate, 0.05, 265, 265, HomMat2DRotate)</l>
+<l>affine_trans_image (Image, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>add_noise_white (ImageAffinTrans, ImageNoise, 30)</l>
+<l>dev_display (Image)</l>
+<l>* draw_rectangle1 (WindowID, Row1, Column1, Row2, Column2)</l>
+<l>Row1 := 64</l>
+<l>Column1 := 142</l>
+<l>Row2 := 128</l>
+<l>Column2 := 193</l>
+<l>gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>create_template (ImageReduced, 5, 4, 'sort', 'original', TemplateID)</l>
+<l>dev_display (Rectangle)</l>
+<l>stop ()</l>
+<l>adapt_template (ImageNoise, TemplateID)</l>
+<l>* fast_match (ImageNoise, Matches, 10, TemplateID)</l>
+<l>* best_match (ImageNoise, 10, 'false', TemplateID, Row, Column, Error)</l>
+<l>* fast_match_mg (ImageNoise, Matches, TemplateID, 15, 2)</l>
+<c>* * disp_circle (Row, Column, 4)</c>
+<l>best_match_mg (ImageNoise, TemplateID, 35, 'false', 4, 'all', Row_, Column_, Error_)</l>
+<c>* * disp_circle (Row, Column, 4)</c>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageNoise)</l>
+<l>disp_circle (WindowID, Row_, Column_, 4)</l>
+<l>clear_template (TemplateID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

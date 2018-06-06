@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'monkey')</l>
+<l>get_system ('max_connection', Information)</l>
+<l>set_system ('max_connection', 0)</l>
+<l>threshold (Image, Region, 128, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>count_obj (ConnectedRegions, NumConnected)</l>
+<l>set_system ('max_connection', 1000)</l>
+<l>connection (Region, ConnectedRegionsMax)</l>
+<l>count_obj (ConnectedRegionsMax, NumConnectedMax)</l>
+<l>set_system ('max_connection', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

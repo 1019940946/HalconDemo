@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Program to gather information about the network configuration</c>
+<c>* and the connected GigE Vision compliant cameras. This</c>
+<c>* information is saved in the following files:</c>
+<c>*    config.txt</c>
+<c>*    &lt;unique_name&gt;/&lt;unique_name&gt;.ini</c>
+<c>*                  &lt;RemoteFileName&gt;.xml</c>
+<c>*                  &lt;RemoteFileName&gt;.per (if supported)</c>
+<c>*                  &lt;SystemFile&gt;.xml</c>
+<c>*                  &lt;InterfaceFile&gt;.xml</c>
+<c>*                  &lt;DeviceFile&gt;.xml</c>
+<c>*                  &lt;StreamFile&gt;.xml</c>
+<c>*                  cameraParams_&lt;unique_name&gt;.dat</c>
+<c>* </c>
+<c>* Please attach the resulting files when requesting support.</c>
+<c>* </c>
+<l>FileName := 'config.txt'</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Open file in which the information will be saved.</c>
+<l>open_file (FileName, 'output', FileHandle)</l>
+<l>set_system ('do_low_error', ['file',FileHandle])</l>
+<c>* </c>
+<c>* Write the information about the HALCON Interface.</c>
+<l>get_interface_information (FileHandle, DeviceList)</l>
+<l>set_system ('do_low_error', 'false')</l>
+<l>close_file (FileHandle)</l>
+<c>* </c>
+<c>* Write the network information.</c>
+<l>get_network_and_environment_information (FileName)</l>
+<c>* </c>
+<l>open_file (FileName, 'append', FileHandle)</l>
+<l>set_system ('do_low_error', ['file',FileHandle])</l>
+<c>* </c>
+<c>* Write the cameras information.</c>
+<l>get_camera_information (Image, FileHandle, DeviceList)</l>
+<c>* </c>
+<l>set_system ('do_low_error', 'false')</l>
+<l>close_file (FileHandle)</l>
+<l>dev_update_on ()</l>
+<c>* </c>
+<c>* In case of a Windows system, open explorer to see the files.</c>
+<l>get_system ('operating_system', OSName)</l>
+<l>if (OSName == 'Windows NT')</l>
+<l>    system_call ('explorer.exe /select,' + FileName)</l>
+<l>endif</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_network_and_environment_information">
+<interface>
+<ic>
+<par name="FileName" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_system ('operating_system', OSName)</l>
+<l>if (OSName == 'Windows NT')</l>
+<l>    system_call ('ipconfig /all &gt;&gt; ' + FileName)</l>
+<l>    system_call ('route print &gt;&gt; ' + FileName)</l>
+<l>    system_call ('set PATH &gt;&gt; ' + FileName)</l>
+<l>    system_call ('set GENICAM &gt;&gt; ' + FileName)</l>
+<l>    system_call ('set HALCON &gt;&gt; ' + FileName)</l>
+<l>    system_call ('ver &gt;&gt; ' + FileName)</l>
+<l>    system_call ('netsh advfirewall firewall show rule name=HDevelop verbose &gt;&gt; ' + FileName)</l>
+<l>    system_call ('netsh advfirewall show allprofiles &gt;&gt; ' + FileName)</l>
+<l>else</l>
+<l>    system_call ('ip addr &gt;&gt; ' + FileName)</l>
+<l>    system_call ('netstat -rn &gt;&gt; ' + FileName)</l>
+<l>    system_call ('env | grep ^PATH &gt;&gt; ' + FileName)</l>
+<l>    system_call ('env | grep LD_LIBRARY_PATH &gt;&gt; ' + FileName)</l>
+<l>    system_call ('env | grep GENICAM &gt;&gt; ' + FileName)</l>
+<l>    system_call ('env | grep HALCON &gt;&gt; ' + FileName)</l>
+<l>endif</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="get_network_and_environment_information">
+<parameters>
+<parameter id="FileName"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_interface_information">
+<interface>
+<ic>
+<par name="FileHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="DeviceList" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_system ('version', HalconVersion)</l>
+<l>get_system ('revision', HalconRev)</l>
+<l>info_framegrabber ('GigEVision2', 'revision', Information, Revision)</l>
+<l>info_framegrabber ('GigEVision2', 'info_boards', Information, BoardsList)</l>
+<l>info_framegrabber ('GigEVision2', 'device', Information, DeviceList)</l>
+<c>* </c>
+<l>fwrite_string (FileHandle, 'HALCON: ' + HalconVersion + '.' + HalconRev + '\n')</l>
+<l>fwrite_string (FileHandle, 'GigEVision2: ' + Revision + '\n\n')</l>
+<l>fwrite_string (FileHandle, 'Boardlist: ' + BoardsList + '\n')</l>
+<l>fwrite_string (FileHandle, 'Devicelist: ' + DeviceList + '\n')</l>
+<l>fwrite_string (FileHandle, '\n')</l>
+<l>return ()</l>
+</body>
+<docu id="get_interface_information">
+<parameters>
+<parameter id="DeviceList"/>
+<parameter id="FileHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_camera_information">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="FileHandle" base_type="ctrl" dimension="0"/>
+<par name="DeviceList" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>for CamIndex := 0 to |DeviceList| - 1 by 1</l>
+<l>    fwrite_string (FileHandle, '\n')</l>
+<l>    fwrite_string (FileHandle, '===========================================================================\n\n')</l>
+<c>    * </c>
+<l>    IsOpened := false</l>
+<l>    try</l>
+<l>        tuple_regexp_match (DeviceList[CamIndex], 'unique_name:[^ ]+', UniqueName)</l>
+<l>        tuple_str_last_n (UniqueName, 12, Device)</l>
+<l>        fwrite_string (FileHandle, 'Device ' + Device + '\n')</l>
+<c>        * Open device.</c>
+<l>        open_framegrabber ('GigEVision2', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', DeviceList[CamIndex], -1, -1, AcqHandle)</l>
+<l>        IsOpened := true</l>
+<l>        fwrite_string (FileHandle, ' -&gt; opened!\n')</l>
+<c>        * Check cameras GigE Vision version.</c>
+<l>        try</l>
+<l>            GevVersionMajor := 1</l>
+<l>            get_framegrabber_param (AcqHandle, 'DeviceTLVersionMajor', GevVersionMajor)</l>
+<l>            get_framegrabber_param (AcqHandle, 'DeviceTLVersionMinor', GevVersionMinor)</l>
+<l>            fwrite_string (FileHandle, 'GigE Vision Version: ' + GevVersionMajor + '.' + GevVersionMinor + '\n')</l>
+<l>        catch (Exception)</l>
+<l>            try</l>
+<l>                get_framegrabber_param (AcqHandle, 'GevVersionMajor', GevVersionMajor)</l>
+<l>                get_framegrabber_param (AcqHandle, 'GevVersionMinor', GevVersionMinor)</l>
+<l>                fwrite_string (FileHandle, 'GigE Vision Version: ' + GevVersionMajor + '.' + GevVersionMinor + '\n')</l>
+<l>            catch (Exception)</l>
+<l>                fwrite_string (FileHandle, 'GigE Vision version: not available\n')</l>
+<l>            endtry</l>
+<l>        endtry</l>
+<c>        * Get some configuration parameters.</c>
+<l>        try</l>
+<l>            get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>            get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>            fwrite_string (FileHandle, 'Image Size: ' + Width + ' x ' + Height + '\n')</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>        try</l>
+<l>            get_framegrabber_param (AcqHandle, '[Stream]GevStreamActiveEngine', AcqEngine)</l>
+<l>            fwrite_string (FileHandle, 'GtlAcquisitionEngine: ' + AcqEngine + '\n')</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>        try</l>
+<l>            get_framegrabber_param (AcqHandle, '[System]GevTLSubsystemInfo', TLVersion)</l>
+<l>            fwrite_string (FileHandle, 'GevTLSubsystemInfo: ' + TLVersion + '\n')</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>        try</l>
+<l>            get_framegrabber_param (AcqHandle, 'GevSCPSPacketSize', PacketSize)</l>
+<l>            fwrite_string (FileHandle, 'PacketSize: ' + PacketSize + '\n')</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<c>        * Write cameras files.</c>
+<l>        make_dir ('./' + Device)</l>
+<l>        try</l>
+<l>            set_framegrabber_param (AcqHandle, 'do_write_configuration', './' + Device + '/' + Device + '.ini')</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>        try</l>
+<l>            write_parameters_file ('./' + Device + '/' + Device + '.dat', AcqHandle)</l>
+<l>        catch (Exception)</l>
+<l>        endtry</l>
+<l>    catch (Exception)</l>
+<l>        fwrite_string (FileHandle, '\nException caught:\n')</l>
+<l>        fwrite_string (FileHandle, Exception + '\n')</l>
+<l>    endtry</l>
+<c></c>
+<l>    if (IsOpened)</l>
+<c>        * Grab some images.</c>
+<l>        dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>        Images := 0</l>
+<l>        try</l>
+<l>            set_framegrabber_param (AcqHandle, 'AcquisitionMode', 'Continuous')</l>
+<l>        catch (Exception)</l>
+<l>            fwrite_string (FileHandle, '\nException caught:\n')</l>
+<l>            fwrite_string (FileHandle, Exception + '\n')</l>
+<l>            break</l>
+<l>        endtry</l>
+<l>        grab_image_start (AcqHandle, -1)</l>
+<l>        count_seconds (Start)</l>
+<l>        for Index := 1 to 100 by 1</l>
+<l>            try</l>
+<l>                grab_image_async (Image, AcqHandle, -1)</l>
+<l>                Images := Images + 1</l>
+<l>            catch (Exception)</l>
+<l>                fwrite_string (FileHandle, '\nException caught:\n')</l>
+<l>                fwrite_string (FileHandle, Exception + '\n')</l>
+<l>                break</l>
+<l>            endtry</l>
+<l>            dev_display (Image)</l>
+<l>        endfor</l>
+<l>        count_seconds (End)</l>
+<c>        * Get the number of incomplete buffers.</c>
+<l>        get_framegrabber_param (AcqHandle, '[Stream]GevStreamIncompleteBlockCount', NumIncompleteBuffers)</l>
+<l>        fwrite_string (FileHandle, '\n' + Images + ' Images taken\n')</l>
+<l>        fwrite_string (FileHandle, NumIncompleteBuffers + ' Images with incomplete buffer\n')</l>
+<l>        if (Images)</l>
+<l>            fwrite_string (FileHandle, (End - Start) * 1000 / Images + 'ms per Image\n')</l>
+<l>            fwrite_string (FileHandle, Images / (End - Start) + ' fps\n')</l>
+<l>        endif</l>
+<c>        * Close device.</c>
+<l>        try</l>
+<l>            close_framegrabber (AcqHandle)</l>
+<l>        catch (Exception)</l>
+<l>            fwrite_string (FileHandle, '\nException caught:\n')</l>
+<l>            fwrite_string (FileHandle, Exception + '\n')</l>
+<l>        endtry</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="get_camera_information">
+<parameters>
+<parameter id="DeviceList"/>
+<parameter id="FileHandle"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="write_list_or_value">
+<interface>
+<ic>
+<par name="FileHandle" base_type="ctrl" dimension="0"/>
+<par name="Value" base_type="ctrl" dimension="0"/>
+<par name="ForceBrackets" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>if (0 == |Value|)</l>
+<l>    fwrite_string (FileHandle, '[]')</l>
+<l>    return ()</l>
+<l>endif</l>
+<l>ParameterValuesOut := Value</l>
+<c>* </c>
+<l>if (|ParameterValuesOut| &gt; 1 or ForceBrackets)</l>
+<l>    fwrite_string (FileHandle, '[')</l>
+<l>endif</l>
+<l>for Index2 := 0 to |ParameterValuesOut| - 2 by 1</l>
+<l>    if (is_string(ParameterValuesOut[Index2]))</l>
+<l>        ParameterValuesOut[Index2] := '\'' + ParameterValuesOut[Index2] + '\''</l>
+<l>    endif</l>
+<l>    fwrite_string (FileHandle, ParameterValuesOut[Index2] + ',')</l>
+<l>endfor</l>
+<l>if (is_string(ParameterValuesOut[Index2]))</l>
+<l>    ParameterValuesOut[Index2] := '\'' + ParameterValuesOut[Index2] + '\''</l>
+<l>endif</l>
+<l>fwrite_string (FileHandle, ParameterValuesOut[Index2])</l>
+<l>if (|ParameterValuesOut| &gt; 1 or ForceBrackets)</l>
+<l>    fwrite_string (FileHandle, ']')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="write_list_or_value">
+<parameters>
+<parameter id="FileHandle"/>
+<parameter id="ForceBrackets"/>
+<parameter id="Value"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="write_parameters_file">
+<interface>
+<ic>
+<par name="InfoFile" base_type="ctrl" dimension="0"/>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Open a file to write the camera parameters.</c>
+<l>open_file (InfoFile, 'output', FileHandle)</l>
+<l>fwrite_string (FileHandle, 'InterfaceName = GigEVision2\n\n')</l>
+<c>* Grab one image in order to see also those parameters</c>
+<c>* that do not exist before.</c>
+<l>try</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>catch (Exception)</l>
+<l>endtry</l>
+<c>* Query all available parameter names and sort them.</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', ParameterValues)</l>
+<l>tuple_sort (ParameterValues, ParameterValues)</l>
+<c>* Query current parameter values.</c>
+<l>count := 0</l>
+<l>for Index := 0 to |ParameterValues| - 1 by 1</l>
+<l>    fwrite_string (FileHandle, ParameterValues[Index] + ': ')</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    dev_error_var (HalconError, 1)</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterValues[Index] + '_access', ParameterAccess)</l>
+<l>    Status := HalconError</l>
+<l>    if (Status == H_MSG_TRUE)</l>
+<l>        if ('wo' == ParameterAccess)</l>
+<l>            fwrite_string (FileHandle, '&lt;writeonly parameter&gt; ')</l>
+<l>        endif</l>
+<l>        if ('na' == ParameterAccess)</l>
+<l>            fwrite_string (FileHandle, '&lt;currently not available parameter&gt; ')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (strstr(ParameterValues[Index],'do_') == 0)</l>
+<l>        fwrite_string (FileHandle, '&lt;action parameter&gt; ')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if ('wo' != ParameterAccess and 'na' != ParameterAccess)</l>
+<l>        get_framegrabber_param (AcqHandle, ParameterValues[Index], ParameterValue)</l>
+<l>        Status := HalconError</l>
+<l>        if (H_MSG_TRUE != Status)</l>
+<l>            fwrite_string (FileHandle, '&lt;not readable&gt; ')</l>
+<l>        else</l>
+<l>            write_list_or_value (FileHandle, ParameterValue, false)</l>
+<l>        endif</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    get_framegrabber_param (AcqHandle, ParameterValues[Index] + '_range', ParameterValuesOut)</l>
+<l>    Status := HalconError</l>
+<l>    Query := 'Range'</l>
+<l>    if (Status != H_MSG_TRUE)</l>
+<l>        get_framegrabber_param (AcqHandle, ParameterValues[Index] + '_values', ParameterValuesOut)</l>
+<l>        Status := HalconError</l>
+<l>        Query := 'Values'</l>
+<l>    endif</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Status == H_MSG_TRUE)</l>
+<c>        * _range or _values query ok</c>
+<l>        fwrite_string (FileHandle, '   ')</l>
+<l>        write_list_or_value (FileHandle, ParameterValuesOut, true)</l>
+<l>    endif</l>
+<l>    fwrite_string (FileHandle, '\n')</l>
+<l>endfor</l>
+<c>* Close the file.</c>
+<l>if (0 != |FileHandle|)</l>
+<l>    fwrite_string (FileHandle, '\n')</l>
+<l>    close_file (FileHandle)</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="write_parameters_file">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="InfoFile"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

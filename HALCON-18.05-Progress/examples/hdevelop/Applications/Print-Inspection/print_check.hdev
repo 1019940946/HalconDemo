@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's variation model operators</c>
+<c>* to perform a typical print quality inspection.  The program detects incorrect</c>
+<c>* prints on the clips of pens.  In the first step, the variation model is constructed</c>
+<c>* from images of correct prints.  Since the position of the objects can vary, the</c>
+<c>* images must be transformed to a reference position (the position of the print</c>
+<c>* in the first image in this example).  HALCON's shape-based matching is used</c>
+<c>* to detect the position and angle of the print in the images.  The found position</c>
+<c>* and angle are used to transform the images to the reference position.</c>
+<c>* In the second part of the program, the prints of the correct clips and of several</c>
+<c>* incorrect clips is checked and classified.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'pen/pen-01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Image)</l>
+<c>* Note: the shape model will be constructed from a ROI that is computed</c>
+<c>* automatically based on a simple image segmentation.</c>
+<l>threshold (Image, Region, 100, 255)</l>
+<l>fill_up (Region, RegionFillUp)</l>
+<l>difference (RegionFillUp, Region, RegionDifference)</l>
+<l>shape_trans (RegionDifference, RegionTrans, 'convex')</l>
+<l>dilation_circle (RegionTrans, RegionDilation, 8.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<l>inspect_shape_model (ImageReduced, ModelImages, ModelRegions, 1, 20)</l>
+<l>gen_contours_skeleton_xld (ModelRegions, Model, 1, 'filter')</l>
+<l>area_center (RegionDilation, Area, RowRef, ColumnRef)</l>
+<l>create_shape_model (ImageReduced, 5, rad(-10), rad(20), 'auto', 'none', 'use_polarity', 20, 10, ShapeModelID)</l>
+<l>create_variation_model (Width, Height, 'byte', 'standard', VariationModelID)</l>
+<l>for I := 1 to 15 by 1</l>
+<l>    read_image (Image, 'pen/pen-' + I$'02d')</l>
+<l>    find_shape_model (Image, ShapeModelID, rad(-10), rad(20), 0.5, 1, 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>    if (|Score| == 1)</l>
+<l>        vector_angle_to_rigid (Row, Column, Angle, RowRef, ColumnRef, 0, HomMat2D)</l>
+<l>        affine_trans_image (Image, ImageTrans, HomMat2D, 'constant', 'false')</l>
+<l>        train_variation_model (ImageTrans, VariationModelID)</l>
+<l>        dev_display (ImageTrans)</l>
+<l>        dev_display (Model)</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>get_variation_model (MeanImage, VarImage, VariationModelID)</l>
+<l>prepare_variation_model (VariationModelID, 20, 3)</l>
+<c>* Note: the checking of the print will be restricted to the region of the clip.</c>
+<c>* Sometimes the print is also in an incorrect position of the clip.  This will lead</c>
+<c>* to erroneous regions at the top or bottom border of the clip and hence can</c>
+<c>* be detected easily.</c>
+<l>erosion_rectangle1 (RegionFillUp, RegionROI, 1, 15)</l>
+<l>dev_display (MeanImage)</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>dev_set_color ('green')</l>
+<l>write_string (WindowHandle, 'Reference image')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (VarImage)</l>
+<l>set_tposition (WindowHandle, 20, 20)</l>
+<l>dev_set_color ('green')</l>
+<l>write_string (WindowHandle, 'Variation image')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>NumImages := 30</l>
+<l>for I := 1 to 30 by 1</l>
+<l>    read_image (Image, 'pen/pen-' + I$'02d')</l>
+<l>    find_shape_model (Image, ShapeModelID, rad(-10), rad(20), 0.5, 1, 0.5, 'least_squares', 0, 0.9, Row, Column, Angle, Score)</l>
+<l>    if (|Score| == 1)</l>
+<l>        vector_angle_to_rigid (Row, Column, Angle, RowRef, ColumnRef, 0, HomMat2D)</l>
+<l>        affine_trans_image (Image, ImageTrans, HomMat2D, 'constant', 'false')</l>
+<l>        reduce_domain (ImageTrans, RegionROI, ImageReduced)</l>
+<l>        compare_variation_model (ImageReduced, RegionDiff, VariationModelID)</l>
+<l>        connection (RegionDiff, ConnectedRegions)</l>
+<l>        select_shape (ConnectedRegions, RegionsError, 'area', 'and', 20, 1000000)</l>
+<l>        count_obj (RegionsError, NumError)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (ImageTrans)</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_display (RegionsError)</l>
+<l>        set_tposition (WindowHandle, 20, 20)</l>
+<l>        if (NumError == 0)</l>
+<l>            dev_set_color ('green')</l>
+<l>            write_string (WindowHandle, 'Clip OK')</l>
+<l>        else</l>
+<l>            dev_set_color ('red')</l>
+<l>            write_string (WindowHandle, 'Clip not OK')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (I &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

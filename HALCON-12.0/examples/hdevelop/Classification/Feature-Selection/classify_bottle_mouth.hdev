@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the usage of the operator</c>
+<c>* select_feature_set_knn and the functionality</c>
+<c>* of *_class_train_data.</c>
+<c>* </c>
+<c>* This program inspects bottle necks for defects.</c>
+<c>* Based on a set of training images, the parameter set</c>
+<c>* is selected that discriminates the defects the best.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>read_image (Image, 'bottles/bottle_mouth_01')</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 640, 512, WindowHandle)</l>
+<l>dev_open_window (0, 650, 448, 160, 'black', WindowHandleFeature)</l>
+<l>dev_open_window (220, 650, 448, 512 - 220, 'black', WindowHandlePolar)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandleFeature, 14, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandlePolar, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Introducing the features "profile" and\n"profile_change":\nWe want to estimate automatically a parameter\nthat controls the resolution of a polar\ntransformation.', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>RingSize := 70</l>
+<c>* </c>
+<c>* Part 1: Introduction</c>
+<c>* </c>
+<c>* Explain the features using the first image</c>
+<c>* </c>
+<l>find_bottle_mouth (Image, Row, Column, Radius)</l>
+<l>gen_circle_contour_xld (OuterCircle, Row, Column, Radius, 0, 6.28318, 'positive', 1)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (OuterCircle)</l>
+<c>* Create an image which displayes the features (for visualization only)</c>
+<l>gen_image_const (FeatureImage, 'float', 14, 80)</l>
+<c>* Initialize variables</c>
+<l>FeatureNames := []</l>
+<l>FeatureLength := []</l>
+<l>DataSample := []</l>
+<l>MinParamValue := 20</l>
+<l>MaxParamValue := 80</l>
+<l>ParameterIncrement := 10</l>
+<l>Change := true</l>
+<c>* Create a data vector and give names to all subfeatures</c>
+<l>for TestParameter := MinParamValue to MaxParamValue by ParameterIncrement</l>
+<c>    * Calculate the feature with TestParameter as parameter for the resolution of the polar transformation</c>
+<l>    compute_gray_value_profile (Image, Row, Column, RingSize, Radius, TestParameter, GrayValueProfile, GrayValueProfileChange)</l>
+<c>    * Collect the results</c>
+<l>    FeatureNames := [FeatureNames,'profile_' + TestParameter + '(' + TestParameter + ')','profile_change_' + TestParameter + '(c' + TestParameter + ')']</l>
+<l>    FeatureLength := [FeatureLength,|GrayValueProfile|,|GrayValueProfileChange|]</l>
+<l>    DataSample := [DataSample,GrayValueProfile,GrayValueProfileChange]</l>
+<c>    * Show the features, first the profile...</c>
+<l>    disp_gray_profile (FeatureImage, Image, PolarTransImage, GrayValueProfile, TestParameter, MinParamValue, ParameterIncrement, Row, Column, RingSize, Radius, WindowHandlePolar, WindowHandleFeature, Change, Columns, Rows, I)</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * ...then show the profile_change</c>
+<l>    disp_gray_profile_change (FeatureImage, PolarTransImage, EdgeAmplitude, GrayValueProfileChange, TestParameter, MinParamValue, ParameterIncrement, WindowHandlePolar, WindowHandleFeature, WindowHandle, Columns, Rows, I)</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_set_window (WindowHandlePolar)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Part 2: Pre-Training</c>
+<c>* </c>
+<c>* Generate the whole feature set for all images</c>
+<c>* </c>
+<c>* Create the training data structure for the classifier</c>
+<l>create_class_train_data (|DataSample|, ClassTrainDataHandle)</l>
+<l>set_feature_lengths_class_train_data (ClassTrainDataHandle, FeatureLength, FeatureNames)</l>
+<c>* Prepare the classifier</c>
+<l>ClassNames := ['perfect','small defect','large defect','completely missing']</l>
+<c>* </c>
+<c>* Training</c>
+<c>* </c>
+<c>* The classes of the training data</c>
+<l>ClassNumber := [0,2,1,1,2,1,3,0,2,1,1,2,2,2,2,1]</l>
+<c>* Calculate features for all images</c>
+<l>for Index := 1 to 16 by 1</l>
+<l>    read_image (Image, 'bottles/bottle_mouth_' + Index$'.02')</l>
+<l>    gen_circle_contour_xld (OuterCircle, Row, Column, Radius, 0, 6.28318, 'positive', 1)</l>
+<l>    find_bottle_mouth (Image, Row, Column, Radius)</l>
+<l>    DataSample := []</l>
+<l>    ShortDescription := []</l>
+<c>    * Calculate the whole feature set</c>
+<l>    for TestParameter := MinParamValue to MaxParamValue by ParameterIncrement</l>
+<l>        compute_gray_value_profile (Image, Row, Column, RingSize, Radius, TestParameter, GrayValueProfile, GrayValueProfileChange)</l>
+<l>        DataSample := [DataSample,GrayValueProfile,GrayValueProfileChange]</l>
+<l>        set_visualization_data (FeatureImage, GrayValueProfile, TestParameter, MinParamValue, ParameterIncrement, GrayValueProfileChange, Columns, Rows)</l>
+<l>    endfor</l>
+<c>    * Display features</c>
+<l>    show_all_features (Image, FeatureImage, WindowHandle, ClassNames, ClassNumber, Index, WindowHandleFeature, MinParamValue, MaxParamValue, ParameterIncrement, TestParameter)</l>
+<l>    if (Index &lt; 16)</l>
+<l>        disp_message (WindowHandleFeature, 'Features for image ' + Index, 'window', 120, 12, 'black', 'true')</l>
+<l>    endif</l>
+<l>    dev_display (OuterCircle)</l>
+<c>    * Add the feature vector to the training data</c>
+<l>    add_sample_class_train_data (ClassTrainDataHandle, 'row', DataSample, number(ClassNumber[Index - 1]))</l>
+<l>    wait_seconds (0.1)</l>
+<l>endfor</l>
+<l>dev_set_window (WindowHandle)</l>
+<c>* </c>
+<c>* Part 3: Auto-select features</c>
+<c>* </c>
+<c>* Select the best features using a knn classifier</c>
+<c>* The operator returns not only the best features,</c>
+<c>* but also a classifier trained with these.</c>
+<l>select_feature_set_knn (ClassTrainDataHandle, 'greedy', [], [], KNNHandle, SelectedFeatureNames, Score)</l>
+<l>dev_display (Image)</l>
+<l>Message := 'Selected features:'</l>
+<l>Message := [Message,' - ' + SelectedFeatureNames]</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandleFeature)</l>
+<l>tuple_regexp_match (SelectedFeatureNames, '\\d*', Matches)</l>
+<l>Sizes := number(Matches)</l>
+<l>tuple_regexp_match (SelectedFeatureNames, '(c)\\d+', Matches)</l>
+<l>Derivative := Matches [==] 'c'</l>
+<l>gen_rectangle1 (Rectangle, gen_tuple_const(|Sizes|,0), (Sizes - 20) / 5 + Derivative, Sizes, (Sizes - 20) / 5 + Derivative)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Rectangle)</l>
+<l>disp_message (WindowHandleFeature, 'Selected best features', 'window', 120, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_window (WindowHandleFeature)</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Apply the newly trained classifer to the training set</c>
+<c>* </c>
+<l>for Index := 1 to 16 by 1</l>
+<l>    dev_set_window (WindowHandle)</l>
+<l>    read_image (Image, 'bottles/bottle_mouth_' + Index$'.02')</l>
+<l>    find_bottle_mouth (Image, Row, Column, Radius)</l>
+<l>    Feature := []</l>
+<l>    for IndexInner := 0 to |SelectedFeatureNames| - 1 by 1</l>
+<l>        compute_gray_value_profile (Image, Row, Column, RingSize, Radius, Sizes[IndexInner], GrayValueProfile, GrayValueProfileChange)</l>
+<l>        if (Derivative[IndexInner])</l>
+<l>            Feature := [Feature,GrayValueProfileChange]</l>
+<l>        else</l>
+<l>            Feature := [Feature,GrayValueProfile]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Classify</c>
+<l>    classify_class_knn (KNNHandle, Feature, Result, Rating)</l>
+<l>    dev_display (Image)</l>
+<l>    gen_circle_contour_xld (OuterCircle, Row, Column, Radius, 0, 6.28318, 'positive', 1)</l>
+<l>    if (ClassNames[Result] == 'completely missing')</l>
+<l>        dev_set_color ('red')</l>
+<l>    elseif (ClassNames[Result] == 'large defect')</l>
+<l>        dev_set_color ('orange')</l>
+<l>    elseif (ClassNames[Result] == 'small defect')</l>
+<l>        dev_set_color ('yellow')</l>
+<l>    else</l>
+<l>        dev_set_color ('green')</l>
+<l>    endif</l>
+<l>    dev_display (OuterCircle)</l>
+<l>    disp_message (WindowHandle, 'Image ' + Index + ': Classified as ' + ClassNames[Result], 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>clear_class_train_data (ClassTrainDataHandle)</l>
+<l>clear_class_knn (KNNHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="compute_gray_value_profile">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="RingSize" base_type="ctrl" dimension="0"/>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+<par name="ImageSize" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="GrayValueProfile" base_type="ctrl" dimension="0"/>
+<par name="GrayValueProfileChange" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure calculates a feature that is based on a polar projection</c>
+<c>* of the grayvalues and their derivatives to the 1 dimensional feature array.</c>
+<c>* </c>
+<c>* The found circle is unfolded to a polar image</c>
+<l>polar_trans_image_ext (Image, PolarTransImage, Row, Column, 0, rad(360), RingSize - 5, Radius + 5, ImageSize, ImageSize, 'bilinear')</l>
+<c>* Project gray values</c>
+<l>gray_projections (PolarTransImage, PolarTransImage, 'simple', GrayValueProfile, VertProjection2)</l>
+<c>* Calculate derivative</c>
+<l>sobel_amp (PolarTransImage, EdgeAmplitude, 'x_binomial', 3)</l>
+<l>abs_image (EdgeAmplitude, ImageAbs)</l>
+<c>* Project derivative</c>
+<l>gray_projections (ImageAbs, ImageAbs, 'simple', GrayValueProfileChange, VertProjection1)</l>
+<c>* Scale derivative to a similar scale as the image values.</c>
+<l>GrayValueProfileChange := GrayValueProfileChange * 5</l>
+<l>return ()</l>
+</body>
+<docu id="compute_gray_value_profile">
+<parameters>
+<parameter id="Column">
+<sem_type>coordinates.x</sem_type>
+</parameter>
+<parameter id="GrayValueProfile">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="GrayValueProfileChange">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="Image"/>
+<parameter id="ImageSize">
+<sem_type>integer</sem_type>
+</parameter>
+<parameter id="Radius">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="RingSize">
+<sem_type>real</sem_type>
+</parameter>
+<parameter id="Row">
+<sem_type>coordinates.y</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="find_bottle_mouth">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Find the bottle region</c>
+<l>auto_threshold (Image, Regions, 2)</l>
+<l>select_obj (Regions, DarkRegion, 1)</l>
+<l>opening_circle (DarkRegion, RegionOpening, 3.5)</l>
+<l>closing_circle (RegionOpening, RegionClosing, 25.5)</l>
+<l>fill_up (RegionClosing, RegionFillUp)</l>
+<l>boundary (RegionFillUp, RegionBorder, 'outer')</l>
+<l>dilation_circle (RegionBorder, RegionDilation, 3.5)</l>
+<l>reduce_domain (Image, RegionDilation, ImageReduced)</l>
+<c>* </c>
+<c>* Find the bottle center by fitting a circle to extracted edges</c>
+<l>edges_sub_pix (ImageReduced, Edges, 'canny', 0.5, 20, 40)</l>
+<l>segment_contours_xld (Edges, ContoursSplit, 'lines_circles', 5, 4, 2)</l>
+<l>union_cocircular_contours_xld (ContoursSplit, UnionContours, 0.9, 0.5, 0.5, 200, 50, 50, 'true', 1)</l>
+<l>length_xld (UnionContours, Length)</l>
+<l>select_obj (UnionContours, LongestContour, sort_index(Length)[|Length| - 1] + 1)</l>
+<l>fit_circle_contour_xld (LongestContour, 'ahuber', -1, 0, 0, 3, 2, Row, Column, Radius, StartPhi, EndPhi, PointOrder)</l>
+<l>return ()</l>
+</body>
+<docu id="find_bottle_mouth">
+<abstract lang="en_US">Find the bottle mouth by detectin a circle in sub pixel accuracy.</abstract>
+<chapters lang="en_US">
+<item>Tools</item>
+<item>Geometry</item>
+</chapters>
+<library lang="en_US">MVTec Standard Procedures</library>
+<short lang="en_US">Find the bottle mouth by detectin a circle.</short>
+<parameters>
+<parameter id="Column">
+<default_type>real</default_type>
+<description lang="en_US">The column coordinate of the bottle moutch center.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Image">
+<description lang="en_US">The input image that contains a bottle from above.</description>
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+</parameter>
+<parameter id="Radius">
+<default_type>real</default_type>
+<description lang="en_US">The radius of the circle that defines the detected bottle mouth.</description>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Row">
+<default_type>real</default_type>
+<description lang="en_US">The row coordinate of the bottle moutch center.</description>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>real</sem_type>
+<type_list>
+<item>integer</item>
+<item>real</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_gray_profile_change">
+<interface>
+<io>
+<par name="FeatureImage" base_type="iconic" dimension="0"/>
+<par name="PolarTransImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="EdgeAmplitude" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="GrayValueProfileChange" base_type="ctrl" dimension="0"/>
+<par name="TestParameter" base_type="ctrl" dimension="0"/>
+<par name="MinParamValue" base_type="ctrl" dimension="0"/>
+<par name="ParameterIncrement" base_type="ctrl" dimension="0"/>
+<par name="WindowHandlePolar" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleFeature" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="I" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Dispay the gray value derivative feature</c>
+<l>Columns := gen_tuple_const(|GrayValueProfileChange|,((TestParameter - MinParamValue) / ParameterIncrement) * 2 + 1)</l>
+<l>Rows := [0:|GrayValueProfileChange| - 1]</l>
+<l>set_grayval (FeatureImage, Rows, Columns, GrayValueProfileChange)</l>
+<l>sobel_amp (PolarTransImage, EdgeAmplitude, 'x_binomial', 3)</l>
+<l>dev_set_window (WindowHandlePolar)</l>
+<l>dev_display (EdgeAmplitude)</l>
+<l>Message := 'Sobel filtered polar transformation'</l>
+<l>Message[1] := 'Resolution: ' + |GrayValueProfileChange| + ' pixels'</l>
+<l>disp_message (WindowHandlePolar, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandleFeature)</l>
+<l>dev_display (FeatureImage)</l>
+<l>for I := MinParamValue to TestParameter by ParameterIncrement</l>
+<l>    disp_message (WindowHandleFeature, I, 'window', 1, 6 + 32 * (((I - MinParamValue) / ParameterIncrement) * 2), 'white', 'false')</l>
+<l>    disp_message (WindowHandleFeature, 'c' + I, 'window', 1, 2 + 32 * (((I - MinParamValue) / ParameterIncrement) * 2 + 1), 'white', 'false')</l>
+<l>endfor</l>
+<l>Message := 'Feature profile_change_' + TestParameter + ' (c' + TestParameter + ')'</l>
+<l>Message[1] := '(Projection of the transformation below)'</l>
+<l>disp_message (WindowHandleFeature, Message, 'window', 110, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_gray_profile_change">
+<parameters>
+<parameter id="Columns"/>
+<parameter id="EdgeAmplitude"/>
+<parameter id="FeatureImage"/>
+<parameter id="GrayValueProfileChange"/>
+<parameter id="I"/>
+<parameter id="MinParamValue"/>
+<parameter id="ParameterIncrement"/>
+<parameter id="PolarTransImage"/>
+<parameter id="Rows"/>
+<parameter id="TestParameter"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleFeature"/>
+<parameter id="WindowHandlePolar"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_gray_profile">
+<interface>
+<io>
+<par name="FeatureImage" base_type="iconic" dimension="0"/>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="PolarTransImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="GrayValueProfile" base_type="ctrl" dimension="0"/>
+<par name="TestParameter" base_type="ctrl" dimension="0"/>
+<par name="MinParamValue" base_type="ctrl" dimension="0"/>
+<par name="ParameterIncrement" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="RingSize" base_type="ctrl" dimension="0"/>
+<par name="Radius" base_type="ctrl" dimension="0"/>
+<par name="WindowHandlePolar" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleFeature" base_type="ctrl" dimension="0"/>
+<par name="Change" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+<par name="I" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Display gray value profile</c>
+<l>Columns := gen_tuple_const(|GrayValueProfile|,((TestParameter - MinParamValue) / ParameterIncrement) * 2)</l>
+<l>Rows := [0:|GrayValueProfile| - 1]</l>
+<l>set_grayval (FeatureImage, Rows, Columns, GrayValueProfile)</l>
+<l>polar_trans_image_ext (Image, PolarTransImage, Row, Column, 0, rad(360), RingSize - 5, Radius + 5, TestParameter, TestParameter, 'bilinear')</l>
+<l>dev_set_window (WindowHandlePolar)</l>
+<l>dev_display (PolarTransImage)</l>
+<l>Message := 'Polar transformation of the circle'</l>
+<l>Message[1] := 'Resolution: ' + |GrayValueProfile| + ' pixels'</l>
+<l>disp_message (WindowHandlePolar, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandleFeature)</l>
+<l>dev_display (FeatureImage)</l>
+<l>Message := 'Feature profile_' + TestParameter + ' (' + TestParameter + ')'</l>
+<l>Message[1] := '(Projection of the transformation below)'</l>
+<l>disp_message (WindowHandleFeature, Message, 'window', 110, 12, 'black', 'true')</l>
+<l>for I := MinParamValue to TestParameter by ParameterIncrement</l>
+<l>    disp_message (WindowHandleFeature, I, 'window', 1, 6 + 32 * (((I - MinParamValue) / ParameterIncrement) * 2), 'white', 'false')</l>
+<l>    if (I &lt; TestParameter)</l>
+<l>        disp_message (WindowHandleFeature, 'c' + I, 'window', 1, 2 + 32 * (((I - MinParamValue) / ParameterIncrement) * 2 + 1), 'white', 'false')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="disp_gray_profile">
+<parameters>
+<parameter id="Change"/>
+<parameter id="Column"/>
+<parameter id="Columns"/>
+<parameter id="FeatureImage"/>
+<parameter id="GrayValueProfile"/>
+<parameter id="I"/>
+<parameter id="Image"/>
+<parameter id="MinParamValue"/>
+<parameter id="ParameterIncrement"/>
+<parameter id="PolarTransImage"/>
+<parameter id="Radius"/>
+<parameter id="RingSize"/>
+<parameter id="Row"/>
+<parameter id="Rows"/>
+<parameter id="TestParameter"/>
+<parameter id="WindowHandleFeature"/>
+<parameter id="WindowHandlePolar"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="set_visualization_data">
+<interface>
+<io>
+<par name="FeatureImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="GrayValueProfile" base_type="ctrl" dimension="0"/>
+<par name="TestParameter" base_type="ctrl" dimension="0"/>
+<par name="MinParamValue" base_type="ctrl" dimension="0"/>
+<par name="ParameterIncrement" base_type="ctrl" dimension="0"/>
+<par name="GrayValueProfileChange" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Columns" base_type="ctrl" dimension="0"/>
+<par name="Rows" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Set the feature values in the image</c>
+<l>Columns := gen_tuple_const(|GrayValueProfile|,((TestParameter - MinParamValue) / ParameterIncrement) * 2)</l>
+<l>Rows := [0:|GrayValueProfile| - 1]</l>
+<l>set_grayval (FeatureImage, Rows, Columns, GrayValueProfile)</l>
+<l>Columns := gen_tuple_const(|GrayValueProfileChange|,((TestParameter - MinParamValue) / ParameterIncrement) * 2 + 1)</l>
+<l>Rows := [0:|GrayValueProfileChange| - 1]</l>
+<l>set_grayval (FeatureImage, Rows, Columns, GrayValueProfileChange)</l>
+<l>return ()</l>
+</body>
+<docu id="set_visualization_data">
+<parameters>
+<parameter id="Columns"/>
+<parameter id="FeatureImage"/>
+<parameter id="GrayValueProfile"/>
+<parameter id="GrayValueProfileChange"/>
+<parameter id="MinParamValue"/>
+<parameter id="ParameterIncrement"/>
+<parameter id="Rows"/>
+<parameter id="TestParameter"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="show_all_features">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="FeatureImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="ClassNames" base_type="ctrl" dimension="0"/>
+<par name="ClassNumber" base_type="ctrl" dimension="0"/>
+<par name="Index" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleFeature" base_type="ctrl" dimension="0"/>
+<par name="MinParamValue" base_type="ctrl" dimension="0"/>
+<par name="MaxParamValue" base_type="ctrl" dimension="0"/>
+<par name="ParameterIncrement" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ParameterToTest" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Generate strings to show which entry belongs to which feature</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Training sample: ' + ClassNames[number(ClassNumber[Index - 1])], 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_window (WindowHandleFeature)</l>
+<l>dev_display (FeatureImage)</l>
+<l>for TestParameter := MinParamValue to MaxParamValue by ParameterIncrement</l>
+<l>    disp_message (WindowHandleFeature, TestParameter, 'window', 1, 6 + 32 * (((TestParameter - MinParamValue) / ParameterIncrement) * 2), 'white', 'false')</l>
+<l>    disp_message (WindowHandleFeature, 'c' + TestParameter, 'window', 1, 2 + 32 * (((TestParameter - MinParamValue) / ParameterIncrement) * 2 + 1), 'white', 'false')</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="show_all_features">
+<parameters>
+<parameter id="ClassNames"/>
+<parameter id="ClassNumber"/>
+<parameter id="FeatureImage"/>
+<parameter id="Image"/>
+<parameter id="Index"/>
+<parameter id="MaxParamValue"/>
+<parameter id="MinParamValue"/>
+<parameter id="ParameterIncrement"/>
+<parameter id="ParameterToTest"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleFeature"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

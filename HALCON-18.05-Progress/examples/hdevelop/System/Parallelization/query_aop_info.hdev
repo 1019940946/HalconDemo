@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use the operators query_aop_info,</c>
+<c>* get_aop_info, and set_aop_info. AOP (automatic operator</c>
+<c>* parallelization) information of different kind is</c>
+<c>* learned for sobel_amp and median_image operators. The maximum thread</c>
+<c>* feature of the information is queried and modified afterwards.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 800, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This example shows how to use the operators'</l>
+<l>Message[1] := '\'query_aop_info\', \'get_aop_info\', and \'set_aop_info\''</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'After calling \'optimize_aop\', the learned settings'</l>
+<l>Message[4] := 'are first read with \'get_aop_info\', and then changed'</l>
+<l>Message[5] := 'with \'set_aop_info\'.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'white', 'false')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Part 1</c>
+<c>* Run optimize_aop for some operator configurations to</c>
+<c>* set parallelization information</c>
+<l>optimize_aop ('median_image', 'uint2', 'no_file', ['file_mode','model','parameters'], ['nil','linear','true'])</l>
+<l>optimize_aop ('sobel_amp', ['byte','uint2'], 'no_file', ['file_mode','model','parameters'], ['nil','threshold','false'])</l>
+<c>* </c>
+<c>* Part 2</c>
+<c>* Get the parallelization information for different configurations</c>
+<c>* </c>
+<c>* Query optimized operators</c>
+<l>query_aop_info ('', '', '', OpStep, OperatorNames)</l>
+<c>* </c>
+<c>* Get detailed information for all found operators</c>
+<l>for I := 0 to |OperatorNames| - 1 by 1</l>
+<l>    Operator := OperatorNames[I]</l>
+<c>    * Query optimized iconic types for the current operator</c>
+<l>    query_aop_info (Operator, '', '', IconicTypeStep, IconicTypeValue)</l>
+<c>    * Get detailed information for each iconic type</c>
+<l>    for J := 0 to |IconicTypeStep| - 1 by 1</l>
+<l>        IconicType := IconicTypeValue[J]</l>
+<c>        * Query optimized parameters for the current iconic type</c>
+<l>        query_aop_info (Operator, IconicTypeStep[J], IconicType, ParStep, ParValue)</l>
+<c>        * Get parallelization info for each parameter</c>
+<l>        query_detailed_aop_information (Operator, IconicTypeStep[J], IconicType, ParStep, ParValue, Message)</l>
+<l>        Text := ['After \'optimize_aop\':',' ',' ',Message]</l>
+<l>        dev_clear_window ()</l>
+<l>        disp_message (WindowHandle, Text, 'window', 12, 12, 'white', 'false')</l>
+<l>        if (I == 0)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<c>        * Switch off parallelization:</c>
+<l>        set_aop_info (Operator, [IconicTypeStep[J],ParStep[0]], [IconicType,ParValue[0]], 'max_threads', 1)</l>
+<l>        query_detailed_aop_information (Operator, IconicTypeStep[J], IconicType, ParStep, ParValue, Message)</l>
+<l>        Text := ['After setting \'max_threads\' to 1:','for ' + ParStep[0] + ' = \'' + ParValue[0] + '\'',' ',Message]</l>
+<l>        disp_message (WindowHandle, Text, 'window', 12, 400, 'white', 'false')</l>
+<l>        if (I &lt; |OperatorNames| - 1)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="query_detailed_aop_information">
+<interface>
+<ic>
+<par name="Operator" base_type="ctrl" dimension="0"/>
+<par name="IconicTypeStep" base_type="ctrl" dimension="0"/>
+<par name="IconicType" base_type="ctrl" dimension="0"/>
+<par name="ParStep" base_type="ctrl" dimension="0"/>
+<par name="ParValue" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Message" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>Message := []</l>
+<l>for Index := 0 to |ParValue| - 1 by 1</l>
+<l>    ParameterValue := ParValue[Index]</l>
+<l>    tuple_regexp_match (ParStep[Index], 'parameter:(.+)', ParNumber)</l>
+<l>    get_aop_info (Operator, [IconicTypeStep,ParStep[Index]], [IconicType,ParameterValue], 'max_threads', MaxThreads)</l>
+<l>    get_aop_info (Operator, [IconicTypeStep,ParStep[Index]], [IconicType,ParameterValue], 'split_level', SplitLevel)</l>
+<l>    get_aop_info (Operator, [IconicTypeStep,ParStep[Index]], [IconicType,ParameterValue], 'model', Model)</l>
+<l>    Message := [Message,Operator + ', iconic type: ' + IconicType,' Parameter ' + ParNumber + ' = \'' + ParameterValue + '\'']</l>
+<l>    Message := [Message,'max_threads = ' + MaxThreads,'split_level = ' + SplitLevel,'model = ' + Model,' ']</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="query_detailed_aop_information">
+<parameters>
+<parameter id="IconicType"/>
+<parameter id="IconicTypeStep"/>
+<parameter id="Message"/>
+<parameter id="Operator"/>
+<parameter id="ParStep"/>
+<parameter id="ParValue"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

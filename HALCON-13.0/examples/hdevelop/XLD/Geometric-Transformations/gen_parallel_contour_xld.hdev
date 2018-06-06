@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Compute the parallel contour of an XLD contour</c>
+<c>* </c>
+<l>dev_set_color ('red')</l>
+<c>* Create an image with constant gray value</c>
+<l>gen_image_const (Image, 'byte', 64, 64)</l>
+<l>gen_circle (Circle, 32, 32, 16)</l>
+<l>paint_region (Circle, Image, ImageCircle, 255, 'fill')</l>
+<c>* Extract sub-pixel precise edges using Deriche, Lanser, Shen, or Canny filters</c>
+<l>edges_sub_pix (ImageCircle, Edges, 'canny', 1.5, 20, 40)</l>
+<l>gen_parallel_contour_xld (Edges, ParallelEdgesAngle, 'contour_normal', 3)</l>
+<l>gen_parallel_contour_xld (Edges, ParallelEdgesGradient, 'gradient', -6)</l>
+<l>gen_parallel_contour_xld (Edges, ParallelEdgesRegression, 'regression_normal', 9)</l>
+<l>stop ()</l>
+<c>* Continue to compute a new contour</c>
+<l>gen_rectangle1 (Rectangle, 0, 0, 63, 31)</l>
+<l>paint_region (Rectangle, Image, ImageRectangle, 255, 'fill')</l>
+<l>edges_sub_pix (ImageRectangle, Edges, 'canny', 1.5, 20, 40)</l>
+<l>gen_parallel_contour_xld (Edges, ParallelEdgesAngle, 'contour_normal', -3)</l>
+<l>gen_parallel_contour_xld (Edges, ParallelEdgesGradient, 'gradient', -6)</l>
+<l>gen_parallel_contour_xld (Edges, ParallelEdgesRegression, 'regression_normal', -9)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

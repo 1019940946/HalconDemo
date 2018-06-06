@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This program demonstrates the decoding of GS1 DataBar bar</c>
+<c>* codes with Composite component</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>ScaleWindow := 1.0</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'composite_code', 'CC-A/B')</l>
+<c>* </c>
+<l>set_bar_code_param (BarCodeHandle, 'element_size_min', 1.5)</l>
+<c>* </c>
+<l>TestParams := []</l>
+<l>TestParams := [TestParams,'gs1databar_stacked_composite_01','GS1 DataBar Stacked']</l>
+<l>TestParams := [TestParams,'gs1databar_limited_composite_01','GS1 DataBar Limited']</l>
+<l>TestParams := [TestParams,'gs1databar_limited_composite_02','GS1 DataBar Limited']</l>
+<l>TestParams := [TestParams,'gs1databar_expanded_composite_01','GS1 DataBar Expanded']</l>
+<c>* </c>
+<c>* </c>
+<l>for I := 0 to |TestParams| - 2 by 2</l>
+<l>    File := 'barcode/gs1databar_composite/' + TestParams[I]</l>
+<l>    CodeType := TestParams[I + 1]</l>
+<c>    * </c>
+<l>    read_image (Image, File)</l>
+<c>    * Compensate for over exposed images: expand dark areas</c>
+<l>    gray_erosion_shape (Image, Image, 1.5, 1.5, 'octagon')</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (0, 0, ScaleWindow * Width, ScaleWindow * Height)</l>
+<l>    disp_message (WindowHandle, 'Barcode Type: ' + CodeType, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeType, DecodedDataStrings)</l>
+<c>    * </c>
+<l>    get_bar_code_result (BarCodeHandle, 'all', 'decoded_strings', DecodedStrings)</l>
+<l>    get_bar_code_result (BarCodeHandle, 'all', 'composite_strings', CompositeStrings)</l>
+<l>    disp_message (WindowHandle, DecodedStrings + '\nComposite: ' + CompositeStrings, 'image', 36, 12, 'black', 'true')</l>
+<l>    if (I &lt; |TestParams| - 2)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>clear_bar_code_model (BarCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

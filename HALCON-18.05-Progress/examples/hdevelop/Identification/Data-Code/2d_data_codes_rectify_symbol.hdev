@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates how to read a slanted</c>
+<c>* 2d data code by preprocessing with rectification</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Get the image and display it</c>
+<l>read_image (Image_slanted, 'datacode/ecc200/ecc200_to_preprocess_001')</l>
+<l>dev_open_window_fit_image (Image_slanted, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>Message := 'This program demonstrates how to preprocess'</l>
+<l>Message[1] := 'a slanted 2d data code with rectification'</l>
+<l>Message[2] := 'before reading the data code symbol.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Initialize coordinates</c>
+<l>XCoordCorners := [130,225,290,63]</l>
+<l>YCoordCorners := [101,96,289,269]</l>
+<c>* </c>
+<c>* Display the slanted image and the corners of the symbol</c>
+<l>gen_cross_contour_xld (Crosses, XCoordCorners, YCoordCorners, 6, 0.785398)</l>
+<l>dev_display (Image_slanted)</l>
+<l>dev_display (Crosses)</l>
+<l>disp_message (WindowHandle, 'Slanted image', 'window', 12, 12, 'black', 'true')</l>
+<l>Message := 'The marked corners are used to generate a'</l>
+<l>Message[1] := 'homogeneous transformation matrix which'</l>
+<l>Message[2] := 'defines the projective transformation for'</l>
+<l>Message[3] := 'the rectification of the symbol.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 380, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* First generate a transformation matrix using the given points</c>
+<c>* of the corners of the data code symbol and the corresponding points</c>
+<c>* of a quare.</c>
+<l>hom_vector_to_proj_hom_mat2d (XCoordCorners, YCoordCorners, [1,1,1,1], [70,270,270,70], [100,100,300,300], [1,1,1,1], 'normalized_dlt', HomMat2D)</l>
+<c>* </c>
+<c>* Now rectifiy the slanted image by applying the projective transformation</c>
+<l>projective_trans_image (Image_slanted, Image_rectified, HomMat2D, 'bilinear', 'false', 'false')</l>
+<c>* </c>
+<c>* Create the data code model and search</c>
+<c>* for the data code in the rectified image</c>
+<l>create_data_code_2d_model ('Data Matrix ECC 200', [], [], DataCodeHandle)</l>
+<l>find_data_code_2d (Image_rectified, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<c>* </c>
+<c>* Display result</c>
+<l>dev_display (Image_slanted)</l>
+<l>dev_display (Image_rectified)</l>
+<l>dev_display (SymbolXLDs)</l>
+<l>disp_message (WindowHandle, 'Decoding successful ', 'window', 12, 12, 'black', 'true')</l>
+<l>set_display_font (WindowHandle, 12, 'mono', 'true', 'false')</l>
+<l>disp_message (WindowHandle, DecodedDataStrings, 'window', 350, 70, 'forest green', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

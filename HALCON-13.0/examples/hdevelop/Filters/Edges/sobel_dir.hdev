@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'fabrik')</l>
+<l>sobel_dir (Image, EdgeAmplitude, EdgeDirection, 'sum_abs', 3)</l>
+<l>nonmax_suppression_dir (EdgeAmplitude, EdgeDirection, ImageResult, 'nms')</l>
+<l>threshold (ImageResult, Region, 10, 255)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

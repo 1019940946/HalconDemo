@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows some possibilities to select contours using their features</c>
+<l>dev_close_window ()</l>
+<l>read_image (Letters, 'letters')</l>
+<l>crop_part (Letters, ImagePart, 295, 4, 200, 400)</l>
+<l>get_image_size (ImagePart, Width, Height)</l>
+<l>dev_open_window (0, 0, Width * 2, Height * 2, 'black', WindowHandle)</l>
+<l>dev_display (ImagePart)</l>
+<l>set_display_font (WindowHandle, 11, 'mono', 'true', 'false')</l>
+<l>Colors := ['forest green','red','black']</l>
+<l>for Column := 0 to 4 by 1</l>
+<l>    dev_set_color (Colors[1])</l>
+<l>    gen_rectangle1 (Rectangle, 1, 2 + 40 * Column, 395, 32 + 40 * Column)</l>
+<l>    reduce_domain (ImagePart, Rectangle, ImageReduced)</l>
+<l>    threshold_sub_pix (ImageReduced, Border, 100)</l>
+<l>    dev_display (Border)</l>
+<l>    dev_set_color (Colors[0])</l>
+<l>    if (Column == 0)</l>
+<c>        * select circular contours</c>
+<l>        select_shape_xld (Border, SelectedXLD, 'circularity', 'and', 0.8, 1)</l>
+<l>        disp_message (WindowHandle, ['high','low','circularity'], 'image', 80, 2 + 40 * Column, Colors, 'false')</l>
+<l>    endif</l>
+<l>    if (Column == 1)</l>
+<c>        * select convex contours</c>
+<l>        select_shape_xld (Border, SelectedXLD, 'convexity', 'and', 0.8, 1)</l>
+<l>        disp_message (WindowHandle, ['high','low','convexity'], 'image', 80, 2 + 40 * Column, Colors, 'false')</l>
+<l>    endif</l>
+<l>    if (Column == 2)</l>
+<c>        * select anisometric contours</c>
+<l>        select_shape_xld (Border, SelectedXLD, 'anisometry', 'and', 1.4, 9999999)</l>
+<l>        disp_message (WindowHandle, ['high','low','anisometry'], 'image', 80, 2 + 40 * Column, Colors, 'false')</l>
+<l>    endif</l>
+<l>    if (Column == 3)</l>
+<c>        * select compact contours</c>
+<l>        select_shape_xld (Border, SelectedXLD, 'compactness', 'and', 5, 9999999)</l>
+<l>        disp_message (WindowHandle, ['high','low','compactness'], 'image', 80, 2 + 40 * Column, Colors, 'false')</l>
+<l>    endif</l>
+<l>    if (Column == 4)</l>
+<c>        * select contours with small maximum diameter</c>
+<l>        select_shape_xld (Border, SelectedXLD, 'max_diameter', 'and', 0, 7)</l>
+<l>        disp_message (WindowHandle, ['small','large','diameter'], 'image', 80, 2 + 40 * Column, Colors, 'false')</l>
+<l>    endif</l>
+<l>    dev_display (SelectedXLD)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

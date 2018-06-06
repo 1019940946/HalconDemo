@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program compares the result of different operators</c>
+<c>* which detect points of interest</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>Dark := 100</l>
+<l>Background := 175</l>
+<l>Light := 250</l>
+<l>Angle := rad(45)</l>
+<l>Size := 3</l>
+<l>create_test_image (Image, Background, Light, Dark)</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Foerstner interest points detector</c>
+<l>points_foerstner (Image, 1, 2, 3, 200, 0.3, 'gauss', 'true', RowJunctions, ColJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>gen_cross_contour_xld (CrossFoerstner, RowJunctions, ColJunctions, Size, Angle)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CrossFoerstner)</l>
+<l>disp_message (WindowHandle, 'Foerstner interest points detector', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Harris interest points detector</c>
+<l>points_harris (Image, 0.7, 2, 0.04, 0, RowHarris, ColHarris)</l>
+<l>gen_cross_contour_xld (CrossHarris, RowHarris, ColHarris, Size, Angle)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CrossHarris)</l>
+<l>disp_message (WindowHandle, 'Harris interest points detector', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Harris binomial interest points detector</c>
+<l>points_harris_binomial (Image, 5, 15, 0.04, 1000, 'on', RowHarrisBinomial, ColHarrisBinomial)</l>
+<l>gen_cross_contour_xld (CrossHarrisBinom, RowHarrisBinomial, ColHarrisBinomial, Size, Angle)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CrossHarrisBinom)</l>
+<l>disp_message (WindowHandle, 'Harris binomial interest points detector', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Sojka interest points detector</c>
+<l>points_sojka (Image, 9, 2.5, 0.75, 30, 90, 0.5, 'true', RowSojka, ColSojka)</l>
+<l>gen_cross_contour_xld (CrossSojka, RowSojka, ColSojka, Size, Angle)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CrossSojka)</l>
+<l>disp_message (WindowHandle, 'Sojka interest points detector', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Lepetit interest points detector</c>
+<l>points_lepetit (Image, 3, 1, 20, 35, 'interpolation', RowLepetit, ColLepetit)</l>
+<l>gen_cross_contour_xld (CrossLepetit, RowLepetit, ColLepetit, Size, Angle)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (CrossLepetit)</l>
+<l>disp_message (WindowHandle, 'Lepetit interest points detector', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_test_image">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Background" base_type="ctrl" dimension="0"/>
+<par name="Light" base_type="ctrl" dimension="0"/>
+<par name="Dark" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_image_const (Image, 'byte', 256, 280)</l>
+<l>scale_image (Image, Image, 1, Background)</l>
+<l>gen_rectangle1 (Rectangle, 40, 40, 80, 80)</l>
+<l>overpaint_region (Image, Rectangle, Light, 'fill')</l>
+<l>gen_rectangle1 (Rectangle, 81, 81, 121, 121)</l>
+<l>overpaint_region (Image, Rectangle, Light, 'fill')</l>
+<l>gen_rectangle1 (Rectangle, 40, 81, 80, 121)</l>
+<l>overpaint_region (Image, Rectangle, Dark, 'fill')</l>
+<l>gen_rectangle1 (Rectangle, 81, 40, 121, 80)</l>
+<l>overpaint_region (Image, Rectangle, Dark, 'fill')</l>
+<l>gen_circle (Circle, 160, 40, 2)</l>
+<l>overpaint_region (Image, Circle, Dark, 'fill')</l>
+<l>gen_circle (Circle, 160, 100, 4)</l>
+<l>overpaint_region (Image, Circle, Dark, 'fill')</l>
+<l>gen_circle (Circle, 160, 160, 6)</l>
+<l>overpaint_region (Image, Circle, Dark, 'fill')</l>
+<l>gen_circle (Circle, 220, 40, 6)</l>
+<l>overpaint_region (Image, Circle, Light, 'fill')</l>
+<l>gen_circle (Circle, 220, 100, 4)</l>
+<l>overpaint_region (Image, Circle, Light, 'fill')</l>
+<l>gen_circle (Circle, 220, 160, 2)</l>
+<l>overpaint_region (Image, Circle, Light, 'fill')</l>
+<l>gen_rectangle1 (Rectangle, 140, 220, 240, 222)</l>
+<l>overpaint_region (Image, Rectangle, Light, 'fill')</l>
+<l>gen_rectangle1 (Rectangle, 200, 180, 202, 240)</l>
+<l>overpaint_region (Image, Rectangle, Light, 'fill')</l>
+<l>gen_rectangle2 (Rectangle, 60, 200, rad(45), 40, 10)</l>
+<l>overpaint_region (Image, Rectangle, Dark, 'fill')</l>
+<l>gen_rectangle2 (Rectangle, 60, 200, rad(-45), 40, 10)</l>
+<l>overpaint_region (Image, Rectangle, Dark, 'fill')</l>
+<l>return ()</l>
+</body>
+<docu id="create_test_image">
+<short lang="en_US">Creates a test image for the extraction of points of interest</short>
+<parameters>
+<parameter id="Background"/>
+<parameter id="Dark"/>
+<parameter id="Image"/>
+<parameter id="Light"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

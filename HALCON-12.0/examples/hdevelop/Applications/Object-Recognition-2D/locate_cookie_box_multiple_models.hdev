@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows a cookie box from different views.</c>
+<c>* First, models from reference poses are trained.</c>
+<c>* In the second step these models are searched in every image.</c>
+<c>* By generating a virtual pose out of the projection result</c>
+<c>* it can be estimated whether the box is upside down or not.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'packaging/cookie_box_reference_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_set_draw ('margin')</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Generate ROI for model training</c>
+<l>Row1Roi := [224,224,224,128]</l>
+<l>Col1Roi := [122,112,218,130]</l>
+<l>Row2Roi := [406,406,410,406]</l>
+<l>Col2Roi := [550,540,497,556]</l>
+<l>XWorldBox := []</l>
+<l>YWorldBox := []</l>
+<l>Models := []</l>
+<l>NumModels := 4</l>
+<l>TimeCreation := 0</l>
+<l>TotalTime := 0</l>
+<c>* </c>
+<c>* Approximately determined coordinates of the cookie box</c>
+<l>XMod1To4 := [-189,189,189,-189,-189,189,189,-189,-120,120,120,-120,-185,185,185,-185] / 1000.0</l>
+<l>YMod1To4 := [-80,-80,80,80,-80,-80,80,80,-80,-80,80,80,-120,-120,120,120] / 1000.0</l>
+<c>* </c>
+<c>* Camera parameters</c>
+<l>CamParam := [0.0155565,-109.42,1.28008e-005,1.28e-005,322.78,240.31,640,480]</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, ['Press \'Run\' to start model creation ...','(will take a few minutes)'], 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* For every reference image the descriptor model is created</c>
+<l>for IndexR := 0 to NumModels - 1 by 1</l>
+<l>    read_image (Image, 'packaging/cookie_box_reference_' + (IndexR + 1)$'.02')</l>
+<l>    gen_rectangle1 (Rectangle, Row1Roi[IndexR], Col1Roi[IndexR], Row2Roi[IndexR], Col2Roi[IndexR])</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (4)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Rectangle)</l>
+<l>    reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>    disp_message (WindowHandle, 'Creating model no. ' + (IndexR + 1) + '/' + NumModels + ' ... please wait.', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<l>    RowsRoi := [Row1Roi[IndexR],Row1Roi[IndexR],Row2Roi[IndexR],Row2Roi[IndexR]]</l>
+<l>    ColumnsRoi := [Col1Roi[IndexR],Col2Roi[IndexR],Col2Roi[IndexR],Col1Roi[IndexR]]</l>
+<l>    WorldX := XMod1To4[IndexR * 4:(IndexR + 1) * 4 - 1]</l>
+<l>    WorldY := YMod1To4[IndexR * 4:(IndexR + 1) * 4 - 1]</l>
+<l>    vector_to_pose (WorldX, WorldY, [], RowsRoi, ColumnsRoi, CamParam, 'planar_analytic', 'error', Pose, Quality)</l>
+<l>    image_points_to_world_plane (CamParam, Pose, RowsRoi, ColumnsRoi, 'm', XBox, YBox)</l>
+<l>    YWorldBox := [YWorldBox,YBox]</l>
+<l>    XWorldBox := [XWorldBox,XBox]</l>
+<c>    * </c>
+<l>    count_seconds (SecondsCreation1)</l>
+<l>    create_calib_descriptor_model (ImageReduced, CamParam, Pose, 'harris_binomial', [], [], ['depth','number_ferns','patch_size','min_scale','max_scale'], [11,30,17,0.4,1.2], 42, ModelID)</l>
+<l>    count_seconds (SecondsCreation2)</l>
+<l>    TimeCreation := TimeCreation + (SecondsCreation2 - SecondsCreation1)</l>
+<l>    Models := [Models,ModelID]</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Model creation is finished</c>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>disp_message (WindowHandle, NumModels + ' models created in ' + TimeCreation + ' seconds.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Main loop:</c>
+<c>* Search the models in all images</c>
+<l>for Index := 11 to 21 by 1</l>
+<l>    InstancesFound := 0</l>
+<l>    OutputString := []</l>
+<l>    TextRow := 10</l>
+<l>    TotalTime := 0</l>
+<l>    dev_clear_window ()</l>
+<l>    read_image (Image, 'packaging/cookie_box_' + Index$'.02')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Searching image ...', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Search every model in each image</c>
+<c>    * </c>
+<l>    for Index1 := 0 to NumModels - 1 by 1</l>
+<l>        count_seconds (Seconds1)</l>
+<l>        find_calib_descriptor_model (Image, Models[Index1], [], [], [], [], 0.25, 1, CamParam, 'num_points', Pose, Score)</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := Seconds2 - Seconds1</l>
+<l>        TotalTime := TotalTime + Time</l>
+<c>        * </c>
+<l>        if (|Score| &gt; 0)</l>
+<l>            get_descriptor_model_points (Models[Index1], 'search', 0, Row, Col)</l>
+<l>            dev_set_color ('green')</l>
+<l>            dev_set_colored (12)</l>
+<l>            dev_set_line_width (1)</l>
+<l>            gen_cross_contour_xld (Cross1, Row, Col, 6, 0.785398)</l>
+<l>            dev_display (Cross1)</l>
+<l>            dev_set_color ('lime green')</l>
+<l>            dev_set_line_width (3)</l>
+<l>            disp_3d_coord_system (WindowHandle, CamParam, Pose, 0.07)</l>
+<c>            * </c>
+<l>            XWorldB := XWorldBox[Index1 * 4:(Index1 + 1) * 4 - 1]</l>
+<l>            YWorldB := YWorldBox[Index1 * 4:(Index1 + 1) * 4 - 1]</l>
+<l>            pose_to_hom_mat3d (Pose, HomMat3D)</l>
+<l>            affine_trans_point_3d (HomMat3D, XWorldB, YWorldB, [0,0,0,0], XTrans, YTrans, ZTrans)</l>
+<l>            project_3d_point (XTrans, YTrans, ZTrans, CamParam, RowTrans, ColTrans)</l>
+<c>            * </c>
+<l>            gen_contour_polygon_xld (Contour, RowTrans, ColTrans)</l>
+<l>            close_contours_xld (Contour, Contour)</l>
+<l>            dev_display (Contour)</l>
+<c>            * </c>
+<l>            if ((Pose[5] &gt; 45 and Pose[5] &lt; 135) or (Pose[5] &gt; 225 and Pose[5] &lt; 315))</l>
+<l>                OutputString := [OutputString,'Model ' + Index1 + ' found in ' + (Time * 1000)$'.4' + ' ms (on the side) \n']</l>
+<l>            elseif (Pose[5] &gt; 135 and Pose[5] &lt; 225)</l>
+<l>                OutputString := [OutputString,'Model ' + Index1 + ' found in ' + (Time * 1000)$'.4' + ' ms (upside down)\n']</l>
+<l>            else</l>
+<l>                OutputString := [OutputString,'Model ' + Index1 + ' found in ' + (Time * 1000)$'.4' + ' ms\n']</l>
+<l>            endif</l>
+<l>            if (|Score| == 0)</l>
+<l>                OutputString := 'No model found'</l>
+<l>                disp_message (WindowHandle, 'No model found.', 'window', 10, 10, 'black', 'true')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    OutputString := [OutputString,'Overall search time: ' + (TotalTime * 1000)$'.4' + ' ms']</l>
+<l>    disp_message (WindowHandle, OutputString, 'window', 10, 10, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandle, 'Program finished.\nPress \'Run\' to clear all descriptor models.', 'window', 10, 10, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for Index := 0 to |Models| - 1 by 1</l>
+<l>    clear_descriptor_model (Models[Index])</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

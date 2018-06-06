@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to create a local deformable</c>
+<c>* model from an XLD contour. In this case the contour is the result of</c>
+<c>* a subpixel-precise edge extraction.</c>
+<c>* Further, the example shows how to change the metric of a model.</c>
+<c>* </c>
+<c>* Prepare the local deformable model of the MVTec logo.</c>
+<l>dev_update_off ()</l>
+<l>Width := 256</l>
+<l>Height := 256</l>
+<l>create_mvtec_logo_and_contours (LogoImage, LogoContours, 0, 200, Width, Height)</l>
+<l>decompose3 (LogoImage, ImageR, ImageG, ImageB)</l>
+<l>WindowWidth := 2 * Width</l>
+<l>WindowHeight := 2 * Height</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, WindowWidth, WindowHeight, 'black', WindowHandle1)</l>
+<l>dev_display (LogoImage)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>rgb1_to_gray (LogoImage, GrayImage)</l>
+<l>gen_rectangle1 (Rectangle, 82, 17, 177, 235)</l>
+<l>reduce_domain (GrayImage, Rectangle, ImageReduced)</l>
+<c>* Extract the rectangular template domain that will be</c>
+<c>* compared later with the rectified version of the search image.</c>
+<l>* edges_sub_pix (ImageReduced, Edges, 'canny', 1, 10, 20)</l>
+<l>smallest_rectangle1_xld (LogoContours, Row1, Column1, Row2, Column2)</l>
+<l>gen_rectangle1 (Rectangle1, floor(min(Row1)), floor(min(Column1)), ceil(max(Row2)), ceil(max(Column2)))</l>
+<l>reduce_domain (GrayImage, Rectangle1, ImageReduced1)</l>
+<l>crop_domain (ImageReduced1, ImagePart)</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle1, 'Model Contour', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_display (LogoContours)</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Create the local deformable model with ignore_polarity as metric.</c>
+<l>create_local_deformable_model_xld (LogoContours, 'auto', [], [], 'auto', 1, [], 'auto', 1, [], 'auto', 'auto', 'ignore_local_polarity', 5, [], [], ModelID)</l>
+<l>get_deformable_model_contours (ModelContours, ModelID, 1)</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<c>* Open a window for the comparison of the rectified</c>
+<c>* matches with the cropped model image.</c>
+<l>get_image_size (ImagePart, WidthPart, HeightPart)</l>
+<l>WindowWidthPart := 2 * WidthPart</l>
+<l>WindowHeightPart := 2 * HeightPart</l>
+<l>dev_open_window (0, WindowWidth + 8, WindowWidthPart * 1.5, WindowHeightPart * 1.5, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<c>* For demonstration purposes, the matching is applied to</c>
+<c>* search images that show the logo with an increasing</c>
+<c>* magnitude of artificial deformations.</c>
+<l>gen_random_vector_field (VectorFieldFrom, Width, Height, 0, 2)</l>
+<l>vector_field_to_real (VectorFieldFrom, VFFromRow, VFFromColumn)</l>
+<l>PolaritySet := false</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    gen_random_vector_field (VectorFieldTo, Width, Height, 40, 2)</l>
+<l>    vector_field_to_real (VectorFieldTo, VFToRow, VFToColumn)</l>
+<l>    for T := 0.0 to 0.95 by 0.05</l>
+<c>        * Create a search image with an artificial deformation.</c>
+<l>        create_deformed_mvtec_logo (VFFromRow, VFFromColumn, VFToRow, VFToColumn, ImageR, ImageG, ImageB, SearchImage, T)</l>
+<l>        rgb1_to_gray (SearchImage, GrayImage)</l>
+<c>        * Find the model in the deformed search image. As result the</c>
+<c>        * rectified image, the respective vector field, and the deformed</c>
+<c>        * contours of the found model instance should be returned.</c>
+<l>        count_seconds (Seconds1)</l>
+<l>        find_local_deformable_model (GrayImage, ImageRectified, VectorField, DeformedContours, ModelID, 0, 0, 1, 1, 1, 1, 0.5, 1, 1, 4, 0.9, ['image_rectified','vector_field','deformed_contours'], ['deformation_smoothness','expand_border','subpixel'], [21,0,1], Score, Row, Column)</l>
+<l>        count_seconds (Seconds2)</l>
+<l>        Time := 1000.0 * (Seconds2 - Seconds1)</l>
+<l>        dev_set_window (WindowHandle1)</l>
+<c>        * For the visualization we use the returned vector field</c>
+<c>        * and generate a grid of the deformation in the search image.</c>
+<l>        gen_warped_mesh (VectorField, WarpedMesh, 10)</l>
+<l>        dev_display (SearchImage)</l>
+<l>        dev_set_line_width (1)</l>
+<l>        dev_set_color ('yellow')</l>
+<l>        dev_display (WarpedMesh)</l>
+<l>        dev_set_line_width (3)</l>
+<l>        dev_set_color ('green')</l>
+<l>        dev_display (DeformedContours)</l>
+<l>        disp_message (WindowHandle1, 'Match found in ' + Time$'3.1f' + ' ms (Score: ' + Score$'3.2f' + ')', 'window', 12, 12, 'black', 'true')</l>
+<l>        dev_set_window (WindowHandle2)</l>
+<c>        * To visualize the difference between the rectified search image</c>
+<c>        * and the original model region, the absolute difference is used.</c>
+<l>        abs_diff_image (ImagePart, ImageRectified, ImageAbsDiff1, 1)</l>
+<l>        dev_display (ImageAbsDiff1)</l>
+<l>        disp_message (WindowHandle2, 'Difference between model image and rectified image', 'window', 12, 12, 'black', 'true')</l>
+<c>        * The difference between the rectified search image and the</c>
+<c>        * original model region optionally can be further reduced by</c>
+<c>        * using optical flow (uncomment the following lines).</c>
+<l>*         optical_flow_mg (ImagePart, ImageRectified, VectorField1, 'clg', 0.8, 1, 20, 5, 'default_parameters', 'very_accurate')</l>
+<l>*         unwarp_image_vector_field (ImageRectified, VectorField1, ImageUnwarped)</l>
+<l>*         vector_field_to_real (VectorField1, RowField, ColumnField)</l>
+<l>*         vector_field_length (VectorField1, Length, 'length')</l>
+<l>*         abs_diff_image (ImagePart, ImageUnwarped, ImageAbsDiff, 1)</l>
+<l>*         stop ()</l>
+<l>        if (not PolaritySet and Index &gt; 1)</l>
+<c>            * Use the last Image with a found VectorField</c>
+<c>            * to change the metric of the model</c>
+<l>            set_local_deformable_model_metric (GrayImage, VectorField, ModelID, 'use_polarity')</l>
+<l>            PolaritySet := true</l>
+<l>            disp_message (WindowHandle1, 'Set polarity using the last match\nto improve robustness', 'window', 36, 12, 'black', 'true')</l>
+<l>            disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    copy_obj (VFToRow, VFFromRow, 1, 1)</l>
+<l>    copy_obj (VFToColumn, VFFromColumn, 1, 1)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_mvtec_logo_and_contours">
+<interface>
+<oo>
+<par name="LogoImage" base_type="iconic" dimension="0"/>
+<par name="LogoContours" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Broadening" base_type="ctrl" dimension="0"/>
+<par name="WidthLogo" base_type="ctrl" dimension="0"/>
+<par name="WidthImage" base_type="ctrl" dimension="0"/>
+<par name="HeightImage" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Blue := [0,48,117]</l>
+<l>Orange := [255,181,41]</l>
+<c>* </c>
+<c>* Read the image containing the logo</c>
+<l>read_image (Image, 'pen/pen-01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<c>* Segment the logo</c>
+<l>auto_threshold (Image, Regions, 10)</l>
+<l>connection (Regions, Regions)</l>
+<l>select_shape (Regions, SelectedRegions, ['row1','holes_num'], 'and', [80,0], [100,0])</l>
+<l>sort_region (SelectedRegions, SelectedRegions, 'character', 'true', 'row')</l>
+<l>closing_rectangle1 (SelectedRegions, Characters, 3, 3)</l>
+<l>opening_rectangle1 (Characters, Characters, 5, 5)</l>
+<c>* </c>
+<c>* Extract the contour</c>
+<l>dilation_rectangle1 (Characters, RegionDilation, 5, 5)</l>
+<l>erosion_rectangle1 (Characters, RegionErosion, 5, 5)</l>
+<l>difference (RegionDilation, RegionErosion, RegionDifference)</l>
+<l>count_obj (RegionDifference, Number)</l>
+<l>gen_empty_obj (LogoContoursTemp)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    select_obj (RegionDifference, ObjectSelected, Index)</l>
+<l>    reduce_domain (Image, ObjectSelected, ImageReduced)</l>
+<l>    edges_sub_pix (ImageReduced, Edges, 'canny', 1.5, 10, 20)</l>
+<l>    union_adjacent_contours_xld (Edges, UnionContours, 5, 1, 'attr_keep')</l>
+<l>    close_contours_xld (UnionContours, ClosedContours)</l>
+<l>    concat_obj (LogoContoursTemp, ClosedContours, LogoContoursTemp)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Create the colored image of the logo</c>
+<l>smallest_rectangle1_xld (LogoContoursTemp, Row1, Column1, Row2, Column2)</l>
+<l>Row1 := min(Row1)</l>
+<l>Column1 := min(Column1)</l>
+<l>Row2 := max(Row2)</l>
+<l>Column2 := max(Column2)</l>
+<l>WidthLogoOrig := Column2 - Column1 + 1</l>
+<l>ScaleFactor := real(WidthLogo) / WidthLogoOrig</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, -0.5 * (Row1 + Row2), -0.5 * (Column1 + Column2), HomMat2DTranslate)</l>
+<l>hom_mat2d_scale (HomMat2DTranslate, ScaleFactor, ScaleFactor, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_translate (HomMat2DScale, 0.5 * HeightImage, 0.5 * WidthImage, HomMat2DComplete)</l>
+<l>affine_trans_contour_xld (LogoContoursTemp, LogoContours, HomMat2DComplete)</l>
+<l>gen_image_const (ImageRed, 'byte', WidthImage, HeightImage)</l>
+<l>gen_image_const (ImageGreen, 'byte', WidthImage, HeightImage)</l>
+<l>gen_image_const (ImageBlue, 'byte', WidthImage, HeightImage)</l>
+<l>compose3 (ImageRed, ImageGreen, ImageBlue, LogoImageTempl)</l>
+<l>paint_xld (LogoContours, LogoImageTempl, LogoImage, [Blue,Orange,Blue,Blue,Blue,Blue])</l>
+<c>* </c>
+<c>* Dilate the original logo</c>
+<l>if (Broadening &gt; 0)</l>
+<l>    gray_dilation_shape (LogoImage, LogoImage, 2 * Broadening + 1, 2 * Broadening + 1, 'octagon')</l>
+<l>elseif (Broadening &lt; 0)</l>
+<l>    gray_erosion_shape (LogoImage, LogoImage, -2 * Broadening + 1, -2 * Broadening + 1, 'octagon')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="create_mvtec_logo_and_contours">
+<short lang="de_DE">returns a colored image of the MVTec logo</short>
+<short lang="en_US">returns a colored image of the MVTec logo</short>
+<parameters>
+<parameter id="Broadening"/>
+<parameter id="HeightImage"/>
+<parameter id="LogoContours"/>
+<parameter id="LogoImage"/>
+<parameter id="WidthImage"/>
+<parameter id="WidthLogo"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_random_vector_field">
+<interface>
+<oo>
+<par name="VectorField" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="MaxDeform" base_type="ctrl" dimension="0"/>
+<par name="Sigma" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>WidthVec := 32</l>
+<l>HeightVec := 32</l>
+<l>gen_image_const (VectorField, 'vector_field', WidthVec, HeightVec)</l>
+<l>vector_field_to_real (VectorField, VecRow, VecColumn)</l>
+<l>for R := 0 to HeightVec - 1 by 1</l>
+<l>    for C := 0 to WidthVec - 1 by 1</l>
+<l>        DR := (rand(1) - 0.5) * 2 * MaxDeform</l>
+<l>        DC := (rand(1) - 0.5) * 2 * MaxDeform</l>
+<l>        set_grayval (VecRow, R, C, DR)</l>
+<l>        set_grayval (VecColumn, R, C, DC)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>derivate_gauss (VecRow, VecRowGauss, Sigma, 'none')</l>
+<l>derivate_gauss (VecColumn, VecColumnGauss, Sigma, 'none')</l>
+<l>zoom_image_size (VecRowGauss, VecRowOrig, Width, Height, 'constant')</l>
+<l>zoom_image_size (VecColumnGauss, VecColumnOrig, Width, Height, 'constant')</l>
+<l>real_to_vector_field (VecRowOrig, VecColumnOrig, VectorField, 'vector_field_relative')</l>
+<l>return ()</l>
+</body>
+<docu id="gen_random_vector_field">
+<parameters>
+<parameter id="Height"/>
+<parameter id="MaxDeform"/>
+<parameter id="Sigma"/>
+<parameter id="VectorField"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_deformed_mvtec_logo">
+<interface>
+<io>
+<par name="VFFromRow" base_type="iconic" dimension="0"/>
+<par name="VFFromColumn" base_type="iconic" dimension="0"/>
+<par name="VFToRow" base_type="iconic" dimension="0"/>
+<par name="VFToColumn" base_type="iconic" dimension="0"/>
+<par name="ImageR" base_type="iconic" dimension="0"/>
+<par name="ImageG" base_type="iconic" dimension="0"/>
+<par name="ImageB" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="SearchImage" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="T" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>scale_image (VFFromRow, VFFromRowInt, 1.0 - T, 0)</l>
+<l>scale_image (VFFromColumn, VFFromColumnInt, 1.0 - T, 0)</l>
+<l>scale_image (VFToRow, VFToRowInt, T, 0)</l>
+<l>scale_image (VFToColumn, VFToColumnInt, T, 0)</l>
+<l>add_image (VFFromRowInt, VFToRowInt, VFRowInt, 1.0, 0)</l>
+<l>add_image (VFFromColumnInt, VFToColumnInt, VFColumnInt, 1.0, 0)</l>
+<l>real_to_vector_field (VFRowInt, VFColumnInt, VectorFieldInt, 'vector_field_relative')</l>
+<l>unwarp_image_vector_field (ImageR, VectorFieldInt, ImageRDef)</l>
+<l>unwarp_image_vector_field (ImageG, VectorFieldInt, ImageGDef)</l>
+<l>unwarp_image_vector_field (ImageB, VectorFieldInt, ImageBDef)</l>
+<l>compose3 (ImageRDef, ImageGDef, ImageBDef, SearchImage)</l>
+<l>return ()</l>
+</body>
+<docu id="create_deformed_mvtec_logo">
+<parameters>
+<parameter id="ImageB"/>
+<parameter id="ImageG"/>
+<parameter id="ImageR"/>
+<parameter id="SearchImage"/>
+<parameter id="T"/>
+<parameter id="VFFromColumn"/>
+<parameter id="VFFromRow"/>
+<parameter id="VFToColumn"/>
+<parameter id="VFToRow"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_warped_mesh">
+<interface>
+<io>
+<par name="VectorField" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="WarpedMesh" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Step" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_empty_obj (WarpedMesh)</l>
+<l>count_obj (VectorField, Number)</l>
+<l>for Index := 1 to Number by 1</l>
+<c>    * For visualization, we use the returned vector field</c>
+<c>    * and generate a grid of the deformation in the search image.</c>
+<l>    select_obj (VectorField, ObjectSelected, Index)</l>
+<l>    vector_field_to_real (ObjectSelected, DRow, DColumn)</l>
+<l>    get_image_size (VectorField, Width, Height)</l>
+<l>    for ContR := 0.5 to Height[0] - 1 by Step</l>
+<l>        Column1 := [0.5:Width[0] - 1]</l>
+<l>        tuple_gen_const (Width[0] - 1, ContR, Row1)</l>
+<l>        get_grayval_interpolated (DRow, Row1, Column1, 'bilinear', GrayRow)</l>
+<l>        get_grayval_interpolated (DColumn, Row1, Column1, 'bilinear', GrayColumn)</l>
+<l>        gen_contour_polygon_xld (Contour, GrayRow, GrayColumn)</l>
+<l>        concat_obj (WarpedMesh, Contour, WarpedMesh)</l>
+<l>    endfor</l>
+<l>    for ContC := 0.5 to Width[0] - 1 by Step</l>
+<l>        Row1 := [0.5:Height[0] - 1]</l>
+<l>        tuple_gen_const (Height[0] - 1, ContC, Column1)</l>
+<l>        get_grayval_interpolated (DRow, Row1, Column1, 'bilinear', GrayRow)</l>
+<l>        get_grayval_interpolated (DColumn, Row1, Column1, 'bilinear', GrayColumn)</l>
+<l>        gen_contour_polygon_xld (Contour, GrayRow, GrayColumn)</l>
+<l>        concat_obj (WarpedMesh, Contour, WarpedMesh)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="gen_warped_mesh">
+<parameters>
+<parameter id="Step"/>
+<parameter id="VectorField"/>
+<parameter id="WarpedMesh"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Find a closed region of an image</c>
+<c>* </c>
+<l>read_image (Image, 'claudia')</l>
+<l>gauss_filter (Image, Image, 5)</l>
+<l>decompose3 (Image, Red, Green, Blue)</l>
+<l>threshold (Red, RegionRed, 150, 255)</l>
+<l>reduce_domain (Red, RegionRed, ImageRedSkin)</l>
+<c>* Symmetry of gray values along a line (row)</c>
+<l>symmetry (ImageRedSkin, ImageSymmetry, 80, 0, 0.5)</l>
+<l>threshold (ImageSymmetry, Region, 190, 255)</l>
+<c>* Open a region with a rectangular structuring element</c>
+<l>opening_rectangle1 (Region, RegionOpening, 1, 10)</l>
+<l>rank_region (RegionOpening, RegionCount, 25, 25, 150)</l>
+<l>closing_circle (RegionCount, RegionClosing, 53.5)</l>
+<l>area_center (RegionClosing, Area, Row, Column)</l>
+<l>gen_empty_region (EmptyRegion)</l>
+<l>expand_gray (RegionClosing, Red, EmptyRegion, RegionExpand, 'maximal', 'image', 1)</l>
+<l>smallest_rectangle1 (RegionClosing, Row1, Column1, Row2, Column2)</l>
+<c>* Clip a region to a rectangle</c>
+<l>clip_region (RegionExpand, RegionClipped, Row1, 0, Row2, 1000)</l>
+<c>* Close a region with a circular structuring element.</c>
+<l>closing_circle (RegionClipped, RegionClosing1, 13.5)</l>
+<c>* Display calculated region</c>
+<l>dev_display (Red)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (RegionClosing1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

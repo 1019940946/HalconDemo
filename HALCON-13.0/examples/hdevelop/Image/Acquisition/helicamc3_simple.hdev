@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[1,1]" as_ord="1">* *********************************************************************</c>
+<c>* HALCON Example: Simple example in Minimize Energy mode with motor</c>
+<c>* *********************************************************************</c>
+<c>* Close all image window</c>
+<l>dev_close_window ()</l>
+<c>* *********************************************************************</c>
+<c>* ToDo: Set motor configuration for heliCam</c>
+<c>* *********************************************************************</c>
+<l>IP := '192.168.2.100'</l>
+<l>Port := 10001</l>
+<l>CntPerMM := 1000</l>
+<l>start_position_mm := 89.2</l>
+<l>end_position_mm := 91.7</l>
+<l>home_position_mm := 89.2</l>
+<l>tgu_position := 89.7</l>
+<l>tgd_position := 0.0</l>
+<l>drive_speed := 20.0</l>
+<l>measurement_speed := 5.0</l>
+<c>* Pending on the system configuration, the result must be rotated for 0, 90, 180 or 270 degree</c>
+<l>rotate_image := 270</l>
+<l>genericParam := ['axis_ip=' + IP + '','axis_port=' + Port + '','axis_cnt_per_mm=' + CntPerMM + '']</l>
+<c>* </c>
+<c>* Open heliCam</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('heliCamC3', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', genericParam, 'true', 'default', 'default', -1, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Minimal configuration from helicam for minimize energy (camMode=7)</c>
+<l>set_framegrabber_param (AcqHandle, 'SensNavM2', 2)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[1,2,2]" as_ord="7">set_framegrabber_param (AcqHandle, 'SensTqp', 539)</l>
+<l>set_framegrabber_param (AcqHandle, 'OutEnDrv', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'SensNFrames', 500)</l>
+<c>* </c>
+<c>* Set previously defined motor parameters</c>
+<l>set_framegrabber_param (AcqHandle, 'start_position_mm', start_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'end_position_mm', end_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'home_position_mm', home_position_mm)</l>
+<l>set_framegrabber_param (AcqHandle, 'tgu_position', tgu_position)</l>
+<l>set_framegrabber_param (AcqHandle, 'tgd_position', tgd_position)</l>
+<l>set_framegrabber_param (AcqHandle, 'drive_speed', drive_speed)</l>
+<l>set_framegrabber_param (AcqHandle, 'measurement_speed', measurement_speed)</l>
+<c>* </c>
+<l>dev_open_window (0, 0, 281, 293, 'black', SurfaceHandle)</l>
+<l>dev_set_lut ('rainbow')</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[2,2]" as_ord="1">while (true)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[2,3]" as_ord="1">    grab_image (Image, AcqHandle)</l>
+<l>    rotate_image (Image, Image, rotate_image, 'constant')</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[3,1]" as_ord="1">endwhile</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 03" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

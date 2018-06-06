@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example visualizes the parameters of the k-NN classification</c>
+<c>* </c>
+<c>* The points displayed symbolize samples in a 2-dimensional</c>
+<c>* feature space (the features being the row and column coordinates).</c>
+<c>* Each sample point belongs to one of four classes: red, green,</c>
+<c>* blue, and cyan.</c>
+<c>* </c>
+<c>* The k-NN classifier assigns a class to any new data point</c>
+<c>* depending on the classes of its k neighbors (where k is any</c>
+<c>* number &gt;= 1).</c>
+<c>* </c>
+<c>* You may choose the number of neighbors k, and the data point</c>
+<c>* to be classified by clicking the buttons or into the image.</c>
+<c>* </c>
+<c>* You may also choose between the 4 different classification</c>
+<c>* methods, as described in the reference documentation of</c>
+<c>* classify_class_knn:</c>
+<c>* - 'neighbors_distance' (returns no class, only the distance</c>
+<c>*                         to the nearest point)</c>
+<c>* - 'classes_distance'   (returns the class of the nearest point)</c>
+<c>* - 'classes_frequency'  (returns the class with the largest</c>
+<c>*                         number of the k nearest neighbor points)</c>
+<c>* - 'classes_frequency_weighted' (takes the number and distance</c>
+<c>*                                 into account)</c>
+<c>* </c>
+<c>* Init display and menu texts</c>
+<l>Width := 180</l>
+<l>Height := 200</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>open_window (0, Width * 3 + 12, 300, Height * 3, 0, 'buffer', '', WindowHandleResultBuffer)</l>
+<l>set_part (WindowHandleResultBuffer, 0, 0, Height * 3, 300)</l>
+<l>open_window (0, 0, Width * 3, Height * 3, 0, 'buffer', '', WindowHandleBuffer)</l>
+<l>set_part (WindowHandleBuffer, 0, 0, Height - 1, Width - 1)</l>
+<l>dev_open_window (0, Width * 3 + 12, 300, Height * 3, 'black', WindowHandleResult)</l>
+<l>dev_open_window (0, 0, Width * 3, Height * 3, 'black', WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandleResult, 14, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandleBuffer, 14, 'mono', 'true', 'false')</l>
+<l>set_display_font (WindowHandleResultBuffer, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Height * 3 - 1, Width * 3 - 1)</l>
+<l>HighlightColor := ['black','yellow']</l>
+<l>NormalColor := ['white','gray']</l>
+<l>Colors := ['red','green','blue','cyan']</l>
+<l>LabelWidth := 30</l>
+<l>LabelHeight := 10</l>
+<l>Columns := [0:LabelWidth:179]</l>
+<l>gen_rectangle1 (LabelK, gen_tuple_const(6,0), Columns, gen_tuple_const(6,LabelHeight - 1), Columns + LabelWidth - 1)</l>
+<l>gen_rectangle1 (LabelMethod, [LabelHeight,LabelHeight,2 * LabelHeight,2 * LabelHeight], [0,Width / 2,0,Width / 2], [2 * LabelHeight - 1,2 * LabelHeight - 1,3 * LabelHeight - 1,3 * LabelHeight - 1], [Width / 2 - 1,Width - 1,Width / 2 - 1,Width - 1])</l>
+<l>concat_obj (LabelK, LabelMethod, LabelRegions)</l>
+<l>Instructions := 'Please use the'</l>
+<l>Instructions[1] := 'left mouse button to select'</l>
+<l>Instructions[2] := ' - method'</l>
+<l>Instructions[3] := ' - number of neighbors'</l>
+<l>Instructions[4] := ' - a candidate point'</l>
+<l>Instructions[5] := '(Right click to exit)'</l>
+<l>Methods := ['neighbors_distance','classes_distance','classes_frequency','classes_weighted_frequencies']</l>
+<c>* </c>
+<c>* Init data</c>
+<c>* </c>
+<c>* Create a generic test region with dots and build a k-NN index for it</c>
+<l>create_test_region_with_index_knn (TrainingDataDots, KNNHandle)</l>
+<c>* Initial parameters for the classification:</c>
+<c>* These values can be changed interactively in the example</c>
+<l>Method := 2</l>
+<l>K := 3</l>
+<l>Row := 139</l>
+<l>Column := 57</l>
+<l>P := [Row,Column]</l>
+<c>* Trigger display for the first loop</c>
+<l>First := 1</l>
+<l>Button := 1</l>
+<c>* If ContinuosMode is set to 0, the candidate</c>
+<c>* point has to be explicitely set by clicking</c>
+<c>* the left mouse button. You might want to try</c>
+<c>* this to see the effect of changed parameters</c>
+<c>* on a given point. (E.g. different classification</c>
+<c>* results depending on the number of neighbors</c>
+<c>* or the classification method).</c>
+<l>ContinuousMode := true</l>
+<l>dev_error_var (ErrorVar, 1)</l>
+<c>* </c>
+<c>* </c>
+<c>* Interaction loop</c>
+<c>* Wait for mouse button (exit on right click)</c>
+<l>while (Button != 4)</l>
+<c>    * Get the next mouse position</c>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition (WindowHandle, Row, Column, Button)</l>
+<l>    if (ErrorVar != 2)</l>
+<l>        if (First)</l>
+<l>            Row := 300</l>
+<l>            Column := 300</l>
+<l>            Button := 0</l>
+<l>        else</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    Row := Row / 3</l>
+<l>    Column := Column / 3</l>
+<l>    dev_set_check ('give_error')</l>
+<c>    * Left click</c>
+<c>    * </c>
+<c>    * Test if label was clicked</c>
+<l>    if (Row &lt; LabelHeight and Button % 2 == 1)</l>
+<c>        * Case 1: Click on k-label</c>
+<c>        * Select k</c>
+<l>        for I := 1 to 6 by 1</l>
+<l>            select_obj (LabelK, LabelSelected, I)</l>
+<l>            test_region_point (LabelSelected, Row, Column, IsInside)</l>
+<l>            if (IsInside)</l>
+<l>                K := I</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    elseif (Row &lt; 3 * LabelHeight and Button % 2 == 1)</l>
+<c>        * Case 2: Click on method label</c>
+<c>        * Select method</c>
+<l>        for I := 1 to |Methods| by 1</l>
+<l>            select_obj (LabelMethod, LabelSelected, I)</l>
+<l>            test_region_point (LabelSelected, Row, Column, IsInside)</l>
+<l>            if (IsInside)</l>
+<l>                Method := I - 1</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    elseif (Button % 2 == 1 or ContinuousMode)</l>
+<c>        * Select point</c>
+<l>        P := [Row,Column]</l>
+<l>    endif</l>
+<c>    * Set selected parameters</c>
+<l>    set_params_class_knn (KNNHandle, ['method','k','max_num_classes'], [Methods[Method],K,K])</l>
+<c>    * Classify selected point</c>
+<l>    classify_class_knn (KNNHandle, P, Result, Rating)</l>
+<c>    * Visualize results</c>
+<l>    clear_window (WindowHandleBuffer)</l>
+<l>    clear_window (WindowHandleResultBuffer)</l>
+<l>    visualize_knn_classifiction (TrainingDataDots, WindowHandleBuffer, WindowHandleResultBuffer, KNNHandle, P, K, Result, Rating)</l>
+<c>    * Update menu</c>
+<l>    disp_menu (LabelRegions, WindowHandleBuffer, WindowHandleResultBuffer, K, Method, NormalColor, HighlightColor, Instructions)</l>
+<l>    copy_rectangle (WindowHandleBuffer, WindowHandle, 0, 0, 3 * Height - 1, 3 * Width - 1, 0, 0)</l>
+<l>    copy_rectangle (WindowHandleResultBuffer, WindowHandleResult, 0, 0, 3 * Height - 1, 300 - 1, 0, 0)</l>
+<l>endwhile</l>
+<c>* Clean up</c>
+<l>disp_end_of_program_message (WindowHandleResult, 'black', 'true')</l>
+<l>clear_class_knn (KNNHandle)</l>
+<l>wait_seconds (0.3)</l>
+<l>dev_set_preferences ('graphics_window_context_menu', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="create_test_region_with_index_knn">
+<interface>
+<oo>
+<par name="TrainingDataDots" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="KNNHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* </c>
+<c>* Create data points</c>
+<l>RowsClass1 := [53,70,78,111]</l>
+<l>ColumnsClass1 := [135,48,71,138]</l>
+<l>RowsClass2 := [59,67,132,124,140]</l>
+<l>ColumnsClass2 := [37,40,114,45,29]</l>
+<l>RowsClass3 := [48,140,127,163]</l>
+<l>ColumnsClass3 := [48,84,76,31]</l>
+<l>RowsClass4 := [118,127,139,137,170]</l>
+<l>ColumnsClass4 := [120,97,163,45,115]</l>
+<c>* </c>
+<c>* Create data regions (for visualization only)</c>
+<l>Radius := 3</l>
+<l>gen_circle (DotsClass1, RowsClass1, ColumnsClass1, gen_tuple_const(|RowsClass1|,Radius))</l>
+<l>gen_circle (DotsClass2, RowsClass2, ColumnsClass2, gen_tuple_const(|RowsClass2|,Radius))</l>
+<l>gen_circle (DotsClass3, RowsClass3, ColumnsClass3, gen_tuple_const(|RowsClass3|,Radius))</l>
+<l>gen_circle (DotsClass4, RowsClass4, ColumnsClass4, gen_tuple_const(|RowsClass4|,Radius))</l>
+<l>union1 (DotsClass1, Class1Union)</l>
+<l>union1 (DotsClass2, Class2Union)</l>
+<l>union1 (DotsClass3, Class3Union)</l>
+<l>union1 (DotsClass4, Class4Union)</l>
+<l>concat_obj (Class1Union, Class2Union, TrainingDataDots)</l>
+<l>concat_obj (TrainingDataDots, Class3Union, TrainingDataDots)</l>
+<l>concat_obj (TrainingDataDots, Class4Union, TrainingDataDots)</l>
+<c>* </c>
+<c>* Create classifier</c>
+<l>create_class_knn (2, KNNHandle)</l>
+<c>* Add class 1 samples</c>
+<l>Sequence := [0:2:|RowsClass1| * 2 - 1]</l>
+<l>FeatureVector1[Sequence] := RowsClass1</l>
+<l>FeatureVector1[Sequence + 1] := ColumnsClass1</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector1, 1)</l>
+<c>* Add class 2 samples</c>
+<l>Sequence := [0:2:|RowsClass2| * 2 - 1]</l>
+<l>FeatureVector2[Sequence] := RowsClass2</l>
+<l>FeatureVector2[Sequence + 1] := ColumnsClass2</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector2, 2)</l>
+<c>* Add class 3 samples</c>
+<l>Sequence := [0:2:|RowsClass3| * 2 - 1]</l>
+<l>FeatureVector3[Sequence] := RowsClass3</l>
+<l>FeatureVector3[Sequence + 1] := ColumnsClass3</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector3, 3)</l>
+<c>* Add class 4 samples</c>
+<l>Sequence := [0:2:|RowsClass4| * 2 - 1]</l>
+<l>FeatureVector4[Sequence] := RowsClass4</l>
+<l>FeatureVector4[Sequence + 1] := ColumnsClass4</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector4, 4)</l>
+<c>* Train classifier</c>
+<l>train_class_knn (KNNHandle, [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="create_test_region_with_index_knn">
+<parameters>
+<parameter id="KNNHandle"/>
+<parameter id="TrainingDataDots"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_contour_to_knns">
+<interface>
+<oo>
+<par name="Contours" base_type="iconic" dimension="0"/>
+<par name="Lines" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="KNNHandle" base_type="ctrl" dimension="0"/>
+<par name="k" base_type="ctrl" dimension="0"/>
+<par name="P" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Classes" base_type="ctrl" dimension="0"/>
+<par name="Indices" base_type="ctrl" dimension="0"/>
+<par name="Distances" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>set_params_class_knn (KNNHandle, ['method','k'], ['neighbors_distance',k])</l>
+<l>classify_class_knn (KNNHandle, P, Result, Rating)</l>
+<l>Classes := []</l>
+<l>gen_empty_obj (Lines)</l>
+<c>* </c>
+<l>for I := 0 to |Result| - 1 by 1</l>
+<l>    get_sample_class_knn (KNNHandle, Result[I], Features, ClassID)</l>
+<l>    gen_contour_polygon_xld (Contour, [P[0],Features[0]], [P[1],Features[1]])</l>
+<l>    concat_obj (Lines, Contour, Lines)</l>
+<l>    gen_circle_contour_xld (Contours, P[0], P[1], Rating[I], 0, 6.28318, 'positive', 1)</l>
+<l>    Classes := [Classes,ClassID]</l>
+<l>endfor</l>
+<l>Indices := Result</l>
+<l>Distances := Rating</l>
+<l>return ()</l>
+</body>
+<docu id="get_contour_to_knns">
+<parameters>
+<parameter id="Classes"/>
+<parameter id="Contours"/>
+<parameter id="Distances"/>
+<parameter id="Indices"/>
+<parameter id="KNNHandle"/>
+<parameter id="Lines"/>
+<parameter id="P"/>
+<parameter id="k"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="visualize_knn_classifiction">
+<interface>
+<io>
+<par name="TrainingDataDots" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleResult" base_type="ctrl" dimension="0"/>
+<par name="KNNHandle" base_type="ctrl" dimension="0"/>
+<par name="P" base_type="ctrl" dimension="0"/>
+<par name="K" base_type="ctrl" dimension="0"/>
+<par name="Result" base_type="ctrl" dimension="0"/>
+<par name="Rating" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Colors := ['red','green','blue','cyan']</l>
+<l>LenRect := 270</l>
+<l>RectRow1 := 160</l>
+<l>RectRow2 := 190</l>
+<l>gen_rectangle1 (Border, RectRow1, 20, RectRow2, 20 + LenRect)</l>
+<l>gen_cross_contour_xld (Cross, P[0], P[1], 20, 0.785398)</l>
+<l>get_params_class_knn (KNNHandle, 'method', Method)</l>
+<l>get_contour_to_knns (Contours, Lines, KNNHandle, K, P, Classes, Indices, Distances)</l>
+<l>LinesColor := Colors[Classes - 1]</l>
+<l>clear_window (WindowHandle)</l>
+<l>set_color (WindowHandle, Colors)</l>
+<l>set_draw (WindowHandle, 'fill')</l>
+<l>disp_obj (TrainingDataDots, WindowHandle)</l>
+<l>set_color (WindowHandle, 'gray')</l>
+<c>* </c>
+<l>set_line_style (WindowHandle, [3,3])</l>
+<l>disp_obj (Contours, WindowHandle)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<c>* </c>
+<l>set_line_width (WindowHandle, 2)</l>
+<l>if (Method == 'neighbors_distance')</l>
+<l>    disp_obj (Lines, WindowHandle)</l>
+<l>    ClassColor := 'white'</l>
+<l>    gen_empty_region (Rectangle)</l>
+<l>    RectColor := 'black'</l>
+<l>    get_sample_class_knn (KNNHandle, Indices[0], NN, ClassID)</l>
+<l>elseif (Method == 'classes_distance')</l>
+<l>    gen_circle_contour_xld (ContCircle, P[0], P[1], Rating[0], 0, 6.28318, 'positive', 1)</l>
+<l>    ClassColor := Colors[Result[0] - 1]</l>
+<l>    set_color (WindowHandle, ClassColor)</l>
+<l>    disp_obj (ContCircle, WindowHandle)</l>
+<l>    gen_rectangle1 (Rectangle, RectRow1, 20, RectRow2, 20 + LenRect)</l>
+<l>    RectColor := ClassColor</l>
+<l>elseif (Method == 'classes_frequency')</l>
+<l>    End := 20 + cumul(Rating) * LenRect / sum(Rating)</l>
+<l>    Begin := [20,End[0:|End| - 2]]</l>
+<l>    gen_rectangle1 (Rectangle, gen_tuple_const(|End|,RectRow1), Begin, gen_tuple_const(|End|,RectRow2), End)</l>
+<l>    RectColor := Colors[Result - 1]</l>
+<l>    ClassColor := RectColor[0]</l>
+<l>else</l>
+<l>    End := 20 + cumul(Rating) * LenRect / sum(Rating)</l>
+<l>    Begin := [20,End[0:|End| - 2]]</l>
+<l>    gen_rectangle1 (Rectangle, gen_tuple_const(|End|,RectRow1), Begin, gen_tuple_const(|End|,RectRow2), End)</l>
+<c>    * </c>
+<l>    RectColor := Colors[Result - 1]</l>
+<l>    ClassColor := RectColor[0]</l>
+<l>    set_color (WindowHandle, Colors[Classes - 1])</l>
+<l>    disp_obj (Lines, WindowHandle)</l>
+<l>endif</l>
+<l>set_color (WindowHandle, ClassColor)</l>
+<l>set_line_width (WindowHandle, 3)</l>
+<l>disp_obj (Cross, WindowHandle)</l>
+<l>clear_window (WindowHandleResult)</l>
+<l>set_color (WindowHandleResult, RectColor)</l>
+<l>set_draw (WindowHandleResult, 'fill')</l>
+<l>disp_obj (Rectangle, WindowHandleResult)</l>
+<l>set_draw (WindowHandleResult, 'margin')</l>
+<l>set_color (WindowHandleResult, 'white')</l>
+<l>set_line_width (WindowHandleResult, 2)</l>
+<l>disp_obj (Border, WindowHandleResult)</l>
+<l>disp_message (WindowHandleResult, ['Neighbors for','P = [' + P[0] + ', ' + P[1] + ']'], 'window', RectRow2 + 20, 12, 'white', 'false')</l>
+<l>AllFeaturesRow := []</l>
+<l>AllFeaturesCol := []</l>
+<l>for Index := 0 to |Indices| - 1 by 1</l>
+<l>    get_sample_class_knn (KNNHandle, Indices[Index], Features, ClassID)</l>
+<l>    ResultText := (Index + 1) + ': [' + Features[0] + ',' + Features[1] + '] -&gt; ' + Colors[ClassID - 1] + '\nd = ' + Distances[Index]</l>
+<l>    disp_message (WindowHandleResult, ResultText, 'window', RectRow2 + 70 + Index * 40, 12, 'white', 'false')</l>
+<l>    AllFeaturesRow := [AllFeaturesRow,Features[0]]</l>
+<l>    AllFeaturesCol := [AllFeaturesCol,Features[1]]</l>
+<l>endfor</l>
+<l>connection (TrainingDataDots, ConnectedDataDots)</l>
+<l>smallest_circle (ConnectedDataDots, Row, Column, Radius)</l>
+<l>gen_circle (Circle, AllFeaturesRow, AllFeaturesCol, AllFeaturesRow * 0 + Radius[0])</l>
+<c>* </c>
+<l>* set_line_style (WindowHandle, [20,7,3,7])</l>
+<l>set_line_style (WindowHandle, [3,3])</l>
+<l>set_draw (WindowHandle, 'margin')</l>
+<l>set_color (WindowHandle, 'white')</l>
+<l>set_line_width (WindowHandle, 3)</l>
+<l>disp_obj (Circle, WindowHandle)</l>
+<l>set_line_style (WindowHandle, [])</l>
+<l>set_draw (WindowHandle, 'fill')</l>
+<c>* </c>
+<l>disp_message (WindowHandleResult, 'Classification Result:', 'window', RectRow1 - 20, 12, 'white', 'false')</l>
+<l>if (Method == 'neighbors_distance')</l>
+<l>    disp_message (WindowHandleResult, '[' + NN[0] + ',' + NN[1] + ']', 'window', RectRow1 + 6, 110, 'white', 'false')</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="visualize_knn_classifiction">
+<parameters>
+<parameter id="K"/>
+<parameter id="KNNHandle"/>
+<parameter id="P"/>
+<parameter id="Rating"/>
+<parameter id="Result"/>
+<parameter id="TrainingDataDots"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleResult"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_menu">
+<interface>
+<io>
+<par name="LabelRegions" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleResult" base_type="ctrl" dimension="0"/>
+<par name="K" base_type="ctrl" dimension="0"/>
+<par name="Method" base_type="ctrl" dimension="0"/>
+<par name="NormalColor" base_type="ctrl" dimension="0"/>
+<par name="HighlightColor" base_type="ctrl" dimension="0"/>
+<par name="Instructions" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>set_draw (WindowHandle, 'fill')</l>
+<l>LabelColor := gen_tuple_const(10,NormalColor[1])</l>
+<l>LabelColor[K - 1,6 + Method] := HighlightColor[1]</l>
+<l>set_color (WindowHandle, LabelColor)</l>
+<l>disp_obj (LabelRegions, WindowHandle)</l>
+<l>set_draw (WindowHandle, 'margin')</l>
+<l>set_color (WindowHandle, 'black')</l>
+<l>set_line_width (WindowHandle, 1)</l>
+<l>disp_obj (LabelRegions, WindowHandle)</l>
+<l>disp_obj (LabelRegions, WindowHandle)</l>
+<l>for I := 1 to 6 by 1</l>
+<l>    if (I == K)</l>
+<l>        TextColor := HighlightColor[0]</l>
+<l>    else</l>
+<l>        TextColor := NormalColor[0]</l>
+<l>    endif</l>
+<l>    disp_message (WindowHandle, 'k = ' + I, 'image', 1, I * 30 - 24, TextColor, 'false')</l>
+<l>endfor</l>
+<l>TextColor := gen_tuple_const(4,NormalColor[0])</l>
+<l>TextColor[Method] := HighlightColor[0]</l>
+<l>disp_message (WindowHandle, 'neighbors_distance', 'image', 11, 12, TextColor[0], 'false')</l>
+<l>disp_message (WindowHandle, 'classes_distance', 'image', 11, 104, TextColor[1], 'false')</l>
+<l>disp_message (WindowHandle, 'classes_frequency', 'image', 21, 13, TextColor[2], 'false')</l>
+<l>disp_message (WindowHandle, 'classes_frequency_weighted', 'image', 21, 90, TextColor[3], 'false')</l>
+<l>disp_message (WindowHandleResult, Instructions, 'window', 5, 5, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_menu">
+<parameters>
+<parameter id="HighlightColor"/>
+<parameter id="Instructions"/>
+<parameter id="K"/>
+<parameter id="LabelRegions"/>
+<parameter id="Method"/>
+<parameter id="NormalColor"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleResult"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

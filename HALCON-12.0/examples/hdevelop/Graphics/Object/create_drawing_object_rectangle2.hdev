@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates how to use a drawing object of type</c>
+<c>* 'rectangle2' for an interactive measuring application.</c>
+<c>* While interactively moving, resizing, or rotating the drawing</c>
+<c>* object, straight edges that lie perpendicular to the rectangle</c>
+<c>* are constantly measured and the corresponding center points</c>
+<c>* are extracted and displayed.</c>
+<c>* </c>
+<c>* In contrast to other drawing operators, e.g., draw_rectangle2, the</c>
+<c>* use of drawing objects does not block the whole application.</c>
+<c>* Thus, the user may interact with the object or make changes</c>
+<c>* to the program without ending the interaction first.</c>
+<c>* </c>
+<c>* Initialize settings</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>dev_get_preferences ('suppress_handled_exceptions_dlg', SuppressExceptDlg)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', 'true')</l>
+<c>* Read image</c>
+<l>read_image (Image, 'fuse')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>get_system ('operating_system', OS)</l>
+<l>if (OS == 'Linux')</l>
+<l>    open_window (100, 0, Width, Height, 0, 'visible', '', WindowHandle)</l>
+<l>    set_part (WindowHandle, 0, 0, Height - 1, Width - 1)</l>
+<l>    set_color (WindowHandle, 'green')</l>
+<l>    disp_obj (Image, WindowHandle)</l>
+<l>else</l>
+<l>    dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Image)</l>
+<l>endif</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* Display short description</c>
+<l>Message := 'This examples shows how to measure and extract straight edges within'</l>
+<l>Message[1] := 'the area of a drawing object of type \'rectangle2\' while'</l>
+<l>Message[2] := 'interactively moving, resizing, or rotating the rectangle. '</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>if (OS == 'Linux')</l>
+<l>    Message := 'Click into the window to continue.'</l>
+<l>    get_window_extents (WindowHandle, Row, Column, Width, Height)</l>
+<l>    get_string_extents (WindowHandle, ' ' + Message + ' ', Ascent, Descent, TextWidth, TextHeight)</l>
+<l>    disp_message (WindowHandle, Message, 'window', Height - TextHeight - 12, Width - TextWidth - 12, 'black', 'true')</l>
+<l>    get_mbutton (WindowHandle, Row, Column, Button)</l>
+<l>else</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endif</l>
+<c>* </c>
+<c>* Create a drawing object of type 'rectangle2' and set the</c>
+<c>* color of the rectangle</c>
+<l>create_drawing_object_rectangle2 (300, 530, rad(90), 90, 20, DrawID)</l>
+<l>set_drawing_object_params (DrawID, 'color', 'red')</l>
+<c>* </c>
+<c>* Attach the drawing object and the image to the window</c>
+<l>attach_drawing_object_to_window (WindowHandle, DrawID)</l>
+<l>attach_background_to_window (Image, WindowHandle)</l>
+<c>* </c>
+<c>* Display a short description using a text draw object</c>
+<l>Message := 'Move, resize or rotate the rectangle by dragging the handles of the\nrectangle. The extracted edge points of the measuring are displayed\ninstantly. End the interaction by clicking the right mouse button.'</l>
+<l>create_drawing_object_text (20, 40, Message, DrawIDMessage)</l>
+<l>get_font (WindowHandle, Font)</l>
+<l>set_drawing_object_params (DrawIDMessage, ['color','font'], ['red',Font])</l>
+<l>attach_drawing_object_to_window (WindowHandle, DrawIDMessage)</l>
+<c>* </c>
+<c>* Measure straight edges interactively using the drawing object</c>
+<c>* *************************************************************</c>
+<c>* Measure straight edges that lie perpendicular to the rectangle</c>
+<c>* and extract the corresponding center points.</c>
+<c>* The rectangle can be moved, resized, or rotated interactively</c>
+<c>* by the user. The edges are measured and extracted constantly</c>
+<c>* while the drawing object is moved over the image.</c>
+<c>* The user interaction is ended by clicking the right mouse button.</c>
+<l>Button := 0</l>
+<l>while (Button != 4)</l>
+<l>    try</l>
+<l>        perform_measurement (Image, DrawID, Width, Height, RowEdge, ColumnEdge)</l>
+<l>        display_results (RowEdge, ColumnEdge, WindowHandle)</l>
+<c>        * Check the mouse position and button</c>
+<l>        get_mposition (WindowHandle, Row, Column, Button)</l>
+<l>    catch (Exception)</l>
+<c>        * Keep waiting until mouse button is</c>
+<c>        * positioned in the window</c>
+<l>    endtry</l>
+<l>endwhile</l>
+<c>* </c>
+<c>* Detach the drawing objects</c>
+<l>dev_clear_window ()</l>
+<l>detach_drawing_object_from_window (WindowHandle, DrawID)</l>
+<l>detach_drawing_object_from_window (WindowHandle, DrawIDMessage)</l>
+<l>detach_background_from_window (WindowHandle)</l>
+<c>* </c>
+<c>* Clear the drawing objects</c>
+<l>clear_drawing_object (DrawID)</l>
+<l>clear_drawing_object (DrawIDMessage)</l>
+<l>dev_set_preferences ('suppress_handled_exceptions_dlg', SuppressExceptDlg)</l>
+<l>if (OS == 'Linux')</l>
+<l>    disp_obj (Image, WindowHandle)</l>
+<l>    clear_window (WindowHandle)</l>
+<l>    disp_message (WindowHandle, 'The drawing object has been cleared.', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_message (WindowHandle, 'Click into the window to to close it.', 'window', 50, 12, 'black', 'true')</l>
+<l>    get_mbutton (WindowHandle, Row, Column, Button)</l>
+<l>    close_window (WindowHandle)</l>
+<l>else</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'The drawing object has been cleared', 'window', 12, 12, 'black', 'true')</l>
+<l>endif</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="perform_measurement">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="DrawID" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="RowEdge" base_type="ctrl" dimension="0"/>
+<par name="ColumnEdge" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Use the parameters of the drawing object to generate a</c>
+<c>* measure object</c>
+<l>get_drawing_object_params (DrawID, ['row','column','phi','length1','length2'], ParamValues)</l>
+<l>gen_measure_rectangle2 (ParamValues[0], ParamValues[1], ParamValues[2], ParamValues[3], ParamValues[4], Width, Height, 'nearest_neighbor', MeasureHandle)</l>
+<l>measure_pos (Image, MeasureHandle, 1, 30, 'all', 'all', RowEdge, ColumnEdge, Amplitude, Distance)</l>
+<l>close_measure (MeasureHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="perform_measurement">
+<parameters>
+<parameter id="ColumnEdge"/>
+<parameter id="DrawID"/>
+<parameter id="Height"/>
+<parameter id="Image"/>
+<parameter id="RowEdge"/>
+<parameter id="Width"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_results">
+<interface>
+<ic>
+<par name="RowEdge" base_type="ctrl" dimension="0"/>
+<par name="ColumnEdge" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_system ('operating_system', OS)</l>
+<l>set_system ('flush_graphic', 'false')</l>
+<l>gen_cross_contour_xld (Cross, RowEdge, ColumnEdge, 15, 0.785398)</l>
+<l>if (OS == 'Linux')</l>
+<l>    clear_window (WindowHandle)</l>
+<l>    set_color (WindowHandle, 'green')</l>
+<l>    disp_obj (Cross, WindowHandle)</l>
+<l>else</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Cross)</l>
+<l>endif</l>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>disp_cross (WindowHandle, -32, -32, 6, 0)</l>
+<l>return ()</l>
+</body>
+<docu id="display_results">
+<parameters>
+<parameter id="ColumnEdge"/>
+<parameter id="RowEdge"/>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

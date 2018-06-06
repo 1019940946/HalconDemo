@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the use of the operator get_operator_info</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 760, 540, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 11, 'mono', 'false', 'false')</l>
+<l>Row := 16</l>
+<l>Line := 0.5</l>
+<c>* </c>
+<l>WriteResults := false</l>
+<c>* </c>
+<c>* Determine the multithreading information</c>
+<l>get_multithreading_operators (TypeExclusive, TypeMutual, TypeReentrant, TypeIndependent)</l>
+<c>* Display results</c>
+<l>disp_message (WindowHandle, 'Multithreading type', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |TypeExclusive|$'4d' + ' operators are exclusive (run in parallel only with independent operators)', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |TypeMutual|$'4d' + ' operators are mutual (run in parallel with other non-exclusive operators)', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |TypeReentrant|$'4d' + ' operators are reentrant (run in parallel with non-exclusive operators)', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |TypeIndependent|$'4d' + ' operators are independent (run in parallel even with exclusive operators)', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('multithreading_type_exclusive_operators', 'List of operators that are exclusive (run in parallel only with independent operators)', TypeExclusive)</l>
+<l>    write_operator_info ('multithreading_type_mutual_operators', 'List of operators that are mutual (run in parallel with other non-exclusive operators)', TypeMutual)</l>
+<l>    write_operator_info ('multithreading_type_reentrant_operators', 'List of operators that are reentrant (run in parallel with non-exclusive operators)', TypeReentrant)</l>
+<l>    write_operator_info ('multithreading_type_independent_operators', 'List of operators that are independent (run in parallel even with exclusive operators)', TypeIndependent)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine the parallelization method of all parallelized operators</c>
+<l>get_parallel_method_operators (SplitTuple, SplitChannel, SplitDomain, SplitPartial, None)</l>
+<c>* Display results</c>
+<l>Line := Line + 0.5</l>
+<l>disp_message (WindowHandle, 'Parallelization method', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>AutoParallel := [SplitTuple,SplitChannel,SplitDomain,SplitPartial]</l>
+<l>AutoParallel := uniq(sort(AutoParallel))</l>
+<l>disp_message (WindowHandle, |AutoParallel|$'4d' + ' operators are automatically parallelized', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, '     ' + |SplitTuple|$'4d' + ' operators are automatically parallelized on tuple level', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, '     ' + |SplitChannel|$'4d' + ' operators are automatically parallelized on channel level', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, '     ' + |SplitDomain|$'4d' + ' operators are automatically parallelized on domain level', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, '     ' + |SplitPartial|$'4d' + ' operators are automatically parallelized on internal data level', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('auto_parallel_operators', 'List of automatically parallelized operators', AutoParallel)</l>
+<l>    write_operator_info ('parallel_method_tuple_operators', 'List of operators that are automatically parallelized on tuple level', SplitTuple)</l>
+<l>    write_operator_info ('parallel_method_channel_operators', 'List of operators that are automatically parallelized on channel level', SplitChannel)</l>
+<l>    write_operator_info ('parallel_method_domain_operators', 'List of operators that are automatically parallelized on domain level', SplitDomain)</l>
+<l>    write_operator_info ('parallel_method_partial_operators', 'List of operators that are automatically parallelized on internal data level', SplitPartial)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine all operators that support OpenCL</c>
+<l>get_opencl_operators (OpenCLSupport)</l>
+<c>* Display results</c>
+<l>Line := Line + 0.5</l>
+<l>disp_message (WindowHandle, 'Compute devices', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |OpenCLSupport|$'4d' + ' operators support OpenCL', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('opencl_supporting_operators', 'List of operators that support OpenCL', OpenCLSupport)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine all operators that provide extended error infomation</c>
+<l>get_extended_error_operators (ExtendedErrorSupport)</l>
+<c>* Display results</c>
+<l>Line := Line + 0.5</l>
+<l>disp_message (WindowHandle, 'Extended error info', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |ExtendedErrorSupport|$'4d' + ' operators provide extended error information', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('opencl_supporting_operators', 'List of operators that support OpenCL', OpenCLSupport)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine all operators that support images of type UINT2</c>
+<l>get_uint2_operators (UINT2Support)</l>
+<c>* Display results</c>
+<l>Line := Line + 0.5</l>
+<l>disp_message (WindowHandle, 'Image data types', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<l>disp_message (WindowHandle, |UINT2Support|$'4d' + ' operators support UINT2 images', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('uint2_supporting_operators', 'List of operators that support images of type UINT2', UINT2Support)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine all operators that support images of type real</c>
+<l>get_real_operators (RealSupport)</l>
+<c>* Display results</c>
+<l>disp_message (WindowHandle, |RealSupport|$'4d' + ' operators support real images', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('real_supporting_operators', 'List of operators that support images of type real', RealSupport)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine all modules</c>
+<l>get_all_modules (Modules)</l>
+<c>* Display results</c>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>Line := Line + 0.5</l>
+<l>disp_message (WindowHandle, 'The ' + |OperatorNames|$'4d' + ' operators are organized in ' + |Modules| + ' modules', 'window', Line * Row, 10, 'black', 'false')</l>
+<l>Line := Line + 1</l>
+<c>* Write results to file</c>
+<l>if (WriteResults == true)</l>
+<l>    write_operator_info ('all_available_modules', 'List of all available Modules', Modules)</l>
+<l>endif</l>
+<c>* </c>
+<c>* Determine all operators of a given module</c>
+<l>for Index := 0 to |Modules| - 1 by 1</l>
+<l>    Module := Modules[Index]</l>
+<c>    * Determine operators</c>
+<l>    get_module_operators (Module, Operators)</l>
+<c>    * Display results</c>
+<l>    disp_message (WindowHandle, |Operators|$'4d' + ' operators are in module ' + Module, 'window', Line * Row, 10, 'black', 'false')</l>
+<l>    Line := Line + 1</l>
+<c>    * Write results to file</c>
+<l>    if (WriteResults == true)</l>
+<l>        tuple_regexp_replace (Module, ['[ /]','replace_all'], '_', ModuleFN)</l>
+<l>        write_operator_info ('operators_of_module_' + ModuleFN, 'List of all operators of module ' + Module, Operators)</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="write_operator_info">
+<interface>
+<ic>
+<par name="FileNameTrunk" base_type="ctrl" dimension="0"/>
+<par name="Caption" base_type="ctrl" dimension="0"/>
+<par name="OperatorList" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_system ('version', Version)</l>
+<l>FileName := FileNameTrunk + '_HALCON_' + Version + '.txt'</l>
+<l>open_file (FileName, 'output', FileHandle)</l>
+<l>fwrite_string (FileHandle, Caption)</l>
+<l>fnew_line (FileHandle)</l>
+<l>fnew_line (FileHandle)</l>
+<l>for Index := 0 to |OperatorList| - 1 by 1</l>
+<l>    fwrite_string (FileHandle, OperatorList[Index])</l>
+<l>    fnew_line (FileHandle)</l>
+<l>endfor</l>
+<l>close_file (FileHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="write_operator_info">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Write operator info to a file</short>
+<parameters>
+<parameter id="Caption"/>
+<parameter id="FileNameTrunk"/>
+<parameter id="OperatorList"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_all_modules">
+<interface>
+<oc>
+<par name="Modules" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>Modules := []</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_operator_info (OperatorNames[Index], 'module', Information)</l>
+<l>    Modules := [Modules,Information]</l>
+<l>endfor</l>
+<l>Modules := uniq(sort(Modules))</l>
+<l>dev_update_on ()</l>
+<l>return ()</l>
+</body>
+<docu id="get_all_modules">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all modules</short>
+<parameters>
+<parameter id="Modules"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_module_operators">
+<interface>
+<ic>
+<par name="Module" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Operators" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>Operators := []</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_operator_info (OperatorNames[Index], 'module', Information)</l>
+<l>    if (Information != Module)</l>
+<l>        continue</l>
+<l>    endif</l>
+<l>    Operators := [Operators,OperatorNames[Index]]</l>
+<l>endfor</l>
+<l>Operators := sort(Operators)</l>
+<l>dev_update_on ()</l>
+<l>return ()</l>
+</body>
+<docu id="get_module_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all operators for a given module</short>
+<parameters>
+<parameter id="Module"/>
+<parameter id="Operators"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_opencl_operators">
+<interface>
+<oc>
+<par name="OpenCLSupport" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>OpenCLSupport := []</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_operator_info (OperatorNames[Index], 'compute_device', Information)</l>
+<l>    if (Information == 'opencl')</l>
+<l>        OpenCLSupport := [OpenCLSupport,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>OpenCLSupport := sort(OpenCLSupport)</l>
+<l>dev_update_on ()</l>
+<l>return ()</l>
+</body>
+<docu id="get_opencl_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all operators that support OpenCL</short>
+<parameters>
+<parameter id="OpenCLSupport"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_uint2_operators">
+<interface>
+<oc>
+<par name="UINT2Support" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>UINT2Support := []</l>
+<l>NumIma := 0</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_param_names (OperatorNames[Index], InpObjPar, OutpObjPar, InpCtrlPar, OutpCtrlPar)</l>
+<l>    if (|InpObjPar| != 0)</l>
+<l>        NumIma := NumIma + 1</l>
+<l>        for ParIndex := 0 to |InpObjPar| - 1 by 1</l>
+<l>            get_param_info (OperatorNames[Index], InpObjPar[ParIndex], 'type_list', Information)</l>
+<l>            if (Information == [])</l>
+<l>                continue</l>
+<l>            endif</l>
+<l>            if (find(Information,'uint2') &gt;= 0)</l>
+<l>                UINT2Support := [UINT2Support,OperatorNames[Index]]</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>UINT2Support := sort(UINT2Support)</l>
+<l>dev_update_on ()</l>
+<l>return ()</l>
+</body>
+<docu id="get_uint2_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all operators that support UINT2 images</short>
+<parameters>
+<parameter id="UINT2Support"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_real_operators">
+<interface>
+<oc>
+<par name="RealSupport" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>RealSupport := []</l>
+<l>NumIma := 0</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_param_names (OperatorNames[Index], InpObjPar, OutpObjPar, InpCtrlPar, OutpCtrlPar)</l>
+<l>    if (|InpObjPar| != 0)</l>
+<l>        NumIma := NumIma + 1</l>
+<l>        for ParIndex := 0 to |InpObjPar| - 1 by 1</l>
+<l>            get_param_info (OperatorNames[Index], InpObjPar[ParIndex], 'type_list', Information)</l>
+<l>            if (Information == [])</l>
+<l>                continue</l>
+<l>            endif</l>
+<l>            if (find(Information,'real') &gt;= 0)</l>
+<l>                RealSupport := [RealSupport,OperatorNames[Index]]</l>
+<l>                break</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>RealSupport := sort(RealSupport)</l>
+<l>dev_update_on ()</l>
+<l>return ()</l>
+</body>
+<docu id="get_real_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all operators that support real images</short>
+<parameters>
+<parameter id="RealSupport"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_parallel_method_operators">
+<interface>
+<oc>
+<par name="SplitTuple" base_type="ctrl" dimension="0"/>
+<par name="SplitChannel" base_type="ctrl" dimension="0"/>
+<par name="SplitDomain" base_type="ctrl" dimension="0"/>
+<par name="SplitPartial" base_type="ctrl" dimension="0"/>
+<par name="None" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<c>* get names of all operators of the library</c>
+<l>get_operator_name ('', OperatorNames)</l>
+<c>* </c>
+<l>SplitTuple := []</l>
+<l>SplitChannel := []</l>
+<l>SplitDomain := []</l>
+<l>SplitPartial := []</l>
+<l>None := []</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_operator_info (OperatorNames[Index], 'parallel_method', Information)</l>
+<l>    if (|Information| == 0)</l>
+<c>        * no automatic parallelization supported</c>
+<l>        None := [None,OperatorNames[Index]]</l>
+<l>        continue</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'split_tuple')) &gt; -1)</l>
+<c>        * automatic tuple parallelization supported</c>
+<l>        SplitTuple := [SplitTuple,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'split_channel')) &gt; -1)</l>
+<c>        * automatic channel parallelization supported</c>
+<l>        SplitChannel := [SplitChannel,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'split_domain')) &gt; -1)</l>
+<c>        * automatic domain parallelization supported</c>
+<l>        SplitDomain := [SplitDomain,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'split_partial')) &gt; -1)</l>
+<c>        * automatic partial parallelization supported</c>
+<l>        SplitPartial := [SplitPartial,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>SplitTuple := sort(SplitTuple)</l>
+<l>SplitChannel := sort(SplitChannel)</l>
+<l>SplitDomain := sort(SplitDomain)</l>
+<l>SplitPartial := sort(SplitPartial)</l>
+<l>None := sort(None)</l>
+<l>return ()</l>
+</body>
+<docu id="get_parallel_method_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all operators that are automatically parallelized</short>
+<parameters>
+<parameter id="None"/>
+<parameter id="SplitChannel"/>
+<parameter id="SplitDomain"/>
+<parameter id="SplitPartial"/>
+<parameter id="SplitTuple"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_multithreading_operators">
+<interface>
+<oc>
+<par name="TypeExclusive" base_type="ctrl" dimension="0"/>
+<par name="TypeMutual" base_type="ctrl" dimension="0"/>
+<par name="TypeReentrant" base_type="ctrl" dimension="0"/>
+<par name="TypeIndependent" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>dev_update_off ()</l>
+<c>* get names of all operators of the library</c>
+<l>get_operator_name ('', OperatorNames)</l>
+<c>* </c>
+<l>TypeExclusive := []</l>
+<l>TypeMutual := []</l>
+<l>TypeReentrant := []</l>
+<l>TypeIndependent := []</l>
+<l>ScopeGlobal := []</l>
+<l>ScopeLocal := []</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_operator_info (OperatorNames[Index], 'parallelization', Information)</l>
+<l>    if (max(strstr(Information,'exclusive')) &gt; -1)</l>
+<l>        TypeExclusive := [TypeExclusive,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'mutually_exclusive')) &gt; -1)</l>
+<l>        TypeMutual := [TypeMutual,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'no_restriction')) &gt; -1)</l>
+<l>        TypeReentrant := [TypeReentrant,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>    if (max(strstr(Information,'independent')) &gt; -1)</l>
+<l>        TypeIndependent := [TypeIndependent,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* </c>
+<l>TypeExclusive := sort(TypeExclusive)</l>
+<l>TypeMutual := sort(TypeMutual)</l>
+<l>TypeReentrant := sort(TypeReentrant)</l>
+<l>TypeIndependent := sort(TypeIndependent)</l>
+<l>return ()</l>
+</body>
+<docu id="get_multithreading_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine operators based on their multithreading type</short>
+<parameters>
+<parameter id="TypeExclusive"/>
+<parameter id="TypeIndependent"/>
+<parameter id="TypeMutual"/>
+<parameter id="TypeReentrant"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_extended_error_operators">
+<interface>
+<oc>
+<par name="ExtendedErrorSupport" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* This procedure lists all operators that are able to set</c>
+<c>* extended error information that can be queried with</c>
+<l>* get_extended_error_info (OperatorName, ErrorCode, ErrorMessage)</l>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>get_operator_name ('', OperatorNames)</l>
+<l>ExtendedErrorSupport := []</l>
+<l>for Index := 0 to |OperatorNames| - 1 by 1</l>
+<l>    get_operator_info (OperatorNames[Index], 'result_state', Information)</l>
+<l>    if (Information =~ 'get_extended_error_info')</l>
+<l>        ExtendedErrorSupport := [ExtendedErrorSupport,OperatorNames[Index]]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>ExtendedErrorSupport := sort(ExtendedErrorSupport)</l>
+<l>dev_update_on ()</l>
+<l>return ()</l>
+</body>
+<docu id="get_extended_error_operators">
+<chapters lang="en_US">
+<item>System</item>
+<item>Information</item>
+</chapters>
+<short lang="en_US">Determine all operators that support OpenCL</short>
+<parameters>
+<parameter id="ExtendedErrorSupport"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

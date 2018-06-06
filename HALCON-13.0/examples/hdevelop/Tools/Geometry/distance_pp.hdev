@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate the distance between two points</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'mreut')</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('black')</l>
+<l>threshold (Image, Region, 180, 255)</l>
+<l>* dev_clear_window ()</l>
+<l>dev_display (Region)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10000, 100000000)</l>
+<l>get_region_contour (SelectedRegions, Rows, Columns)</l>
+<l>RowPoint := 80</l>
+<l>ColPoint := 250</l>
+<l>NumberTuple := |Rows|</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* Display a circle that represented one point</c>
+<l>gen_circle (Circle, RowPoint, ColPoint, 10)</l>
+<l>dev_display (Circle)</l>
+<l>dev_set_color ('green')</l>
+<c>* Calculate the distance between points of the contour</c>
+<c>* of the selected region and the displayed point</c>
+<l>for I := 1 to NumberTuple by 10</l>
+<l>    gen_cross_contour_xld (Cross, Rows[I], Columns[I], 6, 0.785398)</l>
+<l>    gen_contour_polygon_xld (Contour, [Rows[I],RowPoint], [Columns[I],ColPoint])</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Cross)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (Contour)</l>
+<l>    distance_pp (RowPoint, ColPoint, Rows[I], Columns[I], Distance)</l>
+<l>    wait_seconds (0.02)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

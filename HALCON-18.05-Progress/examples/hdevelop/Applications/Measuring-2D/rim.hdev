@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Inspection of rim &amp; tire</c>
+<c>* The circular holes are extracted as well as the region containing</c>
+<c>* the imprinted characters.</c>
+<c>* </c>
+<c>* Set the display parameters and read the image</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 768, 576, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>read_image (Rim, 'rim')</l>
+<l>dev_display (Rim)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* To find the holes, we first segment the dark regions</c>
+<l>threshold (Rim, Dark, 0, 128)</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_display (Dark)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Determine all connected components</c>
+<l>connection (Dark, DarkRegions)</l>
+<c>* Select regions with circular shape and an area larger than 50 pixel</c>
+<l>select_shape (DarkRegions, Circles, ['circularity','area'], 'and', [0.85,50], [1.0,99999])</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Circles)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* To extract a region that contains just the edges of the circles</c>
+<c>* use dilation and erosion.</c>
+<l>dilation_circle (Circles, ROIOuter, 8.5)</l>
+<l>erosion_circle (Circles, ROIInner, 8.5)</l>
+<l>difference (ROIOuter, ROIInner, ROI)</l>
+<l>union1 (ROI, ROIEdges)</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ROIEdges)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Reduce the region of interest (domain) to the extracted</c>
+<c>* regions containing the edges.</c>
+<l>reduce_domain (Rim, ROIEdges, RimReduced)</l>
+<c>* Extract subpixel precise edges</c>
+<l>edges_sub_pix (RimReduced, Edges, 'canny', 4, 20, 40)</l>
+<c>* Select only the contours with length larger than 30 pixels</c>
+<l>select_contours_xld (Edges, RelEdges, 'length', 30, 999999, 0, 0)</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (RelEdges)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Fit an ellipse to the extracted edges</c>
+<l>fit_ellipse_contour_xld (RelEdges, 'ftukey', -1, 2, 0, 200, 3, 2, Row, Column, Phi, Ra, Rb, StartPhi, EndPhi, PointOrder)</l>
+<l>display_ellipses (Rim, Row, Column, Phi, Ra, Rb, WindowID)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Next, the goal is to find the characters in the image.</c>
+<c>* Extract small regions with low gray value.</c>
+<l>gauss_filter (Rim, RimGauss, 11)</l>
+<l>dyn_threshold (Rim, RimGauss, SmallAndDarkerRegion, 5, 'dark')</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (SmallAndDarkerRegion)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Compute connected components</c>
+<l>connection (SmallAndDarkerRegion, SmallAndDarker)</l>
+<c>* Select all regions with an area between 40 and 400 pixels</c>
+<l>select_shape (SmallAndDarker, CharCandidates, 'area', 'and', 40, 400)</l>
+<c>* From these regions, select those that can be enclosed by</c>
+<c>* a given elliptic region.</c>
+<l>select_shape (CharCandidates, PossibleChar, ['ra','rb'], 'and', [10,5], [20,30])</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (PossibleChar)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Extract connected regions containing all the character</c>
+<l>union1 (PossibleChar, ROI)</l>
+<l>closing_circle (ROI, CharRegion, 17.5)</l>
+<l>connection (CharRegion, CharBlocks)</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (CharBlocks)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Select the region that has an area of at least 400 pixel</c>
+<l>select_shape (CharBlocks, CharRegion, 'area', 'and', 400, 99999)</l>
+<c>* Transform the region into its enclosing rectangle</c>
+<l>shape_trans (CharRegion, ROIChar, 'rectangle2')</l>
+<l>dev_display (Rim)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ROIChar)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_colored (12)</l>
+<l>display_ellipses (Rim, Row, Column, Phi, Ra, Rb, WindowID)</l>
+<c>* Extract all character candidate regions</c>
+<c>* that lie in the extracted rectangle region.</c>
+<l>intersection (CharCandidates, ROIChar, Characters)</l>
+<c>* Show the extracted characters</c>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Characters)</l>
+<c>* Fit the smallest surrounding rectangle and get its orientation</c>
+<l>smallest_rectangle2 (ROIChar, RowChar, ColumnChar, PhiChar, Length1Char, Length2Char)</l>
+<c>* Rotate the image and regions so that the characters are parallel to the lower image border</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(180) - PhiChar, RowChar, ColumnChar, HomMat2DRotate)</l>
+<l>affine_trans_region (Characters, CharRotated, HomMat2DRotate, 'constant')</l>
+<l>affine_trans_image (Rim, RimRotated, HomMat2DRotate, 'weighted', 'false')</l>
+<l>dev_open_window (0, 800, 192, 144, 'black', WindowChar)</l>
+<c>* For zooming in, extract a rectangle containing the characters</c>
+<l>union1 (CharRotated, CharRotatedAll)</l>
+<l>smallest_rectangle1 (CharRotatedAll, Row1, Column1, Row2, Column2)</l>
+<l>ZoomHeight := Row2 - Row1 + 1</l>
+<l>ZoomWidth := Column2 - Column1 + 1</l>
+<l>ZoomFactor := min([768 / ZoomWidth,576 / ZoomHeight])</l>
+<l>ZoomRow := (Row1 + Row2) / 2</l>
+<l>ZoomColumn := (Column1 + Column2) / 2</l>
+<l>dev_set_part (ZoomRow - 576 / ZoomFactor / 2, ZoomColumn - 768 / ZoomFactor / 2, ZoomRow + 576 / ZoomFactor / 2 - 1, ZoomColumn + 768 / ZoomFactor / 2 - 1)</l>
+<l>dev_display (RimRotated)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (CharRotated)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="display_ellipses">
+<interface>
+<io>
+<par name="Rim" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Phi" base_type="ctrl" dimension="0"/>
+<par name="Ra" base_type="ctrl" dimension="0"/>
+<par name="Rb" base_type="ctrl" dimension="0"/>
+<par name="WindowID" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_display (Rim)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* Show the ellipses for the holes</c>
+<l>gen_ellipse_contour_xld (Ellipse, Row, Column, Phi, Ra, Rb, gen_tuple_const(|Row|,0), gen_tuple_const(|Row|,6.28318), gen_tuple_const(|Row|,'positive'), 1.5)</l>
+<l>dev_display (Ellipse)</l>
+<l>gen_arrow_contour_xld (Arrow1, Row - Ra * sin(Phi), Column + Ra * cos(Phi), Row + Ra * sin(Phi), Column - Ra * cos(Phi), 5, 5)</l>
+<l>gen_arrow_contour_xld (Arrow2, Row + Ra * sin(Phi), Column - Ra * cos(Phi), Row - Ra * sin(Phi), Column + Ra * cos(Phi), 5, 5)</l>
+<l>dev_display (Arrow1)</l>
+<l>dev_display (Arrow2)</l>
+<l>Phi2 := Phi + 1.57</l>
+<l>gen_arrow_contour_xld (Arrow3, Row - Rb * sin(Phi2), Column + Rb * cos(Phi2), Row + Rb * sin(Phi2), Column - Rb * cos(Phi2), 5, 5)</l>
+<l>gen_arrow_contour_xld (Arrow4, Row + Rb * sin(Phi2), Column - Rb * cos(Phi2), Row - Rb * sin(Phi2), Column + Rb * cos(Phi2), 5, 5)</l>
+<l>dev_display (Arrow3)</l>
+<l>dev_display (Arrow4)</l>
+<c>* Display the diameter d of each ellipse in the image</c>
+<l>Diameter := 2 * Ra</l>
+<l>disp_message (WindowID, 'd: ' + Diameter$'.4', 'window', Row - (Ra * 1.5), Column - 70, 'yellow', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="display_ellipses">
+<parameters>
+<parameter id="Column"/>
+<parameter id="Phi"/>
+<parameter id="Ra"/>
+<parameter id="Rb"/>
+<parameter id="Rim"/>
+<parameter id="Row"/>
+<parameter id="WindowID"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

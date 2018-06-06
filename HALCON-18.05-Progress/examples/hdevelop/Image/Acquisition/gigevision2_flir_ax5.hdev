@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the FLIR AX5 GigE sensor in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to: acquire data from a FLIR thermal</c>
+<c>* imaging camera, visualize it using an iron LUT and detect a</c>
+<c>* temperature alarm in a manually defined region.</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<c>* Find the FLIR AX5 thermal camera.</c>
+<l>find_flir_devices (Device, Generic)</l>
+<c>* Connect to the FLIR AX5 thermal camera.</c>
+<l>open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', Generic, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Configure the camera:</c>
+<c>*  - Set PixelFormat equal to Mono14.</c>
+<l>set_framegrabber_param (AcqHandle, 'PixelFormat', 'Mono14')</l>
+<l>set_framegrabber_param (AcqHandle, 'DigitalOutput', 'bit14bit')</l>
+<l>set_framegrabber_param (AcqHandle, 'SensorVideoStandard', 'PAL25Hz')</l>
+<c>*  - Set the dynamic range control mode:</c>
+<c>*      &gt; Low gain mode for higher temperatures (0º to 550º).</c>
+<l>set_framegrabber_param (AcqHandle, 'SensorGainMode', 'LowGainMode')</l>
+<c>*      &gt; High gain mode for lower temperatures (-20º to 130º).</c>
+<l>* set_framegrabber_param (AcqHandle, 'SensorGainMode', 'HighGainMode')</l>
+<c>*  - Set temperature in linear mode:</c>
+<l>set_framegrabber_param (AcqHandle, 'TemperatureLinearMode', 'On')</l>
+<c>* - Set the temperature linear resolution:</c>
+<l>set_framegrabber_param (AcqHandle, 'TemperatureLinearResolution', 'Low')</l>
+<l>* set_framegrabber_param (AcqHandle, 'TemperatureLinearResolution', 'High')</l>
+<l>get_framegrabber_param (AcqHandle, 'TemperatureLinearResolution', TemperatureLinearResolution)</l>
+<l>if (TemperatureLinearResolution == 'Low')</l>
+<l>    LinearModeResolutionFactor := 0.4</l>
+<l>else</l>
+<l>    LinearModeResolutionFactor := 0.04</l>
+<l>endif</l>
+<c>*  - Set Non-Uniform Correction (NUC) mode depending on your</c>
+<c>*    specific application:</c>
+<l>NUCIntervalFrames := 180</l>
+<c>*      &gt; Manual: every NUCIntervalFrames frames.</c>
+<l>* set_framegrabber_param (AcqHandle, 'NUCMode', 'Manual')</l>
+<l>* set_framegrabber_param (AcqHandle, 'NUCAction', 1)</l>
+<c>*      &gt; Automatic: every NUCIntervalFrames frames.</c>
+<l>set_framegrabber_param (AcqHandle, 'NUCMode', 'Automatic')</l>
+<l>set_framegrabber_param (AcqHandle, 'NUCIntervalFramesW', NUCIntervalFrames)</l>
+<l>get_framegrabber_param (AcqHandle, 'NUCMode', NUCMode)</l>
+<c>* </c>
+<c>* Prepare graphic window.</c>
+<l>prepare_graphic_window (AcqHandle, Width, Height, DisplayHeight, DisplayWidth, WindowHandle)</l>
+<c>* </c>
+<c>* User interaction required to get the temperature alarm region.</c>
+<l>define_alarm_region (AlarmRegion, AcqHandle, LinearModeResolutionFactor, NUCMode, NUCIntervalFrames, AlarmTemperature)</l>
+<c>* </c>
+<c>* Start grabbing.</c>
+<l>FramesCounter := 0</l>
+<l>while (true)</l>
+<l>    if ((NUCMode == 'Manual') and (FramesCounter == NUCIntervalFrames))</l>
+<c>        * Apply Non-Uniform Correction (NUC)</c>
+<l>        set_framegrabber_param (AcqHandle, 'NUCAction', 1)</l>
+<l>        wait_seconds (0.5)</l>
+<l>        FramesCounter := 0</l>
+<l>    endif</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<c>    * Get the temperature image in Celsius depending on the</c>
+<c>    * selected TemperatureLinearResolution.</c>
+<l>    convert_image_type (Image, ImageReal, 'real')</l>
+<l>    scale_image (ImageReal, ImageCelsius, LinearModeResolutionFactor, -273.15)</l>
+<c>    * Check alarm.</c>
+<l>    reduce_domain (ImageCelsius, AlarmRegion, ImageCelsiusReduced)</l>
+<l>    mean_image (ImageCelsiusReduced, ImageCelsiusReduced, 5, 5)</l>
+<l>    threshold (ImageCelsiusReduced, HighTemperatureRegion, AlarmTemperature, 500)</l>
+<l>    area_center (HighTemperatureRegion, Area, Row, Column)</l>
+<l>    dev_display (ImageCelsius)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_display (AlarmRegion)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (HighTemperatureRegion)</l>
+<l>    if (Area &gt; 10)</l>
+<c>        * Alarm detected.</c>
+<l>        set_display_font (WindowHandle, 44, 'mono', 'true', 'false')</l>
+<l>        disp_message (WindowHandle, 'ALARM ON!', 'window', 0, DisplayWidth / 4, 'red', 'true')</l>
+<l>        set_framegrabber_param (AcqHandle, 'UserOutputValue', 1)</l>
+<l>    else</l>
+<l>        set_framegrabber_param (AcqHandle, 'UserOutputValue', 0)</l>
+<l>    endif</l>
+<l>    FramesCounter := FramesCounter + 1</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="define_alarm_region">
+<interface>
+<oo>
+<par name="AlarmRegion" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+<par name="LinearModeResolutionFactor" base_type="ctrl" dimension="0"/>
+<par name="NUCMode" base_type="ctrl" dimension="0"/>
+<par name="NUCIntervalFrames" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="AlarmTemperature" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>while (1)</l>
+<c>    * Select an image to define the alarm detection region</c>
+<l>    dev_close_window ()</l>
+<l>    prepare_graphic_window (AcqHandle, Width, Height, DisplayHeight, DisplayWidth, WindowHandle)</l>
+<l>    set_display_font (WindowHandle, 20, 'mono', 'true', 'false')</l>
+<c>    * Start grabbing</c>
+<l>    grab_image_start (AcqHandle, -1)</l>
+<l>    FramesCounter := 0</l>
+<l>    while (true)</l>
+<l>        if ((NUCMode == 'Manual') and (FramesCounter == NUCIntervalFrames))</l>
+<c>            * Apply Non-Uniform Correction (NUC)</c>
+<l>            set_framegrabber_param (AcqHandle, 'NUCAction', 1)</l>
+<l>            wait_seconds (0.5)</l>
+<l>            FramesCounter := 0</l>
+<l>        endif</l>
+<l>        set_system ('flush_graphic', 'false')</l>
+<l>        grab_image_async (Image, AcqHandle, -1)</l>
+<c>        * Get the temperature image in Celsius depending on the</c>
+<c>        * selected TemperatureLinearResolution</c>
+<l>        convert_image_type (Image, ImageReal, 'real')</l>
+<l>        scale_image (ImageReal, ImageCelsius, LinearModeResolutionFactor, -273.15)</l>
+<l>        dev_display (ImageCelsius)</l>
+<l>        set_system ('flush_graphic', 'true')</l>
+<l>        disp_message (WindowHandle, 'Click in the image to stop the live capture and\ndefine the alarm region.', 'window', 10, 10, 'black', 'true')</l>
+<l>        dev_error_var (err, 1)</l>
+<l>        dev_set_check ('~give_error')</l>
+<l>        ButtonPressed := 0</l>
+<l>        get_mposition (WindowHandle, Row3, Column3, ButtonPressed)</l>
+<l>        dev_error_var (err, 0)</l>
+<l>        dev_set_check ('give_error')</l>
+<l>        if (ButtonPressed &gt; 0)</l>
+<l>            break</l>
+<l>        endif</l>
+<l>        FramesCounter := FramesCounter + 1</l>
+<l>    endwhile</l>
+<c>    * Display the selected image</c>
+<l>    dev_display (ImageCelsius)</l>
+<c>    * Draw with the mouse an arbitrary region into the window</c>
+<l>    disp_message (WindowHandle, 'Draw with the left mouse an arbitrary alarm\nregion and finish with right mouse button.', 'window', 10, 10, 'black', 'true')</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    draw_region (AlarmRegion, WindowHandle)</l>
+<l>    dev_clear_window ()</l>
+<c>    * Calculate intensity mean and deviation value</c>
+<l>    intensity (AlarmRegion, ImageCelsius, Mean, Deviation)</l>
+<l>    area_center (AlarmRegion, AlarmRegionArea, CenterRow, CenterColumn)</l>
+<l>    if (AlarmRegionArea &gt; 0)</l>
+<c>        * Display the user defined region</c>
+<l>        reduce_domain (ImageCelsius, AlarmRegion, ImageCelsiusReduced)</l>
+<l>        dev_display (ImageCelsius)</l>
+<l>        set_iron_lut (WindowHandle)</l>
+<l>        dev_display (ImageCelsiusReduced)</l>
+<l>        dev_display (AlarmRegion)</l>
+<l>        disp_message (WindowHandle, 'Alarm Region:\n    - Area: ' + AlarmRegionArea + '\n    - Center: ' + CenterRow + ', ' + CenterColumn + '\n    - Mean: ' + Mean + '\n    - Deviation: ' + Deviation, 'window', 12, 60, 'green', 'false')</l>
+<c>        * Please adjust to real alarm temperature</c>
+<l>        AlarmTemperature := Mean + 6 * Deviation</l>
+<l>        disp_message (WindowHandle, 'Alarm Temperature: ' + AlarmTemperature, 'window', 160, 60, 'yellow', 'false')</l>
+<l>        disp_continue_message (WindowHandle, 'white', 'false')</l>
+<l>        stop ()</l>
+<l>        break</l>
+<l>    else</l>
+<c>        * No region defined, try it again</c>
+<l>        dev_close_window ()</l>
+<l>        dev_open_window (0, 0, 600, 150, 'white', WindowHandle)</l>
+<l>        set_display_font (WindowHandle, 22, 'mono', 'true', 'false')</l>
+<l>        disp_message (WindowHandle, 'No region defined.\nPlease try again!', 'window', 12, 60, 'red', 'false')</l>
+<l>        set_display_font (WindowHandle, 12, 'mono', 'true', 'false')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>return ()</l>
+</body>
+<docu id="define_alarm_region">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="AlarmRegion"/>
+<parameter id="AlarmTemperature"/>
+<parameter id="LinearModeResolutionFactor"/>
+<parameter id="NUCIntervalFrames"/>
+<parameter id="NUCMode"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="prepare_graphic_window">
+<interface>
+<ic>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="DisplayHeight" base_type="ctrl" dimension="0"/>
+<par name="DisplayWidth" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>DisplayHeight := 600</l>
+<l>DisplayWidth := DisplayHeight * Width / Height</l>
+<c>* Prepare a graphic window using the image dimensions</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, DisplayWidth, DisplayHeight, 'black', WindowHandle)</l>
+<c>* Set iron LUT</c>
+<l>set_iron_lut (WindowHandle)</l>
+<l>dev_set_window (WindowHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="prepare_graphic_window">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="DisplayHeight"/>
+<parameter id="DisplayWidth"/>
+<parameter id="Height"/>
+<parameter id="Width"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="find_flir_devices">
+<interface>
+<oc>
+<par name="Device" base_type="ctrl" dimension="0"/>
+<par name="Generic" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Loop until a FLIRAX5 camera is found</c>
+<l>repeat</l>
+<c>    * List all GigEVision2 devices</c>
+<l>    info_framegrabber ('GigEVision2', 'info_boards', Information, InfoBoardsList)</l>
+<c>    * Find a list of the FLIRAX5 devices</c>
+<l>    tuple_regexp_select (InfoBoardsList, 'FLIRAX5', InfoBoards)</l>
+<l>    if (|InfoBoards| == 0)</l>
+<c>        * No FLIR AX5 camera found!</c>
+<l>        dev_close_window ()</l>
+<l>        dev_open_window (0, 0, 600, 150, 'white', WindowHandle)</l>
+<l>        set_display_font (WindowHandle, 22, 'mono', 'true', 'false')</l>
+<l>        disp_message (WindowHandle, 'No FLIR AX5 camera found! \nPlease connect it now.', 'window', 32, 50, 'red', 'false')</l>
+<l>        set_display_font (WindowHandle, 12, 'mono', 'true', 'false')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'false')</l>
+<l>        stop ()</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>until (|InfoBoards| != 0)</l>
+<c>* Check if the device is misconfigured</c>
+<l>if (strstr(InfoBoards[0],'status:misconfigured') != -1)</l>
+<l>    tuple_regexp_match (InfoBoards[0], 'suggestion:[^ ]+', Suggestions)</l>
+<l>    for Index := 0 to |Suggestions| - 1 by 1</l>
+<c>        * Get Device MAC and Generic parameter to force the IP</c>
+<l>        tuple_str_last_n (Suggestions[Index], 11, Generic)</l>
+<l>        tuple_str_last_n (Generic, 11, Tmpstring)</l>
+<l>        tuple_str_first_n (Tmpstring, 11, MAC)</l>
+<l>    endfor</l>
+<l>else</l>
+<l>    Generic := -1</l>
+<l>endif</l>
+<c>* Return the unique device name</c>
+<l>tuple_regexp_match (InfoBoards[0], 'unique_name:[^ ]+', UniqueName)</l>
+<l>tuple_str_last_n (UniqueName, strlen('unique_name:'), Device)</l>
+<l>return ()</l>
+</body>
+<docu id="find_flir_devices">
+<parameters>
+<parameter id="Device"/>
+<parameter id="Generic"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="set_iron_lut">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>IronLut := [0,0,0,0,0,12,0,0,27,0,0,31,0,0,35,0,0,40,1,0,46,1,0,52,1,0,58,2,0,65,2,0,71,3,0,77,4,0,82,5,0,88,6,0,92,7,0,97,8,0,101,10,0,105,12,0,109,14,0,112,16,0,115,19,0,118,21,0,121,24,0,123,27,0,126,30,0,128,33,0,130,36,0,132,39,0,134,42,0,136,46,0,138,49,0,140,52,0,141,55,0,143,58,0,144,62,0,145,65,0,146,68,0,147,71,0,148,74,0,149,77,0,150,80,0,151,83,0,152,86,0,152,89,0,153,92,0,153,96,0,154,99,0,154,102,0,155,105,0,155,108,0,155,111,0,156,114,0,156,117,0,156,120,0,156,123,0,156,126,0,156,129,0,156,132,0,156,135,0,156,138,0,156,141,0,156,144,0,156,147,0,156,149,0,156,152,0,155,155,0,155,157,0,155,160,0,154,162,0,154,165,0,154,167,1,153,169,1,153,171,1,152,173,1,152,175,1,151,177,2,151,179,2,150,180,3,150,182,3,149,184,4,148,185,5,148,187,5,147,188,6,146,189,7,145,191,8,144,192,9,143,194,10,142,195,11,141,196,12,139,197,14,138,199,15,136,200,16,135,201,18,133,202,19,131,204,21,129,205,22,126,206,24,124,207,26,121,208,27,119,209,29,116,211,31,113,212,33,110,213,35,106,214,36,103,215,38,99,216,40,95,217,42,91,218,44,87,219,46,82,220,48,78,221,50,73,222,52,68,223,54,63,224,56,58,225,57,53,225,59,48,226,61,44,227,63,39,228,65,35,229,67,32,229,69,28,230,71,25,231,72,22,232,74,20,232,76,18,233,78,16,234,80,14,234,81,13,235,83,11,236,85,10,236,87,9,237,88,8,237,90,7,238,92,6,238,94,6,239,95,5,239,97,4,239,99,4,240,100,4,240,102,3,241,104,3,241,105,2,242,107,2,242,109,2,242,111,1,243,112,1,243,114,1,243,116,1,244,118,1,244,120,0,245,122,0,245,124,0,245,125,0,246,127,0,246,129,0,247,131,0,247,133,0,247,135,0,248,136,0,248,138,0,248,140,0,249,142,0,249,144,0,249,145,0,250,147,0,250,149,0,250,151,0,251,153,0,251,155,0,251,158,0,252,160,0,252,162,0,252,164,0,253,166,0,253,168,0,253,170,0,253,172,0,253,174,0,254,176,0,254,178,0,254,180,0,254,182,0,254,184,0,254,186,0,254,188,0,254,190,0,254,192,1,254,194,1,254,195,1,254,197,1,254,199,2,254,201,3,254,203,3,254,204,4,254,206,5,254,208,7,254,209,8,254,211,10,254,213,12,254,214,14,254,216,16,255,217,19,255,219,22,255,220,25,255,222,29,255,223,33,255,225,37,255,226,41,255,227,46,255,229,51,255,230,57,255,231,62,255,232,68,255,234,74,255,235,81,255,236,87,255,237,94,255,238,101,255,239,108,255,240,115,255,241,122,255,242,129,255,242,137,255,243,144,255,244,151,255,245,159,255,246,166,255,246,173,255,247,179,255,248,186,255,248,192,255,249,199,255,250,205,255,250,210,255,251,216,255,252,221,255,252,225,255,253,230,255,253,233,255,254,237,255,254,240,255,254,242,255,254,244,255,255,245,255,255,246,255,255,247,255,255,248,255,255,248,255,255,249,255,255,249,255,255,249,255,255,249,255,255,249,255,255,249,255,255,249]</l>
+<l>set_lut (WindowHandle, IronLut)</l>
+<l>return ()</l>
+</body>
+<docu id="set_iron_lut">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

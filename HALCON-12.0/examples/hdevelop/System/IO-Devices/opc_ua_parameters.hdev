@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for accessing an OPC_UA device with the OPC_UA I/O interface</c>
+<c>* (open an I/O device read the parameters of a node)</c>
+<c>* </c>
+<c>* </c>
+<c>* Please adapt the following lines to specify your configuration</c>
+<l>MyOpcUaServer := 'localhost'</l>
+<l>MyOpcUaPortNumber := 4841</l>
+<c>* </c>
+<l>MyOpcUaServer := 'opc.tcp://' + MyOpcUaServer + ':' + MyOpcUaPortNumber</l>
+<c>* </c>
+<c>* Query the I/O interface version</c>
+<l>query_io_interface ('OPC_UA', 'revision', ParamValue)</l>
+<c>* </c>
+<c>* Query a list of available OPC_UA server. This will only work if you have</c>
+<c>* an OPC UA discovery server running on port 4840 on the 'localhost' address.</c>
+<l>query_io_interface ('OPC_UA', 'io_device_names', DeviceNames)</l>
+<c>* </c>
+<c>* Open the connection to the server</c>
+<l>open_io_device ('OPC_UA', MyOpcUaServer, [], [], IoDeviceHandle)</l>
+<c>* </c>
+<c>* To access an OPC UA variable, you need to open an I/O channel for it. In order to</c>
+<c>* open the I/O channel, you need to know the node Id. If you do not know the node Id,</c>
+<c>* but do know the browse path to the node, you can use the 'translate' service to</c>
+<c>* get the node Id.</c>
+<l>control_io_device (IoDeviceHandle, 'translate', ['','/Objects/Server/ServerStatus/CurrentTime'], CurrentTimeNodeId)</l>
+<l>open_io_channel (IoDeviceHandle, CurrentTimeNodeId, [], [], IoChannelHandle)</l>
+<c>* </c>
+<l>get_io_channel_param (IoChannelHandle, 'param_name', ParamName)</l>
+<c>* </c>
+<c>* Open a window handle to show the parameters and the values</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, max([512,(14 * |ParamName|) + 20]), 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 11, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>for Index := 0 to |ParamName| - 1 by 1</l>
+<l>    if (ParamName[Index] == 'array_dimensions')</l>
+<l>        dev_set_color ('white')</l>
+<l>        set_tposition (WindowHandle, (14 * Index) + 2, 10)</l>
+<l>        write_string (WindowHandle, Index + ') ' + ParamName[Index] + ': ')</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'ignored')</l>
+<l>        continue</l>
+<l>    endif</l>
+<l>    get_io_channel_param (IoChannelHandle, ParamName[Index], InfoVar)</l>
+<c>    * </c>
+<l>    set_tposition (WindowHandle, (14 * Index) + 2, 10)</l>
+<l>    dev_set_color ('white')</l>
+<c>    * </c>
+<l>    write_string (WindowHandle, Index + ') ' + ParamName[Index])</l>
+<l>    dev_set_color ('green')</l>
+<l>    write_string (WindowHandle, ': ' + InfoVar)</l>
+<l>endfor</l>
+<c>* </c>
+<l>close_io_channel (IoChannelHandle)</l>
+<c>* </c>
+<c>* Close the connection again</c>
+<l>close_io_device (IoDeviceHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

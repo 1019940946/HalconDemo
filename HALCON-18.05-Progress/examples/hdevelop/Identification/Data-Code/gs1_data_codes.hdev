@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>*    GS1 DataMatrix, GS1 QR Code, and GS1 Aztec Code</c>
+<c>*    symbologies</c>
+<c>* </c>
+<c>* </c>
+<c>* The symbol structure of GS1 DataMatrix, GS1 QR Code, and</c>
+<c>* GS1 Aztec Code data codes is identical to the structure</c>
+<c>* of ECC 200, QR Code, and Aztec Code, respectively. The</c>
+<c>* GS1 data code types enforce merely additional rules for</c>
+<c>* the data formating: the data is organized into the</c>
+<c>* so-called GS1 application element strings according to</c>
+<c>* the GS1 General Specifications (www.gs1.org)</c>
+<c>* </c>
+<c>* In this program, GS1 data codes are decoded both as GS1</c>
+<c>* and non-GS1 symbology and the decoding results are compared.</c>
+<c>* While the symbol can still be decoded as non-GS1 symbol,</c>
+<c>* the resulting string does not recover the semantical</c>
+<c>* structure of the data.</c>
+<c>* In contrast, decoding the symbol as a GS1 symbol results</c>
+<c>* in a valid separation of the GS1 data into GS1 application</c>
+<c>* element strings</c>
+<c>* </c>
+<l>ParameterSets := []</l>
+<l>ParameterSets := [ParameterSets,'GS1 DataMatrix','Data Matrix ECC 200','datacode/gs1datamatrix/gs1datamatrix_generated_','standard_recognition']</l>
+<l>ParameterSets := [ParameterSets,'GS1 QR Code','QR Code','datacode/gs1qrcode/gs1qrcode_generated_','standard_recognition']</l>
+<l>ParameterSets := [ParameterSets,'GS1 Aztec Code','Aztec Code','datacode/gs1aztec/gs1aztec_generated_','enhanced_recognition']</l>
+<c>* </c>
+<c>* Constant variables</c>
+<l>StatusHeight := 300</l>
+<l>StatusWidth := 800</l>
+<l>Scale := 1.0</l>
+<l>ScaleInv := 1. / Scale</l>
+<l>Colors := ['black','magenta','black','black','forest green',gen_tuple_const(10,'black')]</l>
+<l>NumImages := 3</l>
+<l>NumParams := 4</l>
+<l>FNC1Separator := '\x1D'</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 360, 256, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* </c>
+<l>for ParameterSetIndex := 0 to |ParameterSets| - NumParams by NumParams</l>
+<l>    GS1DataCodeType := ParameterSets[ParameterSetIndex]</l>
+<l>    GenDataCodeType := ParameterSets[ParameterSetIndex + 1]</l>
+<l>    ImageFilePrefix := ParameterSets[ParameterSetIndex + 2]</l>
+<l>    DefaultParameters := ParameterSets[ParameterSetIndex + 3]</l>
+<c>    * </c>
+<c>    * Create a GS1 and a non-GS1 data code reader to compare their results</c>
+<l>    create_data_code_2d_model (GS1DataCodeType, 'default_parameters', DefaultParameters, GS1DataCodeHandle)</l>
+<l>    create_data_code_2d_model (GenDataCodeType, 'default_parameters', DefaultParameters, GenDataCodeHandle)</l>
+<l>    for I := 1 to NumImages by 1</l>
+<c>        * Read a symbol image</c>
+<l>        read_image (Image, ImageFilePrefix + I$'.2d')</l>
+<c>        * </c>
+<c>        * Read the symbol both as a GS1 and as a non-GS1 symbol</c>
+<l>        find_data_code_2d (Image, SymbolXLDs, GenDataCodeHandle, [], [], ResultHandles, GenDecodedStrings)</l>
+<l>        find_data_code_2d (Image, SymbolXLDs, GS1DataCodeHandle, [], [], ResultHandles, GS1DecodedStrings)</l>
+<c>        * </c>
+<c>        * Escape the FNC1 character in the non-GS1 result to make</c>
+<c>        * it more apparent</c>
+<l>        GenDecodedStrings := regexp_replace(GenDecodedStrings,[FNC1Separator,'replace_all'],'&lt;FNC1&gt;')</l>
+<c>        * </c>
+<c>        * Visualize results</c>
+<l>        get_image_size (Image, Width, Height)</l>
+<l>        set_system ('flush_graphic', 'false')</l>
+<l>        dev_set_window_extents (-1, -1, StatusWidth, Scale * Height + StatusHeight)</l>
+<l>        dev_set_part (-12, 0, Height + ScaleInv * StatusHeight - 13, ScaleInv * StatusWidth - 1)</l>
+<l>        dev_clear_window ()</l>
+<l>        dev_display (Image)</l>
+<l>        dev_display (SymbolXLDs)</l>
+<l>        Message := GenDataCodeType + ' vs. ' + GS1DataCodeType + ' data interpretation'</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'false')</l>
+<l>        Message := '' + GenDataCodeType + ' Data:'</l>
+<l>        Message := [Message,'   ' + GenDecodedStrings]</l>
+<l>        Message := [Message,' ']</l>
+<l>        Message := [Message,'' + GS1DataCodeType + ' Data*:']</l>
+<l>        Message := [Message,'   ' + GS1DecodedStrings]</l>
+<l>        Message := [Message,' ']</l>
+<l>        Message := [Message,' ']</l>
+<l>        Message := [Message,'   *) The data is split into several GS1 element strings, ']</l>
+<l>        Message := [Message,'      each containing an application identifier (AI, a']</l>
+<l>        Message := [Message,'      number enclosed in parentheses) and the element data']</l>
+<l>        set_system ('flush_graphic', 'true')</l>
+<l>        disp_message (WindowHandle, Message, 'window', 12 + Scale * Height, 12, Colors, 'false')</l>
+<l>        if ((ParameterSetIndex &lt; |ParameterSets| - NumParams) or (I &lt; NumImages))</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

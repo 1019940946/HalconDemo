@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Simple example for edge-supported surface-based matching.</c>
+<c>* </c>
+<c>* This example demonstrates how to use edge-supported surface-based</c>
+<c>* matching, with and without images.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Parameters of the 2D camera.</c>
+<l>gen_cam_par_area_scan_division (0.003, -22215.7, 1e-6, 1e-6, 629.3, 486.95, 1280, 960, CameraParam)</l>
+<c>* The camera is located in the origin of the 3D sensor.</c>
+<l>create_pose (0, 0, 0, 0, 0, 0, 'Rp+T', 'gba', 'point', CameraPose)</l>
+<l>create_pose (-0.075, -0.56, 4.4, 308, 6, 335, 'Rp+T', 'gba', 'point', VisualizationPose)</l>
+<l>get_cam_par_data (CameraParam, 'image_width', Width)</l>
+<l>get_cam_par_data (CameraParam, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 1280 * 2 / 3, 960 * 2 / 3, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Instructions := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom: Shift + left button'</l>
+<l>Instructions[2] := 'Move: Ctrl + left button'</l>
+<c>* </c>
+<l>dev_disp_text ('This example demonstrates edge-supported surface-based matching', 'window', 12, 12, 'black', [], [])</l>
+<c>* </c>
+<c>* Create a 3D model of a box for surface-based matching.</c>
+<l>gen_box_object_model_3d ([0,0,0,0,0,0,0], 0.103, 0.082, 0.05, ObjectModel3DBox)</l>
+<l>triangulate_object_model_3d (ObjectModel3DBox, 'greedy', [], [], ObjectModel3DModel, Information)</l>
+<c>* Prepare a model for edge-supported surface-based matching.</c>
+<l>FileName := 'box_edge_supported.sfm'</l>
+<l>file_exists (FileName, FileExists)</l>
+<l>if (not FileExists)</l>
+<l>    dev_disp_text ('No pre-created model found.\nCreating new surface model.\nThis may take some minutes...', 'window', 60, 12, 'black', [], [])</l>
+<l>    create_surface_model (ObjectModel3DModel, 0.03, 'train_3d_edges', 'true', SurfaceModel)</l>
+<l>    write_surface_model (SurfaceModel, FileName)</l>
+<l>else</l>
+<l>    dev_disp_text ('Pre-created model found.\nReading...', 'window', 60, 12, 'black', [], [])</l>
+<l>    read_surface_model (FileName, SurfaceModel)</l>
+<l>endif</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Iterate over the scenes and visualize the matching results.</c>
+<l>for SceneIdx := 1 to 4 by 1</l>
+<l>    read_image (ImageXYZ, 'boxes/cardboard_boxes_xyz_' + SceneIdx$'02d')</l>
+<l>    decompose3 (ImageXYZ, XScene, YScene, ZScene)</l>
+<l>    xyz_to_object_model_3d (XScene, YScene, ZScene, ObjectModel3DScene)</l>
+<l>    read_image (Image, 'boxes/cardboard_boxes_' + SceneIdx$'02d')</l>
+<c>    * </c>
+<l>    if (SceneIdx == 1)</l>
+<l>        dev_set_lut ('default')</l>
+<l>        prepare_object_model_3d (ObjectModel3DScene, 'segmentation', 'true', [], [])</l>
+<l>        visualize_object_model_3d (WindowHandle, ObjectModel3DScene, [], VisualizationPose, ['color_attrib','lut'], ['coord_z','inv_sqr'], '3D search scene with box', [], Instructions, VisualizationPose)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Remove background plane. This improves both the robustness and the matching speed.</c>
+<l>    select_points_object_model_3d (ObjectModel3DScene, 'point_coord_z', 0, 0.73, ObjectModel3DSceneWithoutBackground)</l>
+<c>    * </c>
+<c>    * Use edge-supported surface-based matching to find the boxes.</c>
+<l>    set_surface_model_param (SurfaceModel, 'clear_cameras', [])</l>
+<l>    count_seconds (T0)</l>
+<l>    find_surface_model (SurfaceModel, ObjectModel3DSceneWithoutBackground, 0.05, 0.1, 0.15, 'false', ['num_matches','pose_ref_sub_sampling'], [5,10], Pose, Score, SurfaceMatchingResultID)</l>
+<l>    count_seconds (T1)</l>
+<c>    * </c>
+<c>    * Visualize the results in 3D for the first scene.</c>
+<l>    if (SceneIdx == 1)</l>
+<l>        rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DRigidTrans)</l>
+<l>        dev_set_lut ('default')</l>
+<l>        visualize_object_model_3d (WindowHandle, [ObjectModel3DScene,ObjectModel3DRigidTrans], [], VisualizationPose, ['alpha','color','color_0','color_attrib_0','lut_0'], [0.8,'green','white','coord_z','inv_sqr'], 'Box found with edge-supported surface-based matching', [], Instructions, PoseOut)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Visualize the matching results in the Z-Image.</c>
+<l>    object_model_3d_to_xyz (X, Y, Z, ObjectModel3DScene, 'from_xyz_map', [], [])</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_lut ('inv_sqr')</l>
+<l>    dev_display (Z)</l>
+<l>    gen_empty_obj (AllContours)</l>
+<l>    for Index := 0 to |Score| - 1 by 1</l>
+<l>        CurrPose := Pose[7 * Index:7 * Index + 6]</l>
+<l>        project_object_model_3d (Contours, ObjectModel3DModel, CameraParam, CurrPose, [], [])</l>
+<l>        concat_obj (AllContours, Contours, AllContours)</l>
+<l>        get_center_contour_xlds (Contours, CenterRow, CenterCol)</l>
+<l>        dev_disp_text ('Score = ' + Score[Index]$'.2f', 'image', CenterRow, CenterCol - 70, 'black', [], [])</l>
+<l>    endfor</l>
+<c>    * </c>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display (AllContours)</l>
+<l>    dev_disp_text (['Matching results with edge-supported surface-based matching','Time for matching: ' + ((T1 - T0) * 1000)$'.0f' + ' ms'], 'window', 12, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Use edge-supported surface-based matching to find the box, including an image of the scene</c>
+<c>    * that is used for refinement.</c>
+<l>    set_surface_model_param (SurfaceModel, 'camera_parameter', CameraParam)</l>
+<l>    set_surface_model_param (SurfaceModel, 'camera_pose', CameraPose)</l>
+<l>    count_seconds (T0)</l>
+<l>    find_surface_model_image (Image, SurfaceModel, ObjectModel3DSceneWithoutBackground, 0.05, 0.1, 0.2, 'false', ['num_matches','pose_ref_sub_sampling'], [3,10], PoseWithImage, ScoreWithImage, SurfaceMatchingResultID)</l>
+<l>    count_seconds (T1)</l>
+<c>    * </c>
+<c>    * Visualize the results by projecting them into the image.</c>
+<l>    dev_set_lut ('default')</l>
+<l>    dev_display (Image)</l>
+<l>    gen_empty_obj (AllContours)</l>
+<l>    for Index := 0 to |ScoreWithImage| - 1 by 1</l>
+<l>        CurrPose := PoseWithImage[7 * Index:7 * Index + 6]</l>
+<l>        project_object_model_3d (Contours, ObjectModel3DModel, CameraParam, CurrPose, [], [])</l>
+<l>        concat_obj (AllContours, Contours, AllContours)</l>
+<l>        get_center_contour_xlds (Contours, CenterRow, CenterCol)</l>
+<l>        dev_disp_text ('Score = ' + ScoreWithImage[Index]$'.2f', 'image', CenterRow, CenterCol - 70, 'black', [], [])</l>
+<l>    endfor</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (AllContours)</l>
+<l>    dev_disp_text (['Matching results with edge-supported surface-based matching and a 2D image','Time for matching: ' + ((T1 - T0) * 1000)$'.0f' + ' ms'], 'window', 12, 12, 'black', [], [])</l>
+<l>    if (SceneIdx &lt; 4)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="get_center_contour_xlds">
+<interface>
+<io>
+<par name="Contours" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="CenterRow" base_type="ctrl" dimension="0"/>
+<par name="CenterCol" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>count_obj (Contours, Number)</l>
+<l>MinRow := []</l>
+<l>MaxRow := []</l>
+<l>MinCol := []</l>
+<l>MaxCol := []</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    select_obj (Contours, ObjectSelected, Index)</l>
+<l>    get_contour_xld (ObjectSelected, Row, Col)</l>
+<l>    MinRow := min([MinRow,Row])</l>
+<l>    MaxRow := max([MaxRow,Row])</l>
+<l>    MinCol := min([MinCol,Col])</l>
+<l>    MaxCol := max([MaxCol,Col])</l>
+<l>endfor</l>
+<l>CenterRow := MinRow + 0.5 * (MaxRow - MinRow)</l>
+<l>CenterCol := MinCol + 0.5 * (MaxCol - MinCol)</l>
+<l>return ()</l>
+</body>
+<docu id="get_center_contour_xlds">
+<parameters>
+<parameter id="CenterCol">
+<default_type>real</default_type>
+<sem_type>point.x</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="CenterRow">
+<default_type>real</default_type>
+<sem_type>point.y</sem_type>
+<type_list>
+<item>real</item>
+</type_list>
+</parameter>
+<parameter id="Contours">
+<sem_type>xld_cont</sem_type>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

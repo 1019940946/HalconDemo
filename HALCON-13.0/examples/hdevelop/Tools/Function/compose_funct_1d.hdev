@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use compose_funct_1d.  It computes</c>
+<c>* two functions, atan(x) and cos(x), and composes them, which results in the</c>
+<c>* function cos(atan(x)).  This function is, of course, identical to 1/sqrt(1+x*x),</c>
+<c>* so this function is also calculated.  The program displays all four functions.</c>
+<c>* By comparing the last two plots, we can check whether compose_funct_1d</c>
+<c>* works correctly.</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('black')</l>
+<l>dev_set_line_width (2)</l>
+<l>X := []</l>
+<l>for J := -125 to 125 by 1</l>
+<l>    X := [X,J / 40.0]</l>
+<l>endfor</l>
+<l>create_funct_1d_pairs (X, cos(X), Cos)</l>
+<l>X := []</l>
+<l>for J := -100 to 100 by 1</l>
+<l>    X := [X,J / 10.0]</l>
+<l>endfor</l>
+<l>create_funct_1d_pairs (X, atan(X), ATan)</l>
+<l>create_funct_1d_pairs (X, 1 / sqrt(1 + X * X), InvSqrt1pSqX)</l>
+<l>compose_funct_1d (ATan, Cos, 'constant', CosATan)</l>
+<l>plot_funct_1d (WindowHandle, ATan, 'x', 'atan(x)', 'red', ['axes_color','origin_x','origin_y'], ['black',0,0])</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>plot_funct_1d (WindowHandle, Cos, 'x', 'cos(x)', 'red', ['axes_color','origin_x','origin_y'], ['black',0,0])</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>plot_funct_1d (WindowHandle, CosATan, 'x', 'cos(atan(x))', 'red', ['axes_color','origin_x','origin_y','start_y'], ['black',0,0,0])</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<l>plot_funct_1d (WindowHandle, InvSqrt1pSqX, 'x', '1/sqrt(1+x*x)', 'red', ['axes_color','origin_x','origin_y','start_y'], ['black',0,0,0])</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

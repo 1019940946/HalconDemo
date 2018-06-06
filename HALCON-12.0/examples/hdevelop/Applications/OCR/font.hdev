@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* OCR</c>
+<c>* </c>
+<c>* Specify the name of the font to use for reading the date on the bottle.</c>
+<c>* It is easiest to use the pre-trained font Document_NoRej.  If you have</c>
+<c>* run the program fontt.hdev in this directory, you can activate the second</c>
+<c>* line to use the font trained with this program. Note that some lower and</c>
+<c>* upper case characters are mixed up because they only differ by a uniform</c>
+<c>* scaling, and hence cannot be distinguished.</c>
+<l>OCRFontName := 'Document_NoRej'</l>
+<l>* OCRFontName := 'arial'</l>
+<l>FontName := 'arial'</l>
+<l>FontImages := ['a1','a2','a3','a4','a5','a6','a7','a8','a9']</l>
+<l>NumImages := |FontImages|</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'fonts/' + FontName + '_' + FontImages[0])</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* ---------- Read OCR classifier ----------</c>
+<l>read_ocr_class_mlp (OCRFontName, OCRHandle)</l>
+<l>get_params_ocr_class_mlp (OCRHandle, WidthCharacter, HeightCharacter, Interpolation, Features, Char, NumHidden, Preprocessing, NumComponents)</l>
+<l>NumChar := |Char|</l>
+<c>* ---------- Segment characters ----------</c>
+<l>dev_set_draw ('margin')</l>
+<l>NumSamples := 0</l>
+<l>for I := 1 to NumImages by 1</l>
+<l>    dev_set_colored (12)</l>
+<l>    read_image (Image, 'fonts/' + FontName + '_' + FontImages[I - 1])</l>
+<l>    char_threshold (Image, Image, DarkRegion, 5, 99, Threshold)</l>
+<l>    closing_circle (DarkRegion, CharRegion, 7.5)</l>
+<l>    connection (CharRegion, CharConnected)</l>
+<l>    intersection (CharConnected, DarkRegion, CharOrig)</l>
+<l>    select_shape (CharOrig, CharSel, 'area', 'and', 50, 99999)</l>
+<l>    sort_region (CharSel, Characters, 'character', 'true', 'row')</l>
+<c>    * Adapt to different brightness</c>
+<l>    shape_trans (CharRegion, CharRectangle, 'rectangle1')</l>
+<l>    dilation_rectangle1 (CharRectangle, CharROI, 10, 10)</l>
+<l>    reduce_domain (Image, CharROI, ImageReduced)</l>
+<l>    min_max_gray (CharROI, Image, 5, Min, Max, Range)</l>
+<l>    scale_image (ImageReduced, ImageScaled, 255 / Range, -Min * 255 / Range)</l>
+<c>    * Interactive OCR</c>
+<l>    shape_trans (Characters, CharConvex, 'rectangle1')</l>
+<l>    dev_display (Image)</l>
+<l>    set_line_style (WindowID, [3,6])</l>
+<l>    dev_display (CharConvex)</l>
+<l>    while (1)</l>
+<l>        set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>        disp_message (WindowID, 'Left-click on a character to read; right mouse button to proceed to next image', 'image', 8, 8, 'blue', 'false')</l>
+<l>        get_mbutton (WindowID, Row, Column, Button)</l>
+<l>        get_region_index (CharConvex, Row, Column, Index)</l>
+<l>        if (Index &gt; 0)</l>
+<l>            dev_display (Image)</l>
+<l>            set_line_style (WindowID, [3,6])</l>
+<l>            dev_display (CharConvex)</l>
+<l>            select_obj (Characters, SingleChar, Index)</l>
+<l>            smallest_rectangle1 (SingleChar, Row1, Column1, Row2, Column2)</l>
+<l>            do_ocr_single_class_mlp (SingleChar, ImageScaled, OCRHandle, 1, RecChar, Confidence)</l>
+<l>            set_display_font (WindowID, 20, 'mono', 'true', 'false')</l>
+<l>            disp_message (WindowID, RecChar[0], 'image', Row2, (Column2 + Column1) / 2 - 35, 'black', 'true')</l>
+<l>        endif</l>
+<l>        if (Button == 4)</l>
+<l>            break</l>
+<l>        endif</l>
+<l>    endwhile</l>
+<l>endfor</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to calculate the thickness</c>
+<c>* of a region along its main axis for each pixel of the section.</c>
+<c>* The thickness is defined as the distance between the intersections</c>
+<c>* of the contour with the plumb on the main axis in the respective</c>
+<c>* point which are the furthest apart.</c>
+<c>* </c>
+<c>* This example program first determines a region by determining</c>
+<c>* connected components of predefined gray values. Then the</c>
+<c>* thickness of this region and for visualization its main axis</c>
+<c>* is calculated. The thickness is plotted in a separate window.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Initialize</c>
+<l>read_image (Image, 'screw_thread')</l>
+<l>WindowWidth := 540</l>
+<l>WindowHeight := 400</l>
+<l>dev_open_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1, WindowHandle1)</l>
+<l>get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>dev_set_part (0, 0, ImageHeight, ImageWidth)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Display description</c>
+<l>Message := 'This program shows how to calculate the'</l>
+<l>Message[1] := 'thickness of a region along its main axis'</l>
+<l>Message[2] := 'for each pixel of the section.'</l>
+<l>Message[3] := 'First a region is determined and then the'</l>
+<l>Message[4] := 'thickness along the main axis of this'</l>
+<l>Message[5] := 'region is calculated.'</l>
+<l>disp_message (WindowHandle1, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle1, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Determine the thickness</c>
+<c>* -----------------------</c>
+<c>* Segment the image according to selected gray values and calculate</c>
+<c>* the thickness for each pixel along the main axis of the region</c>
+<l>threshold (Image, Region, 0, 67)</l>
+<l>get_region_thickness (Region, Thickness, Histogramm)</l>
+<c>* </c>
+<c>* Visualization</c>
+<c>* -------------</c>
+<c>* </c>
+<c>* Display the region</c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Region)</l>
+<c>* </c>
+<c>* Display the main axis through the region</c>
+<l>area_center (Region, Area, Row, Column)</l>
+<l>elliptic_axis (Region, Ra, Rb, Phi)</l>
+<l>StartRow := Row + sin(Phi) * Ra</l>
+<l>StartColumn := Column - cos(Phi) * Ra</l>
+<l>EndRow := Row - sin(Phi) * Ra</l>
+<l>EndColumn := Column + cos(Phi) * Ra</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_line (WindowHandle1, StartRow, StartColumn, EndRow, EndColumn)</l>
+<l>disp_message (WindowHandle1, 'Selected region with its main axis', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Display the runlength distribution in a separate window</c>
+<l>dev_open_window (0, WindowWidth + 10, 460, WindowHeight, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (1)</l>
+<l>plot_tuple (WindowHandle2, [], Thickness, [], [], 'red', ['style','margin_top'], ['line',WindowHeight * 0.2])</l>
+<l>disp_message (WindowHandle2, 'Thickness along the main axis', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

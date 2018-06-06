@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example programs shows how mean_curvature_flow can be used</c>
+<c>* to enhance an angiographic image by preserving the edge information</c>
+<c>* while smoothing the background noise.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 400, 400, 'black', WindowHandle)</l>
+<l>read_image (Image, 'angio-part')</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>mean_curvature_flow (Image, ImageMCF, 0.5, 0.5, 10)</l>
+<l>dev_display (ImageMCF)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

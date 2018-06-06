@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the Wenglor weCat3D series sensor in HALCON</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note: the object 3D model is represented with the HALCON</c>
+<c>*       camera 3D coordinate system in meters.</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 640, 480, -1, -1, WindowHandle)</l>
+<c>* </c>
+<c>* Sensor and server parameters</c>
+<l>Path := '&lt;Path to the weCat3D GigE interface&gt;'</l>
+<l>IP := '192.168.100.100'</l>
+<l>DeviceIP := '192.168.100.1'</l>
+<l>UseEncoder := false</l>
+<l>NumberOfProfilesPerImage := 100</l>
+<c>* </c>
+<c>* Connect to the Wenglor device</c>
+<l>detect_wenglor_sensor (Path, IP, DeviceIP, AcqHandle)</l>
+<c>* </c>
+<c>* Set the imaging mode to Rectified &amp; Mono16 (currently only with this mode</c>
+<c>* the full resolution is achievable)</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,2]" as_ord="1">set_framegrabber_param (AcqHandle, 'PixelFormat', 'Mono16')</l>
+<l>set_framegrabber_param (AcqHandle, 'Scan3DRectified', 1)</l>
+<c></c>
+<c>* Activate the following lines if you want to activate the encoder trigger mode in the weCat3D sensor.</c>
+<c>* The encoder trigger mode is compatible with sensor firmeware version 1.0.8 or higher and GigE Vision SDK 1.1.0 or higher.</c>
+<l>if (UseEncoder)</l>
+<l>    set_framegrabber_param (AcqHandle, 'AcquisitionMode', 'SingleFrame')</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerSelector', 'LineStart')</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerSource', 'Encoder1')</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerDivider', 45)</l>
+<l>    set_framegrabber_param (AcqHandle, 'grab_timeout', 60000)</l>
+<l>else</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerSelector', 'LineStart')</l>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerSource', 'Intern')</l>
+<l>endif</l>
+<c>* </c>
+<c>* Get the image width, working range in Z-direction and the scale and offset</c>
+<c>* in the X-direction.</c>
+<l>get_framegrabber_param (AcqHandle, 'Width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'DeviceWorkingRangeZ', DeviceWorkingRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'DeviceWorkingRangeZStart', DeviceWorkingRangeStart)</l>
+<l>get_framegrabber_param (AcqHandle, 'Scan3DScaleX', Scan3DScaleX)</l>
+<l>get_framegrabber_param (AcqHandle, 'Scan3DOffsetX', Scan3DOffsetX)</l>
+<c>* </c>
+<c>* Set the number of profiles to be measured</c>
+<l>set_framegrabber_param (AcqHandle, 'NumberOfProfiles', NumberOfProfilesPerImage)</l>
+<c></c>
+<l>gen_image_surface_first_order (X, 'real', 0, Scan3DScaleX * 0.001, Scan3DOffsetX * 0.001, 0, 0, Width, NumberOfProfilesPerImage)</l>
+<l>gen_image_surface_first_order (Y, 'real', 0.001, 0, -(NumberOfProfilesPerImage - 1) / 2.0 * 0.001, 0, 0, Width, NumberOfProfilesPerImage)</l>
+<c>* </c>
+<c>* Scaling factors for the conversion from mm to m</c>
+<l>ScaledWorkingRange := DeviceWorkingRange * 0.001 / 65535.0</l>
+<l>ScaledWorkingRangeStart := DeviceWorkingRangeStart * 0.001</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">while (true)</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, 'Waiting for image', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Grab the image</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<c>    * </c>
+<c>    * Convert the image to a Objectmodel3D</c>
+<l>    convert_image_to_objectmodel3d (Image, X, Y, ScaledWorkingRange, ScaledWorkingRangeStart, ObjectModel3DThresholded)</l>
+<l>    dev_clear_window ()</l>
+<l>    try</l>
+<l>        visualize_object_model_3d (WindowHandle, ObjectModel3DThresholded, [], [], ['color','alpha'], ['red',0.9], 'ObjectModel3D', [], [], PoseOut)</l>
+<l>    catch (Exception)</l>
+<c>        * </c>
+<c>        * ObjectModel3DThresholded contains no points.</c>
+<l>        dev_disp_text ('ObjectModel3D contains no points', 'window', 12, 12, 'black', [], [])</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endtry</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="detect_wenglor_sensor">
+<interface>
+<ic>
+<par name="Path" base_type="ctrl" dimension="0"/>
+<par name="IP" base_type="ctrl" dimension="0"/>
+<par name="DeviceIP" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>file_exists (Path + '/' + 'weCat3DGigEInterface.exe', FileExists)</l>
+<l>if (not FileExists)</l>
+<c>    * The weCat3D GigE Interface is not at the specified Path.</c>
+<c>    * Please note that you first need to install and start the</c>
+<c>    * weCat3D GigE Interface server which you can download from</c>
+<c>    * https://www.wenglor.com/directlink/weCat3D_GigEVision_SDK</c>
+<l>    stop ()</l>
+<l>endif</l>
+<l>system_call ('start ' + Path + '/' + 'weCat3DGigEInterface.exe -s' + IP + ' -i' + DeviceIP)</l>
+<l>wait_seconds (1)</l>
+<c></c>
+<l>info_framegrabber ('GigEVision2', 'devices', Information, Devices)</l>
+<l>tuple_regexp_select (Devices, 'wenglor', AcqHandle)</l>
+<l>open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', 'force_sockdrv=1', 'false', 'default', AcqHandle, 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'AcquisitionStop', -1)</l>
+<l>return ()</l>
+</body>
+<docu id="detect_wenglor_sensor">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="DeviceIP"/>
+<parameter id="IP"/>
+<parameter id="Path"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="convert_image_to_objectmodel3d">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="X" base_type="iconic" dimension="0"/>
+<par name="Y" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="ScaledWorkingRange" base_type="ctrl" dimension="0"/>
+<par name="ScaledWorkingRangeStart" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="ObjectModel3DThresholded" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>ImageOut := Image</l>
+<l>convert_image_type (ImageOut, ImageOut, 'real')</l>
+<c>* </c>
+<c>* Calculate the Z values from the intensities</c>
+<l>scale_image (ImageOut, Z, ScaledWorkingRange, ScaledWorkingRangeStart)</l>
+<c>* </c>
+<c>* Generate the ObjectModel3D and visualize it, press the button to continue</c>
+<l>xyz_to_object_model_3d (X, Y, Z, ObjectModel3D)</l>
+<l>select_points_object_model_3d (ObjectModel3D, 'point_coord_z', ScaledWorkingRangeStart + 0.0000001, 1, ObjectModel3DThresholded)</l>
+<l>return ()</l>
+</body>
+<docu id="convert_image_to_objectmodel3d">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ObjectModel3DThresholded"/>
+<parameter id="ScaledWorkingRange"/>
+<parameter id="ScaledWorkingRangeStart"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

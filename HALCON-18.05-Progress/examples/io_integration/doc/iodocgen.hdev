@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0.1">
+<procedure name="main">
+<interface/>
+<body>
+<c>*</c>
+<c>* Automatically fill out any missing information in I/O device parameter</c>
+<c>* description files.</c>
+<c>*</c>
+<l>open_file ('standard', 'input', InputHandle)</l>
+<l>* open_file ('../../source/testme', 'input', InputHandle)</l>
+<l>open_file ('standard', 'output', OutputHandle)</l>
+<c></c>
+<c>* If HALCON_HELP_DIR is set, this script is run in an environment where the help</c>
+<c>* directories are not (yet installed) in the default location. In this case we</c>
+<c>* need to modify the path to the help directory prior to calling get_operator_info.</c>
+<l>HALCON_HELP_DIR := environment('HALCON_HELP_DIR')</l>
+<l>if(HALCON_HELP_DIR != '')</l>
+<l>    set_system('help_dir', HALCON_HELP_DIR)</l>
+<l>endif</l>
+<c></c>
+<l>IsEOF := false</l>
+<l>while (not IsEOF)</l>
+<l>    fread_line(InputHandle,Input,IsEOF)</l>
+<c>    *</c>
+<c>    * Check if this is an operator section</c>
+<c>    *</c>
+<l>    tuple_regexp_match (Input, ['^\\[section (\\S+)\\]$', 'newline_lf'], Operator)</l>
+<l>    if (Operator # '')</l>
+<l>        document_operator (Operator, Output)</l>
+<l>        fwrite_string (OutputHandle,Output)</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    *</c>
+<c>    * Check if this is a 'parent' field we need to update.</c>
+<c>    *</c>
+<l>    tuple_regexp_match (Input, '^parent = %(\\S+):IC(\\d)%(_.*)', Matches)</l>
+<l>    if (Matches[0] # '' and Matches[1] # '' and Matches[2] # '')</l>
+<l>        get_param_names (Matches[0], InpObjPar, OutpObjPar, InpCtrlPar, OutpCtrlPar)</l>
+<l>        tuple_number (Matches[1], Index)</l>
+<l>        fwrite_string (OutputHandle, 'parent = '+InpCtrlPar[Index]+Matches[2]+'\n')</l>
+<l>        continue</l>
+<l>    endif</l>
+<c>    *</c>
+<c>    * Anything else is output as is.</c>
+<c>    *</c>
+<l>    fwrite_string (OutputHandle,Input)    </l>
+<l>endwhile</l>
+<c></c>
+<l>close_file (OutputHandle)</l>
+<l>close_file (InputHandle)</l>
+<l>exit ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="document_operator">
+<interface>
+<ic>
+<par name="Operator" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HDoc" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>*</c>
+<c>* Generate the context pre/postfix based on the operator name</c>
+<c>*</c>
+<l>tuple_strstr (Operator,'device',Pos)</l>
+<l>if (-1 == Pos)</l>
+<l>    tuple_strstr (Operator,'interface',Pos)</l>
+<l>    if (-1 == Pos)</l>
+<l>        Prefix := 'ch_'</l>
+<l>    else</l>
+<l>        Prefix := 'ifc_'</l>
+<l>    endif</l>
+<l>else</l>
+<l>    Prefix := 'dev_'</l>
+<l>endif</l>
+<l>tuple_strstr (Operator, '_', Pos)</l>
+<l>tuple_str_first_n (Operator, Pos-1, Context)</l>
+<l>Context := Prefix+Context</l>
+<c>*</c>
+<c>* Get all parameter names and create the signature string</c>
+<c>*</c>
+<l>get_param_names (Operator, InpObjPar, OutpObjPar, InpCtrlPar, OutpCtrlPar)</l>
+<l>Signature := Operator + '('</l>
+<l>create_list_string (InpObjPar,Text)</l>
+<l>Signature := Signature + Text + ':'</l>
+<l>create_list_string (OutpObjPar,Text)</l>
+<l>Signature := Signature + Text + ':'</l>
+<l>create_list_string (InpCtrlPar,Text)</l>
+<l>Signature := Signature + Text + ':'</l>
+<l>create_list_string (OutpCtrlPar,Text)</l>
+<l>Signature := Signature + Text + ')'</l>
+<c>*</c>
+<c>* Get the short operator description. Note that this may return</c>
+<c>* multiple results which we need to turn into one.</c>
+<c>*</c>
+<l>ShortDesc := ''</l>
+<l>get_operator_info (Operator, 'short', Info)</l>
+<l>for Index := 0 to |Info|-1 by 1</l>
+<l>    ShortDesc := ShortDesc + Info[Index]</l>
+<l>endfor</l>
+<c>*</c>
+<c>* Create the section header</c>
+<c>*</c>
+<l>HDoc := '[section]\n'</l>
+<l>HDoc := HDoc + 'id = '+Operator+'\n'</l>
+<l>HDoc := HDoc + 'descr = '+ShortDesc+'\n'</l>
+<l>HDoc := HDoc + 'signature = '+Signature+'\n'</l>
+<c>*</c>
+<c>* Document all parameters</c>
+<c>*</c>
+<l>for Index := 0 to |InpObjPar|-1 by 1</l>
+<l>    document_parameter (Operator, InpObjPar[Index], Context, Text)</l>
+<l>    HDoc := HDoc + Text</l>
+<l>endfor</l>
+<l>for Index := 0 to |OutpObjPar|-1 by 1</l>
+<l>    document_parameter (Operator, OutpObjPar[Index], Context, Text)</l>
+<l>    HDoc := HDoc + Text</l>
+<l>endfor</l>
+<l>for Index := 0 to |InpCtrlPar|-1 by 1</l>
+<l>    document_parameter (Operator, InpCtrlPar[Index], Context, Text)</l>
+<l>    HDoc := HDoc + Text</l>
+<l>endfor</l>
+<l>for Index := 0 to |OutpCtrlPar|-1 by 1</l>
+<l>    document_parameter (Operator, OutpCtrlPar[Index], Context, Text)</l>
+<l>    HDoc := HDoc + Text</l>
+<l>endfor</l>
+<c>*</c>
+<l>HDoc := HDoc + '\n'</l>
+<l>return ()</l>
+</body>
+<docu id="document_operator">
+<parameters>
+<parameter id="HDoc"/>
+<parameter id="Operator"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_list_string">
+<interface>
+<ic>
+<par name="Values" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="String" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>String := ''</l>
+<l>for Index := 0 to |Values|-1 by 1</l>
+<l>    if (Index)</l>
+<l>        String := String + ', ' + Values[Index]</l>
+<l>    else</l>
+<l>        String := Values[0]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="create_list_string">
+<parameters>
+<parameter id="String"/>
+<parameter id="Values"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="document_parameter">
+<interface>
+<ic>
+<par name="Operator" base_type="ctrl" dimension="0"/>
+<par name="Parameter" base_type="ctrl" dimension="0"/>
+<par name="Context" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="HDoc" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>HDoc := '\n[param]\n'</l>
+<l>HDoc := HDoc + 'id = ' + Parameter + '_' + Context + '\n'</l>
+<l>HDoc := HDoc + 'name = ' + Parameter + '\n'</l>
+<l>HDoc := HDoc + 'context += ' + Context + '\n'</l>
+<c></c>
+<l>get_param_info (Operator, Parameter, 'default_value', Info)</l>
+<l>if (|Info| and Info # '')</l>
+<l>    create_value_list_string (Info, String)</l>
+<l>    HDoc := HDoc + 'default_' + Context + ' = ' + String + '\n'</l>
+<l>endif</l>
+<c>*</c>
+<c>* The 'Query' parameter should be handled by the mkparams.pl script, while</c>
+<c>* 'IOInterfaceName' should only list the name of the interface being documented.</c>
+<c>*</c>
+<l>* if (Parameter # 'Query' and Parameter # 'IOInterfaceName')</l>
+<l>*     get_param_info (Operator, Parameter, 'value_list', Info)</l>
+<l>*     if (|Info| and Info # '')</l>
+<l>*         create_value_list_string (Info, String)</l>
+<l>*         HDoc := HDoc + 'values_' + Context + ' = ' + String + '\n'</l>
+<l>*     else</l>
+<l>*         get_param_info (Operator, Parameter, 'values', Info)</l>
+<l>*         if (|Info| and Info # '')</l>
+<l>*             create_value_list_string (Info, String)</l>
+<l>*             HDoc := HDoc + 'values_' + Context + ' = ' + String + '\n'</l>
+<l>*         endif</l>
+<l>*     endif</l>
+<l>if (Parameter = 'IOInterfaceName')</l>
+<c>    * If the parameter is named 'IOInterfaceName', we should use the name</c>
+<c>    * of this interface and ignore the list.</c>
+<l>    HDoc := HDoc + 'values_' + Context + ' =  \'%%interface.name%%\'\n'</l>
+<l>endif</l>
+<c></c>
+<l>get_param_info (Operator, Parameter, 'type_list', Info)</l>
+<l>if (|Info| and Info # '')</l>
+<l>    create_list_string (Info, String)</l>
+<l>    HDoc := HDoc + 'type_' + Context + ' = ' + String + '\n'</l>
+<l>endif</l>
+<c></c>
+<l>get_param_info (Operator, Parameter, 'default_type', Info)</l>
+<l>if (|Info| and Info # '')</l>
+<l>    create_list_string (Info, String)</l>
+<l>    HDoc := HDoc + '#default_type_' + Context + ' = ' + String + '\n'</l>
+<l>endif</l>
+<c></c>
+<l>get_param_info (Operator, Parameter, 'sem_type', Info)</l>
+<l>if (|Info| and Info # '')</l>
+<l>    create_list_string (Info, String)</l>
+<l>    HDoc := HDoc + '#sem_type_' + Context + ' = ' + String + '\n'</l>
+<l>endif</l>
+<c></c>
+<l>get_param_info (Operator, Parameter, 'multivalue', Info)</l>
+<l>if (|Info| and Info # '')</l>
+<l>    create_list_string (Info, String)</l>
+<l>    HDoc := HDoc + '#multivalue_' + Context + ' = ' + String + '\n'</l>
+<l>endif</l>
+<c></c>
+<l>get_param_info (Operator, Parameter, 'multichannel', Info)</l>
+<l>if (|Info| and Info # '')</l>
+<l>    create_list_string (Info, String)</l>
+<l>    HDoc := HDoc + '#multichannel_' + Context + ' = ' + String + '\n'</l>
+<l>endif </l>
+<c>*</c>
+<c>* Note that 'description' can theoretically return multiple items.</c>
+<c>*</c>
+<l>Desc := ''</l>
+<l>get_param_info (Operator, Parameter, 'description', Info)</l>
+<l>for Index := 0 to |Info|-1 by 1</l>
+<l>    Desc := Desc + Info[Index]</l>
+<l>endfor</l>
+<l>if (Desc # '')</l>
+<l>    HDoc := HDoc + 'descr_' + Context + ' = ' + Desc + '\n'</l>
+<l>endif</l>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="document_parameter">
+<parameters>
+<parameter id="Context"/>
+<parameter id="HDoc"/>
+<parameter id="Operator"/>
+<parameter id="Parameter"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="create_value_list_string">
+<interface>
+<ic>
+<par name="Values" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="String" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>String := ''</l>
+<l>tuple_is_string_elem (Values, IsString)</l>
+<l>for Index := 0 to |Values|-1 by 1</l>
+<c>    * Strings should by enclosed in single quotes, unless it is the special</c>
+<c>    * string '[]', or it already has double quotes.</c>
+<l>    if (IsString[Index] and Values[Index] # '[]')</l>
+<l>        tuple_regexp_test (Values[Index], '^\\\'.*\\\'', NumMatches)</l>
+<l>        if (NumMatches == 0)</l>
+<l>            Values[Index] := '\'' + Values[Index] + '\''</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if (Index)</l>
+<l>        String := String + ', ' + Values[Index]</l>
+<l>    else</l>
+<l>        String := Values[0]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="create_value_list_string">
+<parameters>
+<parameter id="String"/>
+<parameter id="Values"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

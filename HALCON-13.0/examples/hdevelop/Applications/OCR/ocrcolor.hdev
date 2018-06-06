@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* OCR (numbers) with color segmentation</c>
+<c>* </c>
+<l>read_image (Image, 'ocr/color_form_01')</l>
+<l>get_image_pointer3 (Image, PointerRed, PointerGreen, PointerBlue, Type, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_update_window ('off')</l>
+<c>* Read the classifier to use for reading the text.</c>
+<c>* It is easiest to use the pre-trained font Industrial_0-9_NoRej.  If you</c>
+<c>* have run the program ocrcolort.hdev in this directory, you can activate</c>
+<c>* the second line to use the font trained with this program.</c>
+<l>read_ocr_class_mlp ('Industrial_0-9_NoRej', OCRHandle)</l>
+<l>* read_ocr_class_mlp ('ocrcolor', OCRHandle)</l>
+<c>* </c>
+<c>* LOOP: Process all Images</c>
+<c>* </c>
+<l>NumImages := 8</l>
+<l>for img := 1 to NumImages by 1</l>
+<l>    read_image (Image, 'ocr/color_form_0' + img)</l>
+<c>    * </c>
+<c>    * Detect foreground</c>
+<c>    * </c>
+<l>    mean_image (Image, Mean, 3, 3)</l>
+<l>    decompose3 (Mean, Red, Green, Blue)</l>
+<l>    threshold (Green, ForegroundRaw, 0, 220)</l>
+<l>    clip_region (ForegroundRaw, Foreground, 3, 3, Height - 4, Width - 4)</l>
+<c>    * </c>
+<c>    * Divide colors</c>
+<c>    * </c>
+<l>    reduce_domain (Red, Foreground, RedReduced)</l>
+<l>    reduce_domain (Green, Foreground, GreenReduced)</l>
+<l>    sub_image (RedReduced, GreenReduced, ImageSub, 2, 128)</l>
+<l>    mean_image (ImageSub, ImageMean, 3, 3)</l>
+<l>    binary_threshold (ImageMean, Cluster1, 'smooth_histo', 'dark', UsedThreshold)</l>
+<l>    difference (Foreground, Cluster1, Cluster2)</l>
+<l>    concat_obj (Cluster1, Cluster2, Cluster)</l>
+<l>    opening_circle (Cluster, Opening, 2.5)</l>
+<l>    smallest_rectangle1 (Opening, Row1, Column1, Row2, Column2)</l>
+<l>    WidthCluster := Column2 - Column1 + 1</l>
+<l>    if (WidthCluster[0] &gt; WidthCluster[1])</l>
+<l>        select_obj (Opening, NumberRegion, 2)</l>
+<l>    else</l>
+<l>        select_obj (Opening, NumberRegion, 1)</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Expand Numbers</c>
+<c>    * </c>
+<l>    closing_rectangle1 (NumberRegion, NumberCand, 1, 20)</l>
+<l>    difference (Image, NumberCand, NoNumbers)</l>
+<l>    connection (NumberRegion, NumberParts)</l>
+<l>    intensity (NumberParts, Green, MeanIntensity, Deviation)</l>
+<l>    expand_gray_ref (NumberParts, Green, NoNumbers, Numbers, 20, 'image', MeanIntensity, 48)</l>
+<l>    union1 (Numbers, NumberRegion)</l>
+<l>    connection (NumberRegion, Numbers)</l>
+<c>    * </c>
+<c>    * Fine tuning</c>
+<c>    * </c>
+<l>    fill_up_shape (Numbers, RegionFillUp, 'area', 1, 100)</l>
+<l>    opening_circle (RegionFillUp, FinalNumbersUnsorted, 3.5)</l>
+<l>    sort_region (FinalNumbersUnsorted, FinalNumbers, 'character', 'true', 'row')</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (FinalNumbers)</l>
+<l>    count_obj (FinalNumbers, NumNumbers)</l>
+<l>    union1 (FinalNumbers, NumberRegion)</l>
+<l>    difference (Image, NumberRegion, NoNumbers)</l>
+<l>    paint_region (NoNumbers, Green, ImageOCRRaw, 255, 'fill')</l>
+<l>    paint_region (NumberRegion, ImageOCRRaw, ImageOCR, 0, 'fill')</l>
+<c>    * </c>
+<c>    * OCR</c>
+<c>    * </c>
+<l>    do_ocr_multi_class_mlp (FinalNumbers, ImageOCR, OCRHandle, RecChar, Confidence)</l>
+<l>    set_display_font (WindowID, 27, 'mono', 'true', 'false')</l>
+<l>    disp_message (WindowID, sum(RecChar), 'window', 32, 24, 'blue', 'false')</l>
+<l>    if (img &lt; NumImages)</l>
+<l>        set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

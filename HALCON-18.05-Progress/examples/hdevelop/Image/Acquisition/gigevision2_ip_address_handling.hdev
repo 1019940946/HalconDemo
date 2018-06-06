@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,1]" as_ord="1">* Example how to work with IPv4 addresses of GigE Vision cameras,</c>
+<c>* in particular how to assign a persistent IP and switch of DHCP.</c>
+<c>* If you cannot open your device, see the gigevision_forceip.hdev example.</c>
+<c>* </c>
+<l>Device := 'default'</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Get the current network settings.</c>
+<l>try</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevCurrentIPAddress', GevCurrentIPAddress)</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevCurrentSubnetMask', GevCurrentSubnetMask)</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevCurrentDefaultGateway', GevCurrentDefaultGateway)</l>
+<l>catch (Exception)</l>
+<c>    * One of the parameters is not supported by the camera.</c>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Transform GevCurrentIPAddress into something readable.</c>
+<c>* The same code can be used for the subnet mask and the default gateway.</c>
+<l>GevCurrentIPAddressString := (rsh(GevCurrentIPAddress,24) band 0xff) + '.' + (rsh(GevCurrentIPAddress,16) band 0xff) + '.' + (rsh(GevCurrentIPAddress,8) band 0xff) + '.' + (rsh(GevCurrentIPAddress,0) band 0xff)</l>
+<c>* </c>
+<c>* Alternatively use hex representation:</c>
+<c>* Each byte is one part of the IPv4 address.</c>
+<l>GevCurrentIPAddressHexString := GevCurrentIPAddress$'#x'</l>
+<c>* </c>
+<c>* Now try it the other way round. There are two possible solutions:</c>
+<c>* 1) Use hex. In this case each byte will represent one part of the IPv4 address,</c>
+<c>*    for example 10.0.11.12 -&gt; 0x0a000b0c -&gt; 167774988</c>
+<l>IPv4Address := 0x0a000b0c</l>
+<c>* 2) Use a string like '10.0.11.12' and transform it into a number.</c>
+<l>tuple_split (GevCurrentIPAddressString, '.', Parts)</l>
+<l>IPv4Address := number(Parts[0]) * lsh(1,24) + number(Parts[1]) * lsh(1,16) + number(Parts[2]) * lsh(1,8) + number(Parts[3])</l>
+<c>* </c>
+<l>try</l>
+<c>    * You can do the same with the persistent IP settings if the device supports it.</c>
+<l>    get_framegrabber_param (AcqHandle, 'GevPersistentIPAddress', GevPersistentIPAddress)</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevPersistentSubnetMask', GevPersistentSubnetMask)</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevPersistentDefaultGateway', GevPersistentDefaultGateway)</l>
+<c>    * </c>
+<c>    * Query if persistent IP configuration or DHCP are activated.</c>
+<c>    * If both are activated, persistent wins.</c>
+<l>    get_framegrabber_param (AcqHandle, 'GevCurrentIPConfigurationPersistentIP', GevCurrentIPConfigurationPersistentIP)</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevCurrentIPConfigurationDHCP', GevCurrentIPConfigurationDHCP)</l>
+<c>    * </c>
+<c>    * Warning: From here, the network settings of your camera are modified!</c>
+<l>    stop ()</l>
+<c>    * Now you can set and activate the persistent network configuration.</c>
+<c>    * These settings become effective when the camera is rebooted.</c>
+<c>    * Set them for example to the current settings.</c>
+<l>    set_framegrabber_param (AcqHandle, 'GevPersistentIPAddress', IPv4Address)</l>
+<l>    set_framegrabber_param (AcqHandle, 'GevPersistentSubnetMask', GevCurrentSubnetMask)</l>
+<l>    set_framegrabber_param (AcqHandle, 'GevPersistentDefaultGateway', GevCurrentDefaultGateway)</l>
+<c>    * </c>
+<c>    * Note that LLA cannot be deactivated.</c>
+<l>    set_framegrabber_param (AcqHandle, 'GevCurrentIPConfigurationPersistentIP', 1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'GevCurrentIPConfigurationDHCP', 0)</l>
+<c></c>
+<c>    * Reset the settings if your camera supports that.</c>
+<l>    set_framegrabber_param (AcqHandle, 'DeviceReset', 1)</l>
+<l>catch (Exception)</l>
+<c>    * One of the parameters is not supported by the camera.</c>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2]" as_ord="2">* Example to demonstrate the usage of the Visual Applets field parameter functionality.</c>
+<c>* </c>
+<c>* The HALCON SiliconSoftware Image Acquisition Interface supports access to field parameters.</c>
+<c>* Field parameters can be used for the generic Visual Applets parameters which expect</c>
+<c>* an input parameter as tuple e.g. [0,1,3,5].</c>
+<c>* To get further information about parameters which support fields, please check</c>
+<c>* the Silicon Software documentation.</c>
+<c>* </c>
+<c>* The current example illustrates access to the field parameters used by a generic KneeLut module</c>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Get all available generic parameters provided by the Applet.</c>
+<l>get_framegrabber_param (AcqHandle, 'available_param_names', Value)</l>
+<c>* </c>
+<c>* Please figure out the field parameter name you want to set</c>
+<c>* The following configuration fits if a KneeLut Module is used</c>
+<c>* The KneeLut Module contains three field parameters</c>
+<l>BasePointPows := 'Device0_Process0_module5_BasePointPows'</l>
+<l>EndBasePoints := 'Device0_Process0_module5_EndBasePoints'</l>
+<l>StartBasePoints := 'Device0_Process0_module5_StartBasePoints'</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get the number of allowed field parameters</c>
+<l>get_framegrabber_param (AcqHandle, BasePointPows, NumFieldParameterPow)</l>
+<l>tuple_pow (2, NumFieldParameterPow, NumFieldParameter)</l>
+<l>tuple_int (NumFieldParameter, NumFieldParameterInt)</l>
+<c>* </c>
+<c>* Set field values to 'Device0_Process0_module5_StartBasePoints' in case of a KneeLut Module</c>
+<l>ParameterFieldName := StartBasePoints</l>
+<l>ParameterField := [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]</l>
+<c>* Check the number of field parameters</c>
+<l>if (NumFieldParameterInt &lt; |ParameterField|)</l>
+<c>    * Number of field parameters is higher than maximum number of possible values</c>
+<l>    stop ()</l>
+<l>endif</l>
+<l>set_framegrabber_param (AcqHandle, ParameterFieldName, ParameterField)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set field values to 'Device0_Process0_module5_EndBasePoints' in case of a KneeLut Module</c>
+<l>ParameterFieldName := EndBasePoints</l>
+<l>ParameterField := [0.15,0.28,0.32,0.44,0.53,0.69,0.73,0.84]</l>
+<c>* Check the number of field parameters</c>
+<l>if (NumFieldParameterInt &lt; |ParameterField|)</l>
+<c>    * Number of ParameterField is to high</c>
+<l>    stop ()</l>
+<l>endif</l>
+<l>set_framegrabber_param (AcqHandle, ParameterFieldName, ParameterField)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Before we are able to query field parameters, we have to set the number</c>
+<c>* of field parameters we want to query</c>
+<l>set_framegrabber_param (AcqHandle, 'num_field_parameter', NumFieldParameterInt)</l>
+<l>get_framegrabber_param (AcqHandle, StartBasePoints, StartBasePoints)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Set the number of field parameters you want to query</c>
+<l>set_framegrabber_param (AcqHandle, 'num_field_parameter', NumFieldParameterInt)</l>
+<l>get_framegrabber_param (AcqHandle, EndBasePoints, EndBasePoints)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* If the setting is done, grab the image and the data</c>
+<l>for Index := 1 to 10 by 1</l>
+<l>    grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

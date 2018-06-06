@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the Photonfocus 3D02 and 3D03</c>
+<c>* GigEVision cameras in HALCON.</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* The Photonfocus laser line extraction can be performed using:</c>
+<c>* - a local procedure available in this example,</c>
+<c>*   detect_laser_line_procedure</c>
+<c>* - or for best performance, by means of an extension package</c>
+<c>*   containing the detect_laser_line operator. Please contact</c>
+<c>*   your distributor for further information.</c>
+<c>* </c>
+<c>* Notice that the generated HALCON ObjectModel3D contains</c>
+<c>* uncalibrated data. Please see calibrate_sheet_of_light.hdev</c>
+<c>* example that demonstrates how to perform the calibration of a</c>
+<c>* sheet-of-light measurement system.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<c>* Settings</c>
+<l>TriggerMode := 'Off'</l>
+<c>* PeakDetector_Mode = 'Mode_2Dand3D'(2D+3D)</c>
+<c>*                     'Mode_3Donly' (3D only)</c>
+<l>PeakDetectorMode := 'Mode_3Donly'</l>
+<l>* PeakDetectorMode := 'Mode_2Dand3D'</l>
+<c>* </c>
+<c>* Find Photonfocus devices.</c>
+<l>info_framegrabber ('GigEVision2', 'device', Information, DeviceList)</l>
+<l>get_photonfocus3d_device (DeviceList, Device, CameraType)</l>
+<c>* Connect to the Photonfocus 3D camera.</c>
+<l>open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'gray', -1, 'default', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Camera configuration.</c>
+<c>* </c>
+<c>* Adjust the camera sensor area of interest to the laser</c>
+<c>* detection area, taking into account the constrains</c>
+<c>* depending on the camera type.</c>
+<l>if (CameraType == '3D02')</l>
+<c>    * 3D02</c>
+<c>    * Width: equivalent to Window.W</c>
+<c>    * (Min=544/Max=1312, in increments of 32 pixels)</c>
+<l>    AOI_Width := 544</l>
+<c>    * OffsetX: equivalent to Window.X</c>
+<c>    * (Min=0/Max=384, in increments of 32 pixels)</c>
+<c>    * NOTE: Width + OffsetX &lt;= 1312 AND Width + OffsetX &gt;= 896</c>
+<c>    * That means that for Width=544 the minimum OffsetX is 352.</c>
+<l>    AOI_OffsetX := 384</l>
+<c>    * Window_H: equivalent to Window.H</c>
+<c>    * (Min=1/Max=1024, in increments of 1 pixel)</c>
+<l>    AOI_Height := 156</l>
+<c>    * OffsetY: equivalent to Window.Y</c>
+<c>    * (Min=0/Max=1023, in increments of 1 pixel)</c>
+<c>    * NOTE: Window_H + OffsetY &lt;= 1024</c>
+<l>    AOI_OffsetY := 664</l>
+<l>else</l>
+<c>    * 3D03</c>
+<c>    * Width: equivalent to Window.W</c>
+<c>    * (Min=32/Max=2048, in increments of 8 pixels)</c>
+<l>    AOI_Width := 1096</l>
+<c>    * OffsetX: equivalent to Window.X</c>
+<c>    * (Min=0/Max=448, in increments of 8 pixels)</c>
+<l>    AOI_OffsetX := 336</l>
+<c>    * Peak0 ROI - Peak0_3DY: equivalent to Window.Y</c>
+<c>    * (Min=0/Max=1072, in increments of 1 pixel)</c>
+<l>    AOI_OffsetY := 253</l>
+<c>    * Peak0 ROI - Peak0_3DH: equivalent to Window.H</c>
+<c>    * (Min=16/Max=1009, in increments of 1 pixel)</c>
+<l>    AOI_Height := 324</l>
+<l>endif</l>
+<c>* Apply camera configuration.</c>
+<l>photonfocus_camera_configuration (CameraType, AcqHandle, TriggerMode, PeakDetectorMode, AOI_OffsetX, AOI_OffsetY, AOI_Width, AOI_Height, FrameCombineValue)</l>
+<c>* </c>
+<c>* Set the number of profiles to be captured for each 3D model.</c>
+<c>* For consistency, use a multiple of FrameCombine_NrOfFrames.</c>
+<l>NumProfiles := 50 * FrameCombineValue</l>
+<l>* NumProfiles := 1</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * Grab 3D data</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    for Index := 1 to NumProfiles - FrameCombineValue by FrameCombineValue</l>
+<l>        grab_image_async (ImageAux, AcqHandle, -1)</l>
+<l>        concat_obj (Image, ImageAux, Image)</l>
+<l>    endfor</l>
+<c>    * Get the laser line information provided by the GigEVision.</c>
+<c>    * 3D Photonfocus cameras using:</c>
+<c>    *    - if available, the detect_laser_line extension package,</c>
+<c>    *      for best performance</c>
+<c>    *    - otherwise, the local detect_laser_line_procedure.</c>
+<c>    * </c>
+<c>    * detect_laser_line and detect_laser_line_procedure return</c>
+<c>    * in case of:</c>
+<c>    * - an input image: a disparity image with image</c>
+<c>    *   height equal one and a corresponding XLD contour.</c>
+<c>    * - a multichannel image: a disparity image</c>
+<c>    *   with several lines. The image height corresponds to the</c>
+<c>    *   number of images provided by input image. In this case no</c>
+<c>    *   XLD data is returned.</c>
+<c>    * </c>
+<c>    * Check if extension package is installed.</c>
+<l>    get_operator_name ('detect_laser_line', ProcNames)</l>
+<l>    tuple_regexp_select (ProcNames, '^detect_laser_line$', Selection)</l>
+<l>    if (|Selection|)</l>
+<c>        * Extension Package available.</c>
+<c>        * </c>
+<c>        * (If next line in red, the extension package is not</c>
+<c>        * properly installed, the local procedure</c>
+<c>        * detect_laser_line_procedure will be used instead)</c>
+<l>        detect_laser_line (Image, DisparityImage, LaserXLD, FrameCombineValue, CameraType)</l>
+<l>    else</l>
+<c>        * Extension Package NOT available (for best performance</c>
+<c>        * please contact your distributor to obtain it).</c>
+<c>        * </c>
+<c>        * Use the local procedure (with higher execution time).</c>
+<l>        detect_laser_line_procedure (Image, DisparityImage, LaserXLD, FrameCombineValue, CameraType)</l>
+<l>    endif</l>
+<c>    * Display Laser XLD if available</c>
+<l>    if ((NumProfiles == 1) and (PeakDetectorMode == 'Mode_2Dand3D'))</l>
+<c>        * LaserXLD available</c>
+<l>        display_laser_line (Image, LaserXLD)</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    * Display the disparity image keeping the aspect ratio.</c>
+<l>    get_image_size (DisparityImage, Width, Height)</l>
+<l>    dev_close_window ()</l>
+<l>    DisplayWidth := 800</l>
+<l>    DisplayHeight := DisplayWidth * Height / Width</l>
+<l>    dev_open_window (0, 0, DisplayWidth, DisplayHeight, 'black', WindowID1)</l>
+<l>    dev_display (DisparityImage)</l>
+<l>    disp_message (WindowID1, 'DisparityImage', 'window', 12, 12, 'black', 'true')</l>
+<l>    get_region_points (DisparityImage, Rows, Columns)</l>
+<l>    if (|Rows| == 0 and |Columns| == 0)</l>
+<l>        dev_close_window ()</l>
+<l>        dev_open_window (0, 0, 500, 200, 'black', WindowID1)</l>
+<l>        disp_message (WindowID1, 'Please check that the laser line is present in the configured sensor AOI!', 'window', 24, 24, 'black', 'true')</l>
+<l>        AOI_text := 'AOI_OffsetX: ' + AOI_OffsetX + '\nAOI_OffsetY: ' + AOI_OffsetY + '\nAOI_Width  : ' + AOI_Width + '\nAOI_Height : ' + AOI_Height</l>
+<l>        disp_message (WindowID1, AOI_text, 'window', 75, 200, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    else</l>
+<l>        disp_continue_message (WindowID1, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_close_window ()</l>
+<c>        * </c>
+<c>        * ProfileRegion defines the region of the profile images in</c>
+<c>        * the sensor by the width of a rectangle.</c>
+<l>        get_framegrabber_param (AcqHandle, 'start_row', StartRow)</l>
+<l>        get_framegrabber_param (AcqHandle, 'start_column', StartCol)</l>
+<l>        get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>        get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>        Row1 := StartRow</l>
+<l>        Column1 := StartCol</l>
+<l>        Row2 := ImageHeight - 1</l>
+<l>        Column2 := ImageWidth - 1</l>
+<l>        gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<c>        * Create the sheet of light model with simplified parameters,</c>
+<c>        * i.e. 'calibration' = 'offset_scale'.</c>
+<l>        create_sheet_of_light_model (Rectangle, 'calibration', 'offset_scale', SheetOfLightModelID)</l>
+<c>        * Set the scaling factors such that the distance of</c>
+<c>        * neighboring 3D points is approximately the same as in the</c>
+<c>        * real object. Note that through the scaling, only</c>
+<c>        * approximate 3D coordinates are obtained (scaling does not</c>
+<c>        * replace calibration).</c>
+<c>        * Width of the pixel in the real world [pixel/m]</c>
+<l>        if (CameraType == '3D02')</l>
+<l>            ScaleX := 0.5</l>
+<l>        else</l>
+<c>            * 3D03</c>
+<l>            ScaleX := 0.25</l>
+<l>        endif</l>
+<c>        * Line movement between two profiles in real world [frames/m]</c>
+<l>        ScaleY := 0.5</l>
+<c>        * Height of the disparity image in the real world [pixel/m]</c>
+<l>        ScaleZ := 0.2</l>
+<l>        set_sheet_of_light_param (SheetOfLightModelID, 'scale_x', ScaleX)</l>
+<l>        set_sheet_of_light_param (SheetOfLightModelID, 'scale_y', ScaleY)</l>
+<l>        set_sheet_of_light_param (SheetOfLightModelID, 'scale_z', ScaleZ)</l>
+<c>        * </c>
+<c>        * Use the disparity Image to create a Sheet of Light Model ID.</c>
+<l>        apply_sheet_of_light_calibration (DisparityImage, SheetOfLightModelID)</l>
+<c>        * Get the Sheet of light Model,</c>
+<c>        * based on the previous defined configuration.</c>
+<l>        get_sheet_of_light_result_object_model_3d (SheetOfLightModelID, ObjectModel3D)</l>
+<c>        * Display the result, press button to continue.</c>
+<l>        dev_close_window ()</l>
+<l>        dev_open_window (0, 0, 800, 600, 'black', WindowID1)</l>
+<l>        set_display_font (WindowID1, 16, 'mono', 'true', 'false')</l>
+<l>        get_object_model_3d_params (ObjectModel3D, 'num_points', NumPoints)</l>
+<l>        if (NumPoints &gt; 0)</l>
+<l>            VisPose := []</l>
+<l>            Instructions[0] := 'Rotate: Left button'</l>
+<l>            Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>            Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>            visualize_object_model_3d (WindowID1, ObjectModel3D, [], VisPose, ['color_attrib','lut'], ['coord_z','rainbow'], 'ObjectModel3D (UNCALIBRATED)', [], Instructions, PoseOut)</l>
+<c>            * </c>
+<c>            * In order to create a surface triangulation from the</c>
+<c>            * ObjectModel3D, please see the following examples:</c>
+<c>            *   - triangulate_object_model_3d_implicit.hdev</c>
+<c>            *   - triangulate_object_model_3d_greedy.hdev</c>
+<c>            * </c>
+<l>        else</l>
+<l>            disp_message (WindowID1, 'No 3D points in the 3D object model!', 'window', 250, 200, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="photonfocus_camera_configuration">
+<interface>
+<ic>
+<par name="CameraType" base_type="ctrl" dimension="0"/>
+<par name="AcqHandle" base_type="ctrl" dimension="0"/>
+<par name="TriggerMode" base_type="ctrl" dimension="0"/>
+<par name="PeakDetectorMode" base_type="ctrl" dimension="0"/>
+<par name="AOI_OffsetX" base_type="ctrl" dimension="0"/>
+<par name="AOI_OffsetY" base_type="ctrl" dimension="0"/>
+<par name="AOI_Width" base_type="ctrl" dimension="0"/>
+<par name="AOI_Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="FrameCombineValue" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* 1- Set the Width and OffsetX properties</c>
+<c>* Width: equivalent to Window.W</c>
+<c>* 3D02 -&gt; (Min=544/Max=1312, in increments of 32 pixels)</c>
+<c>* 3D03 -&gt; (Min=32/Max=2048, in increments of 8 pixels)</c>
+<l>set_framegrabber_param (AcqHandle, 'Width', AOI_Width)</l>
+<c>* OffsetX: equivalent to Window.X</c>
+<c>* 3D02 -&gt; (Min=0/Max=384, in increments of 32 pixels)</c>
+<c>* NOTE: Width + OffsetX &lt;= 1312 AND Width + OffsetX &gt;= 896</c>
+<c>* That means that for Width=544 the minimum OffsetX is 352</c>
+<c>* 3D03 -&gt; (Min=0/Max=448, in increments of 8 pixels)</c>
+<l>set_framegrabber_param (AcqHandle, 'OffsetX', AOI_OffsetX)</l>
+<c>* </c>
+<l>if (CameraType == '3D02')</l>
+<c>    * 3D02</c>
+<c>    * 2- Set the Window_H and OffsetY properties</c>
+<c>    * Window_H: equivalent to Window.H</c>
+<c>    * (Min=1/Max=1024, in increments of 1 pixel)</c>
+<l>    set_framegrabber_param (AcqHandle, 'Window_H', AOI_Height)</l>
+<c>    * OffsetY: equivalent to Window.Y</c>
+<c>    * (Min=0/Max=1023, in increments of 1 pixel)</c>
+<c>    * NOTE: Window_H + OffsetY &lt;= 1024</c>
+<l>    set_framegrabber_param (AcqHandle, 'OffsetY', AOI_OffsetY)</l>
+<l>else</l>
+<c>    * 3D03</c>
+<c>    * 2- Set the Peak0 ROI</c>
+<c>    * Peak0_3DY: equivalent to Window.Y</c>
+<c>    * (Min=0/Max=1072, in increments of 1 pixel)</c>
+<l>    set_framegrabber_param (AcqHandle, 'Peak0_3DY', AOI_OffsetY)</l>
+<c>    * Peak0_3DH: equivalent to Window.H</c>
+<c>    * (Min=16/Max=1009, in increments of 1 pixel)</c>
+<l>    set_framegrabber_param (AcqHandle, 'Peak0_3DH', AOI_Height)</l>
+<l>endif</l>
+<c>* </c>
+<c>* 3- Set the 3D mode</c>
+<c>* PeakDetector_Mode = 0: 'Mode_2Donly' (2D only)</c>
+<c>*                     1: 'Mode_2Dand3D'(2D+3D)</c>
+<c>*                     2: 'Mode_3Donly' (3D only)</c>
+<l>set_framegrabber_param (AcqHandle, 'PeakDetector_Mode', PeakDetectorMode)</l>
+<c>* For very high rate frames, in order to avoid an overload of</c>
+<c>* interrupts in the host computer, Photonfocus 3D cameras</c>
+<c>* provide an option to send several 3D profiles in a unique</c>
+<c>* frame when using the 'Mode_3Donly'. For more information of</c>
+<c>* the Frame Combine feature see the section 4.2.9 of the</c>
+<c>* camera manual.</c>
+<l>get_framegrabber_param (AcqHandle, 'PeakDetector_Mode', Mode3D)</l>
+<l>if (Mode3D == 'Mode_2Donly')</l>
+<c>    * Parameter 'PeakDetector_Mode' must be set to</c>
+<c>    * 'Mode_3Donly' or 'Mode_2Dand3D'</c>
+<l>    stop ()</l>
+<l>elseif (Mode3D == 'Mode_2Dand3D')</l>
+<l>    FrameCombineValue := 1</l>
+<l>else</l>
+<c>    * 4- In case of Mode_3Donly, set the Frame Combine</c>
+<c>    * settings before setting Height. If PeakDetector_Mode is</c>
+<c>    * NOT set to Mode_3Donly, FrameCombine has no effect.</c>
+<l>    set_framegrabber_param (AcqHandle, 'FrameCombine_Enable', true)</l>
+<c>    * Set number fo frames to combine (Min=0/Max=200)</c>
+<l>    FrameCombineValue := 10</l>
+<l>    set_framegrabber_param (AcqHandle, 'FrameCombine_NrOfFrames', FrameCombineValue)</l>
+<l>endif</l>
+<c>* </c>
+<c>* 5- Set Height value</c>
+<c>* Height depends on PeakDetector_Mode and Window_H</c>
+<c>* In "Mode_2Donly": Height = Window.H.</c>
+<c>* In "Mode2Dand3D": Height = Window.H + 4.</c>
+<c>* In "Mode_3Donly": Height = 4 * FrameCombine_NrOfFrames.</c>
+<c>* This value is calculated automatically inside the camera</c>
+<c>* and stored in HeightInterface.</c>
+<l>get_framegrabber_param (AcqHandle, 'HeightInterface', HeightInterface)</l>
+<l>set_framegrabber_param (AcqHandle, 'Height', HeightInterface)</l>
+<c>* </c>
+<c>* 6- Set the Trigger properties</c>
+<c>* External trigger mode. TriggerMode=Off means Free-running</c>
+<l>set_framegrabber_param (AcqHandle, 'TriggerMode', TriggerMode)</l>
+<l>if (TriggerMode == 'On')</l>
+<c>    * TriggerSource =  'Software' : TriggerSoftware</c>
+<c>    *                  'Line1'    : ISO_IN1</c>
+<c>    *                  'PLC_Q4'   : PLC_Q4 output</c>
+<c>    *                  'ABTrigger': Differential input trigger</c>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerSource', 'Line1')</l>
+<c>    * TriggerDivider = n : only take every n-th trigger</c>
+<c>    *                  1 : take every trigger (default behaviour)</c>
+<l>    set_framegrabber_param (AcqHandle, 'TriggerDivider', 1)</l>
+<l>endif</l>
+<c>* </c>
+<c>* 7- Set the exposure time</c>
+<c>* Exposure time of the camera in us (Max=419000us)</c>
+<l>set_framegrabber_param (AcqHandle, 'ExposureTime', 500)</l>
+<c>* </c>
+<c>* 8- Set the other properties</c>
+<c>* Peak detector gray-level threshold (pre-filter threshold)</c>
+<c>* (Min=0/Max=2047)</c>
+<l>if (CameraType == '3D02')</l>
+<c>    * 3D02</c>
+<l>    set_framegrabber_param (AcqHandle, 'PeakDetector_Threshold', 1024)</l>
+<l>else</l>
+<c>    * 3D03</c>
+<l>    set_framegrabber_param (AcqHandle, 'Peak0_Threshold', 1500)</l>
+<l>endif</l>
+<c>* </c>
+<l>return ()</l>
+<c>* </c>
+</body>
+<docu id="photonfocus_camera_configuration">
+<parameters>
+<parameter id="AOI_Height"/>
+<parameter id="AOI_OffsetX"/>
+<parameter id="AOI_OffsetY"/>
+<parameter id="AOI_Width"/>
+<parameter id="AcqHandle"/>
+<parameter id="CameraType">
+<default_type>string</default_type>
+<default_value>'3D02'</default_value>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'3D02' or '3D03''</item>
+</value_list>
+</parameter>
+<parameter id="FrameCombineValue"/>
+<parameter id="PeakDetectorMode">
+<default_type>string</default_type>
+<default_value>'Mode_3Donly'</default_value>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'Mode_3Donly'</item>
+<item>'Mode_2Dand3D'</item>
+</value_list>
+</parameter>
+<parameter id="TriggerMode">
+<default_type>string</default_type>
+<default_value>'Off'</default_value>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'On' or 'Off'</item>
+</value_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="detect_laser_line_procedure">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="DisparityImage" base_type="iconic" dimension="0"/>
+<par name="LaserXLD" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="FrameCombineValue" base_type="ctrl" dimension="0"/>
+<par name="CameraType" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Get number of images</c>
+<l>count_obj (Image, NumImage)</l>
+<c>* Get image dimensions</c>
+<l>select_obj (Image, ImageAux, 1)</l>
+<l>get_image_size (ImageAux, ImageWidth, ImageHeight)</l>
+<c>* Create the output DisparityImage</c>
+<l>gen_image_const (DisparityImage, 'real', ImageWidth, NumImage * FrameCombineValue)</l>
+<c>* Return the LaserXLD if only 1 profile</c>
+<l>if ((NumImage * FrameCombineValue) == 1)</l>
+<l>    ReturnLaserXLD := 1</l>
+<l>else</l>
+<l>    ReturnLaserXLD := 0</l>
+<l>endif</l>
+<c>* Process each image</c>
+<l>tuple_gen_sequence (0, ImageWidth - 1, 1, Col)</l>
+<l>for ImageIndex := 1 to NumImage by 1</l>
+<l>    select_obj (Image, ImageAux, ImageIndex)</l>
+<l>    if (FrameCombineValue == 1)</l>
+<c>        * Frame Combine feature NOT used</c>
+<l>        tuple_gen_const (ImageWidth, ImageIndex - 1, Row)</l>
+<l>        Data3DRow := ImageHeight - 4</l>
+<l>        copy_laser_profile (ImageAux, DisparityImage, LaserXLD, ImageWidth, Data3DRow, Row, Col, ReturnLaserXLD)</l>
+<l>    else</l>
+<c>        * Frame Combine feature used</c>
+<l>        for FrameIndex := 0 to FrameCombineValue - 1 by 1</l>
+<l>            tuple_gen_const (ImageWidth, FrameCombineValue * (ImageIndex - 1) + FrameIndex, Row)</l>
+<l>            if (CameraType == '3D02')</l>
+<l>                Data3DRow := FrameIndex * 4</l>
+<l>            else</l>
+<c>                * Camera type 3D03</c>
+<l>                Data3DRow := FrameIndex * 5 + 1</l>
+<l>            endif</l>
+<l>            copy_laser_profile (ImageAux, DisparityImage, LaserXLD, ImageWidth, Data3DRow, Row, Col, ReturnLaserXLD)</l>
+<l>        endfor</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Reduce domain to hide the undefined values</c>
+<l>if (CameraType == '3D02')</l>
+<l>    ThresMax := 1024</l>
+<l>else</l>
+<c>    * Default value for Camera type 3D03</c>
+<l>    ThresMax := 1009</l>
+<l>endif</l>
+<l>threshold (DisparityImage, Region, 1, ThresMax)</l>
+<l>reduce_domain (DisparityImage, Region, DisparityImage)</l>
+<c>* </c>
+<l>return ()</l>
+</body>
+<docu id="detect_laser_line_procedure">
+<parameters>
+<parameter id="CameraType">
+<default_type>string</default_type>
+<default_value> '3D03'</default_value>
+<description lang="en_US">Camera type (3D02 or 3D03).</description>
+<type_list>
+<item>string</item>
+</type_list>
+<value_list>
+<item>'3D02'</item>
+<item>'3D03'</item>
+</value_list>
+</parameter>
+<parameter id="DisparityImage"/>
+<parameter id="FrameCombineValue">
+<default_type>integer</default_type>
+<default_value>1</default_value>
+<description lang="en_US">Number of profiles in a combined frame (1-200). Only valid in 3Donly mode and if FrameCombine is enabled.</description>
+<type_list>
+<item>integer</item>
+</type_list>
+<value_max>200</value_max>
+<value_min>1</value_min>
+</parameter>
+<parameter id="Image"/>
+<parameter id="LaserXLD"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="copy_laser_profile">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="DisparityImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="LaserXLD" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="Data3DRow" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Col" base_type="ctrl" dimension="0"/>
+<par name="ReturnLaserXLD" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* The 4 lines which contain the laser triangulation data are</c>
+<c>* always attached at the end of the image:</c>
+<c>*   - The 1st line contains the row of where the laser line is</c>
+<c>*     detected</c>
+<c>*   - The 2nd line contains the decimal place value</c>
+<c>*   - The last 2 lines store the information about the width and</c>
+<c>*     the max height of the laser line</c>
+<c>* </c>
+<c>* Extract the 2 first lines of the 3D information</c>
+<l>gen_rectangle1 (RectanglePeak, Data3DRow, 0, Data3DRow + 1, ImageWidth - 1)</l>
+<l>get_region_points (RectanglePeak, RowsPeak, ColumnsPeak)</l>
+<l>get_grayval (Image, RowsPeak, ColumnsPeak, GrayValPeak)</l>
+<c>* Get 1st line containing the row of the detected laser line</c>
+<l>tuple_first_n (GrayValPeak, ImageWidth - 1, laser_row)</l>
+<c>* Get 2nd line containing the decimal place value</c>
+<l>tuple_last_n (GrayValPeak, ImageWidth, laser_row_decimal_place)</l>
+<c>* Get the laser line</c>
+<l>LaserLine := ((laser_row * 256.0) + laser_row_decimal_place) / 64.0</l>
+<c>* Copy the disparity information into the disparity image</c>
+<l>set_grayval (DisparityImage, Row, Col, LaserLine)</l>
+<c>* Return the LaserXLD</c>
+<l>if (ReturnLaserXLD)</l>
+<l>    gen_empty_obj (LaserXLD)</l>
+<l>    Indices := []</l>
+<l>    tuple_find (LaserLine, 0, Indices)</l>
+<l>    Indices := [-1,Indices,|LaserLine|]</l>
+<l>    for I := 0 to |Indices| - 2 by 1</l>
+<l>        if (|Indices| == 3 and I == 0)</l>
+<l>            continue</l>
+<l>        endif</l>
+<l>        tuple_gen_sequence (Indices[I] + 1, Indices[I + 1] - 1, 1, Sequence)</l>
+<l>        tuple_select (LaserLine, Sequence, Selected)</l>
+<l>        tuple_length (Sequence, Length)</l>
+<l>        if (Length &gt; 0)</l>
+<l>            gen_contour_polygon_xld (SubLaserXLD, Selected, Sequence)</l>
+<l>            concat_obj (LaserXLD, SubLaserXLD, LaserXLD)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="copy_laser_profile">
+<parameters>
+<parameter id="Col"/>
+<parameter id="Data3DRow"/>
+<parameter id="DisparityImage"/>
+<parameter id="Image"/>
+<parameter id="ImageWidth"/>
+<parameter id="LaserXLD"/>
+<parameter id="ReturnLaserXLD"/>
+<parameter id="Row"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="display_laser_line">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="LaserXLD" base_type="iconic" dimension="0"/>
+</io>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>DisplayWidth := 800</l>
+<l>DisplayHeight := DisplayWidth * Height / Width</l>
+<l>dev_open_window (0, 0, DisplayWidth, DisplayHeight, 'black', WindowID1)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (LaserXLD)</l>
+<l>return ()</l>
+</body>
+<docu id="display_laser_line">
+<parameters>
+<parameter id="Image"/>
+<parameter id="LaserXLD"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="get_photonfocus3d_device">
+<interface>
+<ic>
+<par name="DevicesList" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Device" base_type="ctrl" dimension="0"/>
+<par name="CameraType" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_regexp_select (DevicesList, 'PhotonfocusAG', Device)</l>
+<l>if (|Device| &gt; 0)</l>
+<c>    * Check if Photonfocus 3D device</c>
+<l>    Index := strstr(Device,'3D')</l>
+<l>    if (Index == -1)</l>
+<c>        * Invalid Photonfocus camera type! Only 3D devices!</c>
+<l>        dev_close_window ()</l>
+<l>        dev_open_window (0, 0, 600, 100, 'white', WindowID1)</l>
+<l>        set_display_font (WindowID1, 22, 'mono', 'true', 'false')</l>
+<l>        disp_message (WindowID1, 'Invalid Photonfocus camera type!\nOnly 3D devices!!', 'window', 12, 50, 'red', 'false')</l>
+<l>        stop ()</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<c>    * Check camera type to adapt parameters values</c>
+<l>    Index3D02 := strstr(Device,'3D02')</l>
+<l>    Index3D03 := strstr(Device,'3D03')</l>
+<l>    if (Index3D02 &gt; -1)</l>
+<l>        CameraType := '3D02'</l>
+<l>    elseif (Index3D03 &gt; -1)</l>
+<l>        CameraType := '3D03'</l>
+<l>    else</l>
+<c>        * Invalid Photonfocus 3D device!</c>
+<l>        dev_close_window ()</l>
+<l>        dev_open_window (0, 0, 600, 100, 'white', WindowID1)</l>
+<l>        set_display_font (WindowID1, 22, 'mono', 'true', 'false')</l>
+<l>        disp_message (WindowID1, 'Invalid Photonfocus 3D device!\nExpected 3D02 or 3D03.', 'window', 12, 50, 'red', 'false')</l>
+<l>        stop ()</l>
+<l>        dev_close_window ()</l>
+<l>    endif</l>
+<l>else</l>
+<l>    Device := ''</l>
+<c>    * No Photonfocus camera found!</c>
+<l>    dev_close_window ()</l>
+<l>    dev_open_window (0, 0, 600, 100, 'white', WindowID1)</l>
+<l>    set_display_font (WindowID1, 22, 'mono', 'true', 'false')</l>
+<l>    disp_message (WindowID1, 'No PhotonFocus camera found!', 'window', 36, 50, 'red', 'false')</l>
+<l>    stop ()</l>
+<l>    dev_close_window ()</l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="get_photonfocus3d_device">
+<parameters>
+<parameter id="CameraType"/>
+<parameter id="Device"/>
+<parameter id="DevicesList"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

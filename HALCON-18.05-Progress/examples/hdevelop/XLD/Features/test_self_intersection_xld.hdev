@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example program shows how to use test_self_intersection_xld.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* Four XLD contours are tested simultaneously whether they intersect</c>
+<c>* themselves.</c>
+<c>* </c>
+<l>gen_contour_polygon_xld (Contours, [50,50,150,150], [50,200,50,200])</l>
+<l>gen_contour_polygon_xld (Contour2, [50,150,150,50,50], [300,450,300,450,300])</l>
+<l>concat_obj (Contours, Contour2, Contours)</l>
+<l>gen_contour_polygon_xld (Contour3, [200,300,300,200], [50,50,200,200])</l>
+<l>concat_obj (Contours, Contour3, Contours)</l>
+<l>gen_contour_polygon_xld (Contour4, [200,200,300,300,200], [300,450,450,300,300])</l>
+<l>concat_obj (Contours, Contour4, Contours)</l>
+<c>* </c>
+<l>test_self_intersection_xld (Contours, 'false', DoesIntersect)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contours)</l>
+<l>p_label_contours (Contours, WindowHandle, DoesIntersect)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* When the parameter CloseContours is 'true', the tested XLD contours</c>
+<c>* are closed before testing.</c>
+<c>* </c>
+<l>test_self_intersection_xld (Contours, 'true', DoesIntersect)</l>
+<l>close_contours_xld (Contours, ClosedContours)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (ClosedContours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contours)</l>
+<l>p_label_contours (Contours, WindowHandle, DoesIntersect)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* XLD contours are also considered as self intersecting, when they</c>
+<c>* only touch themselves.</c>
+<c>* </c>
+<l>gen_contour_polygon_xld (Contours, [200,200,300,300,200], [50,100,100,200,200])</l>
+<l>gen_contour_polygon_xld (Contour2, [200,200,300,300,200,200], [300,350,350,450,450,300])</l>
+<l>concat_obj (Contours, Contour2, Contours)</l>
+<c>* </c>
+<l>test_self_intersection_xld (Contours, 'true', DoesIntersect)</l>
+<l>close_contours_xld (Contours, ClosedContours)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>dev_set_color ('dim gray')</l>
+<l>dev_display (ClosedContours)</l>
+<l>dev_set_color ('white')</l>
+<l>dev_display (Contours)</l>
+<l>p_label_contours (Contours, WindowHandle, DoesIntersect)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* However, due to numerical inaccuracies it can't be decided reliably</c>
+<c>* whether or not a contour touches itself .</c>
+<c>* </c>
+<l>gen_contour_polygon_xld (Contours, [200,200,300,300,200,200], [50,100,100,200,200,50])</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>Pi := 3.14159265358</l>
+<l>Count := 0.0</l>
+<l>TotalCount := 0.0</l>
+<c>* </c>
+<l>for Angle := 0.0 to -Pi / 2.0 by -Pi / 200.0</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, Angle, 300.0, 200.0, HomMat2DRotate)</l>
+<l>    affine_trans_contour_xld (Contours, ContoursAffineTrans, HomMat2DRotate)</l>
+<l>    test_self_intersection_xld (ContoursAffineTrans, 'false', DoesIntersect)</l>
+<l>    TotalCount := TotalCount + 1.0</l>
+<l>    Count := Count + DoesIntersect</l>
+<c>    * </c>
+<l>    dev_clear_window ()</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (ContoursAffineTrans)</l>
+<l>    p_label_contours (ContoursAffineTrans, WindowHandle, DoesIntersect)</l>
+<l>endfor</l>
+<l>set_tposition (WindowHandle, 12, 12)</l>
+<l>dev_set_color ('white')</l>
+<l>write_string (WindowHandle, (Count / TotalCount) * 100.0 + ' % of the tests detected a self intersection')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="p_label_contours">
+<interface>
+<io>
+<par name="Contours" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Intersect" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>count_obj (Contours, NumContours)</l>
+<l>for ContourIndex := 1 to NumContours by 1</l>
+<l>    select_obj (Contours, CurContour, ContourIndex)</l>
+<l>    get_contour_xld (CurContour, Row, Col)</l>
+<l>    set_tposition (WindowHandle, Row[0] - 17, Col[0])</l>
+<l>    if (Intersect[ContourIndex - 1] == 1)</l>
+<l>        dev_set_color ('green')</l>
+<l>        write_string (WindowHandle, 'yes')</l>
+<l>    else</l>
+<l>        dev_set_color ('red')</l>
+<l>        write_string (WindowHandle, 'no')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="p_label_contours">
+<parameters>
+<parameter id="Contours"/>
+<parameter id="Intersect"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* ***************************************************************</c>
+<c>* Example program for demonstrating the import statement</c>
+<c>* ***************************************************************</c>
+<c>* This program gives a few simple examples how to make external</c>
+<c>* procedures available from within a program via</c>
+<c>* HDevelop's import statement.</c>
+<c>* </c>
+<c>* Some of the lines in this program are intentionally</c>
+<c>* invalid to demonstrate which procedure calls</c>
+<c>* can be resolved and which not.</c>
+<c>* By default, these lines are skipped, but you can</c>
+<c>* change this behavior by setting the following</c>
+<c>* parameter to true.</c>
+<c>* Note that depending on the preference settings of your</c>
+<c>* HDevelop, the program may stop with a dialog.</c>
+<l>RunInvalidLines := false</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>Text := 'This program demonstrates the use of the import statement.'</l>
+<l>Text := [Text,'Please refer to the source code for details.',' ']</l>
+<l>Text := [Text,'Called procedures:',' ']</l>
+<c>* </c>
+<c>* Make sure that only the HALCON standard procedure path is</c>
+<c>* active!</c>
+<c>* </c>
+<c>* If a HDevelop program contains calls to procedures,</c>
+<c>* that are not contained in the procedure paths,</c>
+<c>* the procedure calls cannot be resolved and are invalid:</c>
+<l>if (RunInvalidLines)</l>
+<l>    Text := [Text,'Part 1: import relative path',' ']</l>
+<c>    * Invalid procedure calls, because their path is not imported</c>
+<l>    init (Text, Text)</l>
+<l>    calculate_results (Text, Text)</l>
+<l>endif</l>
+<c>* </c>
+<c>* After the following import statement the same two procedure</c>
+<c>* calls can be resolved to the procedures in the according</c>
+<c>* directory. The path given in the import statement is relative</c>
+<c>* to this program.</c>
+<c>* </c>
+<l>Text := [Text,'Part 1: import relative path',' ']</l>
+<l>import ./import_relative</l>
+<l>init (Text, Text)</l>
+<l>calculate_results (Text, Text)</l>
+<c>* </c>
+<c>* Note however, that the procedure helper_function, which resides</c>
+<c>* in subdir one directory level below, can't be resolved. Import</c>
+<c>* statements do not include the subdirectories recursively!</c>
+<c>* </c>
+<l>if (0)</l>
+<c>    * Invalid line, because subdirectory is not imported</c>
+<l>    helper_function (Text, Text)</l>
+<l>endif</l>
+<c>* </c>
+<c>* </c>
+<c>* The following import statement makes use of an environment</c>
+<c>* variable, and imports a single procedure library instead of a</c>
+<c>* directory. Calls to init and calculate_results below the import</c>
+<c>* statement will no longer be resolved to the procedures in</c>
+<c>* import_relative but to the library procedures of the same names.</c>
+<c>* (Hovering the mouse pointer over the program lines will open a</c>
+<c>* tool tip, which amongst others displays the file location of</c>
+<c>* the procedures.)</c>
+<c>* </c>
+<l>get_system ('example_dir', HALCONEXAMPLES)</l>
+<l>if (HALCONEXAMPLES == '')</l>
+<c>    * Please set the environment variable</c>
+<c>    * HALCONEXAMPLES to the location of the</c>
+<c>    * HALCON example programs to see the effect</c>
+<c>    * of import statements with environment variables</c>
+<l>    Text := [Text,' ','Part 2 is skipped, because the']</l>
+<l>    Text := [Text,'environment variable HALCONEXAMPLES']</l>
+<l>    Text := [Text,'is not set.']</l>
+<l>else</l>
+<l>    Text := [Text,' ','Part 2: use environment variable',' ']</l>
+<l>import %HALCONEXAMPLES%/hdevelop/Control/import_by_envvar/library.hdpl</l>
+<l>    init (Text, Text)</l>
+<l>    calculate_results (Text, Text)</l>
+<l>endif</l>
+<l>Text := [Text,' ','End of program']</l>
+<l>disp_message (WindowHandle, Text, 'window', 12, 12, 'white', 'false')</l>
+<c>* </c>
+<c>* Note, that if an import path contains spaces it must be in</c>
+<c>* quotes. Otherwise the program line becomes invalid!</c>
+<c>* </c>
+<l>if (0)</l>
+<c>    * Not quoted =&gt; invalid program line:</c>
+<l>import ./path contains spaces</l>
+<l>endif</l>
+<c>* Quoted =&gt; valid program line:</c>
+<l>import './path contains spaces'</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

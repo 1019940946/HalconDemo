@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Determine the location of single dies on a wafer by using</c>
+<c>* auto-correlation techniques in the frequency domain.</c>
+<c>* The image of the wafer is correlated with itself in the</c>
+<c>* frequency domain. Afterwards, the position of the single die</c>
+<c>* is determined by detecting the subpixel-precise position of</c>
+<c>* the maxima in the auto-correlation image.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Wafer, 'wafer/wafer_dies')</l>
+<l>get_image_size (Wafer, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_line_width (2)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Wafer)</l>
+<l>disp_message (WindowHandle, 'Determine the size of the dies on the wafer', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the auto-correlation of the wafer image</c>
+<l>rft_generic (Wafer, ImageFFT, 'to_freq', 'n', 'complex', Width)</l>
+<l>correlation_fft (ImageFFT, ImageFFT, ImageCorrelation)</l>
+<l>rft_generic (ImageCorrelation, ImageFFTInv, 'from_freq', 'n', 'real', Width)</l>
+<c>* </c>
+<c>* Determine the distance between the dies</c>
+<l>local_max_sub_pix (ImageFFTInv, 'gauss', 3, 0.0001, Row, Column)</l>
+<c>* Select indices of neighboring points manually</c>
+<l>I0 := 5</l>
+<l>I1 := 6</l>
+<l>I2 := 9</l>
+<l>gen_arrow_contour_xld (Arrow, subset(Row,[I0,I0]), subset(Column,[I0,I0]), subset(Row,[I1,I2]), subset(Column,[I1,I2]), 15, 15)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 20, rad(45))</l>
+<l>distance_pp (Row[I0], Column[I0], Row[I1], Column[I1], DistHor)</l>
+<l>distance_pp (Row[I0], Column[I0], Row[I2], Column[I2], DistVert)</l>
+<c>* </c>
+<c>* Display the results</c>
+<l>dev_display (ImageFFTInv)</l>
+<l>disp_message (WindowHandle, 'Auto-correlation of the wafer image...', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Arrow)</l>
+<l>disp_message (WindowHandle, DistHor$'.2f' + ' px', 'image', Row[I0] - 25, (Column[I0] + Column[I1]) * .5 - 50, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, DistVert$'.2f' + ' px', 'image', (Row[I2] + Row[I0]) * .5 - 15, Column[I0] - 100, 'yellow', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cross)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* *</c>
+<c>* Display the results</c>
+<l>dev_display (Wafer)</l>
+<l>disp_message (WindowHandle, ['Auto-correlation of the wafer image...','...corresponds to the die pitch'], 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Arrow)</l>
+<l>disp_message (WindowHandle, DistHor$'.2f' + ' px', 'image', Row[I0] - 25, (Column[I0] + Column[I1]) * .5 - 50, 'yellow', 'false')</l>
+<l>disp_message (WindowHandle, DistVert$'.2f' + ' px', 'image', (Row[I2] + Row[I0]) * .5 - 15, Column[I0] - 100, 'yellow', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cross)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

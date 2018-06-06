@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of a DirectShow compatible capture device</c>
+<c>* (grabbing from all available camera types)</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, -1, -1, 'black', WindowHandle)</l>
+<c>* </c>
+<l>info_framegrabber ('DirectShow', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('DirectShow', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed camera devices:</c>
+<l>info_framegrabber ('DirectShow', 'camera_types', CameraTypeInfo, CameraTypeInfoValues)</l>
+<l>info_framegrabber ('DirectShow', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<l>for CurrentType := 0 to |CameraTypeInfoValues| - 1 by 1</l>
+<l>    SubString := split(CameraTypeInfoValues[CurrentType],',:')</l>
+<l>    DeviceString := split(SubString[0],' ')</l>
+<l>    PortString := split(SubString[1],' ')</l>
+<l>    PortNumber := number(PortString[1])</l>
+<l>    tuple_str_last_n (SubString[2], 1, CameraString)</l>
+<c>    * </c>
+<l>    open_framegrabber ('DirectShow', 1, 1, 0, 0, 0, 0, 'default', -1, 'rgb', -1, 'false', CameraString, DeviceString[1], PortNumber, -1, AcqHandle)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<l>    dev_set_window_extents (0, 0, Width, Height)</l>
+<l>    set_tposition (WindowHandle, 0, 0)</l>
+<l>    write_string (WindowHandle, SubString[2])</l>
+<l>    wait_seconds (1)</l>
+<l>    close_framegrabber (AcqHandle)</l>
+<c>    * </c>
+<l>    open_framegrabber ('DirectShow', 1, 1, 0, 0, 0, 0, 'default', -1, 'gray', -1, 'false', CameraString, DeviceString[1], PortNumber, -1, AcqHandle)</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    set_tposition (WindowHandle, 0, 0)</l>
+<l>    write_string (WindowHandle, SubString[2])</l>
+<l>    wait_seconds (1)</l>
+<l>    close_framegrabber (AcqHandle)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* vessel.hdev: Segmentation &amp; Measurement of a blood vessel</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>read_image (Image, 'vessel')</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<l>texture_laws (Image, Texture, 'el', 2, 5)</l>
+<l>dev_display (Texture)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>mean_image (Texture, Energy, 211, 61)</l>
+<l>dev_display (Energy)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_display (Image)</l>
+<l>binary_threshold (Energy, Vessel, 'smooth_histo', 'dark', UsedThreshold)</l>
+<l>dev_display (Vessel)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_set_draw ('margin')</l>
+<l>get_region_contour (Vessel, VesselRows, VesselColumns)</l>
+<l>gen_region_points (VesselBoundary, VesselRows, VesselColumns)</l>
+<l>dev_display (Image)</l>
+<l>clip_region (VesselBoundary, Boundaries, 0, 2, 511, 509)</l>
+<l>dev_display (Boundaries)</l>
+<l>smallest_rectangle1 (Boundaries, UpperRow, Column1, LowerRow, Column2)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Measurement of Diameter</c>
+<c>* </c>
+<l>Diameter := []</l>
+<l>dev_set_color ('red')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_time ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>for i := 2 to 509 by 1</l>
+<l>    gen_region_line (ScanLine, UpperRow, i, LowerRow, i)</l>
+<l>    dev_display (ScanLine)</l>
+<l>    intersection (Boundaries, ScanLine, BoundaryPoints)</l>
+<l>    get_region_points (BoundaryPoints, Rows, Columns)</l>
+<l>    Diameter := [Diameter,abs(Rows[|Rows| - 1] - Rows[0])]</l>
+<l>endfor</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_time ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>Diameter := Diameter</l>
+<c>* </c>
+<c>* statistics</c>
+<c>* </c>
+<l>meanDiameter := sum(Diameter) / |Diameter|</l>
+<l>minDiameter := min(Diameter)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Boundaries)</l>
+<l>dev_set_color ('yellow')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>get_string_extents (WindowID, 'meanDiam: ' + meanDiameter + ', minDiameter: ' + minDiameter, Ascent, Descent, TxtWidth, TxtHeight)</l>
+<l>disp_message (WindowID, 'meanDiam: ' + meanDiameter + ', minDiameter: ' + minDiameter, 'image', (UpperRow + LowerRow) / 2, (Width - TxtWidth) / 2, 'yellow', 'false')</l>
+<l>* get_mbutton (WindowID, Row, Column, Button)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

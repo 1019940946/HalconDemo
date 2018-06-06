@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* This example demonstrates how to measure the dimensions of the cells of</c>
+<c>* a TFT LCD display.</c>
+<c>* Two factors have to be considered in order to achieve both robust and</c>
+<c>* accurate results:</c>
+<c>* 1. Blue cells are very dark and hard to separate from the background.</c>
+<c>* Therefore an adaptive segmentation is necessary.</c>
+<c>* 2. Texture and shifted color edges lead to blurred and unreliable edges</c>
+<c>* which requires carefully selected measurement positions.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>Path := 'lcd/tft_cells'</l>
+<l>read_image (Image, Path + '_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_size (0, 0, Width, Height, 640, 480, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>for I := 1 to 7 by 1</l>
+<l>    read_image (Image, Path + '_' + I$'.2i')</l>
+<l>    decompose3 (Image, R, G, B)</l>
+<c>    * First, the cell columns corresponding to each of the three colors (RGB)</c>
+<c>    * are segmented.</c>
+<l>    segment_color_column (G, GreenColumn, GInnerRegions, 200)</l>
+<l>    difference (R, GreenColumn, RegionDifference)</l>
+<l>    reduce_domain (R, RegionDifference, ImageReduced)</l>
+<l>    segment_color_column (ImageReduced, RedColumn, RInnerRegions, 200)</l>
+<l>    difference (RegionDifference, RedColumn, RegionDifference)</l>
+<l>    reduce_domain (B, RegionDifference, ImageReduced)</l>
+<l>    segment_color_column (ImageReduced, BlueColumn, BInnerRegions, 50)</l>
+<c>    * </c>
+<c>    * In order to achieve more accurate edge positions, the image is aligned</c>
+<c>    * so that the cell columns are vertically oriented. This way our edges</c>
+<c>    * lie parallel to the x-axis of the image.</c>
+<l>    smallest_rectangle2 (GreenColumn, Row, Column, Phi, Length1, Length2)</l>
+<c>    * Normalize Phi so that all negative values are turned by 180 degrees</c>
+<l>    PhiNorm := Phi - ((sgn(Phi) / 2.0 - .5) * rad(180))</l>
+<l>    hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>    hom_mat2d_rotate (HomMat2DIdentity, -(mean(PhiNorm) - rad(90)), Width / 2, Height / 2, HomMat2DRotate)</l>
+<l>    affine_trans_image (Image, ImageTrans, HomMat2DRotate, 'constant', 'false')</l>
+<c>    * </c>
+<c>    * </c>
+<c>    * Perform the actual measurements ...</c>
+<c>    * ... for the green cells</c>
+<l>    affine_trans_image (G, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>    affine_trans_region (GreenColumn, GreenAffineTrans, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>    affine_trans_region (GInnerRegions, GInnerTrans, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>    measure_cell_frame_width (ImageAffinTrans, GreenAffineTrans, GInnerTrans, FrameWidth, REdgeFirst, CEdgeFirst, REdgeSecond, CEdgeSecond)</l>
+<l>    dev_display (ImageTrans)</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_color ('green')</l>
+<l>    gen_cross_contour_xld (GreenCross, [REdgeFirst,REdgeSecond], [CEdgeFirst,CEdgeSecond], 12, rad(0))</l>
+<l>    dev_display (GreenCross)</l>
+<l>    Message := 'Mean frame width / deviation [px]'</l>
+<l>    Message[1] := mean(FrameWidth)$'12.2f' + deviation(FrameWidth)$'15.1f'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, ['black','forest green'], 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * ... the red cells</c>
+<l>    affine_trans_image (R, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>    affine_trans_region (RedColumn, RedAffineTrans, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>    affine_trans_region (RInnerRegions, RInnerTrans, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>    measure_cell_frame_width (ImageAffinTrans, RedAffineTrans, RInnerTrans, FrameWidth1, REdgeFirst1, CEdgeFirst1, REdgeSecond1, CEdgeSecond1)</l>
+<l>    dev_set_color ('red')</l>
+<l>    gen_cross_contour_xld (RedCross, [REdgeFirst1,REdgeSecond1], [CEdgeFirst1,CEdgeSecond1], 12, rad(0))</l>
+<l>    dev_display (RedCross)</l>
+<l>    Message[2] := mean(FrameWidth1)$'12.2f' + deviation(FrameWidth1)$'15.1f'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, ['black','forest green','red'], 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * ... and finally the blue cells</c>
+<l>    affine_trans_image (B, ImageAffinTrans, HomMat2DRotate, 'constant', 'false')</l>
+<l>    affine_trans_region (BlueColumn, BlueAffineTrans, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>    affine_trans_region (BInnerRegions, BInnerTrans, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>    measure_cell_frame_width (ImageAffinTrans, BlueAffineTrans, BInnerTrans, FrameWidth2, REdgeFirst2, CEdgeFirst2, REdgeSecond2, CEdgeSecond2)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    gen_cross_contour_xld (BlueCross, [REdgeFirst2,REdgeSecond2], [CEdgeFirst2,CEdgeSecond2], 12, rad(0))</l>
+<l>    dev_display (BlueCross)</l>
+<l>    Message[3] := mean(FrameWidth2)$'12.2f' + deviation(FrameWidth2)$'15.1f'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, ['black','forest green','red','blue'], 'true')</l>
+<c>    * Display a detail of the image with the result</c>
+<l>    gen_rectangle1 (Rectangle, 250, 500, 550, 800)</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_set_color ('white')</l>
+<l>    dev_display (Rectangle)</l>
+<l>    get_window_extents (WindowHandle, Row1, Column1, WindowWidth, WindowHeight)</l>
+<l>    dev_open_window (0, WindowWidth, 300, 300, 'black', WindowHandle1)</l>
+<l>    dev_set_part (250, 500, 550, 800)</l>
+<l>    dev_display (ImageTrans)</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (RedCross)</l>
+<l>    dev_set_color ('blue')</l>
+<l>    dev_display (BlueCross)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (GreenCross)</l>
+<l>    if (I &lt; 7)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>        dev_close_window ()</l>
+<l>    else</l>
+<l>        disp_end_of_program_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="segment_color_column">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="RegionTrans" base_type="iconic" dimension="0"/>
+<par name="InnerRegions" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Threshold" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_image_size (Image, Width, Height)</l>
+<l>threshold (Image, Bright, Threshold, 255)</l>
+<l>closing_rectangle1 (Bright, RegionClosing, 1, 100)</l>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['height','width'], 'and', [Height * 0.9,70], [99999,99999])</l>
+<l>shape_trans (SelectedRegions, RegionTrans, 'rectangle2')</l>
+<l>difference (RegionTrans, SelectedRegions, RegionDifference)</l>
+<l>opening_rectangle1 (RegionDifference, RegionOpening, 45, 45)</l>
+<l>connection (RegionOpening, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, InnerRegions, 'area', 'and', 5000, 99999)</l>
+<l>return ()</l>
+</body>
+<docu id="segment_color_column">
+<parameters>
+<parameter id="Image"/>
+<parameter id="InnerRegions"/>
+<parameter id="RegionTrans"/>
+<parameter id="Threshold"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="measure_cell_frame_width">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+<par name="PixelColumnRegion" base_type="iconic" dimension="0"/>
+<par name="InnerRegion" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="FrameWidth" base_type="ctrl" dimension="0"/>
+<par name="REdgeFirst" base_type="ctrl" dimension="0"/>
+<par name="CEdgeFirst" base_type="ctrl" dimension="0"/>
+<par name="REdgeSecond" base_type="ctrl" dimension="0"/>
+<par name="CEdgeSecond" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Calculate parameters for the measure regions</c>
+<l>area_center (InnerRegion, Area, Row, Column)</l>
+<l>smallest_rectangle1 (InnerRegion, Row1, Column1, Row2, Column2)</l>
+<l>Length1 := 45</l>
+<l>Length2 := 20</l>
+<c>* </c>
+<c>* Perform the actual measurements.</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>REdgeFirst := []</l>
+<l>CEdgeFirst := []</l>
+<l>REdgeSecond := []</l>
+<l>CEdgeSecond := []</l>
+<l>FrameWidth := []</l>
+<l>for I := 0 to |Row| - 1 by 1</l>
+<l>    gen_measure_rectangle2 (Row[I], Column[I], rad(0), Length1, Length2, Width, Height, 'bilinear', MeasureHandle)</l>
+<l>    measure_pairs (Image, MeasureHandle, 4, 7, 'positive_strongest', 'all', RowEdgeFirst, ColumnEdgeFirst, AmplitudeFirst, RowEdgeSecond, ColumnEdgeSecond, AmplitudeSecond, IntraDistance, InterDistance)</l>
+<l>    close_measure (MeasureHandle)</l>
+<l>    FrameWidth := [FrameWidth,IntraDistance]</l>
+<l>    REdgeFirst := [REdgeFirst,RowEdgeFirst]</l>
+<l>    CEdgeFirst := [CEdgeFirst,ColumnEdgeFirst]</l>
+<l>    REdgeSecond := [REdgeSecond,RowEdgeSecond]</l>
+<l>    CEdgeSecond := [CEdgeSecond,ColumnEdgeSecond]</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="measure_cell_frame_width">
+<parameters>
+<parameter id="CEdgeFirst"/>
+<parameter id="CEdgeSecond"/>
+<parameter id="FrameWidth"/>
+<parameter id="Image"/>
+<parameter id="InnerRegion"/>
+<parameter id="PixelColumnRegion"/>
+<parameter id="REdgeFirst"/>
+<parameter id="REdgeSecond"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

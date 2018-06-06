@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use local_max_sub_pix.</c>
+<c>* </c>
+<c>* local_max_sub_pix is typically used in combination with a filter</c>
+<c>* that is sensitive to certain features of an image. In this example,</c>
+<c>* the input image is convolved with the corner_response filter,</c>
+<c>* which returns high values for gray value corners. Therefore, gray</c>
+<c>* value corners in the original image can be detected by determining</c>
+<c>* the local maxima of the filter response.</c>
+<c>* </c>
+<l>CornerRow := 341</l>
+<l>CornerCol := 206</l>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, 512, 512)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Calculate the response of the corner_response filter on the input image</c>
+<c>* and extract the local maxima of the filter response.</c>
+<c>* </c>
+<l>corner_response (Image, FilterResponse, 3, 0.04)</l>
+<l>local_max_sub_pix (FilterResponse, 'facet', 1.5, 1.1, Row, Col)</l>
+<l>gen_cross_contour_xld (Crosses, Row, Col, 6, 0.785398)</l>
+<c>* </c>
+<c>* Display the extracted local maxima in the filter response image.</c>
+<c>* </c>
+<l>dev_display (FilterResponse)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Crosses)</l>
+<c>* </c>
+<c>* Open a new window and display the part of the filter response</c>
+<c>* around the upper left corner of the lower black rectangle.</c>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('yellow')</l>
+<l>disp_rectangle1 (WindowHandle, CornerRow - 4, CornerCol - 4, CornerRow + 4, CornerCol + 4)</l>
+<l>disp_arrow (WindowHandle, CornerRow, CornerCol + 5, 128, 512, 1)</l>
+<c>* </c>
+<l>dev_open_window (0, 520, 256, 256, 'black', WindowHandlePart)</l>
+<l>dev_set_part (CornerRow - 4, CornerCol - 4, CornerRow + 5, CornerCol + 5)</l>
+<l>dev_display (FilterResponse)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Crosses)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Cleanup zoom window and display extracted maxima in the original image.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_set_part (0, 0, 512, 512)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (Crosses)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Align the building in the center of the image horizontally and crop it</c>
+<c>* out of the image.</c>
+<l>read_image (Image, 'mreut')</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_translate (HomMat2DIdentity, -110, -190, HomMat2DTranslate)</l>
+<l>hom_mat2d_rotate (HomMat2DTranslate, rad(-10), 0, 0, HomMat2DRotate)</l>
+<l>affine_trans_image_size (Image, ImageAffinTrans, HomMat2DRotate, 'constant', 80, 80)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

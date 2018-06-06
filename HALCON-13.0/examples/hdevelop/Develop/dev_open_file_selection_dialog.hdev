@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *********************************************************</c>
+<c>* This examples shows how to use the HDevelop operator</c>
+<c>* dev_open_file_dialog, which opens a modal dialog to</c>
+<c>* read or write files or a directory</c>
+<c>* *********************************************************</c>
+<c>* </c>
+<c>* Read some files useable for the operator 'read_image'</c>
+<l>dev_open_file_dialog ('read_image', 'read_multi', 'default', Selection1)</l>
+<l>read_image (Image, Selection1)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Read JPG, TIFF, and PNG-Files using filters</c>
+<l>dev_open_file_dialog ('Image (*.jpg *.tif *.tiff *.png);;JPG (*.jpg);;PNG (*.png);;TIF (*.tif *.tiff)', 'read_multi', 'default', Selection2)</l>
+<l>stop ()</l>
+<c>* Allow to select a file for saving</c>
+<l>dev_open_file_dialog ('read_image', 'write', 'default', Selection3)</l>
+<l>stop ()</l>
+<c>* Allow to select a directory</c>
+<l>dev_open_file_dialog ('read_image', 'dir', 'default', Selection4)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

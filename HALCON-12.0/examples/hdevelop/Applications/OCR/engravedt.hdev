@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example program to train the characters for OCR</c>
+<c>* The font is used in "engraved.hdev"</c>
+<c>* </c>
+<c>* </c>
+<c>* Step0: Preparation</c>
+<l>FontName := 'engraved'</l>
+<l>dev_update_window ('off')</l>
+<c>* </c>
+<c>* Step1: Segmentation</c>
+<l>read_image (Image, 'engraved')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 20, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>gray_range_rect (Image, ImageResult, 7, 7)</l>
+<l>invert_image (ImageResult, ImageInvert)</l>
+<l>threshold (ImageResult, Region, 128, 255)</l>
+<l>connection (Region, ConnectedRegions)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 1000, 99999)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (ImageResult)</l>
+<l>dev_display (SelectedRegions)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Step2: Training file generation</c>
+<l>TrainingNames := ['0','3','F','A','L','D','0']</l>
+<l>TrainingFileName := FontName + '.trf'</l>
+<l>sort_region (SelectedRegions, SortedRegions, 'first_point', 'true', 'column')</l>
+<l>shape_trans (SortedRegions, RegionTrans, 'rectangle1')</l>
+<l>area_center (RegionTrans, Area, Row, Column)</l>
+<l>MeanRow := mean(Row)</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file (TrainingFileName)</l>
+<l>dev_set_check ('give_error')</l>
+<l>dev_set_color ('yellow')</l>
+<l>for i := 0 to |TrainingNames| - 1 by 1</l>
+<l>    select_obj (SortedRegions, CharaterRegions, i + 1)</l>
+<l>    append_ocr_trainf (CharaterRegions, ImageInvert, TrainingNames[i], TrainingFileName)</l>
+<l>    set_tposition (WindowHandle, MeanRow - 80, Column[i] - 10)</l>
+<l>    write_string (WindowHandle, TrainingNames[i])</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Step3: Training</c>
+<l>CharNames := uniq(sort(TrainingNames))</l>
+<l>create_ocr_class_mlp (8, 10, 'constant', 'default', CharNames, 5, 'none', 10, 42, OCRHandle)</l>
+<l>trainf_ocr_class_mlp (OCRHandle, TrainingFileName, 200, 1, 0.01, Error, ErrorLog)</l>
+<l>write_ocr_class_mlp (OCRHandle, FontName)</l>
+<l>clear_ocr_class_mlp (OCRHandle)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

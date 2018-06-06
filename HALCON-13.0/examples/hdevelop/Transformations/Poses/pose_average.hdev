@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* *****************************************************************************</c>
+<c>* pose_average.hdev</c>
+<c>* *****************************************************************************</c>
+<c>* </c>
+<c>* This example shows the usage of the operator pose_average.</c>
+<c>* An object is located in a noisy 3D scene obtained with a time-of-flight</c>
+<c>* camera using surface-based matching. The scene is captured several times,</c>
+<c>* and the matching is performed on each of the scenes. Since the data</c>
+<c>* is quite noisy, the resulting poses are significantly different.</c>
+<c>* This example shows how to average the different obtained poses</c>
+<c>* and how to remove outlier poses.</c>
+<c>* </c>
+<c>* Initialize display</c>
+<c>* </c>
+<c>* Standard time-of-flight camera parameters for projecting the results</c>
+<l>gen_cam_par_area_scan_division (0.01, -10599.4, 4e-005, 4e-005, 87.6, 69.9, 176, 144, CameraParam)</l>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* Visible part of the scene</c>
+<l>Part := [16,30,133,145]</l>
+<l>dev_open_window (0, 0, (Part[3] - Part[1]) * 4, (Part[2] - Part[0]) * 4, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* **************************************************************</c>
+<c>*  Create 3D surface model</c>
+<c>* </c>
+<c>*  A 3D surface model is created by averaging over 5 scenes.</c>
+<c>*  This is done to reduce the noise introduced by the</c>
+<c>*  time-of-flight sensor.</c>
+<c>* **************************************************************</c>
+<c>* Compute the median over 5 images</c>
+<l>gen_empty_obj (ModelsX)</l>
+<l>gen_empty_obj (ModelsY)</l>
+<l>gen_empty_obj (ModelsZ)</l>
+<l>for I := 1 to 5 by 1</l>
+<l>    read_image (Image, 'time_of_flight/gutter_corner_xyz_' + I$'02')</l>
+<l>    select_obj (Image, X, 1)</l>
+<l>    select_obj (Image, Y, 2)</l>
+<l>    select_obj (Image, Z, 3)</l>
+<l>    disp_depth_image (Z, Part)</l>
+<l>    Message := 'Create 3D surface model'</l>
+<l>    Message[1] := 'by averaging several images'</l>
+<l>    Message[2] := '[' + I + '/5]'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (0.5)</l>
+<l>    append_channel (ModelsX, X, ModelsX)</l>
+<l>    append_channel (ModelsY, Y, ModelsY)</l>
+<l>    append_channel (ModelsZ, Z, ModelsZ)</l>
+<l>endfor</l>
+<l>count_channels (ModelsX, NumChannels)</l>
+<l>rank_n (ModelsX, ModelMedianX, (NumChannels + 1) / 2)</l>
+<l>rank_n (ModelsY, ModelMedianY, (NumChannels + 1) / 2)</l>
+<l>rank_n (ModelsZ, ModelMedianZ, (NumChannels + 1) / 2)</l>
+<c>* </c>
+<c>* Segment the object</c>
+<l>threshold (ModelMedianZ, Regions, 0.544, 0.6058)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>select_shape (ConnectedRegions, ModelROI, 'area', 'and', sort(Area)[|Area| - 1], sort(Area)[|Area| - 1] + 1)</l>
+<c>* </c>
+<c>* Display the segmented object</c>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (ModelROI)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the model</c>
+<l>reduce_domain (ModelMedianX, ModelROI, ModelX)</l>
+<l>reduce_domain (ModelMedianY, ModelROI, ModelY)</l>
+<l>reduce_domain (ModelMedianZ, ModelROI, ModelZ)</l>
+<l>xyz_to_object_model_3d (ModelX, ModelY, ModelZ, OM3DReduced)</l>
+<c>* Remove outlier points</c>
+<l>connection_object_model_3d (OM3DReduced, 'distance_3d', 0.009, OM3DConnected)</l>
+<l>clear_object_model_3d (OM3DReduced)</l>
+<l>select_object_model_3d (OM3DConnected, 'num_points', 'and', 500, 99999999, OM3DSelected)</l>
+<l>clear_object_model_3d (OM3DConnected)</l>
+<c>* Recompute surface normals</c>
+<l>surface_normals_object_model_3d (OM3DSelected, 'mls', [], [], OM3DModel)</l>
+<l>clear_object_model_3d (OM3DSelected)</l>
+<c>* Create the surface model</c>
+<l>create_surface_model (OM3DModel, 0.03, [], [], SurfaceModelID)</l>
+<l>get_surface_model_param (SurfaceModelID, 'center', ModelCenter)</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<c>* </c>
+<l>create_pose (-0.33, -0.38, 16, 0, 0, 180, 'Rp+T', 'gba', 'point', DispPose)</l>
+<l>disp_object_model_3d_safe (WindowHandle, OM3DModel, [], DispPose, 'point_size', 1)</l>
+<l>disp_message (WindowHandle, 'Segmented 3D model for matching', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* **************************************************************</c>
+<c>*  Matching</c>
+<c>* </c>
+<c>*  Find the object using surface-based matching in noisy scenes.</c>
+<c>*  The scenes were taken without changing the position of the</c>
+<c>*  object. Nevertheless, due to the noise, the resulting pose</c>
+<c>*  will differ for all scenes.</c>
+<c>* </c>
+<c>*  Additionally, the last scene shows the object in a different</c>
+<c>*  pose. This leads to an outlier pose.</c>
+<c>* **************************************************************</c>
+<l>Poses := []</l>
+<l>Color := ['orange','gold','goldenrod','yellow','cyan']</l>
+<l>for Index := 8 to 11 by 1</l>
+<l>    read_image (Scene, 'time_of_flight/gutter_corner_xyz_' + Index$'02')</l>
+<l>    select_obj (Scene, X, 1)</l>
+<l>    select_obj (Scene, Y, 2)</l>
+<l>    select_obj (Scene, Z, 3)</l>
+<l>    copy_image (Z, BaseSceneZ)</l>
+<l>    disp_depth_image (BaseSceneZ, Part)</l>
+<l>    xyz_to_object_model_3d (X, Y, Z, OM3DScene)</l>
+<l>    find_surface_model (SurfaceModelID, OM3DScene, 0.05, 0.2, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>    clear_object_model_3d (OM3DScene)</l>
+<l>    Poses := [Poses,Pose]</l>
+<l>    for J := 0 to Index - 8 by 1</l>
+<l>        dev_set_color (Color[J])</l>
+<l>        disp_3d_coord_system (WindowHandle, CameraParam, Poses[J * 7:J * 7 + 6] - [ModelCenter,0,0,0,0], 0.05)</l>
+<c>        * </c>
+<l>        gen_reprojected_silhouette (RegionAffineTrans, OM3DModel, CameraParam, Pose)</l>
+<l>        dev_display (RegionAffineTrans)</l>
+<l>    endfor</l>
+<l>    Message := 'Detect object in several scenes.'</l>
+<l>    Message[1] := 'Due to noise, the poses vary slightly.'</l>
+<l>    Message[2] := '[' + (Index - 7) + '/4]'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>    wait_seconds (.5)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* **************************************************************</c>
+<c>*  Average Poses directly</c>
+<c>* </c>
+<c>* **************************************************************</c>
+<l>pose_average (Poses, [], 'direct', 'auto', 'auto', AveragePoseDirect, Quality1)</l>
+<c>* </c>
+<l>gen_reprojected_silhouette (RegionAffineTransDirect, OM3DModel, CameraParam, AveragePoseDirect)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_depth_image (BaseSceneZ, Part)</l>
+<l>dev_set_colored (12)</l>
+<l>disp_3d_coord_system (WindowHandle, CameraParam, AveragePoseDirect - [ModelCenter,0,0,0,0], 0.05)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RegionAffineTransDirect)</l>
+<l>disp_message (WindowHandle, 'Average pose (Mode = \'direct\')', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* **************************************************************</c>
+<c>*  Test outlier supproession with different</c>
+<c>*  modes and parameters</c>
+<c>* **************************************************************</c>
+<c>* </c>
+<c>* Add and display outlier pose</c>
+<l>read_image (Scene, 'time_of_flight/gutter_corner_xyz_12')</l>
+<l>select_obj (Scene, X, 1)</l>
+<l>select_obj (Scene, Y, 2)</l>
+<l>select_obj (Scene, Z, 3)</l>
+<l>disp_depth_image (BaseSceneZ, Part)</l>
+<l>xyz_to_object_model_3d (X, Y, Z, OM3DScene)</l>
+<l>find_surface_model (SurfaceModelID, OM3DScene, 0.05, 0.2, 0, 'false', [], [], Pose, Score, SurfaceMatchingResultID)</l>
+<l>clear_object_model_3d (OM3DScene)</l>
+<l>Poses := [Poses,Pose]</l>
+<l>dev_set_colored (12)</l>
+<l>for J := 0 to 4 by 1</l>
+<l>    dev_set_color (Color[J])</l>
+<l>    disp_3d_coord_system (WindowHandle, CameraParam, Poses[J * 7:J * 7 + 6] - [ModelCenter,0,0,0,0], 0.05)</l>
+<c>    * </c>
+<l>    gen_reprojected_silhouette (RegionAffineTrans, OM3DModel, CameraParam, Poses[J * 7:J * 7 + 6])</l>
+<l>    dev_display (RegionAffineTrans)</l>
+<l>endfor</l>
+<l>Message := 'Now we add an outlier to test the'</l>
+<l>Message[1] := 'outlier suppression.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* **************************************************************</c>
+<c>*  Average poses using three different parameter sets</c>
+<c>* **************************************************************</c>
+<c>* </c>
+<c>* Mode = 'direct': No outlier suppression</c>
+<l>pose_average (Poses, [], 'direct', 'auto', 'auto', AveragePoseDirect, Quality1)</l>
+<c>* </c>
+<l>gen_reprojected_silhouette (RegionAffineTransDirect, OM3DModel, CameraParam, AveragePoseDirect)</l>
+<c>* </c>
+<l>disp_depth_image (BaseSceneZ, Part)</l>
+<l>dev_set_colored (12)</l>
+<l>disp_3d_coord_system (WindowHandle, CameraParam, AveragePoseDirect - [ModelCenter,0,0,0,0], 0.05)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RegionAffineTransDirect)</l>
+<l>disp_message (WindowHandle, ['With method \'direct\'','the outlier was not suppressed.'], 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Mode = 'iterative', SigmaT = 'auto':  Medium outlier suppression</c>
+<l>pose_average (Poses, [], 'iterative', 'auto', 'auto', AveragePoseIterativeAuto, Quality)</l>
+<c>* </c>
+<l>gen_reprojected_silhouette (RegionAffineTransIterativeAuto, OM3DModel, CameraParam, AveragePoseIterativeAuto)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_depth_image (BaseSceneZ, Part)</l>
+<l>dev_set_colored (12)</l>
+<l>disp_3d_coord_system (WindowHandle, CameraParam, AveragePoseIterativeAuto - [ModelCenter,0,0,0,0], 0.05)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RegionAffineTransDirect)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (RegionAffineTransIterativeAuto)</l>
+<l>Message := 'With Mode = \'iterative\', SigmaT = \'auto\''</l>
+<l>Message[1] := 'the result is better, but not optimal.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Mode = 'iterative', manually tuned SigmaT: Best outlier suppression</c>
+<l>pose_average (Poses, [], 'iterative', 0.8, 'auto', AveragePoseIterative, Quality)</l>
+<c>* </c>
+<l>gen_reprojected_silhouette (RegionAffineTransIterative, OM3DModel, CameraParam, AveragePoseIterative)</l>
+<c>* </c>
+<l>dev_clear_window ()</l>
+<l>disp_depth_image (BaseSceneZ, Part)</l>
+<l>dev_set_colored (12)</l>
+<l>disp_3d_coord_system (WindowHandle, CameraParam, AveragePoseIterative - [ModelCenter,0,0,0,0], 0.05)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (RegionAffineTransDirect)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (RegionAffineTransIterativeAuto)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (RegionAffineTransIterative)</l>
+<l>Message := 'With method \'iterative\', SigmaT = 0.8'</l>
+<l>Message[1] := 'the outlier was suppressed correctly.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<c>* Clean up</c>
+<l>clear_object_model_3d (OM3DModel)</l>
+<l>clear_surface_model (SurfaceModelID)</l>
+<l>dev_clear_obj (ModelsX)</l>
+<l>dev_clear_obj (ModelsY)</l>
+<l>dev_clear_obj (ModelsZ)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="disp_depth_image">
+<interface>
+<io>
+<par name="DepthImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Part" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>gen_rectangle1 (Rectangle, Part[0], Part[1], Part[2], Part[3])</l>
+<l>reduce_domain (DepthImage, Rectangle, ImageReduced)</l>
+<l>threshold (ImageReduced, Region, 0.0001, 999999)</l>
+<l>reduce_domain (ImageReduced, Region, ImageReduced1)</l>
+<l>dev_set_part (Part[0], Part[1], Part[2], Part[3])</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageReduced1)</l>
+<l>return ()</l>
+</body>
+<docu id="disp_depth_image">
+<parameters>
+<parameter id="DepthImage"/>
+<parameter id="Part"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="gen_reprojected_silhouette">
+<interface>
+<oo>
+<par name="RegionAffineTransIterativeAuto" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="OM3DModel" base_type="ctrl" dimension="0"/>
+<par name="CameraParam" base_type="ctrl" dimension="0"/>
+<par name="AveragePoseIterativeAuto" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>get_cam_par_data (CameraParam, 'cx', Cx)</l>
+<l>get_cam_par_data (CameraParam, 'cy', Cy)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_rotate (HomMat2DIdentity, rad(180), Cy, Cx, HomMat2DRotate)</l>
+<c>* </c>
+<l>object_model_3d_to_xyz (X1, Y1, Z1, OM3DModel, 'cartesian', CameraParam, AveragePoseIterativeAuto)</l>
+<l>get_domain (Z1, Domain)</l>
+<l>closing_circle (Domain, RegionClosing, 3.5)</l>
+<l>affine_trans_region (RegionClosing, RegionAffineTransIterativeAuto, HomMat2DRotate, 'nearest_neighbor')</l>
+<l>return ()</l>
+</body>
+<docu id="gen_reprojected_silhouette">
+<parameters>
+<parameter id="AveragePoseIterativeAuto"/>
+<parameter id="CameraParam"/>
+<parameter id="OM3DModel"/>
+<parameter id="RegionAffineTransIterativeAuto"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

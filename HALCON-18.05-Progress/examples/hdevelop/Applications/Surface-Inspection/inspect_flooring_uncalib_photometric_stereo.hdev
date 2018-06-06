@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program demonstrates the use of the</c>
+<c>* uncalibrated photometric stereo technique</c>
+<c>* for the inspection of flooring panels.</c>
+<c>* Input are 4 images taken from flooring panels</c>
+<c>* with light coming from different orientations</c>
+<c>* and angles. Each image reveals a slightly</c>
+<c>* visible surface defect.</c>
+<c>* </c>
+<c>* Initialization.</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'photometric_stereo/flooring_1_01')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Display introduction.</c>
+<l>dev_display (Image)</l>
+<l>Text := 'Use uncalibrated photometric stereo to detect surface defects.'</l>
+<l>Text[1] := 'For this setup, no prior calibration was used, e.g., '</l>
+<l>Text[2] := 'the tilts and slants of the light source are not specified.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Loop through the two image sets.</c>
+<l>for Index := 1 to 2 by 1</l>
+<c>    * Show input images with different illumination.</c>
+<l>    read_image (Images, 'photometric_stereo/flooring_' + Index + '_0' + [1:4])</l>
+<l>    for I := 1 to 4 by 1</l>
+<l>        select_obj (Images, ObjectSelected, I)</l>
+<l>        dev_display (ObjectSelected)</l>
+<l>        Text := 'Acquire image ' + I + ' of 4.'</l>
+<l>        dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>        wait_seconds (0.5)</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Apply uncalibrated photometric stereo</c>
+<c>    * to retrieve the local orientation for each pixel.</c>
+<l>    uncalibrated_photometric_stereo (Images, NormalField, Gradient, Albedo, 'all')</l>
+<l>    dev_display (NormalField)</l>
+<l>    Text := 'Apply uncalibrated photometric stereo, and retrieve '</l>
+<l>    Text[1] := 'the local pixel orientation (mapped to RGB for visualization).'</l>
+<l>    dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Calculate the Gaussian curvature of the surface</c>
+<c>    * using the gradient field as input for the operator</c>
+<c>    * derivate_vector_field.</c>
+<c>    * Defects are usually easy to detect in the curvature image.</c>
+<l>    derivate_vector_field (Gradient, MeanCurvature, 1.1, 'mean_curvature')</l>
+<l>    mean_image (MeanCurvature, ImageMean, 9, 9)</l>
+<l>    threshold (ImageMean, Region, -0.1, -0.024)</l>
+<l>    connection (Region, Defects)</l>
+<l>    area_center (Defects, Area, Row, Column)</l>
+<l>    gen_circle (Circle, Row, Column, sqrt(Area) + 10)</l>
+<c>    * Display the defects in curvature image.</c>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_display (MeanCurvature)</l>
+<l>    dev_display (Circle)</l>
+<l>    Text := 'The defects can easily be detected in the surface curvature image.'</l>
+<l>    dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_disp_text ('      End of program      ', 'window', 'bottom', 'right', 'black', [], [])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

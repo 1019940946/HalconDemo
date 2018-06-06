@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* This example program shows how to use the HALCON generic socket</c>
+<c>* functionality to send and receive arbitrary data via sockets. In this</c>
+<c>* example, a TCP socket is created and then used to listen for connection</c>
+<c>* requests. To see how it works, please start another HDevelop with the</c>
+<c>* program 'generic_socket_send.hdev' after starting this example.</c>
+<c>* ***********************************************************************</c>
+<c>* Initialize program</c>
+<l>Protocol := 'TCP4'</l>
+<l>Timeout := 3.0</l>
+<c>* </c>
+<c>* Open a listening socket</c>
+<l>open_socket_accept (4660, ['protocol','timeout'], [Protocol,Timeout], AcceptingSocket)</l>
+<c>* Strip AddressFamily from Protocl</c>
+<l>tuple_regexp_match (Protocol, 'TCP|HALCON', BaseProtocol)</l>
+<l>if (BaseProtocol == 'TCP' or BaseProtocol == 'HALCON')</l>
+<c>    * </c>
+<c>    * Wait for an incoming connection, use the timeout of the</c>
+<c>    * AcceptingSocket</c>
+<l>    dev_error_var (Error, 1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    OpenStatus := 5</l>
+<l>    while (OpenStatus != 2)</l>
+<l>        socket_accept_connect (AcceptingSocket, 'auto', Socket)</l>
+<l>        OpenStatus := Error</l>
+<l>    endwhile</l>
+<l>    dev_set_check ('give_error')</l>
+<c>    * </c>
+<c>    * Set the same timeout on the newly created socket</c>
+<l>    set_socket_param (Socket, 'timeout', Timeout)</l>
+<l>else</l>
+<c>    * </c>
+<c>    * UDP sockets do not need an accept()</c>
+<l>    Socket := AcceptingSocket</l>
+<l>endif</l>
+<l>get_socket_param (Socket, 'address_info', Address)</l>
+<c>* </c>
+<l>Answer := []</l>
+<l>while (Answer != 'End')</l>
+<l>    receive_data (Socket, ['cz-csi','A3'], Answer, From)</l>
+<l>    if (From[2] == 0)</l>
+<l>        Data := 'Received:' + Answer[1]</l>
+<l>    else</l>
+<l>        Data := 'Received:' + Answer</l>
+<l>    endif</l>
+<l>    To := [From[0],From[1]]</l>
+<l>    Format := 'z'</l>
+<l>    send_data (Socket, Format, Data, To)</l>
+<l>endwhile</l>
+<l>stop ()</l>
+<l>close_socket (Socket)</l>
+<l>close_socket (AcceptingSocket)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

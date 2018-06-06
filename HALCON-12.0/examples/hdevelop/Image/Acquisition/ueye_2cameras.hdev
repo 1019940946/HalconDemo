@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from an IDS uEye camera</c>
+<c>* (concurrent grabbing from two connected cameras)</c>
+<c>* </c>
+<c>* </c>
+<c>* check interface revision:</c>
+<l>info_framegrabber ('uEye', 'revision', RevInfo, RevInfoValues)</l>
+<c>* </c>
+<c>* check your installed cameras for device and port:</c>
+<l>info_framegrabber ('uEye', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open the two cameras using their unique device ID (see uEyeID.exe), e.g.:</c>
+<l>MyDevice1 := '3'</l>
+<l>MyDevice2 := '7'</l>
+<l>MyCameraType := 'default'</l>
+<l>open_framegrabber ('uEye', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCameraType, MyDevice1, -1, -1, AcqHandle1)</l>
+<l>open_framegrabber ('uEye', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCameraType, MyDevice2, -1, -1, AcqHandle2)</l>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>get_framegrabber_param (AcqHandle1, ['image_width','image_height'], ImageSize1)</l>
+<l>dev_open_window (0, 0, ImageSize1[0] / 2, ImageSize1[1] / 2, 'black', WindowHandle1)</l>
+<l>get_framegrabber_param (AcqHandle2, ['image_width','image_height'], ImageSize2)</l>
+<l>dev_open_window (0, (ImageSize1[0] / 2) + 10, ImageSize2[0] / 2, ImageSize2[1] / 2, 'black', WindowHandle2)</l>
+<c>* </c>
+<l>NumImages := 0</l>
+<l>count_seconds (SecondsBegin)</l>
+<l>while (1)</l>
+<l>    grab_image_async (Image1, AcqHandle1, -1)</l>
+<l>    dev_set_window (WindowHandle1)</l>
+<l>    dev_display (Image1)</l>
+<l>    grab_image_async (Image2, AcqHandle2, -1)</l>
+<l>    dev_set_window (WindowHandle2)</l>
+<l>    dev_display (Image2)</l>
+<l>    NumImages := NumImages + 1</l>
+<l>    count_seconds (SecondsCurrent)</l>
+<l>    FrameRate := NumImages / (SecondsCurrent - SecondsBegin)</l>
+<l>endwhile</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle2)</l>
+<l>close_framegrabber (AcqHandle1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* OCR (Training)</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Letters, 'letters')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Letters, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>dev_display (Letters)</l>
+<c>* ---------- characters to be recognized ----------</c>
+<l>Char := []</l>
+<l>for i := 0 to 25 by 1</l>
+<l>    Char[i] := chr(i + 97)</l>
+<l>endfor</l>
+<l>Char[26] := '.'</l>
+<l>NumChar := |Char|</l>
+<c>* ---------- segmentation of characters ----------</c>
+<l>binary_threshold (Letters, DarkRegion, 'max_separability', 'dark', UsedThreshold)</l>
+<l>dilation_circle (DarkRegion, CharRegion, 2.5)</l>
+<l>connection (CharRegion, CharConnected)</l>
+<l>intersection (CharConnected, DarkRegion, CharOrig)</l>
+<l>sort_region (CharOrig, Characters, 'character', 'true', 'row')</l>
+<l>dev_display (Letters)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_shape ('rectangle1')</l>
+<l>dev_display (Characters)</l>
+<l>count_obj (Characters, NumSamples)</l>
+<l>SamplesPerChar := NumSamples / NumChar</l>
+<l>disp_message (WindowID, 'Segment characters', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* ---------- training of the OCR classifier ---------</c>
+<l>dev_display (Letters)</l>
+<l>disp_message (WindowID, ' Train characters ', 'window', 12, 12, 'black', 'true')</l>
+<l>dev_set_check ('~give_error')</l>
+<l>delete_file ('letters.trf')</l>
+<l>dev_set_check ('give_error')</l>
+<l>for c := 1 to NumChar by 1</l>
+<l>    C := []</l>
+<l>    for i := 1 to SamplesPerChar by 1</l>
+<l>        C[i - 1] := Char[c - 1]</l>
+<l>    endfor</l>
+<l>    copy_obj (Characters, Samples, 1 + (c - 1) * SamplesPerChar, SamplesPerChar)</l>
+<l>    append_ocr_trainf (Samples, Letters, C, 'letters.trf')</l>
+<l>endfor</l>
+<l>create_ocr_class_mlp (8, 10, 'constant', 'default', Char, 20, 'none', 10, 42, OCRHandle)</l>
+<l>trainf_ocr_class_mlp (OCRHandle, 'letters.trf', 200, 1, 0.01, Error, ErrorLog)</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* check for correct classification</c>
+<l>dev_set_color ('green')</l>
+<l>for c := 1 to NumChar by 1</l>
+<l>    dev_display (Letters)</l>
+<l>    disp_message (WindowID, 'Check classification', 'window', 12, 12, 'black', 'true')</l>
+<l>    C := []</l>
+<l>    for i := 1 to SamplesPerChar by 1</l>
+<l>        C[i - 1] := Char[c - 1]</l>
+<l>    endfor</l>
+<l>    copy_obj (Characters, Samples, 1 + (c - 1) * SamplesPerChar, SamplesPerChar)</l>
+<l>    dev_display (Samples)</l>
+<l>    do_ocr_multi_class_mlp (Samples, Letters, OCRHandle, RecC, Confidence)</l>
+<l>    wait_seconds (0.3)</l>
+<l>    CheckDiff := ord(C) - ord(RecC)</l>
+<l>    if (max(abs(CheckDiff)) &gt; 0)</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* ---------- write OCR classifier ---------</c>
+<l>write_ocr_class_mlp (OCRHandle, 'letters')</l>
+<l>dev_set_shape ('original')</l>
+<l>dev_update_on ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how isotropic_diffusion can be used to smooth</c>
+<c>* an image with a reduced domain in order to avoid artifacts at the border of</c>
+<c>* the domain.  In standard filter operators, artifacts may happen because the</c>
+<c>* filters access gray values outside the image domain to compute the filter</c>
+<c>* results close to the border of the domain.  In contrast, isotropic_diffusion</c>
+<c>* uses so-called von Neumann boundary conditions at the border of the</c>
+<c>* domain, which prevent border artifacts.</c>
+<l>read_image (Image, 'board/board-01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* Construct an image with a domain that causes artifacts at the domain's</c>
+<c>* borders.  The domain and filter parameters are chosen such that the</c>
+<c>* filter smooth_image accesses the gray values of the bright leads.</c>
+<l>gen_rectangle1 (Rectangle, 180, 145, 310, 460)</l>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<c>* Display the image and its domain.</c>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (Rectangle)</l>
+<l>set_tposition (WindowHandle, 10, 10)</l>
+<l>Message := 'Image and ROI'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Display the image with its reduced domain.</c>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageReduced)</l>
+<l>Message := 'Image with ROI applied'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the Gaussian smoothing with smooth_image.  Note the bright</c>
+<c>* artifacts at the borders of the domain.</c>
+<l>smooth_image (ImageReduced, ImageSmooth, 'gauss', 5)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageSmooth)</l>
+<l>Message := 'Gaussian smoothing with smooth_image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* Perform the Gaussian smoothing with isotropic_diffusion.  Note that there</c>
+<c>* are no artifacts at the border of the domain.</c>
+<l>isotropic_diffusion (ImageReduced, SmoothedImage, 5, 0)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (SmoothedImage)</l>
+<l>Message := 'Gaussian smoothing with isotropic_diffusion'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

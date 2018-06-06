@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON TWAIN interface with a</c>
+<c>* scanner in 'manual' mode</c>
+<c>* </c>
+<c>* 'interactive:inches' mode assumes a device with dimensions</c>
+<c>* ATTENTION: some scanners do not support all features, therefore</c>
+<c>*            we need to run it first in interactive mode ...</c>
+<c>* </c>
+<c>* </c>
+<c>* Open the scanner in 'interactive' mode</c>
+<c>* </c>
+<l>open_framegrabber ('TWAIN', -1, -1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'interactive:inches', 'default', 1, -1, AcqHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 4, Height / 4, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Request current settings (might be that your device does not</c>
+<c>* support all the features we need ...)</c>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'horizontal_resolution', HRes)</l>
+<l>get_framegrabber_param (AcqHandle, 'vertical_resolution', VRes)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_width', ImageWidth)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', ImageHeight)</l>
+<l>get_framegrabber_param (AcqHandle, 'start_row', StartRow)</l>
+<l>get_framegrabber_param (AcqHandle, 'start_column', StartColumn)</l>
+<l>get_framegrabber_param (AcqHandle, 'color_space', ColorSpace)</l>
+<l>get_framegrabber_param (AcqHandle, 'device', Device)</l>
+<l>get_framegrabber_param (AcqHandle, 'bits_per_channel', Bits)</l>
+<l>get_framegrabber_param (AcqHandle, 'camera_type', CamType)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Open the scanner in 'manual' mode again using:</c>
+<c>*  1) these settings to grab the same image</c>
+<c>* </c>
+<l>open_framegrabber ('TWAIN', HRes, VRes, ImageWidth, ImageHeight, StartRow, StartColumn, 'default', Bits, ColorSpace, -1, 'default', CamType, Device, 1, -1, AcqHandle)</l>
+<l>grab_image (Image2, AcqHandle)</l>
+<l>dev_open_window (0, 50, Width / 4, Height / 4, 'black', WindowHandle2)</l>
+<l>dev_display (Image2)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>*  2) grab the same image with double resolution</c>
+<c>* </c>
+<l>HRes2 := HRes * 2</l>
+<l>VRes2 := VRes * 2</l>
+<l>ImageWidth2 := ImageWidth * HRes2 / HRes</l>
+<l>ImageHeight2 := ImageHeight * VRes2 / VRes</l>
+<l>StartRow2 := StartRow * VRes2 / VRes</l>
+<l>StartColumn2 := StartColumn * HRes2 / HRes</l>
+<l>open_framegrabber ('TWAIN', HRes2, VRes2, ImageWidth2, ImageHeight2, StartRow2, StartColumn2, 'default', Bits, ColorSpace, -1, 'default', CamType, Device, 1, -1, AcqHandle)</l>
+<l>grab_image (Image3, AcqHandle)</l>
+<l>dev_open_window (0, 100, Width / 4, Height / 4, 'black', WindowHandle3)</l>
+<l>dev_display (Image3)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

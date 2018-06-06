@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use tuple_substr to</c>
+<c>* extract a substring from a tuple</c>
+<c>* </c>
+<l>String1 := 'abcdefghij'</l>
+<l>String2 := '0123456'</l>
+<c>* </c>
+<c>* Simple case: Single input string, single indices</c>
+<l>tuple_substr (String1, 3, 5, SingleSubstring1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>SingleSubstring2 := String1{3:5}</l>
+<c>* </c>
+<c>* Single input string, multiple indices</c>
+<l>tuple_substr (String1, [1,2,3], [3,6,3], MultipleIndices1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>MultipleIndices2 := String1{[1,2,3]:[3,6,3]}</l>
+<c>* </c>
+<c>* Multiple input strings, Single indices</c>
+<l>tuple_substr ([String1,String2], 3, 5, MultipleInputStrings1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>MultipleInputStrings2 := [String1,String2]{3:5}</l>
+<c>* </c>
+<c>* Multiple input strings, multiple indices</c>
+<l>tuple_substr ([String1,String2], [5,0], [8,1], MultipleInputStringsAndIndices1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>MultipleInputStringsAndIndices2 := [String1,String2]{[5,0]:[8,1]}</l>
+<c>* </c>
+<c>* Special case: Index1 &gt; Index2 -&gt; empty string</c>
+<l>tuple_substr ([String1,String2], 1, 0, EmptySubstring1)</l>
+<c>* Do the same with the corresponding HDevelop function</c>
+<l>EmptySubstring2 := [String1,String2]{1:0}</l>
+<c>* </c>
+<l>dev_open_tool ('variable_view', 'default', 'default', 'default', 'default', [], [], ToolId)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

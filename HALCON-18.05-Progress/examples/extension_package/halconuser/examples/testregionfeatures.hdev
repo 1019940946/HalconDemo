@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_window ('off')</l>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_open_window (0, 0, -1, -1, 'black', WindowID)</l>
+<l>dev_display (Image)</l>
+<l>regiongrowing (Image, Regions, 3, 3, 6, 100)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (ConnectedRegions)</l>
+<l>Button := -1</l>
+<l>dev_set_draw ('fill')</l>
+<l>open_file ('standard', 'output', FileHandle)</l>
+<l>while (Button != 4)</l>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    user_inside (ConnectedRegions, RegionSelected, Row, Column)</l>
+<l>    dev_display (RegionSelected)</l>
+<l>    count_obj (RegionSelected, Number)</l>
+<l>    if (Number &gt; 0)</l>
+<l>        user_area (RegionSelected, Area)</l>
+<l>        fwrite_string (FileHandle, 'Area:' + Area)</l>
+<l>        fnew_line (FileHandle)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>close_file (FileHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

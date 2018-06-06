@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the HALCON SiliconSoftware interface</c>
+<c>* (show usage of Silicon Software GigE Vision Framegrabber)</c>
+<c>* </c>
+<c>* To use this example the installation of the Silicon Software</c>
+<c>* microEnable GigE Vision framegrabber is required.</c>
+<c>* Please use microDisplay to create a proper mcf-file!</c>
+<c>* </c>
+<l>info_framegrabber ('SiliconSoftware', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'port', PortInfo, PortInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>info_framegrabber ('SiliconSoftware', 'defaults', DefaultInfo, DefaultInfoValues)</l>
+<c>* </c>
+<c>* Note:</c>
+<c>* You have to replace the values of the parameters MyCamType,</c>
+<c>* MyDevice and MyPort with the file name of your specific camera</c>
+<c>* configuration file, the device number as string (or default)</c>
+<c>* and the actually connected port.</c>
+<l>MyCamType := 'MyCam.mcf'</l>
+<l>MyDevice := 'default'</l>
+<l>MyPort := 0</l>
+<c>* </c>
+<l>open_framegrabber ('SiliconSoftware', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', MyCamType, MyDevice, MyPort, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Grab some images</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 50 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Please check the parameter naming convention with the GigE Explorer</c>
+<c>* to get the GigE Vision parameter values from the camera.</c>
+<l>get_framegrabber_param (AcqHandle, 'gbe:ExposureTime', ExposureTimeVal)</l>
+<c>* </c>
+<c>* Try to set the modified value. If the setting fails, please check the</c>
+<c>* range of the parameters with the SiliconSoftware GigE Explorer.</c>
+<l>set_framegrabber_param (AcqHandle, 'gbe:ExposureTime', ExposureTimeVal / 2)</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

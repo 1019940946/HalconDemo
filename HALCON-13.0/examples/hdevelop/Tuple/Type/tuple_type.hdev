@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the operators tuple_type,</c>
+<c>* tuple_is_int, tuple_is_real, tuple_is_string,</c>
+<c>* tuple_is_mixed, and the elementwise operators</c>
+<c>* tuple_type_elem, tuple_is_int_elem, tuple_is_real_elem,</c>
+<c>* and tuple_is_string_elem.</c>
+<c>* Furthermore, this example shows how tuples can be optimized</c>
+<c>* for faster processing by using casts (e.g. tuple_int).</c>
+<c>* </c>
+<c>* Set UseTupleFunctions to false if you want to use the</c>
+<c>* HDevelop functions</c>
+<l>UseTupleFunctions := false</l>
+<c>* </c>
+<c>* Generate an example tuple</c>
+<l>MyTuple := [42,43 - 1,'forty-two',42.0,42]</l>
+<c>* </c>
+<c>* Get the types of elements of the tuple MyTuple and translate</c>
+<c>* the constants to a human-readable text representation</c>
+<l>if (UseTupleFunctions)</l>
+<l>    tuple_type (MyTuple, TupleType)</l>
+<l>    tuple_type_elem (MyTuple, ElemType)</l>
+<l>else</l>
+<l>    TupleType := type(MyTuple)</l>
+<l>    ElemType := type_elem(MyTuple)</l>
+<l>endif</l>
+<l>tuple_type_to_string (TupleType, TupleTypeString)</l>
+<l>tuple_type_to_string (ElemType, ElemTypeString)</l>
+<c>* </c>
+<c>* Tests for certain data types are available, too:</c>
+<l>if (UseTupleFunctions)</l>
+<l>    tuple_is_int (MyTuple, IsInt)</l>
+<l>    tuple_is_real (MyTuple, IsReal)</l>
+<l>    tuple_is_string (MyTuple, IsString)</l>
+<l>    tuple_is_mixed (MyTuple, IsMixed)</l>
+<l>    tuple_is_int_elem (MyTuple, IsIntElem)</l>
+<l>    tuple_is_real_elem (MyTuple, IsRealElem)</l>
+<l>    tuple_is_string_elem (MyTuple, IsStringElem)</l>
+<l>else</l>
+<l>    IsInt := is_int(MyTuple)</l>
+<l>    IsReal := is_real(MyTuple)</l>
+<l>    IsString := is_string(MyTuple)</l>
+<l>    IsMixed := is_mixed(MyTuple)</l>
+<l>    IsIntElem := is_int_elem(MyTuple)</l>
+<l>    IsRealElem := is_real_elem(MyTuple)</l>
+<l>    IsStringElem := is_string_elem(MyTuple)</l>
+<l>endif</l>
+<c>* </c>
+<c>* As an example for the type operators, you could count the</c>
+<c>* number of elements of type integer of the tuple MyTuple</c>
+<l>NumInt := sum(IsIntElem)</l>
+<c>* </c>
+<c>* Display the types of the tuple elements</c>
+<l>dev_inspect_ctrl ([TupleTypeString,MyTuple,ElemTypeString,IsIntElem,IsRealElem,IsStringElem])</l>
+<c>* </c>
+<c>* </c>
+<c>* HALCON optimizes the handling of tuples where each element is</c>
+<c>* of the same type from the beginning or without interruption.</c>
+<c>* A tuple that becomes a tuple whose elements all are of the</c>
+<c>* same type after being a mixed tuple doesn't become optimized</c>
+<c>* automatically during runtime.</c>
+<l>IntTuple := gen_tuple_const(20000,1)</l>
+<l>MixedTuple := [gen_tuple_const(20000 - 1,1),1.0]</l>
+<l>count_seconds (S1)</l>
+<l>SortTuple1 := sort(IntTuple)</l>
+<l>count_seconds (S2)</l>
+<l>SortTuple2 := sort(MixedTuple)</l>
+<l>count_seconds (S3)</l>
+<l>TimeSortInt := (S2 - S1) * 1000</l>
+<l>TimeSortMixed := (S3 - S2) * 1000</l>
+<c>* If you have a tuple of type H_TYPE_MIXED you can cast it to</c>
+<c>* a pure tuple e.g. with int() or tuple_int to improve the</c>
+<c>* speed of following operators that use that tuple.</c>
+<l>if (type(MixedTuple) == H_TYPE_MIXED)</l>
+<l>    CastTuple := int(MixedTuple)</l>
+<l>endif</l>
+<l>count_seconds (S4)</l>
+<l>SortTuple2_Fast := sort(CastTuple)</l>
+<l>count_seconds (S5)</l>
+<l>TimeSortCast := (S5 - S4) * 1000</l>
+<c>* Sorting of Tuple2 is now faster by a factor of about 3.</c>
+<l>dev_inspect_ctrl ([TimeSortInt,TimeSortMixed,TimeSortCast])</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="tuple_type_to_string">
+<interface>
+<ic>
+<par name="Types" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Strings" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Convert the integers used to identify the type of tuples or</c>
+<c>* tuple elements to a human-readable interpretation</c>
+<l>for Index := 0 to |Types| - 1 by 1</l>
+<l>    if (Types[Index] == H_TYPE_INT)</l>
+<l>        Strings[Index] := 'integer'</l>
+<l>    elseif (Types[Index] == H_TYPE_REAL)</l>
+<l>        Strings[Index] := 'real'</l>
+<l>    elseif (Types[Index] == H_TYPE_STRING)</l>
+<l>        Strings[Index] := 'string'</l>
+<l>    elseif (Types[Index] == H_TYPE_MIXED)</l>
+<l>        Strings[Index] := 'mixed'</l>
+<l>    elseif (Types[Index] == H_TYPE_ANY)</l>
+<l>        Strings[Index] := 'any'</l>
+<l>    else</l>
+<l>        throw ('unknown tuple type encountered!')</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="tuple_type_to_string">
+<parameters>
+<parameter id="Strings"/>
+<parameter id="Types"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

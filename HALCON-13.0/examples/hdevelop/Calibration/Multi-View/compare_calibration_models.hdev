@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows the calibration results using the camera models</c>
+<c>* 'division' and 'polynomial'. A sequence of calibration images</c>
+<c>* acquired with a camera system using a lense with strong distortions</c>
+<c>* is calibrated with both models and the calibration errors of both</c>
+<c>* are displayed for each image individually.</c>
+<c>* </c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>read_image (Image, 'calib/calib_distorted_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, 400, 400, WindowHandleL)</l>
+<l>set_display_font (WindowHandleL, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_color ('lime green')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_open_window_fit_image (Image, 0, 400 + 5, 400, 400, WindowHandleR)</l>
+<l>set_display_font (WindowHandleR, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>CalTabDescrFile := 'caltab_100mm.descr'</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_polynomial (0.005, 0, 0, 0, 0, 0, 9.3e-6, 9.3e-6, Width * 0.5, Height * 0.5, Width, Height, StartCamParPoly)</l>
+<l>create_calib_data ('calibration_object', 1, 1, PolyCalibDataID)</l>
+<l>set_calib_data_cam_param (PolyCalibDataID, 0, [], StartCamParPoly)</l>
+<l>set_calib_data_calib_object (PolyCalibDataID, 0, CalTabDescrFile)</l>
+<c>* </c>
+<l>gen_cam_par_area_scan_division (0.005, 0, 9.3e-6, 9.3e-6, Width * 0.5, Height * 0.5, Width, Height, StartCamParDiv)</l>
+<l>create_calib_data ('calibration_object', 1, 1, DivCalibDataID)</l>
+<l>set_calib_data_cam_param (DivCalibDataID, 0, [], StartCamParDiv)</l>
+<l>set_calib_data_calib_object (DivCalibDataID, 0, CalTabDescrFile)</l>
+<c>* </c>
+<l>dev_set_window (WindowHandleL)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_window (WindowHandleR)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Determine Marks and Pose of\nCalibration Plate for the Camera\nModels Division and Polynomial', 'window', 15, 20, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* determine marks and pose of the calibration plate to perform calibration</c>
+<l>for i := 1 to 69 by 1</l>
+<l>    read_image (Image, 'calib/calib_distorted_' + i$'.02')</l>
+<l>    find_calib_object (Image, DivCalibDataID, 0, 0, i, [], [])</l>
+<l>    disp_observ (Image, 'Camera Model Division', CalTabDescrFile, DivCalibDataID, i, WindowHandleL)</l>
+<c>    * </c>
+<l>    find_calib_object (Image, PolyCalibDataID, 0, 0, i, [], [])</l>
+<l>    disp_observ (Image, 'Camera Model Polynomial', CalTabDescrFile, PolyCalibDataID, i, WindowHandleR)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* perform calibration for the models 'division' and 'polynomial'</c>
+<l>calibrate_cameras (DivCalibDataID, ErrorsDiv)</l>
+<l>calibrate_cameras (PolyCalibDataID, ErrorsPoly)</l>
+<c>* </c>
+<l>dev_set_window (WindowHandleL)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_window (WindowHandleR)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowHandleL, 'Compare Calibration Results', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* depict calibration error of both models for images individually</c>
+<l>get_calib_data (DivCalibDataID, 'camera', 0, 'params', CamParamDiv)</l>
+<l>get_calib_data (PolyCalibDataID, 'camera', 0, 'params', CamParamPoly)</l>
+<l>caltab_points (CalTabDescrFile, X, Y, Z)</l>
+<l>for i := 0 to 68 by 2</l>
+<l>    read_image (Image, 'calib/calib_distorted_' + (i + 1)$'.02')</l>
+<c>    * </c>
+<l>    get_calib_data_observ_points (DivCalibDataID, 0, 0, i + 1, RowDiv, ColumnDiv, Index, StartPoseDiv)</l>
+<l>    get_calib_data (DivCalibDataID, 'calib_obj_pose', [0,i + 1], 'pose', FinalPoseDiv)</l>
+<l>    compute_reprojection_error (FinalPoseDiv, X, Y, Z, CamParamDiv, RowDiv, ColumnDiv, PoseErrorDiv)</l>
+<l>    dev_set_window (WindowHandleL)</l>
+<l>    set_system ('flush_graphic', 'false')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_caltab (WindowHandleL, CalTabDescrFile, CamParamDiv, FinalPoseDiv, 1)</l>
+<l>    set_system ('flush_graphic', 'true')</l>
+<l>    disp_message (WindowHandleL, 'Camera Model Division\nError = ' + PoseErrorDiv$'.3f', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<l>    get_calib_data_observ_points (PolyCalibDataID, 0, 0, i + 1, RowPoly, ColumnPoly, Index, StartPosePoly)</l>
+<l>    get_calib_data (PolyCalibDataID, 'calib_obj_pose', [0,i + 1], 'pose', FinalPosePoly)</l>
+<l>    compute_reprojection_error (FinalPosePoly, X, Y, Z, CamParamPoly, RowPoly, ColumnPoly, PoseErrorPoly)</l>
+<l>    dev_set_window (WindowHandleR)</l>
+<l>    set_system ('flush_graphic', 'false')</l>
+<l>    dev_display (Image)</l>
+<l>    disp_caltab (WindowHandleR, CalTabDescrFile, CamParamPoly, FinalPosePoly, 1)</l>
+<l>    set_system ('flush_graphic', 'true')</l>
+<l>    disp_message (WindowHandleR, 'Camera Model Polynomial\nError = ' + PoseErrorPoly$'.3f', 'window', 12, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandleL, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<c>* superimpose calibration results for one image with strong distortions</c>
+<l>i := 7</l>
+<l>gen_rectangle1 (Rectangle, 25, 570, 80, Width - 7)</l>
+<l>read_image (Image, 'calib/calib_distorted_' + (i + 1)$'.02')</l>
+<c>* </c>
+<l>dev_set_window (WindowHandleL)</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<l>dev_set_color ('coral')</l>
+<l>get_calib_data_observ_points (DivCalibDataID, 0, 0, i + 1, RowDiv, ColumnDiv, Index, StartPoseDiv)</l>
+<l>get_calib_data (DivCalibDataID, 'calib_obj_pose', [0,i + 1], 'pose', FinalPoseDiv)</l>
+<l>compute_reprojection_error (FinalPoseDiv, X, Y, Z, CamParamDiv, RowDiv, ColumnDiv, PoseErrorDiv)</l>
+<l>disp_cross (WindowHandleL, RowDiv, ColumnDiv, 25, 0)</l>
+<l>disp_caltab (WindowHandleL, CalTabDescrFile, CamParamDiv, FinalPoseDiv, 1)</l>
+<l>dev_set_color ('lime green')</l>
+<l>get_calib_data_observ_points (PolyCalibDataID, 0, 0, i + 1, RowPoly, ColumnPoly, Index, StartPosePoly)</l>
+<l>get_calib_data (PolyCalibDataID, 'calib_obj_pose', [0,i + 1], 'pose', FinalPosePoly)</l>
+<l>compute_reprojection_error (FinalPosePoly, X, Y, Z, CamParamPoly, RowDiv, ColumnPoly, PoseErrorPoly)</l>
+<l>disp_cross (WindowHandleL, RowPoly, ColumnPoly, 25, 0)</l>
+<l>disp_caltab (WindowHandleL, CalTabDescrFile, CamParamPoly, FinalPosePoly, 1)</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (Rectangle)</l>
+<l>disp_message (WindowHandleL, 'Calibration Results Superimposed', 'window', 12, 12, 'black', 'true')</l>
+<c>* </c>
+<l>dev_set_window (WindowHandleR)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_clear_window ()</l>
+<l>dev_set_part (20, 565, 85, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('lime green')</l>
+<l>disp_caltab (WindowHandleR, CalTabDescrFile, CamParamPoly, FinalPosePoly, 1)</l>
+<l>dev_set_color ('coral')</l>
+<l>disp_caltab (WindowHandleR, CalTabDescrFile, CamParamDiv, FinalPoseDiv, 1)</l>
+<l>dev_set_color ('magenta')</l>
+<l>dev_display (Rectangle)</l>
+<l>disp_message (WindowHandleR, ['Camera Model Polynomial','Error = ' + PoseErrorPoly$'.3f'], 'window', 12, 12, ['black','lime green'], 'true')</l>
+<l>disp_message (WindowHandleR, ['Camera Model Division  ','Error = ' + PoseErrorDiv$'.3f'], 'window', 55, 12, ['black','coral'], 'true')</l>
+<c>* </c>
+<l>clear_calib_data (DivCalibDataID)</l>
+<l>clear_calib_data (PolyCalibDataID)</l>
+<c>* </c>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="compute_reprojection_error">
+<interface>
+<ic>
+<par name="FinalPose" base_type="ctrl" dimension="0"/>
+<par name="X" base_type="ctrl" dimension="0"/>
+<par name="Y" base_type="ctrl" dimension="0"/>
+<par name="Z" base_type="ctrl" dimension="0"/>
+<par name="CamParam" base_type="ctrl" dimension="0"/>
+<par name="ExtractedRow" base_type="ctrl" dimension="0"/>
+<par name="ExtractedColumn" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Error" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* reproject caltab points, based on the</c>
+<c>* calibrated camera params and pose</c>
+<l>pose_to_hom_mat3d (FinalPose, H)</l>
+<l>affine_trans_point_3d (H, X, Y, Z, Qx, Qy, Qz)</l>
+<l>project_3d_point (Qx, Qy, Qz, CamParam, Row, Column)</l>
+<c>* compute the distance to the extracted</c>
+<c>* coordinates</c>
+<l>DRow := ExtractedRow - Row</l>
+<l>DColumn := ExtractedColumn - Column</l>
+<c>* compute RMS (root-mean-square)</c>
+<l>Error := sqrt(sum(DRow * DRow + DColumn * DColumn) / |DRow|)</l>
+<l>return ()</l>
+</body>
+<docu id="compute_reprojection_error">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="Error"/>
+<parameter id="ExtractedColumn"/>
+<parameter id="ExtractedRow"/>
+<parameter id="FinalPose"/>
+<parameter id="X"/>
+<parameter id="Y"/>
+<parameter id="Z"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_observ">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Text" base_type="ctrl" dimension="0"/>
+<par name="CaltabName" base_type="ctrl" dimension="0"/>
+<par name="CalibDataID" base_type="ctrl" dimension="0"/>
+<par name="PoseIdx" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandle)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'init_params', StartCamPar)</l>
+<l>get_calib_data_observ_points (CalibDataID, 0, 0, PoseIdx, Row, Column, Index, Pose)</l>
+<l>set_system ('flush_graphic', 'false')</l>
+<l>dev_display (Image)</l>
+<l>disp_caltab (WindowHandle, CaltabName, StartCamPar, Pose, 1)</l>
+<l>set_system ('flush_graphic', 'true')</l>
+<l>disp_message (WindowHandle, Text, 'window', 12, 12, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_observ">
+<parameters>
+<parameter id="CalibDataID"/>
+<parameter id="CaltabName"/>
+<parameter id="Image"/>
+<parameter id="PoseIdx"/>
+<parameter id="Text"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

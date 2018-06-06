@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program visualizes the effect of an affine slant transformation by</c>
+<c>* transforming an image with slants from -89° to 89° around the x and y axes.</c>
+<c>* You can also try angles greater than 90°, which will result in a mirroring of the</c>
+<c>* image about the axis that remains unchanged.  Note that slants of ±90° result</c>
+<c>* in a singular transformation, which will cause affine_trans_image to return an</c>
+<c>* error.</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>read_image (Image, 'mreut')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>for Theta := -89 to 89 by 1</l>
+<l>    hom_mat2d_slant (HomMat2DIdentity, rad(Theta), 'x', 256, 256, HomMat2DSlant)</l>
+<l>    affine_trans_image (Image, ImageAffinTrans, HomMat2DSlant, 'nearest_neighbor', 'false')</l>
+<l>    dev_display (ImageAffinTrans)</l>
+<l>endfor</l>
+<l>for Theta := -89 to 89 by 1</l>
+<l>    hom_mat2d_slant (HomMat2DIdentity, rad(Theta), 'y', 256, 256, HomMat2DSlant)</l>
+<l>    affine_trans_image (Image, ImageAffinTrans, HomMat2DSlant, 'nearest_neighbor', 'false')</l>
+<l>    dev_display (ImageAffinTrans)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example compares the performance of equivalent binomial</c>
+<c>* and gaussian filter. Therefore an image is smoothed with</c>
+<c>* a binomial filter and a Gaussian filter with different filter</c>
+<c>* sizes and sigma values. The smoothed images are then subtraced</c>
+<c>* to visualize the difference of the filters.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_close_window ()</l>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'fuse')</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Loops := 5</l>
+<c>* </c>
+<c>* List of parameter values for the filters</c>
+<l>FilterSize := [3,5,7,9,11,13,15,17,19,21,23,25,27,29]</l>
+<l>Sigma := [0.7523,1.0317,1.2505,1.4365,1.6010,1.7502,1.8876,2.0157,2.1361,2.2501,2.3586,2.4623,2.5618,2.6576]</l>
+<c>* </c>
+<c>* Smooth the image with a binomial filter and a Gaussian filter.</c>
+<c>* In each iteration step use a different filter size for the</c>
+<c>* binomial filter and a different sigma value for the Gaussain</c>
+<c>* filter and calculate the needed runtimes.</c>
+<l>for J := 0 to |FilterSize| - 1 by 1</l>
+<l>    dev_display (Image)</l>
+<c>    * </c>
+<c>    * Binomial filter</c>
+<c>    * ---------------------</c>
+<c>    * Smooth the image with a binomial filter and</c>
+<c>    * calculate the needed runtime</c>
+<l>    count_seconds (Start)</l>
+<l>    for I := 1 to Loops by 1</l>
+<l>        binomial_filter (Image, ImageBinomial, FilterSize[J], FilterSize[J])</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>    TimeBinomial := (1000.0 * (End - Start) / (1.0 * Loops))$'3.1f'</l>
+<c>    * </c>
+<c>    * Display the smoothed image, the filter size and the</c>
+<c>    * calculated runtime of the binomial filter</c>
+<l>    dev_display (ImageBinomial)</l>
+<l>    disp_message (WindowHandle, 'Binomial filter', 'window', 12, 12, 'blue', 'true')</l>
+<l>    Message := 'Filter size ' + FilterSize[J] + 'x' + FilterSize[J] + ' in ' + TimeBinomial + ' ms'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 40, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Gaussian filter</c>
+<c>    * ---------------------</c>
+<c>    * Smooth the image with a Gaussian filter and</c>
+<c>    * calculate the needed runtime</c>
+<c>    * </c>
+<c>    * Estimate the filter width used in smooth_image</c>
+<l>    info_smooth ('gauss', Sigma[J], Size, Coeffs)</l>
+<l>    count_seconds (Start)</l>
+<l>    for I := 1 to Loops by 1</l>
+<l>        smooth_image (Image, ImageSmooth, 'gauss', Sigma[J])</l>
+<l>    endfor</l>
+<l>    count_seconds (End)</l>
+<l>    TimeGauss := (1000.0 * (End - Start) / (1.0 * Loops))$'3.1f'</l>
+<c>    * </c>
+<c>    * Display the smoothed image, the sigma value and the</c>
+<c>    * calculated runtime of the Gaussian filter</c>
+<l>    dev_display (ImageSmooth)</l>
+<l>    disp_message (WindowHandle, 'Gaussian filter', 'window', 12, 12, 'blue', 'true')</l>
+<l>    Message := 'Sigma ' + Sigma[J]$'3.1f' + ' in ' + TimeGauss + ' ms'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 40, 12, 'black', 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * </c>
+<c>    * Difference between binomial and gaussian filter</c>
+<c>    * ------------------------------------------------</c>
+<c>    * Determine and visualize the difference between</c>
+<c>    * the smoothed images of both filters</c>
+<l>    sub_image (ImageBinomial, ImageSmooth, ImageSub, 6, 128)</l>
+<l>    dev_display (ImageSub)</l>
+<l>    Message := 'Difference between binomial and gaussian filter response'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Display the filtersize and runtime of the binomial filter</c>
+<l>    disp_message (WindowHandle, 'Binomial filter: ', 'window', 50, 12, 'blue', 'true')</l>
+<l>    Message := TimeBinomial + ' ms for filter size ' + FilterSize[J] + 'x' + FilterSize[J]</l>
+<l>    disp_message (WindowHandle, Message, 'window', 50, 200, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Display the value of sigma and runtime of the Gaussian filter</c>
+<l>    disp_message (WindowHandle, 'Gaussian filter: ', 'window', 70, 12, 'blue', 'true')</l>
+<l>    Message := TimeGauss + ' ms for sigma ' + Sigma[J]$'3.1f'</l>
+<l>    disp_message (WindowHandle, Message, 'window', 70, 200, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Display the continue message</c>
+<l>    if (J &lt; |FilterSize| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

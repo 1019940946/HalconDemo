@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* **************************************************************************************************</c>
+<c>*    ELLIPSE FITTING</c>
+<c>* Methods based on the geometric distance measure outperform methods with algebraic distance measure</c>
+<c>* in terms of accuracy. This holds especially if the contours are "very noisy", like a tooth rim,</c>
+<c>* or if the contours are partially occluded.</c>
+<c>* The accuracy of each method is visualized by the center of the ellipse.</c>
+<c>* **************************************************************************************************</c>
+<c>* </c>
+<c>* Settings</c>
+<l>dev_set_line_width (2)</l>
+<l>dev_update_window ('off')</l>
+<l>TextHeight := 26</l>
+<c>* </c>
+<c>* Read image</c>
+<l>read_image (Image, 'tooth_rim')</l>
+<l>zoom_image_factor (Image, Image, 0.5, 0.5, 'weighted')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<c>* </c>
+<c>* Compute the outer contour</c>
+<l>edges_sub_pix (Image, Edges, 'canny', 1, 10, 30)</l>
+<l>length_xld (Edges, Length)</l>
+<l>tuple_sort_index (Length, Indices)</l>
+<l>select_obj (Edges, ContourComplete, Indices[|Indices| - 1] + 1)</l>
+<c>* </c>
+<c>* Segment half tooth rim</c>
+<l>clip_contours_xld (ContourComplete, ContourHalf, 90, 0, Height, Width)</l>
+<c>* </c>
+<c>* Segment third tooth rim</c>
+<l>clip_contours_xld (ContourComplete, ContourThird, 147, 0, Height, Width)</l>
+<c>* </c>
+<c>* </c>
+<c>*    Ellipse fitting for the segmented half tooth rim</c>
+<c>* </c>
+<l>dev_open_window (0, 0, Width, Height + TextHeight, 'white', Window1)</l>
+<l>dev_set_part (0, 0, Height - 1 + TextHeight, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ContourHalf)</l>
+<c>* </c>
+<c>* Algebraic</c>
+<l>fit_ellipse_contour_xld (ContourHalf, 'fitzgibbon', -1, 0, 0, 200, 1, 1, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, 0, rad(360), 'positive', 1)</l>
+<l>dev_display (ContEllipse)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 40, 0)</l>
+<l>dev_display (Cross)</l>
+<c>* </c>
+<c>* Geometric</c>
+<l>fit_ellipse_contour_xld (ContourHalf, 'geometric', -1, 0, 0, 200, 1, 1, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('green')</l>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, 0, rad(360), 'positive', 1)</l>
+<l>dev_display (ContEllipse)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 40, 0)</l>
+<l>dev_display (Cross)</l>
+<l>write_text (Window1, Height + TextHeight)</l>
+<c>* </c>
+<c>* Compute a statistic of the distances of the contour points to the ellipse</c>
+<l>dist_ellipse_contour_xld (ContourHalf, 'geometric', -1, 0, Row, Column, Phi, Radius1, Radius2, MinDist, MaxDist, AvgDist, SigmaDist)</l>
+<c>* </c>
+<c>* </c>
+<c>*    Ellipse fitting for the segmented third tooth rim</c>
+<c>* </c>
+<l>dev_open_window (0, Width + 8, Width, Height + TextHeight, 'white', Window2)</l>
+<l>dev_set_part (0, 0, Height - 1 + TextHeight, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ContourThird)</l>
+<c>* </c>
+<c>* Algebraic</c>
+<l>fit_ellipse_contour_xld (ContourThird, 'fitzgibbon', -1, 0, 0, 200, 1, 1, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, 0, rad(360), 'positive', 1)</l>
+<l>dev_display (ContEllipse)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 40, 0)</l>
+<l>dev_display (Cross)</l>
+<c>* </c>
+<c>* Geometric</c>
+<l>fit_ellipse_contour_xld (ContourThird, 'geometric', -1, 0, 0, 200, 1, 1, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('green')</l>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, 0, rad(360), 'positive', 1)</l>
+<l>dev_display (ContEllipse)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 40, 0)</l>
+<l>dev_display (Cross)</l>
+<l>write_text (Window2, Height + TextHeight)</l>
+<c>* </c>
+<c>* </c>
+<c>*   Robust ellipse fitting for the complete, non-segmented tooth rim</c>
+<c>* </c>
+<l>dev_open_window (Height + 74 + TextHeight, 0, Width, Height + TextHeight, 'white', Window3)</l>
+<l>dev_set_part (0, 0, Height - 1 + TextHeight, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (ContourComplete)</l>
+<c>* </c>
+<c>* Algebraic</c>
+<l>fit_ellipse_contour_xld (ContourComplete, 'ftukey', -1, 0, 5, 200, 10, 4, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('red')</l>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, 0, rad(360), 'positive', 1)</l>
+<l>dev_display (ContEllipse)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 40, 0)</l>
+<l>dev_display (Cross)</l>
+<c>* </c>
+<c>* Geometric</c>
+<l>fit_ellipse_contour_xld (ContourComplete, 'geotukey', -1, 0, 5, 200, 10, 4, Row, Column, Phi, Radius1, Radius2, StartPhi, EndPhi, PointOrder)</l>
+<l>dev_set_color ('green')</l>
+<l>gen_ellipse_contour_xld (ContEllipse, Row, Column, Phi, Radius1, Radius2, 0, rad(360), 'positive', 1)</l>
+<l>dev_display (ContEllipse)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 40, 0)</l>
+<l>dev_display (Cross)</l>
+<l>write_text (Window3, Height + TextHeight)</l>
+<c>* </c>
+<c>* </c>
+<c>* Segmentation of the tooth part of the rim</c>
+<c>* </c>
+<c>* Compute the distances of all contour points to the ellipse</c>
+<l>dist_ellipse_contour_points_xld (ContourComplete, 'signed', 0, Row, Column, Phi, Radius1, Radius2, Distances)</l>
+<c>* </c>
+<c>* Segmentation of the tooth rim deploying the periodicity of the teeth</c>
+<l>segment_tooth_rim (Distances, Ind)</l>
+<l>get_contour_xld (ContourComplete, Rows, Cols)</l>
+<l>Rows := Rows[Ind[0]:Ind[1]]</l>
+<l>Cols := Cols[Ind[0]:Ind[1]]</l>
+<l>gen_contour_polygon_xld (Contour, Rows, Cols)</l>
+<l>dev_open_window (Height + 74 + TextHeight, Width + 8, Width, Height + TextHeight, 'white', Window4)</l>
+<l>dev_set_part (0, 0, Height - 1 + TextHeight, Width - 1)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (Contour)</l>
+<l>dev_set_color ('orange red')</l>
+<c>* </c>
+<c>* </c>
+<c>* Compute the distances of the segmented contour points to the ellipse</c>
+<l>dist_ellipse_contour_points_xld (Contour, 'signed', 0, Row, Column, Phi, Radius1, Radius2, Distances)</l>
+<l>create_funct_1d_array (Distances, Rim)</l>
+<c>* </c>
+<c>* Compute the height of the teeth</c>
+<l>local_min_max_funct_1d (Rim, 'strict_min_max', 'false', ToothMin, ToothMax)</l>
+<l>ToothMin := ToothMin[1:|ToothMin| - 2]</l>
+<l>ToothMinFct := subset(Distances,ToothMin)</l>
+<l>ToothMax := ToothMax[1:|ToothMax| - 2]</l>
+<l>ToothMaxFct := subset(Distances,ToothMax)</l>
+<l>ToothAmpl := (mean(ToothMaxFct) - mean(ToothMinFct)) / 2</l>
+<c>* </c>
+<c>* Compute the distance between the teeth</c>
+<l>zero_crossings_funct_1d (Rim, ToothDist)</l>
+<l>ToothDist := ToothDist[1:|ToothDist| - 1] - ToothDist[0:|ToothDist| - 2]</l>
+<l>ToothDist := mean(ToothDist)</l>
+<c>* </c>
+<l>set_tposition (Window4, Height - 22 + TextHeight, 20)</l>
+<l>write_string (Window4, 'Tooth distance: ' + ToothDist$'-4.1f' + '    //    Tooth amplitude: ' + ToothAmpl$'-4.1f')</l>
+<c>* </c>
+<l>stop ()</l>
+<l>dev_set_window (Window1)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (Window2)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (Window3)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (Window4)</l>
+<l>dev_close_window ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="segment_tooth_rim">
+<interface>
+<ic>
+<par name="Distances" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Ind" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Segment the tooth rim by finding the periodic structure</c>
+<c>* </c>
+<l>create_funct_1d_array (Distances, Rim)</l>
+<l>zero_crossings_funct_1d (Rim, Zeros)</l>
+<l>ZerosDiff := Zeros[0:|Zeros| - 3] - Zeros[2:|Zeros| - 1]</l>
+<l>tuple_median (ZerosDiff, MedianZerosDiff)</l>
+<l>ZerosDiff := abs(ZerosDiff - MedianZerosDiff)</l>
+<l>Ind := round(Zeros[0])</l>
+<l>for i := 0 to |ZerosDiff| - 1 by 1</l>
+<l>    if (ZerosDiff[i] &gt; 6)</l>
+<l>        Ind := [Ind,round(Zeros[i + 1])]</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>Ind := [Ind,round(Zeros[|Zeros| - 1])]</l>
+<l>IndDiff := Ind[1:|Ind| - 1] - Ind[0:|Ind| - 2]</l>
+<l>tuple_max (IndDiff, Max)</l>
+<l>tuple_sort_index (IndDiff, IndMax)</l>
+<l>IndMax := IndMax[|IndMax| - 1]</l>
+<l>Ind := [Ind[IndMax],Ind[IndMax + 1]]</l>
+<l>return ()</l>
+</body>
+<docu id="segment_tooth_rim">
+<parameters>
+<parameter id="Distances"/>
+<parameter id="Ind"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="write_text">
+<interface>
+<ic>
+<par name="Window" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>set_tposition (Window, Height - 22, 20)</l>
+<l>dev_set_color ('green')</l>
+<l>write_string (Window, 'Geometric Algorithm  ')</l>
+<l>dev_set_color ('black')</l>
+<l>write_string (Window, 'vs.  ')</l>
+<l>dev_set_color ('red')</l>
+<l>write_string (Window, 'Algebraic Algorithm')</l>
+<l>return ()</l>
+</body>
+<docu id="write_text">
+<short lang="en_US">Writes the text in the lower part of the image.</short>
+<parameters>
+<parameter id="Height"/>
+<parameter id="Window"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

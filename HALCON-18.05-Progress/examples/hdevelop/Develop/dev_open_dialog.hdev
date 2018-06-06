@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ********************************************************</c>
+<c>* This examples shows how to use the HDevelop operator</c>
+<c>* dev_open_dialog, which opens modal dialogs.</c>
+<c>* ********************************************************</c>
+<c>* </c>
+<l>dev_open_dialog ('about_dialog')</l>
+<l>dev_open_dialog ('duplicate_procedure_dialog')</l>
+<l>dev_open_dialog ('export_dialog')</l>
+<l>dev_open_dialog ('open_graphics_windows_dialog')</l>
+<l>dev_open_dialog ('insert_visualization_code_dialog')</l>
+<l>dev_open_dialog ('read_image_dialog')</l>
+<l>dev_open_dialog ('print_dialog')</l>
+<l>dev_open_dialog ('properties_dialog')</l>
+<l>dev_open_dialog ('save_window_dialog')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

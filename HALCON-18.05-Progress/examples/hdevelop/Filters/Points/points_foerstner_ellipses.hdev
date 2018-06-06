@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program illustrates the usage of the covariance</c>
+<c>* matrices in conjunction with intensity().</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', MainWindow)</l>
+<l>SigmaGrad := 1.3</l>
+<l>SigmaInt := 3.0</l>
+<l>SigmaPoints := 4.0</l>
+<l>ThreshInhom := 600</l>
+<l>CrossSize := 0.2</l>
+<c>* </c>
+<c>* Create a synthetic image.</c>
+<c>* </c>
+<l>gen_image_const (Image, 'byte', 512, 512)</l>
+<l>gen_image_proto (Image, Image, 64)</l>
+<l>gen_contour_polygon_xld (Contour, [200,100,300,300,200,200], [100,400,400,300,300,100])</l>
+<l>paint_xld (Contour, Image, Image, 191)</l>
+<c>* </c>
+<l>gen_ellipse_contour_xld (Ellipse, 100, 200, rad(45), 2, 4, 0, 6.28318, 'positive', 1.5)</l>
+<l>paint_xld (Ellipse, Image, Image, 191)</l>
+<c>* </c>
+<c>* </c>
+<l>gen_empty_obj (NoisyJunctions)</l>
+<l>gen_empty_obj (NoisyArea)</l>
+<l>NumTurns := 20</l>
+<c>* </c>
+<l>for CurTurn := 1 to NumTurns by 1</l>
+<l>    add_noise_white (Image, ImageNoise, 32)</l>
+<l>    points_foerstner (ImageNoise, SigmaGrad, SigmaInt, SigmaPoints, ThreshInhom, 0.3, 'gauss', 'false', RowJunctions, ColJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>    gen_cross_contour_xld (Junctions, RowJunctions, ColJunctions, CrossSize, rad(45))</l>
+<l>    gen_cross_contour_xld (Area, RowArea, ColArea, CrossSize, rad(45))</l>
+<l>    concat_obj (NoisyJunctions, Junctions, NoisyJunctions)</l>
+<l>    concat_obj (NoisyArea, Area, NoisyArea)</l>
+<l>endfor</l>
+<c>* </c>
+<l>points_foerstner (Image, SigmaGrad, SigmaInt, SigmaPoints, ThreshInhom, 0.3, 'gauss', 'false', RowJunctions, ColJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>gen_cross_contour_xld (Junctions, RowJunctions, ColJunctions, CrossSize, rad(45))</l>
+<l>gen_cross_contour_xld (Area, RowArea, ColArea, CrossSize, rad(45))</l>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>gen_rectangle1 (Rectangle, 250, 50, 450, 250)</l>
+<l>intensity (Rectangle, ImageNoise, Mean, Deviation)</l>
+<l>Scale := Deviation</l>
+<l>gen_empty_obj (Ellipses)</l>
+<l>tuple_concat (ColJunctions, ColArea, Col)</l>
+<l>tuple_concat (RowJunctions, RowArea, Row)</l>
+<l>tuple_concat (CoRRJunctions, CoRRArea, CoRR)</l>
+<l>tuple_concat (CoRCJunctions, CoRCArea, CoRC)</l>
+<l>tuple_concat (CoCCJunctions, CoCCArea, CoCC)</l>
+<l>for CurPoint := 0 to |Col| - 1 by 1</l>
+<l>    D := CoRR[CurPoint]</l>
+<l>    E := CoRC[CurPoint]</l>
+<l>    F := CoCC[CurPoint]</l>
+<l>    FirstSqrt := (D - F) * (D - F) + 4.0 * E * E</l>
+<l>    SecondSqrt := max([D + F - sqrt(FirstSqrt),0])</l>
+<l>    SmallAxis := sqrt(SecondSqrt) / 2.82842</l>
+<l>    SecondSqrt := max([D + F + sqrt(FirstSqrt),0])</l>
+<l>    BigAxis := sqrt(SecondSqrt) / 2.82842</l>
+<l>    Phi := -atan2(2.0 * E,F - D) / 2</l>
+<l>    gen_ellipse_contour_xld (ContEllipse, Row[CurPoint], Col[CurPoint], Phi, Scale * BigAxis, Scale * SmallAxis, 0, 6.28318, 'positive', 0.25)</l>
+<l>    concat_obj (Ellipses, ContEllipse, Ellipses)</l>
+<l>endfor</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_display (NoisyJunctions)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_display (NoisyArea)</l>
+<l>dev_set_color ('cadet blue')</l>
+<l>dev_display (Ellipses)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

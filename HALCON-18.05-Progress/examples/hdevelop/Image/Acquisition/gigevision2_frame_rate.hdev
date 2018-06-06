@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a GigEVision compliant camera</c>
+<c>* (determine the actual frame rate with full resolution)</c>
+<c>* </c>
+<c>* </c>
+<l>open_framegrabber ('GigEVision2', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', 'default', 0, 1, AcqHandle)</l>
+<c>* </c>
+<l>get_framegrabber_param (AcqHandle, 'revision', Revision)</l>
+<c>* </c>
+<c>* open graphics window in half image size</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID)</l>
+<c>* </c>
+<c>* disable default visualization</c>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_time ('off')</l>
+<l>dev_update_var ('off')</l>
+<l>dev_update_window ('off')</l>
+<l>dev_set_color ('green')</l>
+<c>* </c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>NumImages := 0</l>
+<l>count_seconds (SecondsBegin)</l>
+<l>while (1)</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>    NumImages := NumImages + 1</l>
+<l>    count_seconds (SecondsCurrent)</l>
+<l>    FrameRate := NumImages / (SecondsCurrent - SecondsBegin)</l>
+<l>    dev_display (Image)</l>
+<l>    set_tposition (WindowID, 24, 12)</l>
+<l>    write_string (WindowID, 'Frame Rate: ' + FrameRate$'3.2f' + ' fps')</l>
+<l>endwhile</l>
+<c>* </c>
+<l>dev_update_pc ('on')</l>
+<l>dev_update_time ('on')</l>
+<l>dev_update_var ('on')</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

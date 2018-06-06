@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a Lumenera USB 2.0 camera</c>
+<c>* (query current parameter settings)</c>
+<c>* </c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('LuCam', 'revision', RevisionInfo, RevisionValues)</l>
+<l>info_framegrabber ('LuCam', 'bits_per_channel', bitsInfo, bitsInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'camera_type', CameraTypeInfo, CameraTypeInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'general', GeneralInfo, GeneralInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'ports', PortInfo, PortInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'defaults', DefaultInfo, DefaultInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'device', DeviceInfo, DeviceInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'external_trigger', triggerInfo, TriggerInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'field', FiedInfo, FieldInfoValues)</l>
+<l>info_framegrabber ('LuCam', 'color_space', ColorSpaceInfo, ColorSpaceValues)</l>
+<c>* </c>
+<l>get_system ('do_low_error', LowErrorFlag)</l>
+<l>if (LowErrorFlag == 'true')</l>
+<l>    set_system ('do_low_error', 'false')</l>
+<l>endif</l>
+<l>dev_update_pc ('off')</l>
+<c>* open camera with default settings:</c>
+<l>open_framegrabber ('LuCam', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'default', 'default', 'default', 0, 0, AcqHandle)</l>
+<c>* </c>
+<c>* query all available parameter names and sort them:</c>
+<l>info_framegrabber ('LuCam', 'parameters', ParameterInfo, ParameterInfoValues)</l>
+<l>tuple_sort (ParameterInfoValues, ParameterInfoValues)</l>
+<c>* </c>
+<c>* open graphics window for parameter output:</c>
+<l>* dev_close_window ()</l>
+<l>ImageHeight := 12 * |ParameterInfoValues| + 20</l>
+<l>dev_open_window (0, 0, 400, ImageHeight, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, ImageHeight - 1, 399)</l>
+<c>* </c>
+<c>* query all current parameter values:</c>
+<l>dev_set_check ('~give_error')</l>
+<l>dev_error_var (HalconError, 1)</l>
+<l>for i := 0 to |ParameterInfoValues| - 1 by 1</l>
+<l>    dev_set_color ('white')</l>
+<l>    set_tposition (WindowHandle, (12 * i) + 2, 10)</l>
+<l>    write_string (WindowHandle, ParameterInfoValues[i] + ': ')</l>
+<l>    get_framegrabber_param (AcqHandle, ParameterInfoValues[i], ParameterValue)</l>
+<l>    ShowValue := true</l>
+<l>    if (strlen(ParameterInfoValues[i]) &gt; 2)</l>
+<l>        if (ParameterInfoValues[i]{0:2} == 'do_')</l>
+<l>            write_string (WindowHandle, '&lt;action parameter&gt;')</l>
+<l>            ShowValue := false</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    if ((ShowValue == true) and (HalconError == H_MSG_TRUE))</l>
+<l>        dev_set_color ('green')</l>
+<l>        if (|ParameterValue| &gt; 1)</l>
+<l>            for j := 0 to |ParameterValue| - 2 by 1</l>
+<l>                write_string (WindowHandle, ParameterValue[j] + ',')</l>
+<l>            endfor</l>
+<l>            write_string (WindowHandle, ParameterValue[j])</l>
+<l>        else</l>
+<l>            if (|ParameterValue| == 1)</l>
+<l>                write_string (WindowHandle, ParameterValue)</l>
+<l>            else</l>
+<l>                dev_set_color ('red')</l>
+<l>                write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    else</l>
+<l>        if (ShowValue == true)</l>
+<l>            dev_set_color ('red')</l>
+<l>            write_string (WindowHandle, '&lt;not supported&gt;')</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>dev_set_check ('give_error')</l>
+<l>set_system ('do_low_error', LowErrorFlag)</l>
+<l>dev_update_pc ('on')</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

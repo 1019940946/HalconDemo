@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************************</c>
+<c>* Example for restricting the pose range in Surface-Based 3D Matching</c>
+<c>* </c>
+<c>* This example shows how the allowed range of rotations can be</c>
+<c>* restricted, to remove incorrect or unwanted matches</c>
+<c>* in find_surface_model.</c>
+<c>* </c>
+<c>* ***********************************************************************</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>gen_empty_obj (EmptyObject)</l>
+<l>ImagePath := 'time_of_flight/'</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 176, 144, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* ***********************************************************************</c>
+<c>* Offline-Phase: Generate model from a reference XYZ Image.</c>
+<c>* ***********************************************************************</c>
+<c>* </c>
+<c>* Load the XYZ images with the reference object.</c>
+<l>read_image (Image, ImagePath + 'engine_cover_xyz_01')</l>
+<l>decompose3 (Image, Xm, Ym, Zm)</l>
+<c>* Remove the background plane.</c>
+<l>threshold (Zm, ModelZ, 0, 650)</l>
+<c>* Find connected regions.</c>
+<l>connection (ModelZ, ConnectedModel)</l>
+<c>* Select the regions for the ROI of the reference model.</c>
+<l>select_obj (ConnectedModel, ModelROI, [10,9])</l>
+<l>union1 (ModelROI, ModelROI)</l>
+<c>* Create the ROI.</c>
+<l>reduce_domain (Xm, ModelROI, Xm)</l>
+<c>* </c>
+<c>* Display model image and ROI.</c>
+<l>dev_display (Zm)</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (ModelROI)</l>
+<l>dev_disp_text ('Create surface model from XYZ image region.', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* Create the surface model from the reference view.</c>
+<l>xyz_to_object_model_3d (Xm, Ym, Zm, ObjectModel3DModel)</l>
+<l>create_surface_model (ObjectModel3DModel, 0.03, [], [], SFM)</l>
+<c>* </c>
+<c>* Display the model.</c>
+<l>Instructions[0] := 'Rotate: Left button'</l>
+<l>Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<c>* </c>
+<c>* ***********************************************************************</c>
+<c>* Online-Phase: Match the reference object in 3D scenes.</c>
+<c>* ***********************************************************************</c>
+<c>* </c>
+<c>* ***************************************</c>
+<c>* Acquire scene.</c>
+<c>* ***************************************</c>
+<c>* Load the XYZ Images.</c>
+<l>Index := 7</l>
+<l>read_image (Image, ImagePath + 'engine_cover_xyz_' + Index$'02')</l>
+<l>decompose3 (Image, X, Y, Z)</l>
+<c>* Remove the background plane to increase</c>
+<c>* the speed and robustness of the surface-based matching.</c>
+<l>threshold (Z, SceneGood, 0, 666)</l>
+<l>reduce_domain (X, SceneGood, XReduced)</l>
+<l>xyz_to_object_model_3d (XReduced, Y, Z, ObjectModel3DSceneReduced)</l>
+<c>* </c>
+<c>* ***************************************</c>
+<c>* Matching without pose restriction.</c>
+<c>* ***************************************</c>
+<l>count_seconds (T0)</l>
+<l>find_surface_model (SFM, ObjectModel3DSceneReduced, 0.05, 0.3, 0.2, 'true', 'num_matches', 10, Pose, Score, SurfaceMatchingResultID)</l>
+<l>count_seconds (T1)</l>
+<l>TimeForMatchingNoRestriction := (T1 - T0) * 1000</l>
+<c>* </c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DModelFound)</l>
+<l>xyz_to_object_model_3d (X, Y, Z, ObjectModel3DScene)</l>
+<c>* </c>
+<c>* Visualize matching scene and key points</c>
+<l>Title := 'Detecting all poses (no pose restriction)'</l>
+<l>Title[1] := 'Time for matching: ' + TimeForMatchingNoRestriction$'.3' + ' ms'</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DScene,ObjectModel3DModelFound], [], [], ['colored','color_0'], [12,'gray'], Title, [], Instructions, PoseOut)</l>
+<c>* </c>
+<c>* ***************************************</c>
+<c>* Matching with pose restriction.</c>
+<c>* ***************************************</c>
+<l>dev_clear_window ()</l>
+<l>Text := 'Restricting pose range to allow only poses '</l>
+<l>Text[1] := 'that are similar to the original position.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>set_surface_model_param (SFM, 'pose_restriction_reference_pose', [0,0,0,0,0,0,0])</l>
+<c>* Allow at most 45 degrees deviation.</c>
+<l>set_surface_model_param (SFM, 'pose_restriction_max_angle_diff', rad(45))</l>
+<c>* </c>
+<l>count_seconds (T0)</l>
+<l>find_surface_model (SFM, ObjectModel3DSceneReduced, 0.05, 0.3, 0.2, 'true', 'num_matches', 10, Pose, Score, SurfaceMatchingResultID)</l>
+<l>count_seconds (T1)</l>
+<l>TimeForMatchingWithRestriction := (T1 - T0) * 1000</l>
+<c>* </c>
+<l>rigid_trans_object_model_3d (ObjectModel3DModel, Pose, ObjectModel3DModelFound)</l>
+<l>xyz_to_object_model_3d (X, Y, Z, ObjectModel3DScene)</l>
+<c>* </c>
+<c>* Visualize matching scene and key points.</c>
+<l>Title := 'Detecting all poses (with pose restriction)'</l>
+<l>Title[1] := 'Time for matching without restriction: ' + TimeForMatchingNoRestriction$'.3' + ' ms'</l>
+<l>Title[2] := 'Time for matching with restriction: ' + TimeForMatchingWithRestriction$'.3' + ' ms'</l>
+<l>visualize_object_model_3d (WindowHandle, [ObjectModel3DScene,ObjectModel3DModelFound], [], PoseOut, ['colored','color_0'], [12,'gray'], Title, [], Instructions, PoseOut)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

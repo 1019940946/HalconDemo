@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the usage of the new '3d_plot' mode</c>
+<c>* of the operator set_paint. The results of depth_from_focus</c>
+<c>* are displayed in 3d and the user can manipulate the camera</c>
+<c>* using the mouse.</c>
+<l>Names := []</l>
+<l>dev_close_window ()</l>
+<l>for i := 1 to 10 by 1</l>
+<l>    Names := [Names,'dff/focus_' + (i$'.2')]</l>
+<l>endfor</l>
+<l>read_image (Image, Names)</l>
+<l>channels_to_image (Image, Image)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowHandle)</l>
+<l>dev_update_var ('off')</l>
+<l>for j := 1 to 5 by 1</l>
+<l>    for i := 1 to 10 by 1</l>
+<l>        access_channel (Image, Image1, i)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>stop ()</l>
+<l>dev_open_window (Height / 2 + 70, 0, Width / 2, Height / 2, 'black', WindowHandle2)</l>
+<l>depth_from_focus (Image, Depth, Confidence, 'highpass', 'next_maximum')</l>
+<l>mean_image (Depth, DepthHighConf, 11, 11)</l>
+<l>select_grayvalues_from_channels (Image, DepthHighConf, SharpImage)</l>
+<l>scale_image_max (DepthHighConf, ImageScaleMax)</l>
+<l>mean_image (ImageScaleMax, DepthMean, 51, 51)</l>
+<l>compose2 (DepthMean, SharpImage, DepthMean)</l>
+<l>dev_display (SharpImage)</l>
+<c>* Sharp image now constructed</c>
+<l>stop ()</l>
+<l>open_window (100, Width / 2 + 30, Width, Height, 0, 'visible', '', WindowHandle3)</l>
+<l>dev_open_window (Height + 50, Width / 2 + 30, Width, 100, 'white', WindowHandle4)</l>
+<l>dev_set_window (WindowHandle4)</l>
+<l>dev_set_color ('black')</l>
+<l>disp_message (WindowHandle4, 'The mouse can be used to manipulate the 3D plot in the following ways:', 'window', 0, 0, 'black', 'false')</l>
+<l>disp_message (WindowHandle4, ' - The height field is rotated if the mouse is moved while the left mouse button is pressed.', 'window', 20, 10, 'black', 'false')</l>
+<l>disp_message (WindowHandle4, ' - The height field is zoomed if the mouse is moved while the right mouse button is pressed.', 'window', 40, 10, 'black', 'false')</l>
+<l>disp_message (WindowHandle4, ' - The height field is moved if the mouse is moved while the left and the right mouse button are pressed.', 'window', 60, 10, 'black', 'false')</l>
+<l>disp_message (WindowHandle4, 'The 3D plot can be ended by pressing the middle mouse button(this may be the mouse wheel).', 'window', 80, 0, 'black', 'false')</l>
+<c>* Set ShowCoordinates to true to display image coordinates</c>
+<l>ShowCoordinates := false</l>
+<l>* ShowCoordinates := true</l>
+<c>* Choose one of the following modes available for 3d plot</c>
+<l>* Mode := 'shaded'</l>
+<l>* Mode := 'contour_lines'</l>
+<l>* Mode := 'hidden_lines'</l>
+<l>Mode := 'texture'</l>
+<l>interactive_3d_plot (DepthMean, WindowHandle3, Mode, ['plot_quality','show_coordinates','step','display_grid'], ['best',ShowCoordinates,1,'false'])</l>
+<l>dev_set_paint ('default')</l>
+<l>* stop ()</l>
+<c>* 3 dimensional reconstruction</c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle2)</l>
+<l>dev_close_window ()</l>
+<l>dev_set_window (WindowHandle4)</l>
+<l>dev_close_window ()</l>
+<l>close_window (WindowHandle3)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="interactive_3d_plot">
+<interface>
+<io>
+<par name="HeightField" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="Mode" base_type="ctrl" dimension="0"/>
+<par name="ParamNames" base_type="ctrl" dimension="0"/>
+<par name="ParamValues" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure is used for the interactive display of a height field</c>
+<c>* and demonstrates the use of the operators update_window_pose and</c>
+<c>* unproject_coordinates.</c>
+<c>* The user manipulates the pose of the height field using the mouse.</c>
+<c>* If the mouse is moved while the left mouse button is pressed, the</c>
+<c>* height field is rotated using a virtual trackball model. If the mouse</c>
+<c>* is moved up and down while the right mouse button is pressed, the</c>
+<c>* camera zooms in and out. If the mouse is moved while the left and</c>
+<c>* the right mouse button are pressed, the height field is moved.</c>
+<c>* Interactive display ends as soon as the middle mouse button is</c>
+<c>* pressed.</c>
+<c>* Using ParamNames and ParamValues the following parameters can be</c>
+<c>* passed:</c>
+<c>*   plot_quality       the quality of the 3d_plot (see set_window_param)</c>
+<c>*   display_grid       display a grid at height = 0</c>
+<c>*   angle_of_view      parameter of the camera (see set_window_param)</c>
+<c>*   show_coordinates   if true, image coordinates are shown using unproject_coordinates</c>
+<c>*   step               step size of the 3d plot</c>
+<l>dev_set_preferences ('graphics_window_context_menu', 'false')</l>
+<l>get_paint (WindowHandle, PreviousPlotMode)</l>
+<l>tuple_find (ParamNames, 'plot_quality', Indices)</l>
+<l>if (not (Indices == -1))</l>
+<l>    set_window_param (WindowHandle, 'plot_quality', ParamValues[Indices[0]])</l>
+<l>endif</l>
+<l>tuple_find (ParamNames, 'display_grid', Indices)</l>
+<l>if (not (Indices == -1))</l>
+<l>    set_window_param (WindowHandle, 'display_grid', ParamValues[Indices[0]])</l>
+<l>endif</l>
+<l>tuple_find (ParamNames, 'angle_of_view', Indices)</l>
+<l>if (not (Indices == -1))</l>
+<l>    set_window_param (WindowHandle, 'angle_of_view', ParamValues[Indices[0]])</l>
+<l>endif</l>
+<l>ShowCoordinates := false</l>
+<l>tuple_find (ParamNames, 'show_coordinates', Indices)</l>
+<l>if (not (Indices == -1))</l>
+<l>    ShowCoordinates := ParamValues[Indices[0]]</l>
+<l>endif</l>
+<l>Step := '*'</l>
+<l>tuple_find (ParamNames, 'step', Indices)</l>
+<l>if (not (Indices == -1))</l>
+<l>    Step := ParamValues[Indices[0]]</l>
+<l>endif</l>
+<l>set_paint (WindowHandle, ['3d_plot',Mode,Step,'auto'])</l>
+<l>set_window_param (WindowHandle, 'interactive_plot', 'true')</l>
+<l>set_colored (WindowHandle, 12)</l>
+<l>Button := []</l>
+<l>ButtonDown := false</l>
+<l>while (1)</l>
+<l>    dev_set_check ('~give_error')</l>
+<l>    get_mposition_sub_pix (WindowHandle, Row, Column, Button)</l>
+<l>    if (ShowCoordinates)</l>
+<l>        unproject_coordinates (HeightField, WindowHandle, Row, Column, ImageRow, ImageColumn, Height)</l>
+<l>        get_window_extents (WindowHandle, WindowRow, WindowColumn, WindowWidth, WindowHeight)</l>
+<l>        get_window_param (WindowHandle, 'background_color', BackgroundColor)</l>
+<l>        set_color (WindowHandle, BackgroundColor)</l>
+<l>        disp_rectangle1 (WindowHandle, 0, 0, 19, WindowWidth - 1)</l>
+<l>        if (BackgroundColor == 'black')</l>
+<l>            set_color (WindowHandle, 'white')</l>
+<l>        else</l>
+<l>            set_color (WindowHandle, 'black')</l>
+<l>        endif</l>
+<l>        set_tposition (WindowHandle, 1, 10)</l>
+<l>        write_string (WindowHandle, 'ImageRow: ' + ImageRow)</l>
+<l>        write_string (WindowHandle, '   ImageColumn: ' + ImageColumn)</l>
+<l>        write_string (WindowHandle, '   Height: ' + Height)</l>
+<c>        * reset colors, because the axis are drawn in the first three colors</c>
+<l>        set_colored (WindowHandle, 12)</l>
+<l>    endif</l>
+<l>    dev_set_check ('give_error')</l>
+<l>    if (Button == [])</l>
+<l>        Button := 0</l>
+<l>    endif</l>
+<l>    if (ButtonDown and (Button == 0))</l>
+<l>        ButtonDown := false</l>
+<l>    endif</l>
+<l>    if (not (Button == 0))</l>
+<l>        if (ButtonDown)</l>
+<l>            if (Button == 1)</l>
+<l>                mode := 'rotate'</l>
+<l>            endif</l>
+<l>            if (Button == 4)</l>
+<l>                mode := 'scale'</l>
+<l>            endif</l>
+<l>            if (Button == 5)</l>
+<l>                mode := 'move'</l>
+<l>            endif</l>
+<l>            update_window_pose (WindowHandle, lastRow, lastCol, Row, Column, mode)</l>
+<l>        else</l>
+<l>            if (Button == 2)</l>
+<l>                break</l>
+<l>            endif</l>
+<l>            ButtonDown := true</l>
+<l>        endif</l>
+<l>        lastCol := Column</l>
+<l>        lastRow := Row</l>
+<l>    endif</l>
+<c>    * disp_image can not be used because it discards all channels but</c>
+<c>    * the first, hence the texture mode would not work.</c>
+<l>    disp_obj (HeightField, WindowHandle)</l>
+<l>endwhile</l>
+<l>set_window_param (WindowHandle, 'interactive_plot', 'false')</l>
+<l>set_paint (WindowHandle, PreviousPlotMode)</l>
+<l>return ()</l>
+</body>
+<docu id="interactive_3d_plot">
+<chapters lang="en_US">
+<item>Graphics, Window</item>
+</chapters>
+<short lang="en_US">Interactive display of a height field</short>
+<parameters>
+<parameter id="HeightField"/>
+<parameter id="Mode"/>
+<parameter id="ParamNames"/>
+<parameter id="ParamValues"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ball_seq.hdev: Inspection of Ball Bonding</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>ImageNames := 'die/' + ['die_02','die_03','die_04','die_07']</l>
+<l>dev_set_colored (12)</l>
+<l>read_image (Bond, ImageNames[0])</l>
+<l>get_image_size (Bond, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>NumImages := |ImageNames|</l>
+<l>for I := 0 to NumImages - 1 by 1</l>
+<l>    read_image (Bond, ImageNames[I])</l>
+<l>    dev_display (Bond)</l>
+<l>    min_max_gray (Bond, Bond, 0, Min, Max, Range)</l>
+<l>    threshold (Bond, Bright, Max - 80, 255)</l>
+<l>    shape_trans (Bright, Die, 'rectangle2')</l>
+<l>    dev_display (Die)</l>
+<l>    reduce_domain (Bond, Die, DieGrey)</l>
+<l>    min_max_gray (Die, Bond, 0, Min, Max, Range)</l>
+<l>    threshold (DieGrey, Wires, 0, Min + 30)</l>
+<l>    fill_up_shape (Wires, WiresFilled, 'area', 1, 100)</l>
+<l>    opening_circle (WiresFilled, Balls, 9.5)</l>
+<l>    connection (Balls, SingleBalls)</l>
+<l>    select_shape_std (SingleBalls, Rect, 'rectangle1', 90)</l>
+<l>    difference (SingleBalls, Rect, IntermediateBalls)</l>
+<l>    gen_empty_region (Forbidden)</l>
+<l>    expand_gray (IntermediateBalls, Bond, Forbidden, RegionExpand, 4, 'image', 6)</l>
+<l>    opening_circle (RegionExpand, RoundBalls, 15.5)</l>
+<l>    sort_region (RoundBalls, FinalBalls, 'first_point', 'true', 'column')</l>
+<l>    smallest_circle (FinalBalls, Row, Column, Radius)</l>
+<l>    NumBalls := |Radius|</l>
+<l>    Diameter := 2 * Radius</l>
+<l>    meanDiameter := sum(Diameter) / NumBalls</l>
+<l>    mimDiameter := min(Diameter)</l>
+<l>    dev_display (RoundBalls)</l>
+<l>    if (I != NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

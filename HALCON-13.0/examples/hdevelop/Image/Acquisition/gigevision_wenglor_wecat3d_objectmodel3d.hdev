@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the Wenglor weCat3D series sensor in HALCON</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use</c>
+<c>* it to generate a HALCON ObjectModel3D which will then be</c>
+<c>* visualized.</c>
+<c>* </c>
+<c>* Note: the object 3D model is represented with the HALCON</c>
+<c>*       camera 3D coordinate system in meters.</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 640, 480, -1, -1, WindowHandle)</l>
+<c>* </c>
+<c>* Start the Wenglor server</c>
+<l>Path := '&lt;Path to the weCat3D GigE interface&gt;'</l>
+<l>file_exists (Path + '/' + 'weCat3DGigEInterface.exe', FileExists)</l>
+<l>if (not FileExists)</l>
+<c>    * The weCat3D GigE Interface is not at the specified Path.</c>
+<c>    * Please note that you first need to install and start the</c>
+<c>    * weCat3D GigE Interface server which you can download from</c>
+<c>    * https://www.wenglor.com/directlink/weCat3D_GigEVision_SDK</c>
+<l>    stop ()</l>
+<l>endif</l>
+<l>IP := '192.168.100.100'</l>
+<l>DeviceIP := '192.168.100.1'</l>
+<l>system_call ('start ' + Path + '/' + 'weCat3DGigEInterface.exe -s' + IP + ' -i' + DeviceIP)</l>
+<l>wait_seconds (3)</l>
+<c>* </c>
+<c>* Connect to the Wenglor device</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GigEVision', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', 'GtlForceSocketDriver=1', 'false', 'default', 'weCat3D', 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Set the imaging mode to Rectified &amp; Mono16 (currently only with this mode</c>
+<c>* the full resolution is achievable)</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,2]" as_ord="1">set_framegrabber_param (AcqHandle, 'PixelFormat', 'Mono16')</l>
+<l>set_framegrabber_param (AcqHandle, 'Scan3DRectified', 1)</l>
+<c>* </c>
+<c>* Get the image width, working range in Z-direction and the scale and offset</c>
+<c>* in the X-direction.</c>
+<l>get_framegrabber_param (AcqHandle, 'Width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'DeviceWorkingRangeZ', DeviceWorkingRange)</l>
+<l>get_framegrabber_param (AcqHandle, 'DeviceWorkingRangeZStart', DeviceWorkingRangeStart)</l>
+<l>get_framegrabber_param (AcqHandle, 'Scan3DScaleX', Scan3DScaleX)</l>
+<l>get_framegrabber_param (AcqHandle, 'Scan3DOffsetX', Scan3DOffsetX)</l>
+<c>* </c>
+<c>* Set the number of profiles to be measured</c>
+<l>NumberOfProfiles := 25</l>
+<l>set_framegrabber_param (AcqHandle, 'NumberOfProfiles', NumberOfProfiles)</l>
+<c></c>
+<l>gen_image_surface_first_order (X, 'real', 0, Scan3DScaleX * 0.001, Scan3DOffsetX * 0.001, 0, 0, Width, NumberOfProfiles)</l>
+<l>gen_image_surface_first_order (Y, 'real', 0.001, 0, -(NumberOfProfiles - 1) / 2.0 * 0.001, 0, 0, Width, NumberOfProfiles)</l>
+<c>* </c>
+<c>* Scaling factors for the conversion from mm to m</c>
+<l>ScaledWorkingRange := DeviceWorkingRange * 0.001 / 65535.0</l>
+<l>ScaledWorkingRangeStart := DeviceWorkingRangeStart * 0.001</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,2]" as_ord="1">while (true)</l>
+<c>    * </c>
+<c>    * Grab the image</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    convert_image_type (Image, Image, 'real')</l>
+<c>    * </c>
+<c>    * Calculate the Z values from the intensities</c>
+<l>    scale_image (Image, Z, ScaledWorkingRange, ScaledWorkingRangeStart)</l>
+<c>    * </c>
+<c>    * Generate the ObjectModel3D and visualize it, press the button to continue</c>
+<l>    xyz_to_object_model_3d (X, Y, Z, ObjectModel3D)</l>
+<l>    select_points_object_model_3d (ObjectModel3D, 'point_coord_z', ScaledWorkingRangeStart + 0.0001, 1, ObjectModel3DThresholded)</l>
+<l>    dev_clear_window ()</l>
+<l>    try</l>
+<l>        visualize_object_model_3d (WindowHandle, ObjectModel3DThresholded, [], [], ['color','alpha'], ['red',0.9], 'ObjectModel3D', [], [], PoseOut)</l>
+<l>    catch (Exception)</l>
+<c>        * </c>
+<c>        * ObjectModel3DThresholded contains no points.</c>
+<l>        dev_disp_text ('ObjectModel3D contains no points', 'window', 12, 12, 'black', [], [])</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endtry</l>
+<c>    * </c>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d ([ObjectModel3D,ObjectModel3DThresholded])</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<c>* </c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

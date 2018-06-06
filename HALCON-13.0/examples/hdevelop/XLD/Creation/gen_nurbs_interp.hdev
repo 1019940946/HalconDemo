@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Create a NURBS curve that interpolates a list of points.</c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>Rows := [150,160,130,140,180]</l>
+<l>Cols := [50,200,300,400,450]</l>
+<l>gen_cross_contour_xld (Cross, Rows, Cols, 12, 0.785398)</l>
+<l>gen_nurbs_interp (Rows, Cols, [0,-10,0,10], 3, CtrlRows, CtrlCols, Knots)</l>
+<l>gen_contour_nurbs_xld (Contour, CtrlRows, CtrlCols, Knots, 'auto', 3, 1, 5)</l>
+<l>dev_display (Contour)</l>
+<l>dev_display (Cross)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

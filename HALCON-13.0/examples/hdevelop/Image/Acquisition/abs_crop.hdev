@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for grabbing images from a ABS camera</c>
+<c>* (image cropping)</c>
+<c>* </c>
+<c>* </c>
+<l>info_framegrabber ('ABS', 'revision', RevInfo, RevInfoValues)</l>
+<l>info_framegrabber ('ABS', 'info_boards', BoardInfo, BoardInfoValues)</l>
+<c>* </c>
+<c>* open ABS camera with full image part</c>
+<l>open_framegrabber ('ABS', 1, 1, 0, 0, 0, 0, 'default', -1, 'default', -1, 'false', 'default', '1', -1, -1, AcqHandle)</l>
+<l>get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>SensorSize := [ImageSize[0],ImageSize[1]]</l>
+<l>dev_close_window ()</l>
+<l>if (SensorSize[0] &gt; 1024)</l>
+<l>    dev_open_window (0, 0, ImageSize[0] / 4, ImageSize[1] / 4, 'black', WindowHandle)</l>
+<l>else</l>
+<l>    dev_open_window (0, 0, ImageSize[0] / 2, ImageSize[1] / 2, 'black', WindowHandle)</l>
+<l>endif</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>grab_image (Image, AcqHandle)</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* open ABS camera with varying image part</c>
+<c>* (via open_framegrabbber)</c>
+<l>for UpperLeftRow := 0 to SensorSize[1] / 2 by 128</l>
+<l>    for UpperLeftColumn := 0 to SensorSize[0] / 2 by 128</l>
+<l>        open_framegrabber ('ABS', 1, 1, (SensorSize[0] / 2) + ((SensorSize[0] / 2) % 16), (SensorSize[1] / 2) + ((SensorSize[1] / 2) % 16), UpperLeftRow, UpperLeftColumn, 'default', -1, 'default', -1, 'false', 'default', '1', -1, -1, AcqHandle)</l>
+<l>        get_framegrabber_param (AcqHandle, 'roi', CurrentROI)</l>
+<l>        get_framegrabber_param (AcqHandle, ['image_width','image_height'], ImageSize)</l>
+<l>        get_framegrabber_param (AcqHandle, ['start_row','start_column'], UpperLeftCorner)</l>
+<l>        if (SensorSize[0] &gt; 1024)</l>
+<l>            dev_open_window (UpperLeftRow / 4, UpperLeftColumn / 4, ImageSize[0] / 4, ImageSize[1] / 4, 'black', WindowHandle)</l>
+<l>        else</l>
+<l>            dev_open_window (UpperLeftRow / 2, UpperLeftColumn / 2, ImageSize[0] / 2, ImageSize[1] / 2, 'black', WindowHandle)</l>
+<l>        endif</l>
+<l>        grab_image (Image, AcqHandle)</l>
+<l>        dev_display (Image)</l>
+<l>        wait_seconds (0.5)</l>
+<l>        dev_close_window ()</l>
+<l>        close_framegrabber (AcqHandle)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

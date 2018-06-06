@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program creates artificial QR codes</c>
+<c>* with common problems such as a low resolution,</c>
+<c>* horizontal/vertical deformations, blur, and</c>
+<c>* print loss/growth, and then reads these QR codes.</c>
+<c>* </c>
+<c>* Initialization.</c>
+<l>dev_update_off ()</l>
+<l>read_image (QRCodeImage, 'datacode/qrcode/qr_generated')</l>
+<l>gen_image_noisy_qrcode (QRCodeImage, QRCodeImageNoise, 40)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (QRCodeImageNoise, 0, 0, 1024, 768, WindowHandle)</l>
+<l>get_window_param (WindowHandle, 'flush', Flush)</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<l>set_display_font (WindowHandle, 15, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('#00ff00aa')</l>
+<l>dev_set_line_width (8)</l>
+<c>* </c>
+<c>* Display introduction.</c>
+<l>dev_display (QRCodeImageNoise)</l>
+<l>Text := 'This program creates and reads artificial QR codes'</l>
+<l>Text[1] := 'with common problems:'</l>
+<l>Text[2] := ''</l>
+<l>Text[3] := '1. Low resolution'</l>
+<l>Text[4] := '2. Horizontal/vertical deformations'</l>
+<l>Text[5] := '3. Blur'</l>
+<l>Text[6] := '4. Print loss/growth'</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<l>create_data_code_2d_model ('QR Code', [], [], DataCodeHandle)</l>
+<c>* Increase sensitivity for small codes.</c>
+<l>set_data_code_2d_param (DataCodeHandle, 'module_size_min', 2)</l>
+<l>set_data_code_2d_param (DataCodeHandle, 'small_modules_robustness', 'high')</l>
+<c>* </c>
+<c>* 1. Show robustness against low-resolution images.</c>
+<c>* </c>
+<l>Zoom := [1,0.5,0.3,0.15,0.14,0.13,0.12,0.11]</l>
+<l>for Index := 0 to |Zoom| - 1 by 1</l>
+<c>    * Zoom image, create low-resolution image.</c>
+<l>    zoom_image_factor (QRCodeImageNoise, ImageZoomed, Zoom[Index], Zoom[Index], 'weighted')</l>
+<c>    * Find QR code and compute time in ms.</c>
+<l>    count_seconds (Start)</l>
+<l>    find_data_code_2d (ImageZoomed, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    count_seconds (End)</l>
+<l>    Time := ((End - Start) * 1000)$'.2f' + ' ms'</l>
+<c>    * Visualize result.</c>
+<l>    dev_display (ImageZoomed)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    dev_disp_text (['1. Low resolution','   Read in ' + Time], 'window', 'top', 'left', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<c>* 2. Show robustness against horizontal/vertical deformations.</c>
+<c>* </c>
+<l>get_image_size (QRCodeImage, QRCodeWidth, QRCodeHeight)</l>
+<c>* Set the level of distortion and the positions where the distortion is applied.</c>
+<l>Distortion := 7</l>
+<l>Position := [5:60]</l>
+<l>Position := [Position,inverse(Position)]</l>
+<c>* Modes: 0 = vertically distorted, 1 = horizontally distorted, 2 = both directions distorted</c>
+<l>for Mode := 0 to 2 by 1</l>
+<l>    for Index := 0 to |Position| - 1 by 1</l>
+<l>        distort_qrcode (QRCodeImage, QRCodeImageDeform, Position[Index], QRCodeWidth, QRCodeHeight, Mode, Distortion)</l>
+<l>        gen_image_noisy_qrcode (QRCodeImageDeform, QRCodeImageDeformNoise, 40)</l>
+<c>        * Find QR code and compute time in ms.</c>
+<l>        count_seconds (Start)</l>
+<l>        find_data_code_2d (QRCodeImageDeformNoise, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>        count_seconds (End)</l>
+<l>        Time := ((End - Start) * 1000)$'.2f' + ' ms'</l>
+<c>        * Visualize result.</c>
+<l>        dev_display (QRCodeImageDeformNoise)</l>
+<l>        dev_display (SymbolXLDs)</l>
+<l>        dev_disp_text (['2. Horizontal/vertical deformations','   Read in ' + Time], 'window', 'top', 'left', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>        flush_buffer (WindowHandle)</l>
+<l>        wait_seconds (0.01)</l>
+<l>    endfor</l>
+<l>endfor</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<c>* 3. Show robustness against blur.</c>
+<l>Blur := [7:2:17]</l>
+<l>for Index := 0 to |Blur| - 1 by 1</l>
+<c>    * Create blurry image.</c>
+<l>    mean_image (QRCodeImageNoise, ImageMean, Blur[Index], Blur[Index])</l>
+<c>    * Find QR code and compute time in ms.</c>
+<l>    count_seconds (Start)</l>
+<l>    find_data_code_2d (ImageMean, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    count_seconds (End)</l>
+<l>    Time := ((End - Start) * 1000)$'.2f' + ' ms'</l>
+<c>    * Visualize result.</c>
+<l>    dev_display (ImageMean)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    dev_disp_text (['3. Blur','   Read in ' + Time], 'window', 'top', 'left', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>    wait_seconds (0.5)</l>
+<l>endfor</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<c>* 4. Show robustness against print Loss.</c>
+<l>PrintLoss := [1:0.5:11]</l>
+<l>for Index := 0 to |PrintLoss| - 1 by 1</l>
+<c>    * Apply print loss.</c>
+<l>    gray_dilation_shape (QRCodeImageNoise, ImageMax, PrintLoss[Index], PrintLoss[Index], 'octagon')</l>
+<c>    * Find QR code and compute time in ms.</c>
+<l>    count_seconds (Start)</l>
+<l>    find_data_code_2d (ImageMax, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    count_seconds (End)</l>
+<l>    Time := ((End - Start) * 1000)$'.2f' + ' ms'</l>
+<c>    * Visualize result.</c>
+<l>    dev_display (ImageMax)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    dev_disp_text (['4. Print loss','   Read in ' + Time], 'window', 'top', 'left', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>    wait_seconds (0.1)</l>
+<l>endfor</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>flush_buffer (WindowHandle)</l>
+<l>set_window_param (WindowHandle, 'flush', 'true')</l>
+<l>stop ()</l>
+<l>set_window_param (WindowHandle, 'flush', 'false')</l>
+<c>* </c>
+<c>* Show robustness against print growth.</c>
+<l>PrintGrowth := [1:0.5:11]</l>
+<l>for Index := 0 to |PrintGrowth| - 1 by 1</l>
+<c>    * Apply print growth.</c>
+<l>    gray_erosion_shape (QRCodeImageNoise, ImageMin, PrintGrowth[Index], PrintGrowth[Index], 'octagon')</l>
+<c>    * Find QR code and compute time in ms.</c>
+<l>    count_seconds (Start)</l>
+<l>    find_data_code_2d (ImageMin, SymbolXLDs, DataCodeHandle, [], [], ResultHandles, DecodedDataStrings)</l>
+<l>    count_seconds (End)</l>
+<l>    Time := ((End - Start) * 1000)$'.2f' + ' ms'</l>
+<c>    * Visualize result.</c>
+<l>    dev_display (ImageMin)</l>
+<l>    dev_display (SymbolXLDs)</l>
+<l>    dev_disp_text (['4. Print growth','   Read in ' + Time], 'window', 'top', 'left', 'black', ['box_color','shadow'], ['#ddddddee','false'])</l>
+<l>    flush_buffer (WindowHandle)</l>
+<l>    wait_seconds (0.1)</l>
+<l>endfor</l>
+<c>* Restore default window parameter for 'flush'.</c>
+<l>set_window_param (WindowHandle, 'flush', Flush)</l>
+<l>clear_data_code_2d_model (DataCodeHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_image_noisy_qrcode">
+<interface>
+<io>
+<par name="QRCodeImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="QRCodeImageNoise" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Noise" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This procedure creates a noisy image based on a given image.</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<c>* Move the QR code image in the middle of a new image.</c>
+<l>hom_mat2d_translate_local (HomMat2DIdentity, 60, 160, HomMat2DTranslate)</l>
+<l>affine_trans_image_size (QRCodeImage, ImageAffineTrans, HomMat2DTranslate, 'constant', 640, 480)</l>
+<l>full_domain (ImageAffineTrans, QRCodeImageNoise)</l>
+<c>* </c>
+<c>* Determine the region of the image where there is no QR code.</c>
+<l>difference (QRCodeImageNoise, ImageAffineTrans, Rest)</l>
+<c>* Paint this region of the image white.</c>
+<l>overpaint_region (QRCodeImageNoise, Rest, 255, 'fill')</l>
+<c>* Blur this image.</c>
+<l>gauss_filter (QRCodeImageNoise, ImageGauss, 7)</l>
+<c>* Add noise to this image.</c>
+<l>add_noise_white (ImageGauss, ImageNoise, Noise)</l>
+<c>* Darken this image.</c>
+<l>scale_image (ImageNoise, QRCodeImageNoise, 0.6, 0.2)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_image_noisy_qrcode">
+<parameters>
+<parameter id="Noise">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="QRCodeImage">
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="QRCodeImageNoise">
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="distort_qrcode">
+<interface>
+<io>
+<par name="QRCodeImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="QRCodeImageDeform" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Position" base_type="ctrl" dimension="0"/>
+<par name="QRCodeWidth" base_type="ctrl" dimension="0"/>
+<par name="QRCodeHeight" base_type="ctrl" dimension="0"/>
+<par name="Mode" base_type="ctrl" dimension="0"/>
+<par name="Distortion" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Create a distortion map.</c>
+<l>WidthVectorField := 64</l>
+<l>HeightVectorField := 64</l>
+<l>gen_image_const (VectorField, 'vector_field', WidthVectorField, HeightVectorField)</l>
+<l>vector_field_to_real (VectorField, VectorFieldRow, VectorFieldColumn)</l>
+<l>for Row := 0 to HeightVectorField - 1 by 1</l>
+<l>    ColumnIndices := [0:WidthVectorField - 1]</l>
+<l>    Values := 20 * pow(2.7,1 - 6 * pow(ColumnIndices - Position,2))</l>
+<l>    X := ColumnIndices - Position</l>
+<l>    Values := Distortion * X / sqrt(1 + X * X)</l>
+<l>    set_grayval (VectorFieldRow, gen_tuple_const(WidthVectorField,Row), ColumnIndices, gen_tuple_const(WidthVectorField,0))</l>
+<l>    set_grayval (VectorFieldColumn, gen_tuple_const(WidthVectorField,Row), ColumnIndices, Values)</l>
+<l>endfor</l>
+<l>if (Mode == 0)</l>
+<c>    * Adjust parameters to distort QR code horizontally.</c>
+<l>    XCut := Distortion</l>
+<l>    YCut := 0</l>
+<l>elseif (Mode == 1)</l>
+<c>    * Adjust parameters to distort QR code vertically.</c>
+<l>    RotatedVectorFieldRow := VectorFieldRow</l>
+<l>    rotate_image (VectorFieldColumn, RotatedVectorFieldColumn, -90, 'weighted')</l>
+<l>    VectorFieldRow := RotatedVectorFieldColumn</l>
+<l>    VectorFieldColumn := RotatedVectorFieldRow</l>
+<l>    XCut := 0</l>
+<l>    YCut := Distortion</l>
+<l>elseif (Mode == 2)</l>
+<c>    * Adjust parameters to distort QR code in both directions.</c>
+<l>    rotate_image (VectorFieldColumn, RotatedVectorFieldColumn, -90, 'weighted')</l>
+<l>    VectorFieldRow := RotatedVectorFieldColumn</l>
+<l>    XCut := Distortion</l>
+<l>    YCut := Distortion</l>
+<l>endif</l>
+<c>* Distort QR code.</c>
+<l>derivate_gauss (VectorFieldRow, VectorFieldRow, 2.5, 'none')</l>
+<l>derivate_gauss (VectorFieldColumn, VectorFieldColumn, 2.5, 'none')</l>
+<l>zoom_image_size (VectorFieldRow, VectorFieldRowOrigin, QRCodeWidth, QRCodeHeight, 'weighted')</l>
+<l>zoom_image_size (VectorFieldColumn, VectorFieldColumnOrigin, QRCodeWidth, QRCodeHeight, 'weighted')</l>
+<l>real_to_vector_field (VectorFieldRowOrigin, VectorFieldColumnOrigin, VectorField1, 'vector_field_relative')</l>
+<l>unwarp_image_vector_field (QRCodeImage, VectorField1, ImageUnwarped)</l>
+<l>crop_rectangle1 (ImageUnwarped, QRCodeImageDeform, YCut, XCut, QRCodeHeight - YCut, QRCodeWidth - XCut)</l>
+<l>return ()</l>
+</body>
+<docu id="distort_qrcode">
+<parameters>
+<parameter id="Distortion">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Mode">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="Position">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="QRCodeHeight">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="QRCodeImage">
+<multichannel>false</multichannel>
+<multivalue>true</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="QRCodeImageDeform">
+<multichannel>false</multichannel>
+<multivalue>false</multivalue>
+<sem_type>image</sem_type>
+<type_list>
+<item>byte</item>
+</type_list>
+</parameter>
+<parameter id="QRCodeWidth">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<multivalue>false</multivalue>
+<sem_type>integer</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

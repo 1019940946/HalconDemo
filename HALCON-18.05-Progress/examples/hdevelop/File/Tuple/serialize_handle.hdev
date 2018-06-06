@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example shows how to use the operators</c>
+<c>* - serialize_handle, deserialize_handle,</c>
+<c>* - serialize_tuple, deserialize_tuple,</c>
+<c>* - tuple_is_serializable, tuple_is_serializable_elem,</c>
+<c>* - clear_handle</c>
+<c></c>
+<l>create_matrix (3, 3, 0, MatrixID)</l>
+<l>gen_object_model_3d_from_points (1, 2, 3, ObjectModel3D)</l>
+<l>dev_get_window (WindowHandle)</l>
+<c></c>
+<l>TupleToSerialize := [MatrixID,WindowHandle,ObjectModel3D,HNULL,1,2,'foobar']</l>
+<c></c>
+<c>* Some handles (like WindowHandle) cannot be serialized.</c>
+<c>* When attempting to serialize non-serializable handles, an error message is raised.</c>
+<l>try</l>
+<l>    serialize_tuple (TupleToSerialize, SerializedItem)</l>
+<l>catch (Exception)</l>
+<l>endtry</l>
+<c></c>
+<c>* find out which handles cannot be serialized</c>
+<l>tuple_is_serializable (TupleToSerialize, IsSerializable)</l>
+<l>tuple_is_serializable_elem (TupleToSerialize, IsSerializableElem)</l>
+<c></c>
+<c>* replace all non-serializable handles with HNULL</c>
+<l>if (sum(IsSerializableElem [==] 0) &gt; 0)</l>
+<l>    tuple_replace (TupleToSerialize, find(IsSerializableElem,0), HNULL, SerializableTupleToSerialize)</l>
+<l>else</l>
+<l>    SerializableTupleToSerialize := TupleToSerialize</l>
+<l>endif</l>
+<c></c>
+<c>* now, the serialization works</c>
+<l>serialize_tuple (SerializableTupleToSerialize, SerializedTuple)</l>
+<c></c>
+<c>* Deserialize the tuple again.</c>
+<c>* Note that handles will be duplicated, i.e., a copy of the original matrix and</c>
+<c>* 3D object model have been created.</c>
+<l>deserialize_tuple (SerializedTuple, Tuple)</l>
+<c></c>
+<c>* Note that serialize_handle and deserialize_handle are interchangable with</c>
+<c>* the serialization operators for the various sem_types</c>
+<l>serialize_matrix (MatrixID, SerializedMatrix)</l>
+<l>deserialize_handle (SerializedMatrix, MatrixID1)</l>
+<c>* The deserialized handle is a matrix</c>
+<l>tuple_sem_type (MatrixID1, SemType)</l>
+<l>serialize_handle (MatrixID, SerializedItem)</l>
+<l>deserialize_matrix (SerializedItem, MatrixID2)</l>
+<l>tuple_sem_type (MatrixID2, SemType)</l>
+<c></c>
+<c>* Similar to iconic objects like images, handles are automatically cleared</c>
+<c>* once all references to them are overwritten.</c>
+<c>* To manually clear a handle, use the operator clear_handle.</c>
+<c>* The handle can no longer be used afterwards.</c>
+<l>clear_handle (MatrixID2)</l>
+<l>tuple_sem_type (MatrixID2, SemType1)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

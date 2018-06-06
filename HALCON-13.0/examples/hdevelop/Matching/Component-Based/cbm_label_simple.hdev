@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows the use of the component-based matching</c>
+<c>* to locate a compound object.  In this case, a label should be found in an</c>
+<c>* image, of which neither the components nor the relations are known by</c>
+<c>* the user. Thus, three operators are necessary in order to create the</c>
+<c>* component model:</c>
+<c>*     1.)  gen_initial_components</c>
+<c>*     2.)  train_model_components</c>
+<c>*     3.)  create_trained_component_model</c>
+<c>* Finally, the component model is searched using</c>
+<c>*     4.)  find_component_model</c>
+<c>* </c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* Get all search images</c>
+<l>list_image_files ('label', 'default', [], SearchImageFiles)</l>
+<l>SearchImageFiles := regexp_select(SearchImageFiles,'(label_[0-9]+.png)|(label_training_)')</l>
+<c>* </c>
+<c>* Read and display the model image</c>
+<l>read_image (Image, 'label/label_model')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Set display settings</c>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_color ('blue')</l>
+<c>* </c>
+<c>* Define the model region</c>
+<l>gen_rectangle1 (ModelRegion, 119, 106, 330, 537)</l>
+<l>reduce_domain (Image, ModelRegion, ModelImage)</l>
+<l>dev_display (ModelRegion)</l>
+<l>disp_message (WindowHandle, 'Model image and model region', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get the training images</c>
+<l>gen_empty_obj (TrainingImages)</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    read_image (TrainingImage, 'label/label_training_' + Index)</l>
+<l>    concat_obj (TrainingImages, TrainingImage, TrainingImages)</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Extract the initial components automatically</c>
+<c>* ---------------------------------------------</c>
+<l>gen_initial_components (ModelImage, InitialComponents, 40, 40, 20, 'connection', [], [])</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (InitialComponents)</l>
+<l>disp_message (WindowHandle, 'Extracted initial components', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Extract the model components and train the relations</c>
+<c>* -----------------------------------------------------</c>
+<c>* (This may take a few minutes!)</c>
+<l>get_system ('pregenerate_shape_models', SavePregenerateShapeModels)</l>
+<l>set_system ('pregenerate_shape_models', 'true')</l>
+<l>train_model_components (ModelImage, InitialComponents, TrainingImages, ModelComponents, 40, 40, 20, 0.85, -1, -1, rad(15), 'reliability', 'rigidity', 0.2, 0.5, ComponentTrainingID)</l>
+<l>set_system ('pregenerate_shape_models', SavePregenerateShapeModels)</l>
+<c>* </c>
+<c>* The training result can be written to a file so that the</c>
+<c>* results can be read from file during future program</c>
+<c>* executions and the time demanding training does not need</c>
+<c>* to be performed again.</c>
+<l>* write_training_components (ComponentTrainingID, 'train_label.ct')</l>
+<l>* read_training_components ('train_label.ct', ComponentTrainingID)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ModelComponents)</l>
+<l>disp_message (WindowHandle, 'Extracted model components', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Add small tolerance values to the computed relations in order to cover</c>
+<c>* component variations that have not been present in the training images.</c>
+<l>modify_component_relations (ComponentTrainingID, 'all', 'all', 15, rad(5))</l>
+<c>* </c>
+<c>* Create the component model based on the training result</c>
+<c>* -------------------------------------------------------</c>
+<l>create_trained_component_model (ComponentTrainingID, -rad(30), rad(60), 10, 0.8, 'auto', 'auto', 'none', 'use_polarity', 'false', ComponentModelID, RootRanking)</l>
+<l>clear_training_components (ComponentTrainingID)</l>
+<c>* </c>
+<c>* Find the component model in a run-time image</c>
+<c>* --------------------------------------------</c>
+<l>for Index := 0 to |SearchImageFiles| - 1 by 1</l>
+<l>    read_image (SearchImage, SearchImageFiles[Index])</l>
+<l>    find_component_model (SearchImage, ComponentModelID, RootRanking, -rad(30), rad(60), 0.5, 0, 0.5, 'stop_search', 'prune_branch', 'none', 0.6, 'least_squares', 4, 0.9, ModelStart, ModelEnd, Score, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp)</l>
+<l>    dev_display (SearchImage)</l>
+<l>    for Match := 0 to |ModelStart| - 1 by 1</l>
+<l>        dev_display (SearchImage)</l>
+<l>        get_found_component_model (FoundComponents, ComponentModelID, ModelStart, ModelEnd, RowComp, ColumnComp, AngleComp, ScoreComp, ModelComp, Match, 'false', RowCompInst, ColumnCompInst, AngleCompInst, ScoreCompInst)</l>
+<l>        dev_display (FoundComponents)</l>
+<l>    endfor</l>
+<l>    disp_message (WindowHandle, 'Found components in image ' + (Index + 1) + ' of 15', 'window', 12, 12, 'black', 'true')</l>
+<c>    * </c>
+<c>    * To run the program without stops deactivate the following lines</c>
+<l>    if (Index &lt; |SearchImageFiles| - 1)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>clear_component_model (ComponentModelID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

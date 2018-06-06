@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the use of the optical flow operators.</c>
+<c>* By calculating the optical flow between two images, the</c>
+<c>* position, speed, and movement direction of particles are calculated.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<l>read_image (Image1, 'hydraulic_engineering/hydraulic_engineering_01')</l>
+<l>dev_open_window_fit_image (Image1, 0, 0, -1, -1, WindowHandle)</l>
+<c>* </c>
+<l>dev_set_draw ('margin')</l>
+<l>RCenter := -1</l>
+<l>CCenter := -1</l>
+<l>MeanR := 0</l>
+<l>MeanC := 0</l>
+<l>tanDir := 0</l>
+<l>ArrowLength := 15</l>
+<l>MinLength := 0.375</l>
+<c>* </c>
+<l>for Index := 2 to 50 by 1</l>
+<l>    read_image (Image2, 'hydraulic_engineering/hydraulic_engineering_' + Index$'02')</l>
+<c>    * </c>
+<c>    * Calculate the optical flow between two images</c>
+<l>    optical_flow_mg (Image1, Image2, VectorField, 'clg', 1, 1, 1000, 5, 'default_parameters', 'fast')</l>
+<l>    vector_field_length (VectorField, LengthImage, 'squared_length')</l>
+<c>    * </c>
+<c>    * Estimate the region with moving particles using the length</c>
+<c>    * of the vectors of the calculated vector field</c>
+<l>    min_max_gray (LengthImage, LengthImage, 0, Min, MaxLength, Range)</l>
+<l>    if (MaxLength &gt; MinLength)</l>
+<l>        threshold (LengthImage, ROI, MinLength, MaxLength)</l>
+<c>        * </c>
+<c>        * Find the position of particles in the original image using</c>
+<c>        * an estimated ROI</c>
+<l>        dilation_circle (ROI, RegionDilation, 3.5)</l>
+<l>        reduce_domain (Image2, RegionDilation, ImageReduced)</l>
+<l>        local_max_sub_pix (ImageReduced, 'facet', 1.0, 4, Row, Column)</l>
+<c>        * </c>
+<l>        dev_set_color ('cyan')</l>
+<l>        dev_set_line_width (2)</l>
+<l>        if (|Row| &gt; 0)</l>
+<l>            gen_region_points (Points, Row, Column)</l>
+<l>            connection (Points, ConnectedRegions)</l>
+<l>            dilation_circle (ConnectedRegions, PointsDilated, 2.5)</l>
+<c>            * </c>
+<c>            * Display found particles and their movement directions</c>
+<l>            count_obj (PointsDilated, NumberReg)</l>
+<l>            dev_display (Image2)</l>
+<l>            dev_display (PointsDilated)</l>
+<l>            for J := 1 to NumberReg by 1</l>
+<l>                select_obj (PointsDilated, SelectedRegions, J)</l>
+<c>                * </c>
+<c>                * Estimate the speed of the particles</c>
+<l>                reduce_domain (VectorField, SelectedRegions, ImageReducedVF)</l>
+<l>                vector_field_to_real (ImageReducedVF, RowImage, ColumnImage)</l>
+<l>                intensity (ColumnImage, ColumnImage, MeanC, Deviation)</l>
+<l>                intensity (RowImage, RowImage, MeanR, Deviation)</l>
+<l>                Length := sqrt(MeanR * MeanR + MeanC * MeanC)</l>
+<l>                gen_arrow_contour_xld (Arrow, Row[J - 1], Column[J - 1], Row[J - 1] + MeanR / Length * ArrowLength, Column[J - 1] + MeanC / Length * ArrowLength, 5, 10)</l>
+<l>                dev_display (Arrow)</l>
+<l>            endfor</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    copy_obj (Image2, Image1, 1, 1)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

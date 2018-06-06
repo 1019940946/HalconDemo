@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows how to use HALCON's shape-based matching</c>
+<c>* to find SMD capacitors that exhibit independent size changes in the</c>
+<c>* row and column direction in images with a depth of 10 bits</c>
+<c>* (i.e., in images of type uint2).</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<c>* </c>
+<c>* For visualization purposes, we specify the number of significant</c>
+<c>* bits in the uint2 images.  We do this because this information</c>
+<c>* cannot be stored in the image files themselves.</c>
+<l>set_system ('int2_bits', 10)</l>
+<l>read_image (Image, 'smd/smd_capacitors_01')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window_fit_image (Image, 0, 0, -1, -1, WindowHandle)</l>
+<l>dev_display (Image)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>Message := 'This program shows how to use shape-based matching'</l>
+<l>Message[1] := 'to find SMD capacitors that exhibit independent'</l>
+<l>Message[2] := 'size changes in the row and column direction in'</l>
+<l>Message[3] := 'images with a depth of 10 bits.'</l>
+<l>Message[4] := 'First a synthetic model for the SMD capacitors'</l>
+<l>Message[5] := 'is created. In the next step the created model'</l>
+<l>Message[6] := 'is used to find the SMD capacitors.'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (3)</l>
+<c>* </c>
+<c>* Create a synthetic model for the SMD capacitors.  This is just</c>
+<c>* a rectangle with rounded corners.</c>
+<l>gen_contour_polygon_rounded_xld (Contour, [50,100,100,50,50], [50,50,150,150,50], [6,6,6,6,6], 1)</l>
+<l>gen_image_const (Image, 'byte', 200, 150)</l>
+<l>paint_xld (Contour, Image, ImageModel, 128)</l>
+<l>create_aniso_shape_model (ImageModel, 'auto', -rad(10), rad(20), 'auto', 0.9, 1.7, 'auto', 0.9, 1.1, 'auto', 'none', 'use_polarity', 'auto', 20, ModelID)</l>
+<l>get_shape_model_contours (ModelContours, ModelID, 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Find the models for the SMD capacitors in the images</c>
+<c>* and display the number of found models an the recognition time</c>
+<c>* and the model's scale</c>
+<l>for J := 1 to 4 by 1</l>
+<l>    read_image (Image, 'smd/smd_capacitors_' + J$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    count_seconds (S1)</l>
+<l>    find_aniso_shape_model (Image, ModelID, -rad(10), rad(20), 0.9, 1.7, 0.9, 1.1, 0.7, 0, 0.5, 'least_squares', 0, 0.8, Row, Column, Angle, ScaleR, ScaleC, Score)</l>
+<l>    count_seconds (S2)</l>
+<l>    Time := (S2 - S1) * 1000</l>
+<l>    Num := |Score|</l>
+<c>    * Display the found models and the recognition time</c>
+<l>    disp_message (WindowHandle, Num$'d' + ' models found in ' + Time$'5.2f' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+<l>    MeanColumn := mean(Column)</l>
+<l>    for I := 0 to Num - 1 by 1</l>
+<c>        * Display the found model.</c>
+<l>        hom_mat2d_identity (HomMat2D)</l>
+<l>        hom_mat2d_scale (HomMat2D, ScaleR[I], ScaleC[I], 0, 0, HomMat2D)</l>
+<l>        hom_mat2d_rotate (HomMat2D, Angle[I], 0, 0, HomMat2D)</l>
+<l>        hom_mat2d_translate (HomMat2D, Row[I], Column[I], HomMat2D)</l>
+<l>        affine_trans_contour_xld (ModelContours, ContoursTrans, HomMat2D)</l>
+<l>        dev_display (ContoursTrans)</l>
+<c>        * </c>
+<c>        * Display the model's scale next to the found model</c>
+<l>        ScaleRowStr := 'ScaleRow=' + ScaleR[I]$'5.3f'</l>
+<l>        ScaleColStr := 'ScaleCol=' + ScaleC[I]$'5.3f'</l>
+<l>        get_string_extents (WindowHandle, ScaleRowStr, AscentStr, DescentStr, WidthStr, HeightStr)</l>
+<l>        if (Column[I] &lt;= MeanColumn)</l>
+<l>            disp_message (WindowHandle, [ScaleRowStr,ScaleColStr], 'image', Row[I] - 20, Column[I] - 60 - WidthStr, 'green', 'false')</l>
+<l>        else</l>
+<l>            disp_message (WindowHandle, [ScaleRowStr,ScaleColStr], 'image', Row[I] - 20, Column[I] + 60, 'green', 'false')</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    * Deactivate the following lines to run the programm without breaks</c>
+<l>    if (J &lt; 4)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* Reset the number of significant bits of uint2 images to unknown.</c>
+<l>set_system ('int2_bits', -1)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

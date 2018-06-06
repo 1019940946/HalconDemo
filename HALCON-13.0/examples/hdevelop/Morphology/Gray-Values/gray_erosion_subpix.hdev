@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This programs demonstrates the effect of the gray</c>
+<c>* morphology operator gray_erosion_shape applied</c>
+<c>* with subpixel-precision</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'alpha2')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<c>* Apply gray_erosion_shape with increasing mask size</c>
+<l>for Size := 1 to 20 by 0.05</l>
+<l>    gray_erosion_shape (Image, ImageMin, Size, Size, 'octagon')</l>
+<l>    dev_display (ImageMin)</l>
+<l>endfor</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Display an enlarged detail of the image</c>
+<l>dev_set_part (280, 280, 330, 330)</l>
+<l>for Size := 1 to 5 by 0.01</l>
+<l>    gray_erosion_shape (Image, ImageMin, Size, Size, 'octagon')</l>
+<l>    dev_display (ImageMin)</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the SICK-3DCamera sensor in HALCON</c>
+<c>* </c>
+<c>* This example shows:</c>
+<c>*  - the different available grabbing modes</c>
+<c>*  - the effect of the parameters: 'continuous_grabbing',</c>
+<c>*    'buffer_queue' and 'start_async_after_grab_async'</c>
+<c>*  - the use of SICK frame grabber's internal queue of buffers</c>
+<c>*  - when to use 'image_available' or 'transfer_end' callback</c>
+<c>* </c>
+<l>Device := 'default'</l>
+<c>* ---------------------------------------------------------------</c>
+<c>*                        SYNCHRONOUS GRAB</c>
+<c>* ---------------------------------------------------------------</c>
+<c>* Note that: - 'buffer_queue' or 'start_async_after_grab_async'</c>
+<c>*              parameters are only taken into account in case of</c>
+<c>*              asynchronous grabbing.</c>
+<c>*            - the use of 'image_available' parameter or the</c>
+<c>*              'transfer_end' callback makes only sense in case of</c>
+<c>*              asynchronous grabbing.</c>
+<c>* ---------------------------------------------------------------</c>
+<c>*  Case 1:</c>
+<c>* --------</c>
+<c>*  'continuous_grabbing'           -&gt; 'disable' (default)</c>
+<c>* </c>
+<c>*  Note: - Camera and frame grabber are start/stop for each grab,</c>
+<c>*          that means that SICK frame grabber's internal queue of</c>
+<c>*          buffers is NOT used.</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* default settings by open_framegrabber: do not need to disable</c>
+<c>* 'continuous_grabbing'</c>
+<l>for Index := 1 to 5 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>*     grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* --------</c>
+<c>*  Case 2:</c>
+<c>* --------</c>
+<c>*  'continuous_grabbing'           -&gt; 'enable'</c>
+<c>* </c>
+<c>*  Note: - Camera and frame grabber are NOT start/stop for each</c>
+<c>*          grab, that means that SICK frame grabber's internal</c>
+<c>*          queue of buffers is used (and overflow may happen).</c>
+<c>*        For Ethernet devices:</c>
+<c>*        - To perform synchronous grabbing, the old buffers</c>
+<c>*          in SICK frame grabber's internal queue of buffers</c>
+<c>*          will be discarded to deliver a new one. In case of</c>
+<c>*          overflow, this process may not work correctly.</c>
+<c>*          'do_abort_grab' may be useful to avoid or to recover</c>
+<c>*          from overflow.</c>
+<c>*        For Camera Link devices:</c>
+<c>*        - It is not possible to check the available buffers</c>
+<c>*          (SICK iCon API limitation) in SICK frame grabber's</c>
+<c>*          internal queue of buffers, therefore it is not</c>
+<c>*          possible to discard old buffers to perform the</c>
+<c>*          synchronous grabbing mode. Then the next available</c>
+<c>*          buffer in queue will be returned.</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>*     grab_data (Image, Region, Contours, AcqHandle, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* ---------------------------------------------------------------------------</c>
+<c>*                      ASYNCHRONOUS GRAB</c>
+<c>* ---------------------------------------------------------------------------</c>
+<c>* Case: | continuous_grabbing | buffer_queue | start_async_after_grab_async |</c>
+<c>* ---------------------------------------------------------------------------</c>
+<c>*   3   |       disable       |       -      |            disable           |</c>
+<c>*   4   |       disable       |       -      |            enable            |</c>
+<c>*   5   |       enable        |    disable   |            disable           |</c>
+<c>*   6   |       enable        |    disable   |            enable            |</c>
+<c>*   7   |       enable        |    enable    |               -              |</c>
+<c>* ---------------------------------------------------------------------------</c>
+<c>* Note that 'buffer_queue' parameter is only taken into account</c>
+<c>* in case of continuous asynchronous grabbing.</c>
+<c>* ---------------------------------------------------------------------------</c>
+<c>*  Case 3:</c>
+<c>* --------</c>
+<c>* </c>
+<c>*  'continuous_grabbing'           -&gt; 'disable' (default)</c>
+<c>*  'start_async_after_grab_async'  -&gt; 'disable'</c>
+<c>* </c>
+<c>*  Note: - Same behavior as case 1 (see above), then it makes</c>
+<c>*          no sense to use 'image_available' or 'transfer_end'</c>
+<c>*          callback in that case (synchronous grabbing).</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* default settings by open_framegrabber: do not need to disable</c>
+<c>* 'continuous_grabbing'</c>
+<l>set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', 'disable')</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[2,1]" as_ord="1">grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* ------------------</c>
+<c>*  Case 4 (DEFAULT):</c>
+<c>* ------------------</c>
+<c>*  'continuous_grabbing'           -&gt; 'disable' (default)</c>
+<c>*  'start_async_after_grab_async'  -&gt; 'enable' (default)</c>
+<c>* </c>
+<c>*  Note: - At the end of grab_image_async, the current frame is</c>
+<c>*          saved and the camera is not stopped (to avoid slow</c>
+<c>*          performance). Then the rest of incoming buffers</c>
+<c>*          are discarded until the buffer is requested (to avoid</c>
+<c>*          overflow).</c>
+<c>*        - Notice that the age of the buffer is not checked.</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* default settings by open_framegrabber: do not need to disable</c>
+<c>* 'continuous_grabbing' or enable 'start_async_after_grab_async'</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 5 by 1</l>
+<c>    * 'image_available' parameter or 'transfer_end' callback can</c>
+<c>    * be used to detect the end of the asynchronous grabbing</c>
+<l>*     ImageAvailable := 0</l>
+<l>*     while (ImageAvailable == 0)</l>
+<l>*         get_framegrabber_param (AcqHandle, 'image_available', ImageAvailable)</l>
+<l>*     endwhile</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* --------</c>
+<c>*  Case 5:</c>
+<c>* --------</c>
+<c>*  'continuous_grabbing'           -&gt; 'enable'</c>
+<c>*  'buffer_queue'                  -&gt; 'disable' (default)</c>
+<c>*  'start_async_after_grab_async'  -&gt; 'disable'</c>
+<c>* </c>
+<c>*  Note: - Same behavior as case 2 (see above), then it makes</c>
+<c>*          no sense to use 'image_available' or 'transfer_end'</c>
+<c>*          callback in that case (synchronous grabbing).</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* default settings by open_framegrabber: do not need to disable</c>
+<c>* 'buffer_queue'</c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', 'disable')</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 5 by 1</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* --------</c>
+<c>*  Case 6:</c>
+<c>* --------</c>
+<c>*  'continuous_grabbing'           -&gt; 'enable'</c>
+<c>*  'buffer_queue'                  -&gt; 'disable' (default)</c>
+<c>*  'start_async_after_grab_async'  -&gt; 'enable' (default)</c>
+<c>* </c>
+<c>*  Note: - Use of SICK frame grabber's internal queue of</c>
+<c>*          buffers (no buffers are lost if no overflow).</c>
+<c>*        - Get next available buffer in SICK frame grabber's</c>
+<c>*          internal queue of buffers.</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* default settings by open_framegrabber: do not need to disable</c>
+<c>* 'buffer_queue' or enable 'start_async_after_grab_async'</c>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 5 by 1</l>
+<c>    * 'image_available' parameter or 'transfer_end' callback can</c>
+<c>    * be used to detect the end of the asynchronous grabbing</c>
+<l>*     ImageAvailable := 0</l>
+<l>*     while (ImageAvailable == 0)</l>
+<l>*         get_framegrabber_param (AcqHandle, 'image_available', ImageAvailable)</l>
+<l>*     endwhile</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+<c>* --------</c>
+<c>*  Case 7:</c>
+<c>* --------</c>
+<c>*  'continuous_grabbing'           -&gt; 'enable'</c>
+<c>*  'buffer_queue'                  -&gt; 'enable'</c>
+<c>* </c>
+<c>*  Note: - Same behavior as case 6 (see above)</c>
+<c>* </c>
+<l>open_framegrabber ('SICK-3DCamera', 1, 1, 0, 0, 0, 0, 'progressive', -1, 'measurement', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'continuous_grabbing', 'enable')</l>
+<l>set_framegrabber_param (AcqHandle, 'buffer_queue', 'enable')</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>for Index := 1 to 100 by 1</l>
+<c>    * 'image_available' parameter or 'transfer_end' callback can</c>
+<c>    * be used to detect the end of the asynchronous grabbing</c>
+<l>*     ImageAvailable := 0</l>
+<l>*     while (ImageAvailable == 0)</l>
+<l>*         get_framegrabber_param (AcqHandle, 'image_available', ImageAvailable)</l>
+<l>*     endwhile</l>
+<l>    grab_image_async (Image, AcqHandle, -1)</l>
+<l>*     grab_data_async (Image, Region, Contours, AcqHandle, -1, Data)</l>
+<l>endfor</l>
+<l>close_framegrabber (AcqHandle)</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

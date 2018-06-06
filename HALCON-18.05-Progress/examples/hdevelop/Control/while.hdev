@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_update_window ('off')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowID)</l>
+<l>read_image (Image, 'particle')</l>
+<l>dev_display (Image)</l>
+<l>stop ()</l>
+<l>threshold (Image, Large, 110, 255)</l>
+<l>dilation_circle (Large, LargeDilation, 7.5)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (LargeDilation)</l>
+<l>dev_set_draw ('fill')</l>
+<l>stop ()</l>
+<l>complement (LargeDilation, NotLarge)</l>
+<l>reduce_domain (Image, NotLarge, ParticlesRed)</l>
+<l>mean_image (ParticlesRed, Mean, 31, 31)</l>
+<l>dyn_threshold (ParticlesRed, Mean, SmallRaw, 3, 'light')</l>
+<l>opening_circle (SmallRaw, Small, 2.5)</l>
+<l>connection (Small, SmallConnection)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_colored (12)</l>
+<l>dev_display (SmallConnection)</l>
+<l>stop ()</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Image)</l>
+<l>dev_display (SmallConnection)</l>
+<l>Button := 1</l>
+<l>while (Button == 1)</l>
+<l>    dev_set_color ('green')</l>
+<l>    get_mbutton (WindowID, Row, Column, Button)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_display (SmallConnection)</l>
+<l>    dev_set_color ('red')</l>
+<l>    select_region_point (SmallConnection, SmallSingle, Row, Column)</l>
+<l>    dev_display (SmallSingle)</l>
+<l>    count_obj (SmallSingle, NumSingle)</l>
+<l>    if (NumSingle == 1)</l>
+<l>        intensity (SmallSingle, Image, MeanGray, DeviationGray)</l>
+<l>        area_center (SmallSingle, Area, Row, Column)</l>
+<l>        dev_set_color ('yellow')</l>
+<l>        set_tposition (WindowID, Row, Column)</l>
+<l>        write_string (WindowID, 'Area=' + Area + ', Int=' + MeanGray)</l>
+<l>    endif</l>
+<l>endwhile</l>
+<l>dev_set_line_width (1)</l>
+<l>dev_update_window ('on')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

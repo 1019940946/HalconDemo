@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example demonstrates the AcquisitionMode 'MultiFrame' feature</c>
+<c>* when used without triggers. The effects of the parameter</c>
+<c>* start_async_after_grab_async are demonstrated as well.</c>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 640, 480, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>Device := 'default'</l>
+<c>* </c>
+<c>* Set num_buffers to at least 3 buffers (i.e., at least the value of AcquisitionFrameCount).</c>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GigEVision2', 0, 0, 0, 0, 0, 0, 'default', -1, 'default', 'num_buffers=5', 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* </c>
+<c>* Save existing camera settings and enable MultiFrame.</c>
+<l>try</l>
+<l>    get_framegrabber_param (AcqHandle, 'AcquisitionMode', SavedAcquisitionMode)</l>
+<l>    get_framegrabber_param (AcqHandle, 'AcquisitionFrameCount', SavedAcquisitionFrameCount)</l>
+<l>    get_framegrabber_param (AcqHandle, 'start_async_after_grab_async', SavedAutoStart)</l>
+<l>    set_framegrabber_param (AcqHandle, 'AcquisitionMode', 'MultiFrame')</l>
+<l>    set_framegrabber_param (AcqHandle, 'AcquisitionFrameCount', 3)</l>
+<l>    set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', 'disable')</l>
+<l>catch (Exception)</l>
+<l>    ErrorMessage := 'Setting \'AcquisitionMode\' to \'MultiFrame\' failed.'</l>
+<l>    ErrorMessage[1] := 'This camera might not be usable for this example.'</l>
+<l>    dev_disp_text (ErrorMessage, 'window', 'top', 'left', 'white', 'box_color', 'red')</l>
+<l>    stop ()</l>
+<l>endtry</l>
+<c>* </c>
+<c>* Not all cameras support GevTimestampTickFrequency, assume a default if not available.</c>
+<l>try</l>
+<l>    get_framegrabber_param (AcqHandle, 'GevTimestampTickFrequency', TimestampTickFreq)</l>
+<l>catch (Exception)</l>
+<l>    TimestampTickFreq := 1000000000</l>
+<l>    dev_disp_text ('Assuming default TimestampTickFreq: ' + TimestampTickFreq / 1000000000.0 + ' GHz', 'window', 'top', 'left', 'black', 'box', 'false')</l>
+<l>endtry</l>
+<c>* </c>
+<c>* --- Case 1: start_async_after_grab_async is disabled. ---</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<c>* grab_image_start called AcquisitionStart -&gt; one multiframe (i.e., 3 images) are acquired.</c>
+<c>* Get 1st image of the 1st multiframe (already available).</c>
+<l>grab_image_async (Image1, AcqHandle, -1)</l>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp1)</l>
+<c>* Get 2nd image of the 1st multiframe (already available).</c>
+<l>grab_image_async (Image2, AcqHandle, -1)</l>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp2)</l>
+<c>* Get 3rd image of the 1st mutliframe (already available).</c>
+<l>grab_image_async (Image3, AcqHandle, -1)</l>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp3)</l>
+<c>* At the end of grab_image_async AcquisitionStart is NOT called</c>
+<c>* (start_async_after_grab_async disabled).</c>
+<l>wait_seconds (1)</l>
+<c>* trigger the 2nd multiframe and return the first image of it:</c>
+<l>grab_image_async (Image4, AcqHandle, -1)</l>
+<c>* At the beginning of grab_image_async, AcquisitionStart is called</c>
+<c>* -&gt; 3 more buffers are triggered.</c>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp4)</l>
+<c>* </c>
+<c>* Visualize the results: higher frame rate within a multiframe,</c>
+<c>* the next multiframe is triggered after the wait_seconds operator.</c>
+<l>Message := 'Case 1: start_async_after_grab_async disabled\nNote the extra delay to acquire Multiframe 2.\nPress &lt;F5&gt; to run Case 2.'</l>
+<l>present_results (Image1, Image2, Image3, Image4, Message, TimestampTickFreq, Timestamp1, Timestamp2, Timestamp3, Timestamp4)</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* --- Case 2: start_async_after_grab_async is enabled. ---</c>
+<l>set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', 'enable')</l>
+<l>grab_image_start (AcqHandle, -1)</l>
+<c>* grab_image_start called AcquisitionStart -&gt; 3 buffers are triggered.</c>
+<c>* Get 1st image of the 1st multiframe (already available).</c>
+<l>grab_image_async (Image1, AcqHandle, -1)</l>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp1)</l>
+<c>* Get 2nd image of the 1st multiframe (already available).</c>
+<l>grab_image_async (Image2, AcqHandle, -1)</l>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp2)</l>
+<c>* Get 3rd image of the 1st multiframe (already available).</c>
+<l>grab_image_async (Image3, AcqHandle, -1)</l>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp3)</l>
+<c>* At the end of grab_image_async AcquisitionStart is called and triggers the next multiframe</c>
+<c>* (start_async_after_grab_async disabled).</c>
+<l>wait_seconds (1)</l>
+<c>* Get the first image of the 2nd multiframe (already triggered).</c>
+<l>grab_image_async (Image4, AcqHandle, -1)</l>
+<c>* -&gt; 3 more buffers are triggered.</c>
+<l>get_framegrabber_param (AcqHandle, 'buffer_timestamp', Timestamp4)</l>
+<c>* </c>
+<c>* Visualize the results: the frame rate within the multiframe is similar to above,</c>
+<c>* the next multiframe is acquired sooner than above.</c>
+<l>Message := 'Case 2: start_async_after_grab_async enabled\nNote: No more extra delay to acquire Multiframe 2.'</l>
+<l>present_results (Image1, Image2, Image3, Image4, Message, TimestampTickFreq, Timestamp1, Timestamp2, Timestamp3, Timestamp4)</l>
+<c>* </c>
+<c>* Restore the previously used camera settings.</c>
+<l>set_framegrabber_param (AcqHandle, 'do_abort_grab', 1)</l>
+<l>set_framegrabber_param (AcqHandle, 'start_async_after_grab_async', SavedAutoStart)</l>
+<l>set_framegrabber_param (AcqHandle, 'AcquisitionFrameCount', SavedAcquisitionFrameCount)</l>
+<l>set_framegrabber_param (AcqHandle, 'AcquisitionMode', SavedAcquisitionMode)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="present_results">
+<interface>
+<io>
+<par name="Image1" base_type="iconic" dimension="0"/>
+<par name="Image2" base_type="iconic" dimension="0"/>
+<par name="Image3" base_type="iconic" dimension="0"/>
+<par name="Image4" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="Message" base_type="ctrl" dimension="0"/>
+<par name="TickFreq" base_type="ctrl" dimension="0"/>
+<par name="Timestamp1" base_type="ctrl" dimension="0"/>
+<par name="Timestamp2" base_type="ctrl" dimension="0"/>
+<par name="Timestamp3" base_type="ctrl" dimension="0"/>
+<par name="Timestamp4" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_open_window (0, 0, 640, 480, 'white', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Tile the four images.</c>
+<l>gen_empty_obj (Images)</l>
+<l>concat_obj (Images, Image1, Images)</l>
+<l>concat_obj (Images, Image2, Images)</l>
+<l>concat_obj (Images, Image3, Images)</l>
+<l>concat_obj (Images, Image4, Images)</l>
+<l>tile_images (Images, Image, 2, 'horizontal')</l>
+<l>dev_display (Image)</l>
+<c>* </c>
+<l>TimeDiffImage2 := 1.0 * (Timestamp2 - Timestamp1) / TickFreq</l>
+<l>TimeDiffImage3 := 1.0 * (Timestamp3 - Timestamp2) / TickFreq</l>
+<l>TimeDiffImage4 := 1.0 * (Timestamp4 - Timestamp3) / TickFreq</l>
+<c>* The time to get the 3 first buffers is the same, because they are</c>
+<c>* already available. The 4th buffer was triggered at the beginning of</c>
+<c>* the 4th grab_image_async</c>
+<l>dev_disp_text (Message, 'window', 'center', 'center', 'black', [], [])</l>
+<l>dev_disp_text ('Multiframe 1\nImage 1', 'window', 'top', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Multiframe 1\nImage 2: +' + TimeDiffImage2$'.3' + ' s', 'window', 'top', 'right', 'black', [], [])</l>
+<l>dev_disp_text ('Multiframe 1\nImage 3: +' + TimeDiffImage3$'.3' + ' s', 'window', 'bottom', 'left', 'black', [], [])</l>
+<l>dev_disp_text ('Multiframe 2\nImage 1: +' + TimeDiffImage4$'.3' + ' s', 'window', 'bottom', 'right', 'black', [], [])</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="present_results">
+<parameters>
+<parameter id="Image1"/>
+<parameter id="Image2"/>
+<parameter id="Image3"/>
+<parameter id="Image4"/>
+<parameter id="Message"/>
+<parameter id="TickFreq"/>
+<parameter id="Timestamp1"/>
+<parameter id="Timestamp2"/>
+<parameter id="Timestamp3"/>
+<parameter id="Timestamp4"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

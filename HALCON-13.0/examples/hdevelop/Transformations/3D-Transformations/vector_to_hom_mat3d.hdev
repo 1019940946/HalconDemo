@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program gives an example of how to use vector_to_hom_mat3d.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>Width := 768</l>
+<l>Height := 576</l>
+<l>gen_cam_par_area_scan_division (0.01, 0.0, 1.1e-05, 1.1e-05, 0.5 * Width, 0.5 * Height, Width, Height, CameraParam)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* To generate a set of points from which we can construct a transformation,</c>
+<c>* we will use a 3D object model and a noisy version of the same 3D object</c>
+<c>* model. We will read out the coordinates of the 3D object model and its</c>
+<c>* transformed noisy version below and use it to construct the transformations.</c>
+<c>* Note that by this approach we know exactly which points correspond to each</c>
+<c>* other.  In a real application, the step of determining the correspondences</c>
+<c>* is usually the hard part.</c>
+<l>read_object_model_3d ('joint.off', 'mm', [], [], Joint3DID, Status)</l>
+<l>read_object_model_3d ('joint_noise.off', 'mm', [], [], JointNoise3DID, Status)</l>
+<l>get_object_model_3d_params (Joint3DID, 'diameter', ModelDiam)</l>
+<l>PoseSceneToCamera := [-ModelDiam * 0.3,0.0,ModelDiam * 2.0,70.0,10.0,-20.0,0]</l>
+<l>get_object_model_3d_params (Joint3DID, 'center', ModelCenter)</l>
+<c>* </c>
+<c>* Create a rigid 3D transformation and transform the noisy model with it.</c>
+<l>hom_mat3d_identity (HomMat3DIdentity)</l>
+<l>hom_mat3d_rotate_local (HomMat3DIdentity, rad(35), [-0.1,-0.3,-0.5], HomMat3DRotate)</l>
+<l>hom_mat3d_translate_local (HomMat3DRotate, ModelDiam * 0.3, ModelDiam * 0.7, -ModelDiam * 0.1, HomMat3DRigid)</l>
+<l>affine_trans_object_model_3d (JointNoise3DID, HomMat3DRigid, JointNoiseRigid3DID)</l>
+<c>* </c>
+<c>* Create a 3D similarirty transformation and transform the noisy model with it.</c>
+<l>hom_mat3d_identity (HomMat3DIdentity)</l>
+<l>hom_mat3d_scale_local (HomMat3DIdentity, 0.75, 0.75, 0.75, HomMat3DScale)</l>
+<l>hom_mat3d_rotate_local (HomMat3DScale, rad(120), [0.2,0.5,-0.1], HomMat3DRotate)</l>
+<l>hom_mat3d_translate_local (HomMat3DRotate, -ModelDiam * 0.5, ModelDiam * 1.0, ModelDiam * 0.3, HomMat3DSimilarity)</l>
+<l>affine_trans_object_model_3d (JointNoise3DID, HomMat3DSimilarity, JointNoiseSimilarity3DID)</l>
+<c>* </c>
+<c>* Create a general affine 3D transformation and transform the noisy model with it.</c>
+<l>hom_mat3d_identity (HomMat3DIdentity)</l>
+<l>hom_mat3d_rotate_local (HomMat3DIdentity, rad(25), [-0.4,-0.3,-0.2], HomMat3DRotate)</l>
+<l>hom_mat3d_scale_local (HomMat3DRotate, 1.25, 0.75, 0.5, HomMat3DScale)</l>
+<l>hom_mat3d_translate_local (HomMat3DScale, ModelDiam * 0.4, ModelDiam * 0.3, -ModelDiam * 0.5, HomMat3DAffine)</l>
+<l>affine_trans_object_model_3d (JointNoise3DID, HomMat3DAffine, JointNoiseAffine3DID)</l>
+<c>* </c>
+<c>* Get the reference 3D coordinates and display the reference object.</c>
+<l>get_object_model_3d_params (Joint3DID, 'point_coord_x', XR)</l>
+<l>get_object_model_3d_params (Joint3DID, 'point_coord_y', YR)</l>
+<l>get_object_model_3d_params (Joint3DID, 'point_coord_z', ZR)</l>
+<l>disp_object_model_3d_safe (WindowHandle, Joint3DID, CameraParam, PoseSceneToCamera, 'color_0', 'green')</l>
+<l>disp_message (WindowHandle, '3D model of a joint', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get the 3D coordinates of the noisy object transformed with the rigid 3D</c>
+<c>* transformation and display the reference object and the transformed object.</c>
+<l>get_object_model_3d_params (JointNoiseRigid3DID, 'point_coord_x', XN)</l>
+<l>get_object_model_3d_params (JointNoiseRigid3DID, 'point_coord_y', YN)</l>
+<l>get_object_model_3d_params (JointNoiseRigid3DID, 'point_coord_z', ZN)</l>
+<l>disp_object_model_3d_safe (WindowHandle, [Joint3DID,JointNoiseRigid3DID], CameraParam, PoseSceneToCamera, ['color_0','color_1'], ['green','blue'])</l>
+<l>disp_message (WindowHandle, ['3D model of a joint and noisy version of the','joint transformed by a rigid transformation'], 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the rigid transformation between the noisy object and the reference</c>
+<c>* object, transform it with the transformation, and display the transformed</c>
+<c>* object.</c>
+<l>vector_to_hom_mat3d ('rigid', XN, YN, ZN, XR, YR, ZR, HomMat3D)</l>
+<l>affine_trans_object_model_3d (JointNoiseRigid3DID, HomMat3D, JointNoiseRigidTrans3DID)</l>
+<l>disp_object_model_3d_safe (WindowHandle, [Joint3DID,JointNoiseRigidTrans3DID], CameraParam, PoseSceneToCamera, ['color_0','color_1'], ['green','blue'])</l>
+<l>disp_message (WindowHandle, 'Noisy joint mapped to the position of the model joint', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get the 3D coordinates of the noisy object transformed with the 3D similarity</c>
+<c>* transformation and display the reference object and the transformed object.</c>
+<l>get_object_model_3d_params (JointNoiseSimilarity3DID, 'point_coord_x', XN)</l>
+<l>get_object_model_3d_params (JointNoiseSimilarity3DID, 'point_coord_y', YN)</l>
+<l>get_object_model_3d_params (JointNoiseSimilarity3DID, 'point_coord_z', ZN)</l>
+<l>disp_object_model_3d_safe (WindowHandle, [Joint3DID,JointNoiseSimilarity3DID], CameraParam, PoseSceneToCamera, ['color_0','color_1'], ['green','blue'])</l>
+<l>disp_message (WindowHandle, ['3D model of a joint and noisy version of the','joint transformed by a similarity transformation'], 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the similarity transformation between the noisy object and the</c>
+<c>* reference object, transform it with the transformation, and display the</c>
+<c>* transformed object.</c>
+<l>vector_to_hom_mat3d ('similarity', XN, YN, ZN, XR, YR, ZR, HomMat3D)</l>
+<l>affine_trans_object_model_3d (JointNoiseSimilarity3DID, HomMat3D, JointNoiseSimilarityTrans3DID)</l>
+<l>disp_object_model_3d_safe (WindowHandle, [Joint3DID,JointNoiseSimilarityTrans3DID], CameraParam, PoseSceneToCamera, ['color_0','color_1'], ['green','blue'])</l>
+<l>disp_message (WindowHandle, 'Noisy joint mapped to the position of the model joint', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Get the 3D coordinates of the noisy object transformed with the affine 3D</c>
+<c>* transformation and display the reference object and the transformed object.</c>
+<l>get_object_model_3d_params (JointNoiseAffine3DID, 'point_coord_x', XN)</l>
+<l>get_object_model_3d_params (JointNoiseAffine3DID, 'point_coord_y', YN)</l>
+<l>get_object_model_3d_params (JointNoiseAffine3DID, 'point_coord_z', ZN)</l>
+<l>disp_object_model_3d_safe (WindowHandle, [Joint3DID,JointNoiseAffine3DID], CameraParam, PoseSceneToCamera, ['color_0','color_1'], ['green','blue'])</l>
+<l>disp_message (WindowHandle, ['3D model of a joint and noisy version of the','joint transformed by an affine transformation'], 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the affine transformation between the noisy object and the</c>
+<c>* reference object, transform it with the transformation, and display the</c>
+<c>* transformed object.</c>
+<l>vector_to_hom_mat3d ('affine', XN, YN, ZN, XR, YR, ZR, HomMat3D)</l>
+<l>affine_trans_object_model_3d (JointNoiseAffine3DID, HomMat3D, JointNoiseAffineTrans3DID)</l>
+<l>disp_object_model_3d_safe (WindowHandle, [Joint3DID,JointNoiseAffineTrans3DID], CameraParam, PoseSceneToCamera, ['color_0','color_1'], ['green','blue'])</l>
+<l>disp_message (WindowHandle, 'Noisy joint mapped to the position of the model joint', 'window', 12, 12, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Clean up the 3D object models.</c>
+<l>clear_object_model_3d (Joint3DID)</l>
+<l>clear_object_model_3d (JointNoise3DID)</l>
+<l>clear_object_model_3d (JointNoiseRigid3DID)</l>
+<l>clear_object_model_3d (JointNoiseRigidTrans3DID)</l>
+<l>clear_object_model_3d (JointNoiseSimilarity3DID)</l>
+<l>clear_object_model_3d (JointNoiseAffine3DID)</l>
+<l>clear_object_model_3d (JointNoiseSimilarityTrans3DID)</l>
+<l>clear_object_model_3d (JointNoiseAffineTrans3DID)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

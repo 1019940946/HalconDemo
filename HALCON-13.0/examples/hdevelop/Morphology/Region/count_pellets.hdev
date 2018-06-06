@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="13.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This programs demonstrates the use of basic morphology</c>
+<c>* operators.</c>
+<c>* The aim of the program is to detect each single pellet</c>
+<c>* (bright particle on a darker background).</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'pellets')</l>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_display (Image)</l>
+<l>disp_message (WindowID, 'Detect each single pellet', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Segment the regions of the pellets from the background</c>
+<l>binary_threshold (Image, LightRegion, 'max_separability', 'light', UsedThreshold)</l>
+<l>opening_circle (LightRegion, Region, 3.5)</l>
+<l>dev_display (Region)</l>
+<l>disp_message (WindowID, 'First, segment the pellets', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Compute the connected pellet regions</c>
+<c>* Note, that this approach fails, because some of</c>
+<c>* the pellets are still connected.</c>
+<l>connection (Region, ConnectedRegionsWrong)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ConnectedRegionsWrong)</l>
+<l>disp_message (WindowID, 'Simple connection fails', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Separate each pellet from the others by erosion</c>
+<l>erosion_circle (Region, RegionErosion, 7.5)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionErosion)</l>
+<l>disp_message (WindowID, 'Erosion of the pellet regions', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Now, compute the connected pellet regions</c>
+<l>connection (RegionErosion, ConnectedRegions)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (ConnectedRegions)</l>
+<l>disp_message (WindowID, 'Perform connection now', 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowID, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Turn back to the original pellet size by applying a dilation</c>
+<l>dilation_circle (ConnectedRegions, RegionDilation, 7.5)</l>
+<l>count_obj (RegionDilation, Number)</l>
+<l>dev_display (Image)</l>
+<l>dev_display (RegionDilation)</l>
+<l>disp_message (WindowID, Number + ' pellets detected', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

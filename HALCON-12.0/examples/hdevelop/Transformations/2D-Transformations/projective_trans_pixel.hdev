@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program shows how to use hom_mat3d_project and</c>
+<c>* projective_trans_image to rotate an image in 3D.  Furthermore, it shows</c>
+<c>* how to use projective_trans_pixel to transform pixel coordinates with a</c>
+<c>* projective transformation.</c>
+<l>dev_update_off ()</l>
+<l>read_image (Image, 'mreut_y')</l>
+<c>* Extract the sub-pixel precise pixel-coordinates to be transformed.</c>
+<l>points_foerstner (Image, 1, 2.5, 4, 300, 0.3, 'gauss', 'true', Rows, Cols, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<c>* The transformed images will be displayed using a buffer window to create</c>
+<c>* a smooth (i.e., flicker-free) display under both Windows and Unix.</c>
+<l>open_window (0, 0, Width, Height, 0, 'buffer', '', WindowHandleBuffer)</l>
+<l>set_color (WindowHandleBuffer, 'red')</l>
+<l>set_part (WindowHandleBuffer, 0, 0, Height - 1, Width - 1)</l>
+<l>Iter := 1440</l>
+<c>* Set the increments for the 3D rotation angles.  Note that they are chosen such</c>
+<c>* that their common divisor is as small as possible (0.1).  This leads to a</c>
+<c>* sequence of images that has a maximum length before repeating itself.</c>
+<l>DAlpha := 1.9</l>
+<l>DBeta := 1.7</l>
+<l>DGamma := 1.5</l>
+<c>* Initialize the 3D rotation angles.</c>
+<l>Alpha := 0.0</l>
+<l>Beta := 0.0</l>
+<l>Gamma := 0.0</l>
+<c>* Set the camera parameters of the virtual camera that looks at the plane</c>
+<c>* of the image.</c>
+<l>PrincipalRow := Height / 2</l>
+<l>PrincipalColumn := Width / 2</l>
+<l>Focus := (Width + Height) / 2</l>
+<c>* Set the parameters of the torus knot on which the center of the image</c>
+<c>* moves in 3D.</c>
+<c>* This will generate the torus knot T(7,6).</c>
+<l>M := 7</l>
+<l>N := 6</l>
+<c>* Set the dimensions of the torus knot.</c>
+<l>H := Height / 4.0</l>
+<l>W := Width / 4.0</l>
+<l>D := (Width + Height) / 6.0</l>
+<c>* Initialize the coordinates of the transformed centers of the image.</c>
+<l>for J := 1 to Iter by 1</l>
+<c>    * Rotate the plane in 3D.</c>
+<l>    hom_mat3d_identity (HomMat3D)</l>
+<l>    hom_mat3d_rotate (HomMat3D, rad(Gamma), 'z', PrincipalRow, PrincipalColumn, Focus, HomMat3D)</l>
+<l>    hom_mat3d_rotate (HomMat3D, rad(Beta), 'y', PrincipalRow, PrincipalColumn, Focus, HomMat3D)</l>
+<l>    hom_mat3d_rotate (HomMat3D, rad(Alpha), 'x', PrincipalRow, PrincipalColumn, Focus, HomMat3D)</l>
+<c>    * Translate the center of the image to a point on the torus knot.</c>
+<l>    T := rad(J / 4.0)</l>
+<l>    X := H * (cos(N * T) + 0.5 * cos(M * T) * cos(N * T))</l>
+<l>    Y := W * (sin(N * T) + 0.5 * cos(M * T) * sin(N * T))</l>
+<l>    Z := D * sin(M * T)</l>
+<l>    hom_mat3d_translate (HomMat3D, X, Y, Z, HomMat3D)</l>
+<c>    * Project the plane of the image, i.e., create a 2D projective transformation</c>
+<c>    * from the plane of the input image to the plane of the output image.</c>
+<l>    hom_mat3d_project (HomMat3D, PrincipalRow, PrincipalColumn, Focus, ProjectionMatrix)</l>
+<c>    * Some transformations may result in a singular transformation matrix.</c>
+<c>    * Hence, we will need to perform error handling here.</c>
+<l>    try</l>
+<l>        projective_trans_image (Image, TransImage, ProjectionMatrix, 'bilinear', 'false', 'false')</l>
+<c>        * Transform the extracted points.</c>
+<l>        projective_trans_pixel (ProjectionMatrix, Rows, Cols, RowsTrans, ColsTrans)</l>
+<c>        * Display the image in the buffer window and copy it to the visible window.</c>
+<l>        clear_window (WindowHandleBuffer)</l>
+<l>        disp_obj (TransImage, WindowHandleBuffer)</l>
+<l>        disp_cross (WindowHandleBuffer, RowsTrans, ColsTrans, 6, rad(45))</l>
+<l>        copy_rectangle (WindowHandleBuffer, WindowHandle, 0, 0, Height - 1, Width - 1, 0, 0)</l>
+<l>    catch (Exception)</l>
+<c>        * Transformation matrix is singular,</c>
+<c>        * therefore skip this step.</c>
+<l>    endtry</l>
+<l>    wait_seconds (0.001)</l>
+<c>    * Increment the rotation angles.</c>
+<l>    Alpha := fmod(Alpha + DAlpha,360)</l>
+<l>    Beta := fmod(Beta + DBeta,360)</l>
+<l>    Gamma := fmod(Gamma + DGamma,360)</l>
+<l>endfor</l>
+<l>close_window (WindowHandleBuffer)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

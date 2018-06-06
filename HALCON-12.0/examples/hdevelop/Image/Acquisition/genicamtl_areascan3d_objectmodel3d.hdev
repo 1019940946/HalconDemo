@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* </c>
+<c>* Example for the usage of the VRmagic AreaScan3D sensor in HALCON</c>
+<c>* </c>
+<c>* This example shows how to acquire data from the sensor and use it</c>
+<c>* to generate a HALCON ObjectModel3D which will then be visualized.</c>
+<c>* </c>
+<c>* Please note that you first need to install A3DTL (GenTL Producer)</c>
+<c>* which comes with the product. After this you can access the</c>
+<c>* sensor with the HALCON GenICamTL interface (GenTL Consumer).</c>
+<c>* </c>
+<l>dev_update_window ('off')</l>
+<l>info_framegrabber ('GenICamTL', 'device', Information, ValueList)</l>
+<l>Device := ValueList[0]</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[1,2,1]" as_ord="1">open_framegrabber ('GenICamTL', 0, 0, 0, 0, 0, 0, 'progressive', -1, 'default', -1, 'false', 'default', Device, 0, -1, AcqHandle)</l>
+<c>* Device is in setup mode after opening, anyway show how to do set it</c>
+<l>set_framegrabber_param (AcqHandle, 'CameraMode', 'Setup')</l>
+<c>* Get image dimensions</c>
+<l>get_framegrabber_param (AcqHandle, 'image_width', Width)</l>
+<l>get_framegrabber_param (AcqHandle, 'image_height', Height)</l>
+<c>* </c>
+<c>* Prepare some graphics windows using the above image dimensions</c>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width / 2, Height / 2, 'black', WindowID1)</l>
+<l>dev_open_window (0, Width / 2 + 20, Width / 2, Height / 2, 'black', WindowID2)</l>
+<l>dev_open_window (0, Width + 40, Width / 2, Height / 2, 'black', WindowID3)</l>
+<l>dev_open_window (Height / 2 + 70, 0, Width / 2, Height / 2, 'black', WindowID4)</l>
+<l>dev_open_window (Height / 2 + 70, Width / 2 + 20, Width / 2, Height / 2, 'black', WindowID5)</l>
+<l>dev_open_window (Height / 2 + 70, Width + 40, Width / 2, Height / 2, 'black', WindowID6)</l>
+<c>* </c>
+<l>while (true)</l>
+<c>    * Grab a greyscale image</c>
+<l>    set_framegrabber_param (AcqHandle, 'CameraMode', 'Setup')</l>
+<l>    dev_set_window (WindowID6)</l>
+<l>    grab_image (ImageGrey, AcqHandle)</l>
+<l>    dev_display (ImageGrey)</l>
+<l>    disp_message (WindowID6, 'Setup', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Now switch to measuring mode and enable additional maps</c>
+<c>    * Note: these will automatically enlarge the main image and</c>
+<c>    *       it is necessary to extract them later on</c>
+<l>    set_framegrabber_param (AcqHandle, 'CameraMode', 'Measuring')</l>
+<l>    set_framegrabber_param (AcqHandle, 'MeasuringMapTexture', 1)</l>
+<l>    set_framegrabber_param (AcqHandle, 'MeasuringMapValidity', 1)</l>
+<c>    * </c>
+<l>    dev_set_window (WindowID1)</l>
+<l>    dev_clear_window ()</l>
+<c>    * grab the image</c>
+<l>    grab_image (Image, AcqHandle)</l>
+<l>    get_image_size (Image, Width, Height)</l>
+<c>    * This image contains 3 sub-images adapt Height accordingly</c>
+<l>    Height := Height / 3</l>
+<c>    * </c>
+<c>    * Extract the measure image, this is only possible as long as the</c>
+<c>    * Image which was grabbed above exists</c>
+<l>    crop_rectangle1 (Image, ImageMeasure, 0, 0, Height - 1, Width - 1)</l>
+<l>    dev_display (ImageMeasure)</l>
+<l>    disp_message (WindowID1, 'Measure', 'window', 10, 10, 'black', 'true')</l>
+<l>    get_framegrabber_param (AcqHandle, 'MeasuringScaleX', MeasuringScaleX)</l>
+<l>    disp_message (WindowID1, 'ScaleX: ' + MeasuringScaleX, 'window', 30, 10, 'black', 'true')</l>
+<l>    get_framegrabber_param (AcqHandle, 'MeasuringScaleY', MeasuringScaleY)</l>
+<l>    disp_message (WindowID1, 'ScaleY: ' + MeasuringScaleY, 'window', 50, 10, 'black', 'true')</l>
+<l>    get_framegrabber_param (AcqHandle, 'MeasuringScaleZ', MeasuringScaleZ)</l>
+<l>    disp_message (WindowID1, 'ScaleZ: ' + MeasuringScaleZ, 'window', 70, 10, 'black', 'true')</l>
+<l>    Scale := [MeasuringScaleX,MeasuringScaleY,MeasuringScaleZ]</l>
+<c>    * </c>
+<c>    * Switch to next window and extract texture image</c>
+<l>    dev_set_window (WindowID2)</l>
+<l>    dev_clear_window ()</l>
+<l>    crop_rectangle1 (Image, ImageTexture, Height, 0, (Height * 2) - 1, Width - 1)</l>
+<l>    dev_display (ImageTexture)</l>
+<l>    disp_message (WindowID2, 'Texture', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Switch to next window and extract validity image</c>
+<l>    dev_set_window (WindowID3)</l>
+<l>    dev_clear_window ()</l>
+<l>    crop_rectangle1 (Image, ImageValidity, Height * 2, 0, (Height * 3) - 1, Width - 1)</l>
+<l>    dev_display (ImageValidity)</l>
+<l>    disp_message (WindowID3, 'Validity', 'window', 10, 10, 'black', 'true')</l>
+<c>    * Generate a region from this image</c>
+<l>    threshold (ImageValidity, RegionValidity, 1, 1)</l>
+<c>    * </c>
+<c>    * Now use the above images together with the scale imformation</c>
+<c>    * to generate useful data for HALCON</c>
+<c>    * </c>
+<c>    * Create X image with correct scaling</c>
+<l>    gen_image_surface_first_order (ImageX, 'real', 0, Scale[0], 0, Height / 2, Width / 2, Width, Height)</l>
+<c>    * </c>
+<c>    * Create Y image with correct scaling</c>
+<l>    gen_image_surface_first_order (ImageY, 'real', Scale[1], 0, 0, Height / 2, Width / 2, Width, Height)</l>
+<c>    * </c>
+<c>    * Create Z image</c>
+<c>    * Fixed distance of measurement plane distance [mm] for AreaScan3D</c>
+<l>    MeasurePlaneDistance := 350</l>
+<l>    dev_set_window (WindowID4)</l>
+<l>    dev_clear_window ()</l>
+<l>    reduce_domain (ImageMeasure, RegionValidity, ImageMeasureValid)</l>
+<l>    convert_image_type (ImageMeasureValid, ImageMeasureReal, 'real')</l>
+<l>    scale_image (ImageMeasureReal, ImageZ, -Scale[2], MeasurePlaneDistance)</l>
+<l>    dev_display (ImageZ)</l>
+<l>    disp_message (WindowID4, 'Z-Image', 'window', 10, 10, 'black', 'true')</l>
+<c>    * </c>
+<c>    * Generate an ObjectModel3D and visualize it, press button to continue</c>
+<l>    dev_set_window (WindowID5)</l>
+<l>    xyz_to_object_model_3d (ImageX, ImageY, ImageZ, ObjectModel3D)</l>
+<l>    Instructions[0] := 'Rotate: Left button'</l>
+<l>    Instructions[1] := 'Zoom:   Shift + left button'</l>
+<l>    Instructions[2] := 'Move:   Ctrl  + left button'</l>
+<l>    visualize_object_model_3d (WindowID5, ObjectModel3D, [], [], 'intensity', 'coord_z', 'ObjectModel3D', [], Instructions, PoseOut)</l>
+<c>    * Clear the ObjectModel3D for the next loop</c>
+<l>    clear_object_model_3d (ObjectModel3D)</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[3,1]" as_ord="1">endwhile</l>
+<l as_id="image_acquisition" as_name="Image Acquisition 01" as_grp="[4,1]" as_ord="1">close_framegrabber (AcqHandle)</l>
+<l>dev_update_window ('on')</l>
+<c>* </c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

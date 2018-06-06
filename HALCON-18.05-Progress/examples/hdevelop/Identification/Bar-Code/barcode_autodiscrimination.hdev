@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Example program for the usage of the bar code</c>
+<c>* reader autodiscrimination feature of HALCON.</c>
+<c>* </c>
+<c>* Create bar code reader model</c>
+<l>create_bar_code_model ([], [], BarCodeHandle)</l>
+<l>set_bar_code_param (BarCodeHandle, 'quiet_zone', 'true')</l>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<l>dev_set_color ('forest green')</l>
+<c>* </c>
+<c>* Define the example images to use</c>
+<c>*  for part I</c>
+<l>ExampleImagesAny := ['barcode/ean13/ean1301','barcode/code39/code3901','barcode/gs1databar_omnidir/gs1databar_omnidir_01']</l>
+<l>ExpectedNumCodes := [1,2,1]</l>
+<l>ExpectedData := ['4008535118906','92274A','R74-2001-010','(01)00098431358722']</l>
+<c>*  for part II</c>
+<l>ExampleImagesMixed := ['barcode/mixed/barcode_mixed_04','barcode/mixed/barcode_mixed_03','barcode/mixed/barcode_mixed_01']</l>
+<c>* </c>
+<c>* PART I</c>
+<c>* </c>
+<c>* Use autodiscrimination to decode any of the bar code types</c>
+<c>* supported by HALCON (except PharmaCode) or determine the bar</c>
+<c>* code type of unknown bar codes</c>
+<c>* </c>
+<l>for IdxExample := 0 to 1 by 1</l>
+<c>    * Use different parameters for each run</c>
+<c>    * First:  Search for all bar code types</c>
+<c>    * Second: Search only expected bar code types</c>
+<l>    Message := 'Usage of autodiscrimination to decode'</l>
+<l>    Message[1] := 'unknown bar code types.'</l>
+<l>    Message[2] := ' '</l>
+<l>    if (IdxExample == 0)</l>
+<l>        CodeTypes := 'auto'</l>
+<l>        Message[3] := 'Part I:'</l>
+<l>        Message[4] := 'Compare performance between automatic'</l>
+<l>        Message[5] := 'bar code discrimination and search for'</l>
+<l>        Message[6] := 'specific code types only.'</l>
+<l>        Message[7] := ' '</l>
+<l>        Message[8] := 'In the first run we use CodeType=\'' + CodeTypes + '\' to look'</l>
+<l>        Message[9] := 'for all bar code types known to HALCON'</l>
+<l>        Message[10] := ' '</l>
+<l>        Message[11] := 'Please note that'</l>
+<l>        Message[12] := ' - Wrong bar codes may be found'</l>
+<l>        Message[13] := ' - Execution times are longer than necessary'</l>
+<l>        Color := [gen_tuple_const(|Message| - 2,'black'),gen_tuple_const(3,'red')]</l>
+<l>    else</l>
+<l>        CodeTypes := ['EAN-13','Code 39','GS1 DataBar Omnidir']</l>
+<l>        Message := 'In the second run we look for the expected types only:'</l>
+<l>        Message[1] := sum('  ' + CodeTypes)</l>
+<l>        Message[2] := 'This reduces the decoding time and'</l>
+<l>        Message[3] := 'increases the decoding reliability.'</l>
+<l>        Color := gen_tuple_const(|Message|,'black')</l>
+<l>    endif</l>
+<l>    dev_clear_window ()</l>
+<l>    disp_message (WindowHandle, Message, 'window', 12, 12, Color, 'true')</l>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<c>    * Run the test 2 times with different parameters</c>
+<l>    for IdxIma := 0 to |ExampleImagesAny| - 1 by 1</l>
+<l>        FileName := ExampleImagesAny[IdxIma]</l>
+<l>        read_image (Image, FileName)</l>
+<c>        * </c>
+<c>        * Set display defaults</c>
+<l>        get_image_size (Image, Width, Height)</l>
+<l>        dev_set_window_extents (-1, -1, Width, Height)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, ['Looking for bar code(s) of type:',sum(' ' + CodeTypes)], 'window', 12, 12, 'black', 'true')</l>
+<c>        * </c>
+<c>        * Find and decode bar codes. Measure the time needed.</c>
+<l>        count_seconds (Start)</l>
+<l>        find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeTypes, DecodedDataStrings)</l>
+<l>        count_seconds (Stop)</l>
+<l>        Duration := (Stop - Start) * 1000</l>
+<c>        * </c>
+<c>        * Check, if results are correct</c>
+<l>        Start := sum(ExpectedNumCodes[0:IdxIma]) - ExpectedNumCodes[IdxIma]</l>
+<l>        DataExp := ExpectedData[Start:Start + ExpectedNumCodes[IdxIma] - 1]</l>
+<l>        WrongIndex := []</l>
+<l>        for I := 0 to |DecodedDataStrings| - 1 by 1</l>
+<l>            tuple_find (DataExp, DecodedDataStrings[I], Indices)</l>
+<l>            if (Indices == -1)</l>
+<l>                WrongIndex := [WrongIndex,I]</l>
+<l>            endif</l>
+<l>        endfor</l>
+<l>        Color := ['black',gen_tuple_const(|DecodedDataStrings|,'forest green')]</l>
+<l>        Color[WrongIndex + 1] := 'red'</l>
+<c>        * </c>
+<c>        * Display results and the execution time</c>
+<l>        for I := 1 to |DecodedDataStrings| by 1</l>
+<l>            select_obj (SymbolRegions, ObjectSelected, I)</l>
+<l>            dev_set_color (Color[I])</l>
+<l>            dev_display (ObjectSelected)</l>
+<l>        endfor</l>
+<l>        get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedDataTypes)</l>
+<l>        disp_message (WindowHandle, ['Found bar code(s) in ' + Duration$'.0f' + ' ms:',DecodedDataTypes + ': ' + DecodedDataStrings], 'window', 5 * 12, 12, Color, 'true')</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<l>endfor</l>
+<c>* </c>
+<c>* Part II</c>
+<c>* </c>
+<c>* Now we decode multiple bar code types</c>
+<c>* </c>
+<c>* Display information for the user</c>
+<l>Message := 'Part II'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'Now we demonstrate the usage of autodiscrimination'</l>
+<l>Message[3] := 'to decode multiple mixed bar code types within one image.'</l>
+<l>dev_clear_window ()</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for IdxExample := 0 to 1 by 1</l>
+<l>    if (IdxExample)</l>
+<c>        * </c>
+<c>        * We could scan for all bar codes except certain bar code</c>
+<c>        * families...</c>
+<l>        get_param_info ('find_bar_code', 'CodeType', 'value_list', AllCodeTypes)</l>
+<l>        NoGS1 := '~' + regexp_select(AllCodeTypes,'GS1.*')</l>
+<l>        NoUPC := '~' + regexp_select(AllCodeTypes,'UPC.*')</l>
+<l>        CodeTypes := ['auto',NoGS1,NoUPC]</l>
+<l>        CodeTypesDescription := 'all types, except GS1 and UPC variants'</l>
+<l>    else</l>
+<c>        * </c>
+<c>        * ...or (as we do here) scan only for the EAN family and</c>
+<c>        * Code 39</c>
+<l>        get_param_info ('find_bar_code', 'CodeType', 'value_list', AllCodeTypes)</l>
+<l>        AllEAN := regexp_select(AllCodeTypes,'EAN-13.*')</l>
+<l>        CodeTypes := [AllEAN,'Code 39']</l>
+<l>        CodeTypesDescription := 'Code 39 and all EAN variants'</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * Demonstrate autodiscrimination for mixed bar code types</c>
+<l>    for IdxIma := 0 to |ExampleImagesMixed| - 1 by 1</l>
+<l>        FileName := ExampleImagesMixed[IdxIma]</l>
+<l>        read_image (Image, FileName)</l>
+<c>        * </c>
+<c>        * Display image and description</c>
+<l>        get_image_size (Image, Width, Height)</l>
+<l>        dev_set_window_extents (-1, -1, Width / 2, Height / 2)</l>
+<l>        dev_display (Image)</l>
+<l>        disp_message (WindowHandle, ['Looking for bar code(s) of type:',' ' + CodeTypesDescription], 'window', 12, 12, 'black', 'true')</l>
+<c>        * </c>
+<c>        * Decode mixed bar codes</c>
+<l>        find_bar_code (Image, SymbolRegions, BarCodeHandle, CodeTypes, DecodedDataStrings)</l>
+<c>        * </c>
+<c>        * Display decoded data and symbol region</c>
+<l>        dev_set_color ('forest green')</l>
+<l>        dev_display (SymbolRegions)</l>
+<l>        get_bar_code_result (BarCodeHandle, 'all', 'decoded_types', DecodedDataTypes)</l>
+<l>        area_center (SymbolRegions, Area, Rows, Columns)</l>
+<l>        disp_message (WindowHandle, DecodedDataTypes + ': ' + DecodedDataStrings, 'image', Rows, Columns - 160, 'forest green', 'true')</l>
+<l>        if (IdxIma &lt; |ExampleImagesMixed| - 1 or IdxExample == 0)</l>
+<l>            disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>            stop ()</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

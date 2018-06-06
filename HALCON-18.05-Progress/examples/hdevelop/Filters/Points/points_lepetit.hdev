@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This program illustrates how to use the Lepetit point detector.</c>
+<c>* </c>
+<l>read_image (Image, 'fabrik')</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_image (Image, 0, 0, [500,800], [400,800], WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<l>Radius := 3</l>
+<l>CheckNeighbor := 0</l>
+<l>MinCheckNeighborDiff := 20</l>
+<l>MinScore := 25</l>
+<l>Subpix := 'none'</l>
+<c>* </c>
+<l>count_seconds (S1)</l>
+<l>points_lepetit (Image, Radius, CheckNeighbor, MinCheckNeighborDiff, MinScore, Subpix, Row, Column)</l>
+<l>count_seconds (S2)</l>
+<l>gen_cross_contour_xld (Cross, Row, Column, 6, rad(45))</l>
+<c>* </c>
+<l>dev_display (Image)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_display (Cross)</l>
+<l>disp_message (WindowHandle, |Row| + ' points found in ' + (1000 * (S2 - S1))$'.3' + ' ms', 'window', 12, 12, 'black', 'true')</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

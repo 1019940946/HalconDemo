@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="18.05">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ------------------------------</c>
+<c>* Note: Before you start this example,</c>
+<c>* execute the example for 'write_region'</c>
+<c>* to create the region ('region') to read.</c>
+<c>* ------------------------------</c>
+<l>read_image (Image, 'fabrik')</l>
+<l>read_region (Region, 'region')</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_display (Region)</l>
+<c>* Read a binary tiff image as region</c>
+<l>get_system ('clip_region', Information)</l>
+<l>set_system ('clip_region', 'false')</l>
+<l>dev_clear_window ()</l>
+<l>read_region (ImageRegion, 'bitrot')</l>
+<l>dev_clear_window ()</l>
+<l>read_region (ImageRegion, 'largebw1')</l>
+<l>smallest_rectangle1 (ImageRegion, Row1, Column1, Row2, Column2)</l>
+<l>dev_set_part (Row1, Column1, Row2, Column2)</l>
+<l>dev_display (ImageRegion)</l>
+<l>set_system ('clip_region', Information)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>
