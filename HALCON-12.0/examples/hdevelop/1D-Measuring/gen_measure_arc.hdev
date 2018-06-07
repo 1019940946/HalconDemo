@@ -3,7 +3,7 @@
 <procedure name="main">
 <interface/>
 <body>
-<c>* 521. Example for the application of the HALCON Measure Tool</c>
+<c>* 5231. Example for the application of the HALCON Measure Tool</c>
 <c>* (in this program: pure image processing without visualization)</c>
 <c>* </c>
 <l>read_image (Zeiss1, 'zeiss1')</l>
