@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<hdevelop file_version="1.1" halcon_version="18.05">
+<hdevelop file_version="1.2" halcon_version="18.05">
 <procedure name="main">
 <interface/>
 <body>
-<c>* This example program shows how to read the characters that</c>
-<c>* were trained with the example program train_characters_ocr.hdev.</c>
-<c>* Note that you have to run train_characters_ocr.hdev first.</c>
-<c>* </c>
+<c>*这个示例程序演示了如何读取字符</c>
+<c>*使用示例程序train_characters_ocr.hdev进行培训。</c>
+<c>*注意，你必须首先运行train_characters_ocr.hdev。</c>
 <l>read_image (Image, 'ocr/chars_01.png')</l>
 <l>get_image_pointer1 (Image, Pointer, Type, Width, Height)</l>
 <l>dev_close_window ()</l>
@@ -24,8 +23,8 @@
 <c>    * Read the SVM font file from file</c>
 <l>    read_ocr_class_svm ('font_characters_ocr', OCRHandle)</l>
 <c>    * </c>
-<c>    * For each image, extract the regions of the characters</c>
-<c>    * and read them using the trained OCR classifier</c>
+<c>    * 对于每个图像，提取字符的区域</c>
+<c>     *并使用经过训练的OCR分类器读取它们</c>
 <l>    for I := 1 to 3 by 1</l>
 <l>        read_image (Image, 'ocr/chars_' + I$'.2d')</l>
 <l>        dev_display (Image)</l>

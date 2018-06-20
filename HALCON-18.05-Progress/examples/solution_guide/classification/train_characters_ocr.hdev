@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<hdevelop file_version="1.1" halcon_version="18.05">
+<hdevelop file_version="1.2" halcon_version="18.05">
 <procedure name="main">
 <interface/>
 <body>
-<c>* This example program trains a font that consists</c>
-<c>* of the characters A to G. The font is used in</c>
-<c>* the example program classify_characters_ocr.hdev</c>
-<c>* to read the corresponding characters.</c>
+<c>*这个示例程序训练一个字体文件，字符a到g。字体用于</c>
+<c>*示例程序classify_characters_ocr.hdev</c>
+<c>*读取相应的字符。 </c>
 <c>* </c>
 <l>read_image (Image, 'ocr/chars_training_01.png')</l>
 <l>get_image_pointer1 (Image, Pointer, Type, Width, Height)</l>
@@ -20,12 +19,12 @@
 <l>dev_update_pc ('off')</l>
 <l>dev_update_var ('off')</l>
 <c>* </c>
-<c>* Create an SVM classifier for the characters A to G</c>
+<c>* 为字符A到G创建SVM分类器</c>
 <l>ClassNames := ['A','B','C','D','E','F','G']</l>
 <l>create_ocr_class_svm (8, 10, 'constant', ['convexity','num_holes','projection_horizontal','projection_vertical'], ClassNames, 'rbf', 0.02, 0.05, 'one-versus-one', 'normalization', 10, OCRHandle)</l>
-<c>* </c>
-<c>* Read the training images and store the regions</c>
-<c>* of the characters to a training file</c>
+<c></c>
+<c>*读取培训图像并存储区域</c>
+<c>*字符到训练文件</c>
 <l>for I := 1 to 7 by 1</l>
 <l>    read_image (Image, 'ocr/chars_training_' + I$'.2d')</l>
 <l>    dev_display (Image)</l>
@@ -47,7 +46,7 @@
 <l>    stop ()</l>
 <l>endfor</l>
 <c>* </c>
-<c>* Check if the content of the training file is correct</c>
+<c>* 检查培训文件的内容是否正确</c>
 <l>read_ocr_trainf (Characters, 'train_characters_ocr.trf', CharacterNames)</l>
 <l>count_obj (Characters, NumberCharacters)</l>
 <l>for I := 1 to NumberCharacters by 1</l>
@@ -58,8 +57,8 @@
 <l>*     stop ()</l>
 <l>endfor</l>
 <c>* </c>
-<c>* Train the font, write the font to file,</c>
-<c>* and clear the classifier from memory</c>
+<c>*训练字体，将字体写入文件，</c>
+<c>*并从内存中清除分类器</c>
 <l>trainf_ocr_class_svm (OCRHandle, 'train_characters_ocr.trf', 0.001, 'default')</l>
 <l>reduce_ocr_class_svm (OCRHandle, 'bottom_up', 2, 0.001, OCRHandleReduced)</l>
 <l>write_ocr_class_svm (OCRHandleReduced, 'font_characters_ocr')</l>
