@@ -3,18 +3,18 @@
 <procedure name="main">
 <interface/>
 <body>
-<c>* This example demonstrates how to use a drawing object of type</c>
-<c>* 'circle_arc' for an interactive edge detection application.</c>
-<c>* While interactively moving, resizing, or changing the angle</c>
-<c>* of the drawing object, a filter is applied to detect edges</c>
-<c>* within the area enclosed by the draw object.</c>
-<c>* </c>
-<c>* In contrast to other drawing operators, e.g., draw_circle, the</c>
-<c>* use of drawing objects does not block the whole application.</c>
-<c>* Thus, the user may interact with the object or make changes</c>
-<c>* to the program without ending the interaction first.</c>
-<c>* </c>
-<c>* Initialize settings</c>
+<c>*此示例演示如何使用类型的绘图对象</c>
+<c>*用于交互式边缘检测应用的“圆弧”。</c>
+<c>*交互地移动、调整大小或改变角度</c>
+<c>*在绘图对象中，应用过滤器来检测边缘。</c>
+<c>*在绘制对象包围的区域内。</c>
+<c></c>
+<c>*与其他绘图操作符相反，例如，拖拽圆，</c>
+<c>*使用绘图对象不会阻塞整个应用程序。</c>
+<c>*因此，用户可以与对象交互或进行更改。</c>
+<c>*对程序没有结束交互第一。</c>
+<c></c>
+<c>* 初始化设置</c>
 <l>dev_update_off ()</l>
 <l>dev_close_window ()</l>
 <l>set_system ('flush_graphic', 'true')</l>
@@ -37,11 +37,11 @@
 <l>endif</l>
 <l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
 <c>* Display short description</c>
-<l>Message := 'This example shows how to apply a Sobel filter'</l>
-<l>Message[1] := 'within the area of a drawing object of type'</l>
-<l>Message[2] := '\'circle_arc\' to detect edges while'</l>
-<l>Message[3] := 'interactively moving, resizing, or changing'</l>
-<l>Message[4] := 'the angle of the circle sector.'</l>
+<l>Message := '这个例子展示了如何应用Sobel滤波器。'</l>
+<l>Message[1] := '在类型的绘图对象的区域内'</l>
+<l>Message[2] := '\'circle_arc\' 边缘检测e'</l>
+<l>Message[3] := '交互移动、调整大小或改变'</l>
+<l>Message[4] := '圆扇形角.'</l>
 <l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
 <l>if (OS == 'Linux')</l>
 <l>    Message := 'Click into the window to continue.'</l>
@@ -55,15 +55,16 @@
 <l>endif</l>
 <c>* </c>
 <c>* Create a drawing object of type 'circle_arc' and set its color</c>
+<c>*创建一个类型为“Curclix弧”的绘图对象并设置其颜色</c>
 <l>create_drawing_object_circle_sector (250, 200, 100, 0, 3.14159, DrawID)</l>
 <l>set_drawing_object_params (DrawID, 'color', 'yellow')</l>
 <c>* </c>
-<c>* Attach the drawing object and the image to the window</c>
+<c>* 将绘图对象和图像附加到窗口</c>
 <l>attach_drawing_object_to_window (WindowHandle, DrawID)</l>
 <l>attach_background_to_window (Image, WindowHandle)</l>
 <c>* </c>
-<c>* Display a short description using a text drawing object</c>
-<l>Message := 'Move, resize or change the angles by dragging\nthe handles and border of the circle sector.\nExit the interaction by clicking the right\nmouse button.'</l>
+<c>* 使用文本绘制对象显示简短描述</c>
+<l>Message := '通过拖动移动、调整大小或改变角度\nthe handles and border of the circle sector.\nExit the interaction by clicking the right\nmouse button.'</l>
 <l>get_font (WindowHandle, Font)</l>
 <l>create_drawing_object_text (12, 20, Message, DrawIDMessage)</l>
 <l>set_drawing_object_params (DrawIDMessage, ['color','font'], ['yellow',Font])</l>
