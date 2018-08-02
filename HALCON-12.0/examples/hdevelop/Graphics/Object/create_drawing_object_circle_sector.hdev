@@ -64,25 +64,25 @@
 <l>attach_background_to_window (Image, WindowHandle)</l>
 <c>* </c>
 <c>* 使用文本绘制对象显示简短描述</c>
-<l>Message := '通过拖动移动、调整大小或改变角度\nthe handles and border of the circle sector.\nExit the interaction by clicking the right\nmouse button.'</l>
+<l>Message := '通过拖动移动\n调整大小或改变角度圆扇区的句柄和边框。\n单击鼠标右键退出交互。 '</l>
 <l>get_font (WindowHandle, Font)</l>
 <l>create_drawing_object_text (12, 20, Message, DrawIDMessage)</l>
 <l>set_drawing_object_params (DrawIDMessage, ['color','font'], ['yellow',Font])</l>
 <l>attach_drawing_object_to_window (WindowHandle, DrawIDMessage)</l>
 <c>* </c>
-<c>* Detect edges interactively using the drawing object</c>
-<c>* ***************************************************</c>
-<c>* Apply a sobel filter in the area of the drawing object to</c>
-<c>* extract edges. The circle sector can be moved, resized, or</c>
-<c>* changed interactively by the user. The edges are detected</c>
-<c>* constantly while the drawing object is adjusted.</c>
-<c>* The user interaction is ended by clicking the right mouse button.</c>
+<c>*使用绘图对象交互式地检测边缘</c>
+<c>*</c>
+<c>*在绘制对象的区域中应用Sobel筛选器</c>
+<c>*提取边缘。圆圈扇区可以移动，调整大小，或者</c>
+<c>*由用户交互更改。边缘检测</c>
+<c>*在绘制对象时不断调整。</c>
+<c>*通过单击鼠标右键结束用户交互。</c>
 <l>Button := 0</l>
 <l>while (Button != 4)</l>
 <l>    try</l>
 <l>        image_processing (Image, EdgeAmplitude, DrawID)</l>
 <l>        display_results (EdgeAmplitude, WindowHandle)</l>
-<c>        * Check the mouse position and button</c>
+<c>        * 检查鼠标位置和按钮</c>
 <l>        get_mposition (WindowHandle, Row, Column, Button)</l>
 <l>    catch (Exception)</l>
 <c>        * Keep waiting until the mouse is</c>
@@ -129,8 +129,8 @@
 </ic>
 </interface>
 <body>
-<c>* Use the region of the iconic representation of the</c>
-<c>* drawing object for the edge detection</c>
+<c>*使用图标的区域表示</c>
+<c>*用于边缘检测的绘制对象 </c>
 <l>get_drawing_object_iconic (Region, DrawID)</l>
 <l>reduce_domain (Image, Region, ImageReduced)</l>
 <l>sobel_amp (ImageReduced, EdgeAmplitude, 'sum_abs', 3)</l>
