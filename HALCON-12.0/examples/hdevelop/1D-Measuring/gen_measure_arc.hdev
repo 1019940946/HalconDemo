@@ -13,7 +13,7 @@
 <l>Radius := 107</l>
 <l>AngleStart := -rad(55)</l>
 <l>AngleExtend := rad(170)</l>
-<c>*lzf Prepare the extraction of straight edges perpendicular to an annular arc</c>
+<c>* Prepare the extraction of straight edges perpendicular to an annular arc</c>
 <l>gen_measure_arc (Row, Column, Radius, AngleStart, AngleExtend, 10, Width, Height, 'nearest_neighbor', MeasureHandle)</l>
 <c>* Extract straight edges perpendicular to a rectangle</c>
 <l>measure_pos (Zeiss1, MeasureHandle, 1, 10, 'all', 'all', RowEdge, ColumnEdge, Amplitude, Distance)</l>
